@@ -17,6 +17,8 @@ def index(request):
     user_orders = [m.Order(user, delivery) for delivery in user_deliveries]
     staffed_networks = m.Network.objects.filter(staff__in=[user])
     staffed_subgroups = m.Subgroup.objects.filter(staff__in=[user])
+    # TODO: reintegrate subgroup staff entries with network staff entries,
+    # TODO: when current user is net-staff and group-staff in the same network
     vars = {
         'as_user': {
             'open': [order.delivery for order in user_orders
@@ -64,33 +66,19 @@ def edit_delivery_products(request, delivery):
     return render_to_response('edit_delivery_products.html', vars)
 
 
-def _non_html_response(name_bits, name_extension, mime_type, content):
-    """Common helper to serve PDF and Excel content."""
-    filename = "_".join(name_bits) + "." + name_extension
-    response = HttpResponse(content_type=mime_type)
-    response['Content-Disposition'] = 'attachment; filename="%s"' % filename
-    response.write(content)
-    return response
-
-
-def view_delivery_purchases_html(request, delivery):
-    """View all purchases for a given delivery. Network staff only."""
-    delivery = m.Delivery.objects.get(id=delivery)
-    subgroups = delivery.network.subgroup_set.all()
-    return render_to_response('view_delivery_purchases.html', _delivery_description(delivery, subgroups))
-
-
-def view_delivery_purchases_xlsx(request, delivery):
-    """View all purchases for a given delivery in an MS-Excel spreadsheet. Network staff only."""
-    delivery = m.Delivery.objects.get(id=delivery)
-    return _non_html_response((delivery.network.name, delivery.name), "xlsx",
-                              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                              spreadsheet.all(delivery))
-
-
 def _delivery_description(delivery, subgroups):
-    """
-        { "table": subgroup_idx -> { "subgroup": subgroup,
+    """Generate a description of the purchases performed by users in `subgroups`
+    for `delivery`. The resulting dictionary is used to render HTML as well as
+    PDF and MS-Excel views. It's used both to display the complete order to network staff,
+    and their subgroup's purchases to subgroup staff (in this case `subgroups` is expected
+    to have only one element).
+
+    The resulting dictionaty is structured as follows, with many data organized by numeric
+    indexes rather than hashtables in order to ease tabular rendering:
+
+        { "delivery": delivery,
+          "products": product_idx -> product,
+          "table": subgroup_idx -> { "subgroup": subgroup,
                                      "totals": product_idx -> { "product": product,
                                                                 "quantity": number,
                                                                 "full_packages": number,
@@ -98,7 +86,12 @@ def _delivery_description(delivery, subgroups):
                                      "users": user_idx -> { "user": user,
                                                             "orders": product_idx -> order.
                                                              "price": number},
-                                     "price": number } }
+                                     "price": number },
+          "product_totals": productPidx -> { "product": product,
+                                             "quantity": number,
+                                             "full_packages": number,
+                                             "out_of_packages": number },
+          "price": number }
     """
     # List of products, ordered by name
     products = delivery.product_set.order_by('name')
@@ -189,67 +182,44 @@ def _delivery_description(delivery, subgroups):
         'price': price
     }
 
-def _subgroup_purchases_vars(delivery, user):
-    subgroup = delivery.network.subgroup_set.get(staff__in=[user])
-    products = delivery.product_set.order_by('name')
-    users = subgroup.users.order_by('last_name', 'first_name')
-    orders = m.Order.by_user_and_product(delivery, users, products)
 
-    # Compute quantities per product 1: initialize
-    totals_by_product = {pd: {
-        'quantity': 0,
-        'product': pd
-    } for pd in products}
+def _non_html_response(name_bits, name_extension, mime_type, content):
+    """Common helper to serve PDF and Excel content."""
+    filename = "_".join(name_bits) + "." + name_extension
+    response = HttpResponse(content_type=mime_type)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % filename
+    response.write(content)
+    return response
 
-    # Compute quantities per product 2: add up quantities
-    for o in orders.itervalues():
-        for pc in o.purchases:
-            if pc:
-                totals_by_product[pc.product]['quantity'] += pc.granted
 
-    # Compute quantities per product 3: count packages
-    for pd, count in totals_by_product.iteritems():
-        qpp = pd.quantity_per_package
-        if qpp:
-            count['full_packages'] = count['quantity'] // qpp
-            count['out_of_packages'] = count['quantity'] % qpp
+def view_delivery_purchases_html(request, delivery):
+    """View all purchases for a given delivery. Network staff only."""
+    delivery = m.Delivery.objects.get(id=delivery)
+    subgroups = delivery.network.subgroup_set.all()
+    return render_to_response('view_purchases.html', _delivery_description(delivery, subgroups))
 
-    # Compute quantities per product 4: dict -> sorted list
-    totals_by_product=totals_by_product.items()
-    def cmp_product_items(item):
-        (k, v) = item
-        return k.name
-    totals_by_product.sort(cmp=cmp_product_items)
-    totals_by_product = [v for k, v in totals_by_product]
 
-    # Orders: user/order dict -> order list sorted by user name
-    orders = orders.values()
-    orders.sort(key=lambda o: o.user.last_name+' '+o.user.first_name)
-
-    return {
-        'delivery': delivery,
-        'subgroup': subgroup,
-        'products': products,
-        'orders': orders,
-        'totals_by_product': totals_by_product,
-        'total_price': sum(o.price for o in orders)
-    }
-
+def view_delivery_purchases_xlsx(request, delivery):
+    """View all purchases for a given delivery in an MS-Excel spreadsheet. Network staff only."""
+    delivery = m.Delivery.objects.get(id=delivery)
+    return _non_html_response((delivery.network.name, delivery.name), "xlsx",
+                              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                              spreadsheet.all(delivery))
 
 
 def view_subgroup_purchases_html(request, delivery):
     """View the purchases of a subgroup. Subgroup staff only."""
     delivery = m.Delivery.objects.get(id=delivery)
-    user = request.user
+    subgroup = delivery.network.subgroup_set.get(staff__in=[request.user])
 
-    return render_to_response('view_subgroup_purchases.html',
-                              _subgroup_purchases_vars(delivery, user))
+    return render_to_response('view_purchases.html',
+                              _delivery_description(delivery, [subgroup]))
 
 
 def view_subgroup_purchases_xlsx(request, delivery):
     """View the purchases of a subgroup. Subgroup staff only."""
     delivery = m.Delivery.objects.get(id=delivery)
-    user = request.user
+    subgroup = delivery.network.subgroup_set.get(staff__in=[request.user])
     return _non_html_response((delivery.network.name, delivery.name), "xlsx",
                               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                               spreadsheet.subgroup(_subgroup_purchases_vars(delivery, user)))
@@ -258,8 +228,7 @@ def view_subgroup_purchases_xlsx(request, delivery):
 
 def view_subgroup_purchases_pdf(request, delivery):
     delivery = m.Delivery.objects.get(id=delivery)
-    user = request.user
-    subgroup = delivery.network.subgroup_set.get(staff__in=[user])
+    subgroup = delivery.network.subgroup_set.get(staff__in=[request.user])
     return _non_html_response((delivery.network.name, delivery.name), "xlsx",
                               "application/pdf",
                               pdf.subgroup(_subgroup_purchases_vars(delivery, user)))
@@ -271,7 +240,7 @@ def edit_subgroup_purchases(request, delivery):
     user = request.user
     subgroup = delivery.network.subgroup_set.get(staff__in=[user])
     vars = { }
-    return render_to_response('view_subgroup_purchases.html', vars)
+    return render_to_response('edit_subgroup_purchases.html', vars)
 
 
 def edit_user_purchases(request, delivery):

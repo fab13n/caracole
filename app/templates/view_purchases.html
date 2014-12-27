@@ -1,0 +1,122 @@
+{% extends "layout_wide.html" %}
+{% load price %}
+
+{% block head %}
+{% if table|length > 1 %}
+    <script type='text/javascript'>
+      var DISPLAYED_SUBGROUPS = [ {%for sgr in table%}{{sgr.subgroup.id}}, {%endfor%}];
+      function attach_visibility_toggle(sg_id) {
+        $('#subgroup_row_'+sg_id).click(function() {
+          // console.log("Toggle visibility for subgroup "+sg_id);
+          $('#subgroup_'+sg_id+'_user_row').toggle();
+        })
+      }
+      $(document).ready(function() {
+        for(var i=0; i!==DISPLAYED_SUBGROUPS.length; i++) {
+          var sg_id = DISPLAYED_SUBGROUPS[i];
+          attach_visibility_toggle(sg_id);
+        }
+        $('.user_row').toggle()
+      })
+    </script>
+    <style type="text/css">
+      .subgroup_row, .subgroup_row th { color: white; background-color: #a75a50; font-weight: bold; }
+    </style>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<h1>Commandes {{delivery.network.name}} / {{delivery.name}}</h1>
+
+<table>
+
+    {# Product names #}
+    <tr>
+        <td class="blank">{# no product in users' column #}</td>
+        {% for pd in products %}
+        <th class="top">{{pd.name}}</th>
+        {% endfor %}
+        <th class="top">Prix</th>
+    </tr>
+
+
+    {# Product quantities per package, if applicable #}
+    <tr>
+        <th class="left">Par paquet</th>
+        {% for pd in products %}
+        <td>{{pd.quantity_per_package}} {{pd.unit}}</td>
+        {% endfor %}
+        <td>{# no quantity in "Price" column #}</td>
+    </tr>
+
+
+    {% comment %}
+     # table: subgroup_idx -> { "subgroup": subgroup,
+     #                          "totals": product_idx -> { "product": product,
+     #                                                     "quantity": number,
+     #                                                     "full_packages": number,
+     #                                                     "out_of_packages": number }.
+     #                          "users": user_idx -> { "user": user,
+     #                                                 "orders": product_idx -> order.
+     #                                                 "price": number },
+     #                          "price": number }
+    {% endcomment %}
+    {% for sgr in table %}
+    {% if table|length > 1 %}
+    <tr class="subgroup_row" id="subgroup_row_{{sgr.subgroup.id}}">
+        <th class="left">{{sgr.subgroup.name}}</th>
+        {% for t in sgr.totals %}
+        <td>{{t.quantity}}</td>
+        {% endfor %}
+        <td>{{sgr.price|price}}</td>
+    </tr>
+    {% endif %}
+    {# each subgroup user's row #}
+    {% for ur in sgr.users %}
+    <tr class="user_row" id="subgroup_{{sgr.subgroup.id}}_user_row">
+        <th class="left">{{ur.user.first_name}} {{ur.user.last_name}}</th>
+        {% for pc in ur.orders.purchases %}
+        {% if not pc %}
+        <td>-</td>
+        {% elif pc.is_satisfied %}
+        <td>{{pc.granted}}</td>
+        {% else %}
+        <td>
+            <span class="unsatisfied_ordered">{{pc.ordered}}</span>
+            <span class="unsatisfied_granted">{{pc.granted}}</span>
+        </td>
+        {% endif %}{# unsatisfied #}
+        {% endfor %}{# purchase #}
+        <td class="price">{{ur.price|price}}</td>
+    </tr>
+    {% endfor %}{# users within subgroup #}
+    {% endfor %}{# subgroup #}
+
+
+    {# Total quantities per product; is it an exact number of packages? #}
+    <tr>
+        <th class="left">Total</th>
+        {% for pt in product_totals %}
+        <td>
+            {% if pt.out_of_packages %}{# Some loose items #}
+            {{pt.quantity}} = <br/>
+            {{pt.full_packages}} × {{pt.product.quantity_per_package}} {{pt.product.unit}} <br/>
+            <span class="out_of_packages"> + {{pt.out_of_package}} {{pt.product.unit}}</span>
+            {% elif pt.full_packages %}{# round number of packages, no loose item. #}
+            {{pt.quantity}} = <br/>
+            <span class="nothing_out_of_package">
+                {{pt.full_packages}} × {{pt.product.quantity_per_package}} {{pt.product.unit}}
+            </span>
+            {% else %}{# unpackaged items #}
+            <span class="nothing_out_of_package">
+                {{pt.product.quantity_per_package}} {{pt.product.unit}}
+            </span>
+            {% endif %}
+        </td>
+        {% endfor %}{# grand total by product #}
+        <td>{{price|price}}</td>
+    </tr>
+
+</table>
+{% endblock %}
