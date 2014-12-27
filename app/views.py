@@ -76,22 +76,8 @@ def _non_html_response(name_bits, name_extension, mime_type, content):
 def view_delivery_purchases_html(request, delivery):
     """View all purchases for a given delivery. Network staff only."""
     delivery = m.Delivery.objects.get(id=delivery)
-    subgroups = delivery.network.subgroup_set
-    users = m.User.objects\
-        .filter(user_of__in=subgroups)\
-        .order_by('last_name', 'first_name')
-    products = delivery.product_set.order_by('name')
-    orders_by_user = m.Order.by_user_and_product(delivery, users, products)
-    orders_by_subgroup = {s: {} for s in subgroups}
-    for u, orders in orders_by_subgroup.iteritems():
-        orders[u] = orders_by_user[u]
-
-    vars = {
-        'delivery': delivery,
-        'products': products,
-        'orders': orders_by_subgroup
-    }
-    return render_to_response('view_delivery_purchases.html', vars)
+    subgroups = delivery.network.subgroup_set.all()
+    return render_to_response('view_delivery_purchases.html', _delivery_description(delivery, subgroups))
 
 
 def view_delivery_purchases_xlsx(request, delivery):
@@ -102,12 +88,109 @@ def view_delivery_purchases_xlsx(request, delivery):
                               spreadsheet.all(delivery))
 
 
-def view_subgroup_purchases_html(request, delivery):
-    """View the purchases of a subgroup. Subgroup staff only."""
-    delivery = m.Delivery.objects.get(id=delivery)
-    user = request.user
-    subgroup = delivery.network.subgroup_set.get(staff__in=[user])
+def _delivery_description(delivery, subgroups):
+    """
+        { "table": subgroup_idx -> { "subgroup": subgroup,
+                                     "totals": product_idx -> { "product": product,
+                                                                "quantity": number,
+                                                                "full_packages": number,
+                                                                "out_of_packages": number }.
+                                     "users": user_idx -> { "user": user,
+                                                            "orders": product_idx -> order.
+                                                             "price": number},
+                                     "price": number } }
+    """
+    # List of products, ordered by name
+    products = delivery.product_set.order_by('name')
+    # Iterable of all users in subgroups
+    users = m.User.objects.filter(user_of__in=subgroups)
+    # Dictionary user -> list of ordered, indexed as products
+    orders = m.Order.by_user_and_product(delivery, users, products)
 
+    # Compute totals per product per subgroup 1: initialize
+    # Dictionary subgroup -> product -> { product, granted_quantity }
+    sg_pd_totals = {
+        sg: {
+            pd: {
+                'product': pd,
+                'quantity': 0,
+            } for pd in products
+        } for sg in subgroups
+    }
+    sg_price = {sg: 0 for sg in subgroups}
+
+    # Generate user->subgroup dict, helper to compute totals per subgroup
+    user_to_subgroup = {}
+    for s in subgroups:
+        for u in s.users.iterator():
+            user_to_subgroup[u] = s
+
+    # Sum quantities per subgroup and per product;
+    for o in orders.itervalues():
+        s = user_to_subgroup[o.user]
+        for pc in o.purchases:
+            if pc:
+                sg_pd_totals[s][pc.product]['quantity'] += pc.granted
+
+    # Break up quantities in packages + loose items
+    for pd_totals in sg_pd_totals.itervalues():
+        for pd, totals in pd_totals.iteritems():
+            qty = totals['quantity']
+            qpp = pd.quantity_per_package
+            if qpp:
+                totals['full_packages'] = qty // qpp
+                totals['out_of_packages'] = qty % qpp
+
+    # Sum up grand total (all subgroups together) per product
+    product_totals = []
+    for i, pd in enumerate(products):
+        qty = sum(sg_pd_totals[sg][pd]['quantity'] for sg in subgroups)
+        qpp = pd.quantity_per_package
+        total = {'product': pd, 'quantity': qty}
+        if qpp:
+            total['full_packages'] = qty // qpp
+            total['out_of_packages'] = qty % qpp
+        product_totals.append(total)
+
+    # Convert dictionaries into ordered lists in `table`:
+    # subgroup_idx -> { "subgroup": subgroup,
+    #                   "totals": product_idx -> { "product": product,
+    #                                              "quantity": number,
+    #                                              "full_packages": number,
+    #                                              "out_of_packages": number }.
+    #                   "users": user_idx -> { "user": user,
+    #                                          "orders": product_idx -> order.
+    #                                          "price": number },
+    #                   "price": number }
+    table = []
+    for i, sg in enumerate(subgroups):
+        pd_totals = sg_pd_totals[sg]
+        pd_totals_list = []
+        user_orders = []
+        sg_item = {'subgroup': sg, 'totals': pd_totals_list, 'users': user_orders}
+        table.append(sg_item)
+        for j, pd in enumerate(products):
+            pd_totals_list.append(pd_totals[pd])
+        for k, u in enumerate(s.users.order_by('last_name', 'first_name')):
+            order = orders[u]
+            user_orders.append({
+                'user': u,
+                'orders': order,
+                'price': sum(pc.price for pc in order.purchases if pc)})
+        sg_item['price'] = sum(uo['price'] for uo in user_orders)
+
+    price = sum(x['price'] for x in table)
+
+    return {
+        'delivery': delivery,
+        'products': products,
+        'product_totals': product_totals,
+        'table': table,
+        'price': price
+    }
+
+def _subgroup_purchases_vars(delivery, user):
+    subgroup = delivery.network.subgroup_set.get(staff__in=[user])
     products = delivery.product_set.order_by('name')
     users = subgroup.users.order_by('last_name', 'first_name')
     orders = m.Order.by_user_and_product(delivery, users, products)
@@ -143,7 +226,7 @@ def view_subgroup_purchases_html(request, delivery):
     orders = orders.values()
     orders.sort(key=lambda o: o.user.last_name+' '+o.user.first_name)
 
-    vars = {
+    return {
         'delivery': delivery,
         'subgroup': subgroup,
         'products': products,
@@ -151,17 +234,26 @@ def view_subgroup_purchases_html(request, delivery):
         'totals_by_product': totals_by_product,
         'total_price': sum(o.price for o in orders)
     }
-    return render_to_response('view_subgroup_purchases.html', vars)
+
+
+
+def view_subgroup_purchases_html(request, delivery):
+    """View the purchases of a subgroup. Subgroup staff only."""
+    delivery = m.Delivery.objects.get(id=delivery)
+    user = request.user
+
+    return render_to_response('view_subgroup_purchases.html',
+                              _subgroup_purchases_vars(delivery, user))
 
 
 def view_subgroup_purchases_xlsx(request, delivery):
     """View the purchases of a subgroup. Subgroup staff only."""
     delivery = m.Delivery.objects.get(id=delivery)
     user = request.user
-    subgroup = delivery.network.subgroup_set.get(staff__in=[user])
     return _non_html_response((delivery.network.name, delivery.name), "xlsx",
                               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                              spreadsheet.subgroup(delivery, subgroup))
+                              spreadsheet.subgroup(_subgroup_purchases_vars(delivery, user)))
+
 
 
 def view_subgroup_purchases_pdf(request, delivery):
@@ -169,8 +261,8 @@ def view_subgroup_purchases_pdf(request, delivery):
     user = request.user
     subgroup = delivery.network.subgroup_set.get(staff__in=[user])
     return _non_html_response((delivery.network.name, delivery.name), "xlsx",
-                              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                              pdf.subgroup(delivery, subgroup))
+                              "application/pdf",
+                              pdf.subgroup(_subgroup_purchases_vars(delivery, user)))
 
 
 def edit_subgroup_purchases(request, delivery):

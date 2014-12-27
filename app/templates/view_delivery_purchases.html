@@ -1,7 +1,8 @@
 {% extends "layout.html" %}
+{% load price %}
 {% block content %}
 
-<h1>Commandes du sous-groupe {{subgroup.network.name}}/{{subgroup.name}} pour {{delivery.name}}</h1>
+<h1>Commandes {{delivery.network.name}} / {{delivery.name}}</h1>
 
 <table>
 
@@ -25,11 +26,30 @@
     </tr>
 
 
-    {# Orders per user #}
-    {% for o in orders %}
+    {% comment %}
+     # table: subgroup_idx -> { "subgroup": subgroup,
+     #                          "totals": product_idx -> { "product": product,
+     #                                                     "quantity": number,
+     #                                                     "full_packages": number,
+     #                                                     "out_of_packages": number }.
+     #                          "users": user_idx -> { "user": user,
+     #                                                 "orders": product_idx -> order.
+     #                                                 "price": number },
+     #                          "price": number }
+    {% endcomment %}
+    {% for sgr in table %}
+    <tr class="subgroup_row">
+        <th class="left">{{sgr.subgroup.name}}</th>
+        {% for t in sgr.totals %}
+        <td>{{t.quantity}}</td>
+        {% endfor %}
+        <td>{{sgr.price|price}}</td>
+    </tr>
+    {# each subgroup user's row #}
+    {% for ur in sgr.users %}
     <tr>
-        <th class="left">{{o.user.first_name}} {{o.user.last_name}}</th>
-        {% for pc in o.purchases %}
+        <th class="left">{{ur.user.first_name}} {{ur.user.last_name}}</th>
+        {% for pc in ur.orders.purchases %}
         {% if not pc %}
         <td>-</td>
         {% elif pc.is_satisfied %}
@@ -41,9 +61,10 @@
         </td>
         {% endif %}{# unsatisfied #}
         {% endfor %}{# purchase #}
-        <td class="price">{{o.price}}€</td>
+        <td class="price">{{ur.price|price}}</td>
     </tr>
-    {% endfor %}{# order #}
+    {% endfor %}{# users within subgroup #}
+    {% endfor %}{# subgroup #}
 
 
     {# Total quantities per product; is it an exact number of packages? #}
@@ -51,23 +72,24 @@
         <th class="left">Total</th>
         {% for pt in product_totals %}
         <td>
-            {% if pt.out_of_packages %}
-            {{pt.quantity}} = {{pt.full_packages}} * {{pt.product.quantity_per_package}} {{pt.product.unit}}
-                            + <span class="out_of_package">{{pt.out_of_package}} {{pt.product.unit}}</span>
-            {% elif full_packages %}
-            {{pt.quantity}} =
+            {% if pt.out_of_packages %}{# Some loose items #}
+            {{pt.quantity}} = <br/>
+            {{pt.full_packages}} × {{pt.product.quantity_per_package}} {{pt.product.unit}} <br/>
+            <span class="out_of_packages"> + {{pt.out_of_package}} {{pt.product.unit}}</span>
+            {% elif pt.full_packages %}{# round number of packages, no loose item. #}
+            {{pt.quantity}} = <br/>
             <span class="nothing_out_of_package">
-                {{pt.full_packages}} * {{pt.product.quantity_per_package}} {{pt.product.unit}}
+                {{pt.full_packages}} × {{pt.product.quantity_per_package}} {{pt.product.unit}}
             </span>
-            {% else %}{# loose articles, not in packages #}
+            {% else %}{# unpackaged items #}
             <span class="nothing_out_of_package">
                 {{pt.product.quantity_per_package}} {{pt.product.unit}}
             </span>
             {% endif %}
         </td>
-        {% endfor %}
+        {% endfor %}{# grand total by product #}
+        <td>{{price|price}}</td>
     </tr>
-
 
 </table>
 {% endblock %}
