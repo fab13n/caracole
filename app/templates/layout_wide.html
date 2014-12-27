@@ -1,58 +1,24 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-{{is_logged = auth.user;
-  is_admin  = is_logged and auth.has_membership('floreal_admin', auth.user.id)}}
+{% load static %}
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <title>{{=response.title or request.application}}</title>
-    {{response.files.append(URL(request.application,'static','layout/default_wide.css'))}}
-    {{response.files.append(URL('static','layout/superfish.js'))}}
-    {{include 'web2py_ajax.html'}}
+    <title>Circuits courts Caracole</title>
+    <link href="{% static 'layout/default_wide.css' %}" rel="stylesheet" type="text/css" />
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
-    <style type="text/css">
-      ul.web2py-menu-vertical { width: 150px; position: relative; top:1em; left:1em;  z-index:30; border:0; margin:0; padding: 0; list-style: none; text-decoration: none;}
-      ul.web2py-menu-vertical li { margin:0; padding:0; border:0; width: 150px; background: black; text-align:left;}
-      ul.web2py-menu-vertical li a { margin:0; padding: 1px 3px 1px 3px; border:0; width: 144px; color: white; font-size: 12px;}
-      div.flash { position: fixed; float: right; padding: 10px; top: 10px; right: 30px; opacity: 0.75; margin: 10px 10px 10px 10px; text-align: center; clear: both; color: #fff; font-size: 11pt; text-align: center; vertical-align: middle; cursor: pointer; background: black; border: 2px solid #fff; -moz-border-radius: 5px; -webkit-border-radius: 5px; z-index: 2; }
-      div.error { background-color: red; color: white; padding: 3px; }
-      //.auth_navbar { text-align:right; z-index:20; position: absolute; top: 2px; right:30px; border:0; padding:0 }
-      .auth_navbar { text-align:right; z-index:20; top: 2px; right:30px; border:0; padding:0 }
-    </style>
-
-    <script type='text/javascript'>
-      /* Round a float number to the nearest cent.
-      * Used for display only -> returns a string, not a number. */
-      function round_price(f) {
-        return Math.floor(f) + "." + Math.round(100*f)%100
-      }
-    </script>
-
-    {{block head}} {{end}}
+    <script type="text/javascript" src="{% static 'js/jquery.js' %}"></script>
+    {% block head %} {% endblock %}
   </head>
   <body>
-    <!-- start header -->
     <div id="wrapper">
-      <!-- start header -->
-      <div id="header">
-        {{try:}}{{=auth.navbar(action=URL('default','user'))}}{{except:pass}}
-        <div id="menu">
-          <!--{{=MENU(response.menu,_class='web2py-menu')}}-->
-          <script>
-            jQuery(document).ready(function(){jQuery('ul.web2py-menu').superfish({delay:400});});
-          </script>
-        </div>
-      </div>
-      <!-- end header -->
       <div id="logo">
-        <h1><a href='{{=URL('default', 'index')}}'>{{=response.title or request.application}}</a></h1>
-        <h2>{{=response.subtitle or '=response.subtitle'}}</h2>
+        <h1><a href='{% url "index" %}'>Circuits Courts Caracole</a></h1>
+        <h2>Gestion associative de commandes en circuits courts</h2>
       </div>
       <!-- start page -->
       <div id="page">
         <!-- start content -->
         <div id="content">
-          <div class="flash">{{=response.flash or ''}}</div>
-	  <p><a href="{{=URL('default', 'index')}}">{{=T("Back to main page")}}</a></p>
-          {{include}}
+          {% block content %}NO CONTENT{% endblock %}
         </div>
         <!-- end content -->
       </div>
@@ -60,3 +26,4 @@
     </div>
   </body>
 </html>
+  

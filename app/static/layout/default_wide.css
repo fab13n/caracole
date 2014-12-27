@@ -192,7 +192,6 @@ input, textarea, select {
 
 /* Content */
 #content {
-    position: absolute;
     padding: 30px 30px 0 0;
     margin-left: 10px;
 }
