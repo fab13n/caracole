@@ -1,0 +1,129 @@
+{% extends 'layout.html' %}
+
+{% block head %}
+
+  <style type="text/css">
+    td {
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+    td,th {
+      //border-collapse: collapse;
+      border: 1px solid #811305;
+    }
+    ul ul { margin-bottom: 0px; }
+    .authorized { color: green; }
+    .forbidden  { color: red;   }
+  </style>
+
+{% endblock head %}
+
+{% block content %}
+
+<h1>Gestion des commandes des réseaux Caracole</h1>
+
+<p>Bienvenue sur le site web de commande des réseaux Caracole.</p>
+
+<h2>Passer commande</h2>
+
+<ul>
+{% for order in as_user.open %}
+<li><a href="{% url 'edit_user_purchases' delivery=order.delivery.id %}">
+  Commander pour {{order.delivery.name}}
+</a></li>
+{% empty %}
+<li>Aucune commande à passer.</li>
+{% endfor %}
+</ul>
+
+<h2>Modifier vos commandes</h2>
+<ul>
+{% for order in as_user.modifiable %}
+<li>
+  <a href="{% url 'edit_user_purchases' delivery=order.delivery.id %}">
+    Modifier la commande {{order.delivery.name}} ({{order.price}}€)
+  </a>:
+  <ul>
+    {% for p in order.purchases %}
+    <li>{{p}}</li>
+    {% endfor %}
+  </ul>
+</li>
+{% empty %}
+<li>Aucune commande modifiable.</li>
+{% endfor %}
+</ul>
+
+<h2>Anciennes commandes</h2>
+<ul>
+{% for order in as_user.past %}
+<li>
+  {{order.delivery.network.name}}/{{order.delivery.name}}:
+  <ul>
+    {% for p in order.purchases %}
+      <li>{{p}}</li>
+    {% empty %}
+    <li>Vous n'aviez rien commandé.</li>
+    {% endfor %}
+  </ul>
+</li>
+{% empty %}
+<li>Pas d'anciennes commandes.</li>
+{% endfor %}
+</ul>
+
+
+{% for network, undelivered in as_staff.networks %}
+<h2>Administration du réseau {{network.name}}</h2>
+<ul>
+{% for d in undelivered %}
+  <li>{{d.name}}:
+    <ul>
+      <li><a href="{% url 'edit_delivery_products' delivery=d.id %}">
+        Modifier les produits disponibles.
+      </a></li>
+      <li>Voir les commandes
+        <a href="{% url 'view_delivery_purchases_html' delivery=d.id %}">en ligne</a>,
+        <a href="{% url 'view_delivery_purchases_xlsx' delivery=d.id %}">dans un tableau Excel.</a>
+      </li>
+      {% if d.is_open %}
+      <li><a href="{% url 'set_delivery_state' delivery=d.id state='Closed'%}">
+          Interdire les commandes.
+      </a></li>
+      {% else %}
+      <li><a href="{% url 'set_delivery_state' delivery=d.id state='Open'%}">
+          Autoriser les commandes.
+      </a></li>
+      <li><a href="{% url 'set_delivery_state' delivery=d.id state='Delivered'%}">
+          Archiver la livraison.
+      </a></li>
+      {% endif %}
+      </li>
+    </ul>
+  </li>
+{% empty %}
+  <li>Pas de commande en cours.</li>
+{% endfor %}
+  <li><a href="">Créer une nouvelle commande {{network.name}}.</a></li>
+</ul>
+{% endfor %}{# as_staff.networks #}
+
+
+
+{% for subgroup, undelivered in as_staff.subgroups %}
+<h2>Administration du sous-groupe {{subgroup.network.name}}/{{subgroup.name}}</h2>
+<ul>
+{% for d in undelivered %}
+  <li>Voir les commandes du sous-groupe {{subgroup.name}} pour {{d.name}}
+    <a href="{% url 'view_subgroup_purchases_html' delivery=d.id %}">en ligne</a>,
+    <a href="{% url 'view_subgroup_purchases_pdf' delivery=d.id %}">en PDF</a>,
+    <a href="{% url 'view_subgroup_purchases_xlsx' delivery=d.id %}">dans un tableau Excel</a>.
+  </li>
+  <li><a href="">Modifier les commandes du sous-groupe {{subgroup.name}} pour {{d.name}}</a></li>
+{% empty %}
+  <li>Pas de commande en cours.</li>
+{% endfor %}
+</ul>
+{% endfor %}{# as_staff.ubgroups #}
+
+{% endblock content %}

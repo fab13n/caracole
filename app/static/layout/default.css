@@ -1,0 +1,333 @@
+/*
+Based on a design by Free CSS Templates
+http://www.freecsstemplates.org
+Released for free under a Creative Commons Attribution 2.5 License
+*/
+
+body {
+	margin: 0;
+	padding: 0;
+	background: #71726E;
+	font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+	font-size: 13px;
+	color: #333333;
+}
+
+h1, h2, h3 {
+	margin: 0;
+	padding: 0;
+	font-family: Georgia, "Times New Roman", Times, serif;
+	font-weight: normal;
+	color: #811305;
+}
+
+h1 {
+	letter-spacing: -1px;
+	font-size: 32px;
+}
+
+h2 {
+	font-size: 23px;
+}
+
+p, ul, ol {
+	margin: 0 0 2em 0;
+	text-align: left;
+	line-height: 26px;
+}
+
+a:link {
+	color: #3B0700;
+}
+
+a:hover, a:active {
+	text-decoration: none;
+	color: #3B0700;
+}
+
+a:visited {
+	color: #3B0700;
+}
+
+img {
+	border: none;
+}
+
+img.left {
+	float: left;
+	margin-right: 15px;
+}
+
+img.right {
+	float: right;
+	margin-left: 15px;
+}
+
+/* Form */
+
+form {
+	margin: 0;
+	padding: 0;
+}
+
+fieldset {
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
+legend {
+	display: none;
+}
+
+input, textarea, select {
+	font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+	font-size: 13px;
+	color: #333333;
+}
+
+/* Header */
+
+#header {
+	width: 939px;
+	margin: 0 auto;
+}
+
+/* Menu */
+
+#menu {
+	float: left;
+	width: 939px;
+	height: 0px;
+	background: #000000;
+}
+
+#menu ul {
+	margin: 20px 0 0 30px;
+	padding: 0;
+	list-style: none;
+	line-height: normal;
+}
+
+#menu li {
+	display: block;
+	float: left;
+}
+
+#menu a {
+	display: block;
+	float: left;
+	margin-right: 3px;
+	padding: 0 20px;
+	background: url(images/img03.gif) no-repeat right 60%;
+	text-decoration: none;
+	text-transform: capitalize;
+	font: 12px Tahoma, Arial, Helvetica, sans-serif;
+	color: #FFFFFF;
+}
+
+#menu a:hover { 
+	text-decoration: none; 
+	color: #FFFFFF;
+}
+
+#menu .current_page_item a {
+	color: #FFFFFF;
+}
+
+/** LOGO */
+
+#logo {
+	float: left;
+	width: 939px;
+	height: 273px;
+	margin-left: 10px;
+	background: url(images/caracole_logo.jpg) no-repeat left top;
+}
+
+#logo h1, #logo h2 {
+	margin: 0;
+	line-height: normal;
+}
+
+#logo h1 { 
+	padding: 60px 0 0 140px;
+	font-family: Georgia, "Times New Roman", Times, serif;
+	font-size: 46px;
+	font-style: italic;
+}
+
+#logo h1 a {
+    text-decoration: none;
+    color: #811305;
+}
+#logo h1 a:hover { text-decoration: underline; }
+#logo a:visited  { color: #811305; }
+
+#logo h2 {
+	margin: 0;
+	padding: 0px 0 0 140px;
+	font: italic 15px Georgia, "Times New Roman", Times, serif;
+	color: #FFFFFF;
+}
+
+#logo a {
+	text-decoration: none;
+}
+
+#logo a:hover { text-decoration: underline; }
+
+
+#logo p a {
+	text-decoration: none;
+	color: #B6ACA2;
+}
+
+#logo p a:hover { text-decoration: underline; }
+
+#wrapper {
+	width: 960px;
+	margin: 0 auto;
+	background: url(images/img01.gif) repeat-y left top;
+}
+
+/* Page */
+
+#page {
+	width: 939px;
+	margin: 0 auto;
+}
+
+/* Content */
+
+#content {
+	float: right;
+	width: 715px;
+	padding: 30px 30px 0 0;
+}
+
+/* Sidebar */
+
+#sidebar {
+	float: left;
+	width: 160px;
+	padding: 30px 0 0 30px;
+}
+
+#sidebar ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+#sidebar li {
+	padding-bottom: 20px;
+}
+
+#sidebar li ul {
+}
+
+#sidebar li li {
+	margin: 0;
+	padding: 2px 0 2px 0;
+}
+
+#sidebar li li li {
+	margin: 0;
+    list-style: circle inside;
+}
+
+#sidebar h2 {
+	height: 32px;
+}
+
+/* Boxes */
+
+.box1 {
+	padding: 20px;
+}
+
+.box2 {
+	color: #BABABA;
+}
+
+.box2 h2 {
+	margin-bottom: 15px;
+	font-size: 16px;
+	color: #FFFFFF;
+}
+
+.box2 ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.box2 a:link, .box2 a:hover, .box2 a:active, .box2 a:visited  {
+	color: #EDEDED;
+}
+
+/* Footer */
+#footer-wrap {
+	width: 939px;
+	height: 80px;
+	margin: 0 auto;
+	background: #999999;
+}
+
+#footer {
+	margin: 0 auto;
+	height: 80px;
+	min-height: 64px;
+	padding: 0;
+	text-transform: uppercase;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 10px;
+}
+
+html>body #footer {
+	height: auto;
+}
+
+#footer p {
+}
+
+#legal {
+	clear: both;
+	padding-top: 30px;
+	text-align: center;
+	color: #000000;
+}
+
+#legal a {
+	text-decoration: none;
+	color: #000000;
+}
+
+table.red td { border: 1px solid #811305;  }
+table.red th { color: white; background-color: #a75a50; }
+table.red th a:link, table.red th a:visited { color: white; }
+th { color: #811305; padding-left: 10px; padding-right: 10px; }
+td { text-align: center; }
+td.price, th.price { text-align: right; font-weight: bold; }
+th.left { text-align: right; padding-right: 5px; }
+th.top { padding-bottom: 3px; padding-left: 3px; padding-right: 3px; text-align: center }
+th.left { text-align: right; }
+th.top  { vertical-align: bottom; }
+
+[type=submit] { 
+    color:            white; 
+    background-color: #811305; 
+    font-weight:      bold; 
+    border:           5px outset #a75a50;
+    margin:           10px;
+}
+
+table {
+    border-collapse: collapse; 
+}
+
+.debug { 
+    color: #A0A0A0; 
+    display: none; 
+}

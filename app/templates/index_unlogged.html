@@ -1,0 +1,37 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+
+<h1>Gestion des commandes du réseau Floreal</h1>
+
+<p>
+  Bienvenue sur le site web de commandes du réseau Floreal. Ce site
+  doit servir à alléger la charge administrative des organisateurs du
+  réseau. Il vous permettra, une fois inscrit ou connecté, de passer,
+  modifier et vérifier vos commandes.
+</p>
+
+<p>
+  Le site ne prend en charge que la commande des produits : ni leur
+  paiement, ni la réception, ni la distribution des produits. Il
+  s'agit d'éviter les échanges de fichiers <em>Excel</em> par e-mail,
+  qui causent un gros surcroit de travail aux bénévoles.
+</p>
+
+<h3>Marche à suivre</h3>
+<ul>
+  <li>Si vous êtes membre du réseau Floreal et que ne vous ne l'avez
+    pas encore fait, <a href="{% url 'register' %}"> inscrivez-vous
+      sur la page dédiée</a>, et notez soigneusement le mot de passe
+    que vous choisirez.</li>
+  <li>Si vous ne vous êtes déjà inscrit,
+    <a href="{% url 'login' %}">connectez-vous</a> en donnant votre
+    adresse e-mail et le mot de passe que vous avez choisi à
+    l'inscription.</li>
+  <li>Une fois connecté, vous pourrez revenir ici, consulter la liste
+    des livraisons en cours, et passer vos commandes.</li>
+</ul>
+
+{{pass}}
+
+{% endblock content %}

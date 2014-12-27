@@ -1,0 +1,73 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h1>Commandes du sous-groupe {{subgroup.network.name}}/{{subgroup.name}} pour {{delivery.name}}</h1>
+
+<table>
+
+    {# Product names #}
+    <tr>
+        <td class="blank">{# no product in users' column #}</td>
+        {% for pd in products %}
+        <th class="top">{{pd.name}}</th>
+        {% endfor %}
+        <th class="top">Prix</th>
+    </tr>
+
+
+    {# Product quantities per package, if applicable #}
+    <tr>
+        <th class="left">Par paquet</th>
+        {% for pd in products %}
+        <td>{{pd.quantity_per_package}} {{pd.unit}}</td>
+        {% endfor %}
+        <td class="blank">{# no quantity in "Price" column #}</td>
+    </tr>
+
+
+    {# Orders per user #}
+    {% for o in orders %}
+    <tr>
+        <th class="left">{{o.user.first_name}} {{o.user.last_name}}</th>
+        {% for pc in o.purchases %}
+        {% if not pc %}
+        <td>-</td>
+        {% elif pc.is_satisfied %}
+        <td>{{pc.granted}}</td>
+        {% else %}
+        <td>
+            <span class="unsatisfied_ordered">{{pc.ordered}}</span>
+            <span class="unsatisfied_granted">{{pc.granted}}</span>
+        </td>
+        {% endif %}{# unsatisfied #}
+        {% endfor %}{# purchase #}
+        <td class="price">{{o.price}}€</td>
+    </tr>
+    {% endfor %}{# order #}
+
+
+    {# Total quantities per product; is it an exact number of packages? #}
+    <tr>
+        <th class="left">Total</th>
+        {% for pt in product_totals %}
+        <td>
+            {% if pt.out_of_packages %}
+            {{pt.quantity}} = {{pt.full_packages}} * {{pt.product.quantity_per_package}} {{pt.product.unit}}
+                            + <span class="out_of_package">{{pt.out_of_package}} {{pt.product.unit}}</span>
+            {% elif full_packages %}
+            {{pt.quantity}} =
+            <span class="nothing_out_of_package">
+                {{pt.full_packages}} * {{pt.product.quantity_per_package}} {{pt.product.unit}}
+            </span>
+            {% else %}{# loose articles, not in packages #}
+            <span class="nothing_out_of_package">
+                {{pt.product.quantity_per_package}} {{pt.product.unit}}
+            </span>
+            {% endif %}
+        </td>
+        {% endfor %}
+    </tr>
+
+
+</table>
+{% endblock %}

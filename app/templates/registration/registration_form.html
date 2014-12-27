@@ -1,0 +1,11 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h1>S'enregistrer comme nouvel utilisateur</h1>
+<form action="/your-name/" method="post">
+    {% csrf_token %}
+    <table>
+    {{ form }}
+    </table>
+    <input type="submit" value="Submit" />
+</form>
+{% endblock %}
