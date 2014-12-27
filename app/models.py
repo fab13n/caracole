@@ -211,7 +211,7 @@ class Order(object):
         :param delivery: for which delivery
         :param users: iterable over users
         :param products: ordered list of products; normally, the products available in `delivery`.
-        :return: a user/order dictionary for all `users`."""
+        :return: a user/orders_list_index_as_products dictionary for all `users`."""
 
         if not products:
             products = delivery.product_set.order_by('name')
