@@ -1,3 +1,5 @@
+from . import models as m
+
 def delivery_description(delivery, subgroups, **kwargs):
     """Generate a description of the purchases performed by users in `subgroups`
     for `delivery`. The resulting dictionary is used to render HTML as well as
@@ -19,7 +21,7 @@ def delivery_description(delivery, subgroups, **kwargs):
                                                             "orders": product_idx -> order.
                                                              "price": number},
                                      "price": number },
-          "product_totals": productPidx -> { "product": product,
+          "product_totals": product_idx -> { "product": product,
                                              "quantity": number,
                                              "full_packages": number,
                                              "out_of_packages": number },

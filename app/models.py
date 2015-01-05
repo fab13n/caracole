@@ -196,7 +196,7 @@ class Order(object):
         """Create the order sum-up.
         :param user: who ordered
         :param delivery: when
-        :param pourchases: if the list of purchases is passed, it isn't extracted from delivery and user.
+        :param purchases: if the list of purchases is passed, it isn't extracted from delivery and user.
             Intended for internal use.
         :return: an instance with fields `user`, `delivery`, `price` and `purchases`
         (an iterable of relevant `Purchase` instances)."""
