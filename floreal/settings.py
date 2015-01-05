@@ -52,6 +52,15 @@ WSGI_APPLICATION = 'floreal.wsgi.application'
 
 DATABASES = {
     'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'floreal',
+        'USER': 'floreal',
+        'PASSWORD': 'floreal',
+        'HOST': 'localhost',
+        'PORT': '3306',
+
+    },
+    'sqlite': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
@@ -63,7 +72,7 @@ DATABASES = {
 LANGUAGE_CODE = 'fr-fr'
 TIME_ZONE = "Europe/Paris"
 USE_I18N = True
-USE_L10N = True
+USE_L10N = False
 USE_TZ = True
 
 

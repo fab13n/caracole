@@ -3,6 +3,7 @@
 
 from django.db import models
 from django.contrib.auth.models import User
+from django.forms import ModelForm
 
 # A user belongs can belong to several networks, through one subgroup per network.
 # They might also be staff of several subgroups,
@@ -133,15 +134,15 @@ class Product(models.Model):
     name = models.CharField(max_length=64)
     delivery = models.ForeignKey(Delivery)
     price = models.DecimalField(decimal_places=2, max_digits=6)
-    quantity_limit = models.IntegerField(null=True, blank=True)
     quantity_per_package = models.IntegerField(null=True, blank=True)
     unit = models.CharField(max_length=64, null=True, blank=True)
+    quantity_limit = models.IntegerField(null=True, blank=True)
 
     def __unicode__(self):
         return self.name
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        """Adapt granted quantities if purchases of this product exist."""
+        # TODO: if quantity_limit changes, update granted quantities for all affected purchases
         super(Product, self).save(force_insert, force_update, using, update_fields)
 
 
@@ -178,8 +179,14 @@ class Purchase(models.Model):
         }
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        """Adapt granted quantities in case of limited product quantities."""
+        # TODO: if product has limitations, update granted quantities for all affected purchases
         super(Purchase, self).save(force_insert, force_update, using, update_fields)
+
+
+class PurchaseForm(ModelForm):
+    class Meta:
+        model = Purchase
+        fields = ['product', 'ordered']
 
 
 class Order(object):
@@ -198,9 +205,10 @@ class Order(object):
         self.delivery = delivery
         if purchases:
             self.purchases = purchases
+            self.price = None
         else:
             self.purchases = Purchase.objects.filter(product__delivery=delivery, user=user)
-        self.price = sum(p.price for p in self.purchases)
+            self.price = sum(p.price for p in self.purchases)
 
     @classmethod
     def by_user_and_product(cls, delivery, users, products=None):

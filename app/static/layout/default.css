@@ -142,7 +142,7 @@ input, textarea, select {
 	width: 939px;
 	height: 273px;
 	margin-left: 10px;
-	background: url(images/caracole_logo.jpg) no-repeat left top;
+	background: url(../images/caracole_logo.jpg) no-repeat left top;
 }
 
 #logo h1, #logo h2 {
@@ -188,7 +188,7 @@ input, textarea, select {
 #wrapper {
 	width: 960px;
 	margin: 0 auto;
-	background: url(images/img01.gif) repeat-y left top;
+	background: url(../images/background.gif) repeat-y left top;
 }
 
 /* Page */

@@ -1,0 +1,100 @@
+{% extends 'layout.html' %}
+{% load price %}
+
+{% block head %}
+  <script type='text/javascript'>
+    var PRODUCT_IDS=[{% for pd in products %}{{pd.id}},{% endfor %}];
+    var PURCHASES=[{% for pc in purchases %}
+      {'product': {{pc.product.id}}, 'ordered': {{pc.ordered_quantity}} },
+    {% endfor %}];
+
+    /* Round a float number to the nearest cent. */
+    function round_price(f) {
+      f = parseFloat(f);
+      return parseFloat(Math.floor(f) + "." + Math.round(100*f)%100)
+    }
+
+    /* update per-line totals as well as delivery total */
+    function update_prices() {
+      var total = 0
+      for(var i=0; i<PRODUCT_IDS.length; i++) {
+        var pd_id = PRODUCT_IDS[i];
+        var ordered = round_price($("#pd"+pd_id+"-ordered_quantity").attr("value"));
+        var unit_price = round_price($("#pd"+pd_id+"-unit_price").text().replace(',','.'));
+        var price = round_price(ordered * unit_price)
+        $("#pd"+pd_id+"-ordered_price").text(price)
+        total += price
+        console.log(pd_id + " -> " + ordered + " * " + unit_price + " = " + price + " -> Σ=" + total);
+      }
+      $("#total_price").text(total);
+    }
+
+    function reset_order(id) {
+      $("#pd"+id+"-ordered_quantity").attr("value", "0");
+      update_prices();
+    }
+
+    $(document).ready(function() {
+      /* Set purchases */
+      for(var i=0; i<PURCHASES.length; i++) {
+        var pc = PURCHASES[i];
+        $("#pd"+pc.product+"-ordered_quantity").attr("value", pc.ordered)
+      }
+      $(":input").bind('keyup mouseup', update_prices);
+      update_prices();
+    })
+  </script>
+  <style type="text/css">
+    input.quantity { text-align: right; }
+    #delivery-table th { text-align: right; }
+    #delivery-table td { text-align: left; }
+  </style>
+{% endblock %}
+
+{% block content %}
+<form method="POST">
+    <table id="delivery-table">
+      <tr>
+        <th>Livraison :</th>
+        <td>{{delivery.network.name}} / {{delivery.name}}</td>
+      </tr>
+      <tr>
+        <th>Sous-groupe :</th>
+        <td>{{subgroup.name}}</td>
+      </tr>
+      <tr>
+        <th>Member :</th>
+        <td>{{user.first_name}} {{user.last_name}}</td>
+      </tr>
+    </table>
+    <div style="height: 20px;"></div>
+    <table id="products-table">
+        <tr>
+            <th>Produit</th>
+            <th>Quantité</th>
+            <th></th>
+            <th>Prix unitaire</th>
+            <th>Prix</th>
+            <th>Conditionnement</th>
+            <th>Effacer ?</th>
+        </tr>
+        {% for pd in products %}
+        <tr>
+          <td>{{pd.name}}</td>
+          <td><input class="quantity" id="pd{{pd.id}}-ordered_quantity" maxlength="64" name="%-" type="number" step="1" value="0" /></td>
+          <td>{{pd.unit}}</td>
+          <td><span id="pd{{pd.id}}-unit_price">{{pd.price}}</span>€/{{pd.unit}}</td>
+          <td><span id="pd{{pd.id}}-ordered_price">XXX</span>€</td>
+          <td>{% if pd.quantity_per_package %}{{pd.quantity_per_package}} {{pd.unit}}/carton{% else %} - {% endif %}</td>
+          <td><input type="button" onclick="reset_order({{pd.id}});"value="Remettre à 0"></td>
+        </tr>
+        {% endfor %}
+        <td></td><td></td><td></td><td></td>
+        <td><span id="total_price"></span>€</td>
+        <td></td><td></td>
+    </table>
+    <input type="submit" value="Sauvegarder" />
+    <input type='hidden' name='dv-id' value='{{delivery.id}}' />
+    {% csrf_token %}
+</form>
+{% endblock %}

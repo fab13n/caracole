@@ -1,0 +1,153 @@
+{% extends "layout_wide.html" %}
+{% load price %}
+
+{% block head %}
+    <script type='text/javascript'>
+      var USER_IDS = [{% for u in table.0.users %}{{u.user.id}}, {% endfor %}];
+      var PRODUCTS = { {% for pd in products %}
+        {{pd.id}}: { 'id': {{pd.id}}, 'price': {{pd.price}}, 'qpp': {{pd.quantity_per_package|default:"0"}} }, {% endfor %}
+      };
+
+      /* Update the sums altered by an order change of produce `pd` by user `u`. */
+      function update_totals(pd, u) {
+        pd = PRODUCTS[pd];
+        var u_prev_total = parseFloat($("#u"+u+"-price").text());
+        var pd_prev_total = parseFloat($("#pd"+pd.id+"-quantity").text());
+
+        /* New total price for user `u`. */
+        var u_new_total = 0;
+        $.each(USER_IDS, function(i, u_i) {
+          u_new_total += parseFloat($("input[name='pd"+pd.id+"u"+u_i+"']").attr("value")) * pd.price;
+        });
+        $("#u"+u+"-price").text(u_new_total.toFixed(2));
+
+        /* New total quantity for product `pd` */
+        var pd_new_total = 0;
+        $.each(PRODUCTS, function(pd_id, pd_i) {
+          pd_new_total += parseFloat($("input[name='pd"+pd_id+"u"+u+"']").attr("value"));
+        });
+
+        /* Update product quantity, including out-of-package accounting */
+        $("#pd"+pd.id+"-quantity").text(pd_new_total);
+        if(pd.qpp) {
+          var n_packages = Math.floor(pd_new_total/pd.qpp);
+          var out_of_packages = pd_new_total - n_packages * pd.qpp;
+          $("#pd"+pd.id+"-n_packages").text(n_packages);
+          if(out_of_packages) {
+            $("#pd"+pd.id+"-out_of_packages-value").text(out_of_packages);
+            $("#pd"+pd.id+"-out_of_packages").show();
+          } else {
+            $("#pd"+pd.id+"-out_of_packages").hide();
+          }
+        }
+
+        /* New total price for subgroup. */
+        var new_total = parseFloat($("#total").text()) - u_prev_total + u_new_total;
+        $("#total").text(new_total.toFixed(2));
+
+        /* Make modified cells stand out. */
+        $("input[name='pd"+pd.id+"u"+u+"']").addClass("modified");
+
+        console.log("Update totals for user "+u+": "+u_prev_total+"€->"+u_new_total.toFixed(2)+
+                    "€ and product "+pd.id+": "+pd_prev_total+" units -> "+pd_new_total+" units");
+      }
+      $(document).ready(function() {
+      })
+    </script>
+    <style type="text/css">
+      .out_of_packages { font-weight:bold; color: #811305; }
+      input { text-align: right; }
+      input.modified {
+        font-weight: bold;
+        color:       #811305;
+        border:      2px solid #811305;
+      }
+    </style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Commandes {{delivery.network.name}} / {{delivery.name}} pour {{table.0.subgroup.name}}</h1>
+
+<table>
+
+    {# Product names #}
+    <tr>
+        <td class="blank">{# no product in users' column #}</td>
+        {% for pd in products %}
+        <th class="top">{{pd.name}}</th>
+        {% endfor %}
+        <th class="top">Prix</th>
+    </tr>
+
+
+    {# Product quantities per package, if applicable #}
+    <tr>
+        <th class="left">Par carton</th>
+        {% for pd in products %}
+        <td>{{pd.quantity_per_package}} {{pd.unit}}</td>
+        {% endfor %}
+        <td>{# no quantity in "Price" column #}</td>
+    </tr>
+
+
+    {% comment %}
+     # table[0] = { "subgroup": subgroup,
+     #              "totals": product_idx -> { "product": product,
+     #                                         "quantity": number,
+     #                                         "full_packages": number?,
+     #                                         "out_of_packages": number? }.
+     #              "users": user_idx -> { "user": user,
+     #                                     "orders": product_idx -> order.
+     #                                     "price": number },
+     #              "price": number }
+    {% endcomment %}
+    {% for ur in table.0.users %}
+    <tr class="user_row" id="subgroup_{{ur.subgroup.id}}_user_row">
+        <th class="left">{{ur.user.first_name}} {{ur.user.last_name}}</th>
+        {% for pc in ur.orders.purchases %}
+        {% if not pc %}
+        <td><input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="0"
+                   onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/></td>
+        {% elif pc.is_satisfied %}
+        <td><input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="{{pc.ordered|floatformat:"-3"}}"
+                   onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/></td>
+        {% else %}{# unsatisfied order #}
+        <td>
+            <input type="number" name="pd{{pc.product.id}}u{{pc.user.id}} class="unsatisfied_ordered"" value="{{pc.ordered}}"
+                   onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/>
+            <span class="unsatisfied_granted">{{pc.granted}}</span>
+        </td>
+        {% endif %}{# unsatisfied #}
+        {% endfor %}{# purchase #}
+        <td class="price"> <span id="u{{ur.user.id}}-price">{{ur.price|floatformat:"2"}}</span>€</td>
+    </tr>
+    {% endfor %}{# users within subgroup #}
+
+
+    {# Total quantities per product; is it an exact number of packages? #}
+    <tr>
+        <th class="left">Total</th>
+        {% for pt in product_totals %}
+        <td>
+            {% if pt.out_of_packages or pt.full_packages %}{# Packaging size defined #}
+            <span id="pd{{pt.product.id}}-quantity">{{pt.quantity|floatformat:"-3"}}</span> = <br/>
+            <span id="pd{{pt.product.id}}-n_packages">{{pt.full_packages}}</span> ×
+            {{pt.product.quantity_per_package}} {{pt.product.unit}}
+            <span class="out_of_packages" id="pd{{pt.product.id}}-out_of_packages"> <br/> +
+              <span id="pd{{pt.product.id}}-out_of_packages-value">
+                {{pt.out_of_packages|floatformat:"-3"}}
+              </span> {{pt.product.unit}}
+            </span>
+            {% else %}{# unpackaged items #}
+            <span id="pd{{pt.product.id}}-quantity">
+                {{pt.product.quantity|floatformat:"-3"}}
+            </span> {{pt.product.unit}}
+            {% endif %}
+        </td>
+        {% endfor %}{# grand total by product #}
+        <td><span id="total">{{price|floatformat:"2"}}</span>€</td>
+    </tr>
+
+</table>
+{% endblock %}

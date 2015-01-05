@@ -4,6 +4,7 @@
   <head>
     <title>Circuits courts Caracole</title>
     <link href="{% static 'layout/default.css' %}" rel="stylesheet" type="text/css" />
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon" />
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
     <script type="text/javascript" src="{% static 'js/jquery.js' %}"></script>
     {% block head %} {% endblock %}
@@ -23,6 +24,7 @@
         <!-- end content -->
         <!-- start sidebar -->
         <div id="sidebar">
+          Bienvenue {{user.first_name}} {{user.last_name}}
           <ul>
             <li>TODO login etc.</li>
           </ul>

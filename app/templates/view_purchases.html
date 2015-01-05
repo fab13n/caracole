@@ -102,7 +102,7 @@
             {% if pt.out_of_packages %}{# Some loose items #}
             {{pt.quantity}} = <br/>
             {{pt.full_packages}} × {{pt.product.quantity_per_package}} {{pt.product.unit}} <br/>
-            <span class="out_of_packages"> + {{pt.out_of_package}} {{pt.product.unit}}</span>
+            <span class="out_of_packages"> + {{pt.out_of_package|floatformat:"-3"}} {{pt.product.unit}}</span>
             {% elif pt.full_packages %}{# round number of packages, no loose item. #}
             {{pt.quantity}} = <br/>
             <span class="nothing_out_of_package">
@@ -110,8 +110,8 @@
             </span>
             {% else %}{# unpackaged items #}
             <span class="nothing_out_of_package">
-                {{pt.product.quantity_per_package}} {{pt.product.unit}}
-            </span>
+                {{pt.product.quantity|floatformat:"-3"}}
+            </span> {{pt.product.unit}}
             {% endif %}
         </td>
         {% endfor %}{# grand total by product #}

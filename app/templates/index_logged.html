@@ -14,9 +14,9 @@
 <h2>Passer commande</h2>
 
 <ul>
-{% for order in as_user.open %}
-<li><a href="{% url 'edit_user_purchases' delivery=order.delivery.id %}">
-  Commander pour {{order.delivery.name}}
+{% for dv in as_user.open %}
+<li><a href="{% url 'edit_user_purchases' delivery=dv.id %}">
+  Commander pour {{dv.name}}
 </a></li>
 {% empty %}
 <li>Aucune commande à passer.</li>
@@ -91,7 +91,7 @@
 {% empty %}
   <li>Pas de commande en cours.</li>
 {% endfor %}
-  <li><a href="">Créer une nouvelle commande {{network.name}}.</a></li>
+  <li><a href="{% url 'create_delivery' network=network.id %}">Créer une nouvelle commande {{network.name}}</a></li>
 </ul>
 {% endfor %}{# as_staff.networks #}
 
@@ -106,7 +106,9 @@
     <a href="{% url 'view_subgroup_purchases_pdf' delivery=d.id %}">en PDF</a>,
     <a href="{% url 'view_subgroup_purchases_xlsx' delivery=d.id %}">dans un tableau Excel</a>.
   </li>
-  <li><a href="">Modifier les commandes du sous-groupe {{subgroup.name}} pour {{d.name}}</a></li>
+  <li><a href="{% url 'edit_subgroup_purchases' delivery=d.id %}">
+    Modifier les commandes du sous-groupe {{subgroup.name}} pour {{d.name}}
+  </a></li>
 {% empty %}
   <li>Pas de commande en cours.</li>
 {% endfor %}

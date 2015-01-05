@@ -1,0 +1,154 @@
+{% extends 'layout.html' %}
+
+{% block head %}
+  <script type='text/javascript'>
+
+    var N_BLANKS = 0;
+
+    var DELIVERY = {{delivery.id}};
+
+    var PRODUCTS = [{% for pd in products %}
+      { 'id': "{{pd.id|escapejs}}",
+        'name': "{{pd.name|escapejs}}" ,
+        'price': "{{pd.price|escapejs}}" ,
+        'unit': "{{pd.unit|escapejs}}" ,
+        'quantity_limit': "{{pd.quantity_limit|escapejs}}" ,
+        'quantity_per_package': "{{pd.quantity_per_package|escapejs}}" ,
+        'deleted': false,
+        'delivery': {{pd.delivery.id}} },
+    {% endfor %}];
+
+    /* If the "deleted" checkbox is checked, strike theline and disable product edition. */
+    function reflect_deletion(prefix) {
+      var deleted = $('#'+prefix+'-deleted').is(':checked');
+      var inputs = $("#"+prefix+"-row input[type=number], #"+prefix+"-row input[type=text]")
+      if( deleted) {
+        $("#"+prefix+"-row").addClass('deleted');
+        inputs.attr('disabled', 'disable');
+      } else {
+        $("#"+prefix+"-row").removeClass('deleted');
+        inputs.removeAttr('disabled');
+      }
+    }
+
+    /* Keep unit names in sync between the input field and the text spans where it occurs. */
+    function attach_closure(prefix) {
+      var closure = function() {
+        var content = $("#"+prefix+"-unit").attr('value');
+        $("."+prefix+"-unit-mirror").text(content)
+        if(content) {
+          $("."+prefix+"-if-unit-mirror").show();
+        } else {
+          $("."+prefix+"-if-unit-mirror").hide();
+        }
+      }
+      $("#"+prefix+"-unit").keyup(closure);
+      closure();
+    }
+
+    /* Add rows of blank products at the end of the table */
+    function add_row(prefix) {
+      $("#products-table").append('\n\
+        <tr id="%-row">\n\
+            <td class="name"><input id="%-id" name="%-id" type="hidden" /><input id="%-name" maxlength="64" name="%-name" type="text" /></td>\n\
+            <td class="price"><input id="%-price" name="%-price" step="0.1" type="number" /></td>\n\
+            <td>€/</td>\n\
+            <td class="unit"><input id="%-unit" maxlength="64" name="%-unit" type="text" /></td>\n\
+            <td class="qpp"><input id="%-quantity_per_package" name="%-quantity_per_package" type="number" /></td>\n\
+            <td class="unit-label">&nbsp;<span class="%-unit-mirror"></span><span class="%-if-unit-mirror">/carton</span></td>\n\
+            <td class="quota"><input id="%-quantity_limit" name="%-quantity_limit" type="number" /></td>\n\
+            <td class="unit-label">&nbsp;<span class="%-unit-mirror"></span></td>\n\
+            <td class="deleted">\n\
+              <input id="%-deleted" name="%-deleted" onchange="reflect_deletion(\'%\')" type="checkbox" value="off">\n\
+            </td>\n\
+        </tr>'.replace(/%/g, prefix));
+    }
+
+    /* Fill a product row with data from a JSON record */
+    function fill_row(prefix, record) {
+      $.each(record, function(k, v) {
+        console.log("set #"+prefix+"-"+k+" to "+v);
+        $('#'+prefix+'-'+k).attr('value', v);
+      });
+      if( record['delivery'] != DELIVERY) {
+        console.log("delivery "+record['delivery']+" != "+DELIVERY);
+        $("#"+prefix+"-deleted")[0].checked=true;
+        reflect_deletion(prefix);
+      }
+    }
+
+    /* Add rows of blank products at the end of the table */
+    function add_blank_products() {
+      var N_ADDED_ROWS = 3;
+      var i;
+      for(i=N_BLANKS; i<N_BLANKS+N_ADDED_ROWS; i++) {
+        var prefix = "blank"+i;
+        add_row(prefix);
+        attach_closure(prefix);
+      }
+      N_BLANKS += N_ADDED_ROWS;
+      $("n_blanks").attr("value", N_BLANKS);
+    }
+
+    $(document).ready(function() {
+      /* Generate and fill product rows */
+      var product_ids = [];
+      for(i=0; i<PRODUCTS.length; i++) {
+        var record = PRODUCTS[i];
+        var prefix = "pd"+record['id'];
+        add_row(prefix);
+        fill_row(prefix, record);
+        attach_closure(prefix);
+        product_ids += record['id']
+      }
+      $("#product_ids").attr("value", product_ids.toString());
+
+    })
+  </script>
+  <style type="text/css">
+      td.name input { width: 200px; }
+      td.unit input { width: 40px; }
+      td.price input { width: 80px; text-align: right; }
+      td.qpp input { width: 40px; text-align: right; }
+      .quota, .qpp { padding-left: 20px; }
+      td.quota input { width: 40px; }
+      tr.deleted { text-decoration: line-through; }
+      tr.deleted input { text-decoration: line-through; }
+  </style>
+{% endblock %}
+
+{% block content %}
+<form method="POST">
+    <table id="delivery-table">
+        <tr>
+          <th><label for="dv-name">Nom de la livraison :</label></th>
+          <td><input id="dv-name" maxlength="64" name="dv-name" type="text" value="{{delivery.name|escapejs}}" /></td>
+        </tr>
+      <tr>
+        <th><label for="dv-state">Commandes autorisées :</label></th>
+        <td><select id="dv-state" name="dv-state">
+          <option value="O" {% if delivery.state == "O" %}selected="selected"{% endif %}>Oui</option>
+          <option value="C" {% if delivery.state != "O" %}selected="selected"{% endif %}>Non</option>
+        </select></td>
+      </tr>
+    </table>
+    <div style="height: 20px;"></div>
+    <table id="products-table">
+        <tr>
+            <th>Produit</th>
+            <th>Prix</th>
+            <th></th>
+            <th>Unité</th>
+            <th colspan="2" class="qpp">Par carton</th>
+            <th colspan="2" class="quota">Quota</th>
+            <th>Effacer ?</th>
+        </tr>
+    </table>
+    <button type=button onclick="add_blank_products();">Ajouter des produits</button>
+    <input type="submit" value="Sauvegarder" />
+    <input type='hidden' name='dv-id' value='{{delivery.id}}' />
+    <input type='hidden' name='n_blanks' id="n_blanks" value='0' />
+    <input type='hidden' name='product_ids' id="product_ids" value='' />
+    {% csrf_token %}
+</form>
+{% endblock %}
