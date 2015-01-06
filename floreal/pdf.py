@@ -28,7 +28,7 @@ class UserCardsDeck(FPDF, HTMLMixin):
                     'nw': od.delivery.network.name,
                     'dv': od.delivery.name,
                     'sg': sg.name,
-                    'od': ''.join(items)
+                    'od': ''.join(items)})
 
     def _jump_to_next_order(self):
         """Start the next user card: either go to the 2nd half of the current page,

@@ -169,7 +169,7 @@ class Purchase(models.Model):
             fmt = u"%(granted)s %(unit)s %(prod_name)s à %(price).2f€"
         else:
             fmt = u"%(granted)s %(unit)s (au lieu de %(ordered)s) %(prod_name)s à %(price).2f€"
-        result fmt % {
+        result = fmt % {
             'granted': self.granted,
             'ordered': self.ordered,
             'unit': plural(self.product.unit, self.granted),

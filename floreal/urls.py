@@ -16,7 +16,7 @@ from . import views
 urlpatterns = patterns('',
     url(r'^$', views.index, name='index'),
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^user/', include('registration.backends.simple.urls'), name='user_register'),
+    url(r'^accounts/', include('registration.backends.simple.urls'), name='user_register'),
     url(r'^staff/create/delivery/(?P<network>[0-9]+)$', views.create_delivery, name='create_delivery'),
     url(r'^staff/delivery/(?P<delivery>[0-9]+)/(?P<state>[A-Za-z]+)$', views.set_delivery_state, name='set_delivery_state'),
     url(r'^staff/edit/delivery/(?P<delivery>[0-9]+)$', views.edit_delivery_products, name='edit_delivery_products'),

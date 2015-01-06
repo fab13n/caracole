@@ -92,7 +92,7 @@ def spreadsheet(delivery, subgroups):
 
     # Generate username columns. Rows 1,2 are taken by headers
     for r, u in enumerate(users):
-        sheet.write(r+HEADER_HEIGHT, 0, _u8(u['user'].first_name+' '+u['user'].last_name)), header_fmt)
+        sheet.write(r+HEADER_HEIGHT, 0, _u8(u['user'].first_name+' '+u['user'].last_name), header_fmt)
 
     # Fill user commands
     for c, pd in enumerate(x['products']):

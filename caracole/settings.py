@@ -33,7 +33,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'registration',
-    'app',
+    'floreal',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -46,9 +46,9 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
-ROOT_URLCONF = 'app.urls'
+ROOT_URLCONF = 'floreal.urls'
 
-WSGI_APPLICATION = 'floreal.wsgi.application'
+WSGI_APPLICATION = 'caracole.wsgi.application'
 
 DATABASES = {
     'default': {
@@ -82,5 +82,5 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, "app", "static"),
+    os.path.join(BASE_DIR, "floreal", "static"),
 )
