@@ -3,30 +3,27 @@
 
 {% block head %}
   <script type='text/javascript'>
+  // <![CDATA[
+
     var PRODUCT_IDS=[{% for pd in products %}{{pd.id}},{% endfor %}];
     var PURCHASES=[{% for pc in purchases %}
       {'product': {{pc.product.id}}, 'ordered': {{pc.ordered_quantity}} },
     {% endfor %}];
 
-    /* Round a float number to the nearest cent. */
-    function round_price(f) {
-      f = parseFloat(f);
-      return parseFloat(Math.floor(f) + "." + Math.round(100*f)%100)
-    }
 
     /* update per-line totals as well as delivery total */
     function update_prices() {
       var total = 0
       for(var i=0; i<PRODUCT_IDS.length; i++) {
         var pd_id = PRODUCT_IDS[i];
-        var ordered = round_price($("#pd"+pd_id+"-ordered_quantity").attr("value"));
-        var unit_price = round_price($("#pd"+pd_id+"-unit_price").text().replace(',','.'));
-        var price = round_price(ordered * unit_price)
-        $("#pd"+pd_id+"-ordered_price").text(price)
+        var ordered = parseFloat($("#pd"+pd_id+"-ordered_quantity").attr("value"));
+        var unit_price = parseFloat($("#pd"+pd_id+"-unit_price").text().replace(',','.'));
+        var price = ordered * unit_price
+        $("#pd"+pd_id+"-ordered_price").text(price.toFixed(2))
         total += price
         console.log(pd_id + " -> " + ordered + " * " + unit_price + " = " + price + " -> Σ=" + total);
       }
-      $("#total_price").text(total);
+      $("#total_price").text(total.toFixed(2));
     }
 
     function reset_order(id) {
@@ -43,11 +40,13 @@
       $(":input").bind('keyup mouseup', update_prices);
       update_prices();
     })
+  // ]]>
   </script>
   <style type="text/css">
     input.quantity { text-align: right; }
     #delivery-table th { text-align: right; }
     #delivery-table td { text-align: left; }
+	#total_price_cell { font-weight: bold; }
   </style>
 {% endblock %}
 
@@ -83,14 +82,14 @@
           <td>{{pd.name}}</td>
           <td><input class="quantity" id="pd{{pd.id}}-ordered_quantity" maxlength="64" name="%-" type="number" step="1" value="0" /></td>
           <td>{{pd.unit}}</td>
-          <td><span id="pd{{pd.id}}-unit_price">{{pd.price}}</span>€/{{pd.unit}}</td>
-          <td><span id="pd{{pd.id}}-ordered_price">XXX</span>€</td>
+          <td><span id="pd{{pd.id}}-unit_price">{{pd.price|price_nocurrency}}</span> €/{{pd.unit}}</td>
+          <td><span id="pd{{pd.id}}-ordered_price">-</span> €</td>
           <td>{% if pd.quantity_per_package %}{{pd.quantity_per_package}} {{pd.unit}}/carton{% else %} - {% endif %}</td>
           <td><input type="button" onclick="reset_order({{pd.id}});"value="Remettre à 0"></td>
         </tr>
         {% endfor %}
-        <td></td><td></td><td></td><td></td>
-        <td><span id="total_price"></span>€</td>
+        <td></td><td></td><td></td>
+        <th>Prix total:</th><td id="total_price_cell"><span id="total_price">-</span> €</td>
         <td></td><td></td>
     </table>
     <input type="submit" value="Sauvegarder" />
