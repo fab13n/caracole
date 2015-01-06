@@ -170,5 +170,6 @@ def edit_user_purchases(request, delivery):
             'products': m.Product.objects.filter(delivery=delivery),
             'purchases': order.purchases
         }
+        vars.update(csrf(request))
         return render_to_response('edit_user_purchases.html', vars)
 

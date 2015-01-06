@@ -5,3 +5,4 @@ def parse_user_purchases(request):
     :return:
     """
     d = request.POST
+    print d
