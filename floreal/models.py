@@ -186,12 +186,6 @@ class Purchase(models.Model):
         super(Purchase, self).save(force_insert, force_update, using, update_fields)
 
 
-class PurchaseForm(ModelForm):
-    class Meta:
-        model = Purchase
-        fields = ['product', 'ordered']
-
-
 class Order(object):
     """Sum-up of what a given user has ordered in a given delivery."""
 
