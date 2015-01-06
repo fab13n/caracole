@@ -5,9 +5,11 @@
 
 from .delivery_table_view import delivery_description
 
+DATABASE_UTF8_ENABLED = True
 
 def _u8(s):
-    return str(s).decode('utf-8')
+    """Convert DB contents into UTF8 if necessary."""
+    return unicode(s) if DATABASE_UTF8_ENABLED else str(s).decode('utf-8')
 
 
 def spreadsheet(delivery, subgroups):
@@ -40,16 +42,16 @@ def spreadsheet(delivery, subgroups):
     # as the first spreadsheet sheet.
     # User purchases will be collected ina second sheet.
     if n_subgroups > 1:
-        sheet = book.add_worksheet("Totaux par groupes")
+        sheet = book.add_worksheet(u"Totaux par groupes")
         sheet.write(n_subgroups+1, 0, 'Total', header_fmt)
 
         # Horizontal header (product names)
         for c, pd in enumerate(x['products']):
-            sheet.write(0, c+1, pd.name.decode('utf-8'), header_fmt)
+            sheet.write(0, c+1, _u8(pd.name), header_fmt)
 
         # Vertical header (subgroup names)
         for r, s in enumerate(x['table']):
-            sheet.write(r+1, 0, s['subgroup'].name.decode('utf-8'), header_fmt)
+            sheet.write(r+1, 0, _u8(s['subgroup'].name), header_fmt)
 
         # Totals per product and subgroup (2D matrix)
         for r, s in enumerate(x['table']):
@@ -61,9 +63,9 @@ def spreadsheet(delivery, subgroups):
             fml = "=SUM(%(colname)s2:%(colname)s%(lastrow)s)" % {'colname': col_name(c+1), 'lastrow': n_subgroups+1}
             sheet.write(n_subgroups+1, c+1, fml, sum_fmt, p['quantity'])
 
-        sheet_title = "Commandes individuelles"
+        sheet_title = u"Commandes individuelles"
     else:
-        sheet_title = "Commandes %s %s" % (delivery.network.name, subgroups[0].name.decode('utf-8'))
+        sheet_title = u"Commandes %s %s" % (_u8(delivery.network.name), _u8(subgroups[0].name))
 
     # Index of the first line with user purchases, allows to move the table's vertical position
     # within the sheet.
@@ -71,18 +73,18 @@ def spreadsheet(delivery, subgroups):
 
     # Fixed Cells
     sheet = book.add_worksheet(sheet_title)
-    sheet.write(0, 0, "Livraison:")
-    sheet.write(0, 1, x['delivery'].name, title_fmt)
-    sheet.write(0, 2, "Sous-groupe:")
+    sheet.write(0, 0, u"Livraison:")
+    sheet.write(0, 1, _u8(x['delivery'].name), title_fmt)
+    sheet.write(0, 2, u"Sous-groupe:")
     if n_subgroups == 1:
-        sheet.write(0, 3, subgroups[0].name.decode('utf-8'), title_fmt)
-    sheet.write(HEADER_HEIGHT-2, 0, "Produit", title_fmt)
-    sheet.write(HEADER_HEIGHT-1, 0, "Prix unitaire", title_fmt)
-    sheet.write(HEADER_HEIGHT-2, n_products+1, "total", title_fmt)
+        sheet.write(0, 3, _u8(subgroups[0].name), title_fmt)
+    sheet.write(HEADER_HEIGHT-2, 0, u"Produit", title_fmt)
+    sheet.write(HEADER_HEIGHT-1, 0, u"Prix unitaire", title_fmt)
+    sheet.write(HEADER_HEIGHT-2, n_products+1, u"total", title_fmt)
 
     # Generate product names and prices rows
     for c, pd in enumerate(x['products']):
-        sheet.write(HEADER_HEIGHT-2, c+1, pd.name.decode('utf-8'), header_fmt)
+        sheet.write(HEADER_HEIGHT-2, c+1, _u8(pd.name.decode), header_fmt)
         sheet.write(HEADER_HEIGHT-1, c+1, pd.price, price_fmt)
 
     users = [z for y in x['table'] for z in y['users']]
@@ -90,7 +92,7 @@ def spreadsheet(delivery, subgroups):
 
     # Generate username columns. Rows 1,2 are taken by headers
     for r, u in enumerate(users):
-        sheet.write(r+HEADER_HEIGHT, 0, (u['user'].first_name+' '+u['user'].last_name).decode('utf-8'), header_fmt)
+        sheet.write(r+HEADER_HEIGHT, 0, _u8(u['user'].first_name+' '+u['user'].last_name)), header_fmt)
 
     # Fill user commands
     for c, pd in enumerate(x['products']):
