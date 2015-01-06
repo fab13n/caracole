@@ -164,12 +164,12 @@ class Purchase(models.Model):
     def price(self):
         return self.granted * self.product.price
 
-    def __unicode__(self):
+    def __unicode__(self, specify_user=True):
         if self.ordered == self.granted:
-            fmt = u"%(granted)s %(unit)s %(prod_name)s à %(price).2f€ pour %(user_name)s"
+            fmt = u"%(granted)s %(unit)s %(prod_name)s à %(price).2f€"
         else:
-            fmt = u"%(granted)s %(unit)s (au lieu de %(ordered)s) %(prod_name)s à %(price).2f€ pour %(user_name)s"
-        return fmt % {
+            fmt = u"%(granted)s %(unit)s (au lieu de %(ordered)s) %(prod_name)s à %(price).2f€"
+        result fmt % {
             'granted': self.granted,
             'ordered': self.ordered,
             'unit': plural(self.product.unit, self.granted),
@@ -177,6 +177,9 @@ class Purchase(models.Model):
             'price': self.granted * self.product.price,
             'user_name': self.user.__unicode__()
         }
+        if specify_user:
+            result += " pour %s %s" % (self.user.first_name, self.user.last_name)
+        return result
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         # TODO: if product has limitations, update granted quantities for all affected purchases
