@@ -2,6 +2,7 @@
 
 {% block head %}
   <script type='text/javascript'>
+    // <![CDATA[
 
     var N_BLANKS = 0;
 
@@ -87,7 +88,7 @@
         attach_closure(prefix);
       }
       N_BLANKS += N_ADDED_ROWS;
-      $("n_blanks").attr("value", N_BLANKS);
+      $("#n_blanks").attr("value", N_BLANKS);
     }
 
     $(document).ready(function() {
@@ -104,6 +105,7 @@
       $("#product_ids").attr("value", product_ids.toString());
 
     })
+    // ]]>
   </script>
   <style type="text/css">
       td.name input { width: 200px; }
@@ -118,7 +120,7 @@
 {% endblock %}
 
 {% block content %}
-<form method="POST">
+<form method="post" action="">
     <table id="delivery-table">
         <tr>
           <th><label for="dv-name">Nom de la livraison :</label></th>
@@ -144,11 +146,13 @@
             <th>Effacer ?</th>
         </tr>
     </table>
-    <button type=button onclick="add_blank_products();">Ajouter des produits</button>
-    <input type="submit" value="Sauvegarder" />
-    <input type='hidden' name='dv-id' value='{{delivery.id}}' />
-    <input type='hidden' name='n_blanks' id="n_blanks" value='0' />
-    <input type='hidden' name='product_ids' id="product_ids" value='' />
-    {% csrf_token %}
+    <p>
+      <button type='button' onclick="add_blank_products();">Ajouter des produits</button>
+      <input type='submit' value="Sauvegarder" />
+      <input type='hidden' name='dv-id' value='{{delivery.id}}' />
+      <input type='hidden' name='n_blanks' id="n_blanks" value='0' />
+      <input type='hidden' name='product_ids' id="product_ids" value='' />
+      {% csrf_token %}
+	</p>
 </form>
 {% endblock %}
