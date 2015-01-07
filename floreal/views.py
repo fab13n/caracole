@@ -137,22 +137,21 @@ def view_subgroup_purchases_pdf(request, delivery):
 
 
 def edit_subgroup_purchases(request, delivery):
-    """View the purchases of a subgroup. Subgroup staff only."""
+    """Allows to change the purchases of user's subgroup. Subgroup staff only."""
     delivery = m.Delivery.objects.get(id=delivery)
     user = request.user
     subgroup = delivery.network.subgroup_set.get(staff__in=[user])
     if request.method == 'POST':
-        if parse_subgroup_purchases(request):
-            redirect("index")
-        else:
-            #TODO: display errors in template
-            redirect("edit_subgroup_purchases", delivery=delivery.id)
+        parse_subgroup_purchases(request)
+        return redirect("edit_subgroup_purchases", delivery=delivery.id)
     else:
-        return render_to_response('edit_subgroup_purchases.html',
-                                  delivery_description(delivery, [subgroup], user=user))
+        vars = delivery_description(delivery, [subgroup], user=user)
+        vars.update(csrf(request))
+        return render_to_response('edit_subgroup_purchases.html', vars)
 
 
 def edit_user_purchases(request, delivery):
+    """Let user order for himself, or modified an order on an open delivery."""
     delivery = m.Delivery.objects.get(id=delivery)
     user = request.user
     order = m.Order(user, delivery)

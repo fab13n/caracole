@@ -67,6 +67,13 @@
         });
       }
 
+      function disable_unmodified_inputs() {
+        /* Disabled inputs aren't submitted. */
+        $("input.quantity").not(".modified").prop("disabled", "true");
+        modified=[]; $("input.modified").each(function(i, input) { modified += input.name + ","; });
+        $("#input-modified").attr("value", modified)
+      }
+
       $(document).ready(function() {
       })
     // ]]>
@@ -86,7 +93,8 @@
 
 <h1>Commandes {{delivery.network.name}} / {{delivery.name}} pour {{table.0.subgroup.name}}</h1>
 
-<table>
+<form method="post" action="">
+  <table>
 
     {# Product names #}
     <tr>
@@ -134,14 +142,18 @@
         {% for pc in ur.orders.purchases %}
         {% if not pc %}
         <td><input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="0"
+                   class="quantity"
                    onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/></td>
         {% elif pc.is_satisfied %}
-        <td><input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="{{pc.ordered|floatformat:"-3"}}"
+        <td><input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="{{pc.ordered|floatformat}}"
+                   class="quantity"
                    onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/></td>
         {% else %}{# unsatisfied order #}
         <td>
-            <input type="number" name="pd{{pc.product.id}}u{{pc.user.id}} class="unsatisfied_ordered" value="{{pc.ordered}}"
+            <input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="{{pc.ordered|floatformat}}"
+                   class="unsatisfied_ordered quantity"
                    onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/>
+            {# TODO adapt dynamically when user changes request and order <= unsatisfied. #}
             <span class="unsatisfied_granted">{{pc.granted}}</span>
         </td>
         {% endif %}{# unsatisfied #}
@@ -174,6 +186,10 @@
         {% endfor %}{# grand total by product #}
         <td><span id="total">{{price|floatformat:"2"}}</span>€</td>
     </tr>
-
-</table>
+  </table>
+  <input type="submit" value="Sauvegarder" onclick="disable_unmodified_inputs()"/>
+  <input type="hidden" name="dv-id" value="{{delivery.id}}"/>
+  <input type="hidden" id="input-modified" name="modified" value=""/>
+  {% csrf_token %}
+</form>
 {% endblock %}

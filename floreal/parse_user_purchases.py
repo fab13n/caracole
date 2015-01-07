@@ -21,3 +21,5 @@ def parse_user_purchases(request):
         pc.ordered = ordered
         pc.granted = ordered
         pc.save()
+
+    return True  # true == no error
