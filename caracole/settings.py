@@ -32,7 +32,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'registration',
+    'registration',  # WARNING that's django-registration-redux, not django-registration!
     'floreal',
 )
 
@@ -59,7 +59,7 @@ DATABASES = {
         'HOST': 'localhost',
         'PORT': '3306',
     },
-    'sqlite': {
+    'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }

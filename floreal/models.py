@@ -90,11 +90,15 @@ class Subgroup(models.Model):
     name = models.CharField(max_length=64)
     network = models.ForeignKey(Network)
     extra_user = models.ForeignKey(User, null=True, blank=True, related_name='+')
+    # Users might only be staff of one subgroup per network
     staff = models.ManyToManyField(User, related_name='staff_of')
     users = models.ManyToManyField(User, related_name='user_of')
 
     def __unicode__(self):
         return "%s/%s" % (self.network.name, self.name)
+
+    # TODO: override create() so that the extra user is automatically created;
+    # TODO: delete extra_user with the subgroup.
 
 
 class Delivery(models.Model):
