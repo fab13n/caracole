@@ -73,6 +73,10 @@ def parse_form(request):
                 if fields['deleted']:  # Delete previously existing product
                     print "Deleting product %s" % pd_id
                     pd.delete()
+                    # Since purchases have foreign keys to purchased products,
+                    # they will be automatically deleted.
+                    # No need to update penury management either, as there's
+                    # no purchase of this product left to adjust.
                 else:  # Update product
                     print "Updating product %s" % pd_id
                     _pd_update(pd, fields)
