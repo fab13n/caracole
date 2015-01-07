@@ -166,9 +166,9 @@ class Purchase(models.Model):
 
     def __unicode__(self, specify_user=True):
         if self.ordered == self.granted:
-            fmt = u"%(granted)s %(unit)s %(prod_name)s à %(price).2f€"
+            fmt = u"%(granted)g %(unit)s %(prod_name)s à %(price).2f€"
         else:
-            fmt = u"%(granted)s %(unit)s (au lieu de %(ordered)s) %(prod_name)s à %(price).2f€"
+            fmt = u"%(granted)g %(unit)s (au lieu de %(ordered)g) %(prod_name)s à %(price).2f€"
         result = fmt % {
             'granted': self.granted,
             'ordered': self.ordered,
@@ -209,21 +209,41 @@ class Order(object):
 
     @classmethod
     def by_user_and_product(cls, delivery, users, products=None):
-        """Compute a list of orders, for several users, more efficiently than by performing `len(users)` DB queries.
+        """Compute a dict of orders, for several users, more efficiently than by performing `len(users)` DB queries.
         Purchases are in a list, sorted according to the list `product` if passed, by product name otherwise.
         If a product hasn't been purchased by a user, `None` is used as a placeholder in the purchases list.
 
         :param delivery: for which delivery
         :param users: iterable over users
         :param products: ordered list of products; normally, the products available in `delivery`.
-        :return: a user/orders_list_index_as_products dictionary for all `users`."""
+        :return: a user -> orders_list_indexed_as_products dictionary for all `users`."""
+
+        class DummyPurchase(object):
+            """"Dummy purchase, to be used as a stand-in in purchas tables when a product
+            hasn't been purchased by a user."""
+            def __init__(self, product, user):
+                self.product = product
+                self.user = user
+                self.price = 0
+                self.ordered = 0
+                self.granted = 0
+
+            def __nonzero__(self):
+                return False
 
         if not products:
             products = delivery.product_set.order_by('name')
         purchases_by_user = {u: {} for u in users}
+        prices = {u: 0 for u in users}
         for pc in Purchase.objects.filter(product__delivery=delivery, user__in=users):
             purchases_by_user[pc.user][pc.product] = pc
-        def purchase_line(user):
-            return [purchases_by_user[user].get(pd, None) for pd in products]
+            prices[pc.user] += pc.price
+
+        def purchase_line(u):
+            return [purchases_by_user[u].get(pd, None) or DummyPurchase(pd, u) for pd in products]
+
         orders = {u: Order(u, delivery, purchases=purchase_line(u)) for u in users}
+        for u in users:
+            orders[u].price = prices[u]
         return orders
+

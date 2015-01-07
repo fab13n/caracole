@@ -67,7 +67,7 @@
     <tr class="subgroup_row" id="subgroup_row_{{sgr.subgroup.id}}">
         <th class="left">{{sgr.subgroup.name}}</th>
         {% for t in sgr.totals %}
-        <td>{{t.quantity}}</td>
+        <td>{{t.quantity|floatformat}}</td>
         {% endfor %}
         <td>{{sgr.price|price}}</td>
     </tr>
@@ -80,11 +80,11 @@
         {% if not pc %}
         <td>-</td>
         {% elif pc.is_satisfied %}
-        <td>{{pc.granted}}</td>
+        <td>{{pc.granted|floatformat}}</td>
         {% else %}
         <td>
-            <span class="unsatisfied_ordered">{{pc.ordered}}</span>
-            <span class="unsatisfied_granted">{{pc.granted}}</span>
+            <span class="unsatisfied_ordered">{{pc.ordered|floatformat}}</span>
+            <span class="unsatisfied_granted">{{pc.granted|floatformat}}</span>
         </td>
         {% endif %}{# unsatisfied #}
         {% endfor %}{# purchase #}
@@ -100,9 +100,9 @@
         {% for pt in product_totals %}
         <td>
             {% if pt.out_of_packages %}{# Some loose items #}
-            {{pt.quantity}} = <br/>
+            {{pt.quantity|floatformat}} = <br/>
             {{pt.full_packages}} × {{pt.product.quantity_per_package}} {{pt.product.unit}} <br/>
-            <span class="out_of_packages"> + {{pt.out_of_package|floatformat:"-3"}} {{pt.product.unit}}</span>
+            <span class="out_of_packages"> + {{pt.out_of_packages|floatformat}} {{pt.product.unit}}</span>
             {% elif pt.full_packages %}{# round number of packages, no loose item. #}
             {{pt.quantity}} = <br/>
             <span class="nothing_out_of_package">
@@ -110,7 +110,7 @@
             </span>
             {% else %}{# unpackaged items #}
             <span class="nothing_out_of_package">
-                {{pt.product.quantity|floatformat:"-3"}}
+                {{pt.quantity|floatformat}}
             </span> {{pt.product.unit}}
             {% endif %}
         </td>

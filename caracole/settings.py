@@ -58,7 +58,6 @@ DATABASES = {
         'PASSWORD': 'floreal',
         'HOST': 'localhost',
         'PORT': '3306',
-
     },
     'sqlite': {
         'ENGINE': 'django.db.backends.sqlite3',

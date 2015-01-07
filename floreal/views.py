@@ -133,7 +133,7 @@ def view_subgroup_purchases_pdf(request, delivery):
     subgroup = delivery.network.subgroup_set.get(staff__in=[request.user])
     return _non_html_response((delivery.network.name, delivery.name, subgroup.name), "pdf",
                               "application/pdf",
-                              pdf.subgroup(delivery_description(delivery, [subgroup])))
+                              pdf.subgroup(delivery, subgroup))
 
 
 def edit_subgroup_purchases(request, delivery):
@@ -158,10 +158,10 @@ def edit_user_purchases(request, delivery):
     order = m.Order(user, delivery)
     if request.method == 'POST':
         if parse_user_purchases(request):
-            redirect("index")
+            return redirect("index")
         else:
             #TODO: display errors in template
-            redirect("edit_user_purchases", delivery=delivery.id)
+            return redirect("edit_user_purchases", delivery=delivery.id)
     else:
         vars = {
             'user': user,

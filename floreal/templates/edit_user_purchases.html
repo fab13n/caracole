@@ -7,7 +7,7 @@
 
     var PRODUCT_IDS=[{% for pd in products %}{{pd.id}},{% endfor %}];
     var PURCHASES=[{% for pc in purchases %}
-      {'product': {{pc.product.id}}, 'ordered': {{pc.ordered_quantity}} },
+      {'product': {{pc.product.id}}, 'ordered': {{pc.ordered}} },
     {% endfor %}];
 
 
@@ -80,7 +80,7 @@
         {% for pd in products %}
         <tr>
           <td>{{pd.name}}</td>
-          <td><input class="quantity" id="pd{{pd.id}}-ordered_quantity" maxlength="64" name="%-" type="number" step="1" value="0" /></td>
+          <td><input class="quantity" id="pd{{pd.id}}-ordered_quantity" maxlength="64" name="pd{{pd.id}}" type="number" step="1" value="0" /></td>
           <td>{{pd.unit}}</td>
           <td><span id="pd{{pd.id}}-unit_price">{{pd.price|price_nocurrency}}</span> €/{{pd.unit}}</td>
           <td><span id="pd{{pd.id}}-ordered_price">-</span> €</td>

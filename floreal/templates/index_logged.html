@@ -1,4 +1,5 @@
 {% extends 'layout.html' %}
+{% load price %}
 
 {% block head %}
     <style type="text/css">
@@ -28,7 +29,7 @@
 {% for order in as_user.modifiable %}
 <li>
   <a href="{% url 'edit_user_purchases' delivery=order.delivery.id %}">
-    Modifier la commande {{order.delivery.name}} ({{order.price}}€)
+    Modifier la commande {{order.delivery.name}} ({{order.price|price}})
   </a>:
   <ul>
     {% for p in order.purchases %}

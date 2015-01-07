@@ -3,6 +3,7 @@
 
 {% block head %}
     <script type='text/javascript'>
+      // <![CDATA[
       var USER_IDS = [{% for u in table.0.users %}{{u.user.id}}, {% endfor %}];
       var PRODUCTS = { {% for pd in products %}
         {{pd.id}}: { 'id': {{pd.id}}, 'price': {{pd.price}}, 'qpp': {{pd.quantity_per_package|default:"0"}} }, {% endfor %}
@@ -16,15 +17,15 @@
 
         /* New total price for user `u`. */
         var u_new_total = 0;
-        $.each(USER_IDS, function(i, u_i) {
-          u_new_total += parseFloat($("input[name='pd"+pd.id+"u"+u_i+"']").attr("value")) * pd.price;
+        $.each(PRODUCTS, function(pd_id, pd) {
+          u_new_total += parseFloat($("input[name='pd"+pd.id+"u"+u+"']").attr("value")) * pd.price;
         });
         $("#u"+u+"-price").text(u_new_total.toFixed(2));
 
         /* New total quantity for product `pd` */
         var pd_new_total = 0;
-        $.each(PRODUCTS, function(pd_id, pd_i) {
-          pd_new_total += parseFloat($("input[name='pd"+pd_id+"u"+u+"']").attr("value"));
+        $.each(USER_IDS, function(i, u_id) {
+          pd_new_total += parseFloat($("input[name='pd"+pd.id+"u"+u_id+"']").attr("value"));
         });
 
         /* Update product quantity, including out-of-package accounting */
@@ -53,6 +54,7 @@
       }
       $(document).ready(function() {
       })
+    // ]]>
     </script>
     <style type="text/css">
       .out_of_packages { font-weight:bold; color: #811305; }
@@ -131,17 +133,17 @@
         {% for pt in product_totals %}
         <td>
             {% if pt.out_of_packages or pt.full_packages %}{# Packaging size defined #}
-            <span id="pd{{pt.product.id}}-quantity">{{pt.quantity|floatformat:"-3"}}</span> = <br/>
+            <span id="pd{{pt.product.id}}-quantity">{{pt.quantity|floatformat}}</span> = <br/>
             <span id="pd{{pt.product.id}}-n_packages">{{pt.full_packages}}</span> ×
             {{pt.product.quantity_per_package}} {{pt.product.unit}}
             <span class="out_of_packages" id="pd{{pt.product.id}}-out_of_packages"> <br/> +
               <span id="pd{{pt.product.id}}-out_of_packages-value">
-                {{pt.out_of_packages|floatformat:"-3"}}
+                {{pt.out_of_packages|floatformat}}
               </span> {{pt.product.unit}}
             </span>
             {% else %}{# unpackaged items #}
             <span id="pd{{pt.product.id}}-quantity">
-                {{pt.product.quantity|floatformat:"-3"}}
+                {{pt.quantity|floatformat}}
             </span> {{pt.product.unit}}
             {% endif %}
         </td>
