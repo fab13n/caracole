@@ -5,8 +5,7 @@ from datetime import datetime
 from django.http import HttpResponse
 from django.shortcuts import render_to_response, redirect, get_object_or_404
 from django.core.context_processors import csrf
-from django.contrib.auth.decorators import login_required
-
+from django.contrib.auth.decorators import login_required, user_passes_test
 from . import models as m
 from .spreadsheet import spreadsheet
 from . import pdf

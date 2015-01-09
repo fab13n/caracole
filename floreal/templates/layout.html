@@ -24,9 +24,18 @@
         <!-- end content -->
         <!-- start sidebar -->
         <div id="sidebar">
-          Bienvenue {{user.first_name}} {{user.last_name}}
+          Bienvenue <em>{{user.first_name}} {{user.last_name}}</em>.
           <ul>
-            <li>TODO login etc.</li>
+            <li><a href="{% url 'index' %}">Page d'accueil</a></li>
+            <li><a href="{% url 'auth_logout' %}">Deconnection</a></li>
+            <li><a href="{% url 'auth_password_reset' %}">Changer de mot de passe</a></li>
+            {% if user.is_staff %}
+            <li><a href="/admin">{# TODO: get reverse URL to work #}Administrer DB</a></li>
+            {% endif %}
+          </ul>
+          <ul>
+            <li><a href="http://circuits-courts.fr/charte_floreal.php">La charte Floreal</a></li>
+            <li><a href="http://caracole.le-pic.org/index.php">Caracole</a></li>
           </ul>
         </div>
         <!-- end sidebar -->

@@ -3,7 +3,6 @@
 
 from django.db import models
 from django.contrib.auth.models import User
-from django.forms import ModelForm
 
 # A user belongs can belong to several networks, through one subgroup per network.
 # They might also be staff of several subgroups,
