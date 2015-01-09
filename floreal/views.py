@@ -13,6 +13,9 @@ from . import edit_delivery_view
 from delivery_table_view import delivery_description
 from parse_subgroup_purchases import parse_subgroup_purchases
 from parse_user_purchases import parse_user_purchases
+import pprint
+
+pp=pprint.PrettyPrinter(indent=2)
 
 @login_required()
 def index(request):
@@ -20,29 +23,28 @@ def index(request):
     user = request.user
     user_subgroups = m.Subgroup.objects.filter(users__in=[user])
     user_networks = [s.network for s in user_subgroups]
-    user_deliveries = m.Delivery.objects.filter(network__in=user_networks)
-    user_orders = [m.Order(user, delivery) for delivery in user_deliveries]
-    staffed_networks = m.Network.objects.filter(staff__in=[user])
     staffed_subgroups = m.Subgroup.objects.filter(staff__in=[user])
-    # TODO: reintegrate subgroup staff entries with network staff entries,
-    # TODO: when current user is net-staff and group-staff in the same network
-    vars = {
-        'user': user,
-        'as_user': {
-            'open': [order.delivery for order in user_orders
-                                    if not order.purchases
-                                    and order.delivery.state == m.Delivery.OPEN],
-            'modifiable': [order for order in user_orders
-                                 if order.purchases
-                                 and order.delivery.state == m.Delivery.OPEN],
-            'past': [order for order in user_orders
-                           if order.delivery.state != m.Delivery.OPEN],
-        },
-        'as_staff': {
-            'networks': [(n, n.delivery_set.all()) for n in staffed_networks],
-            'subgroups': [(s, s.network.delivery_set.filter(state=m.Delivery.OPEN)) for s in staffed_subgroups]
-        }
-    }
+
+    nw2staff_of = {}
+    nw2user_of = {}
+    for nw in user_networks:
+        for sg in nw.subgroup_set.all():
+            if user in sg.staff.all():
+                nw2staff_of[nw] = sg
+            if user in sg.staff.all():
+                nw2user_of[nw] = sg
+
+    vars = {'user': user,
+            'networks': [{'network': nw,
+                          'subgroup': nw2user_of[nw],
+                          'staffed_subgroup': nw2staff_of.get(nw, False),
+                          'is_network_staff': user in nw.staff.all(),
+                          'deliveries': [{'delivery': dv,
+                                          'order':m.Order(user, dv)
+                                          } for dv in nw.delivery_set.all()],
+                          } for nw in user_networks]
+            }
+    pp.pprint(vars)
     return render_to_response('index_logged.html', vars)
 
 

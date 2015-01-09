@@ -12,110 +12,74 @@
 
 <p>Bienvenue sur le site web de commande des réseaux Caracole.</p>
 
-<h2>Passer commande</h2>
-
+{% for nw in networks %}
+<h2>Réseau {{nw.network.name}}</h2>
 <ul>
-{% for dv in as_user.open %}
-<li><a href="{% url 'edit_user_purchases' delivery=dv.id %}">
-  Commander pour {{dv.name}}
-</a></li>
-{% empty %}
-<li>Aucune commande à passer.</li>
-{% endfor %}
-</ul>
-
-<h2>Modifier vos commandes</h2>
-<ul>
-{% for order in as_user.modifiable %}
-<li>
-  <a href="{% url 'edit_user_purchases' delivery=order.delivery.id %}">
-    Modifier la commande {{order.delivery.name}} ({{order.price|price}})
-  </a>:
-  <ul>
-    {% for p in order.purchases %}
-    <li>{{p}}</li>
-    {% endfor %}
-  </ul>
-</li>
-{% empty %}
-<li>Aucune commande modifiable.</li>
-{% endfor %}
-</ul>
-
-<h2>Anciennes commandes</h2>
-<ul>
-{% for order in as_user.past %}
-<li>
-  {{order.delivery.network.name}}/{{order.delivery.name}}:
-  <ul>
-    {% for p in order.purchases %}
-      <li>{{p}}</li>
-    {% empty %}
-    <li>Vous n'aviez rien commandé.</li>
-    {% endfor %}
-  </ul>
-</li>
-{% empty %}
-<li>Pas d'anciennes commandes.</li>
-{% endfor %}
-</ul>
-
-
-{% for network, undelivered in as_staff.networks %}
-<h2>Administration du réseau {{network.name}}</h2>
-<ul>
-{% for d in undelivered %}
-  <li>{{d.name}}:
+  {% for dv in nw.deliveries %}
+  <li>Commande {{dv.delivery.name}}:
     <ul>
-      <li><a href="{% url 'edit_delivery_products' delivery=d.id %}">
-        Modifier les produits disponibles.
-      </a></li>
-      <li>Voir les commandes
-        <a href="{% url 'view_delivery_purchases_html' delivery=d.id %}">en ligne</a>,
-        <a href="{% url 'view_delivery_purchases_xlsx' delivery=d.id %}">dans un tableau Excel.</a>
+
+      {# This will fail if administrators aren't users of their own network #}
+      {% if dv.delivery.is_open %}
+      {% if dv.order.purchases|length > 0 %}
+      <li><a href="{% url 'edit_user_purchases' delivery=dv.order.delivery.id %}">
+        modifier la commande</a>:
+        <ul>
+          {% for p in order.purchases %}
+          <li>{{p}}</li>
+          {% endfor %}{# purchases #}
+        </ul>
       </li>
-      {% if d.is_open %}
-      <li><a href="{% url 'set_delivery_state' delivery=d.id state='Closed'%}">
-          Interdire les commandes.
+      {% else %}{# no purchase yet #}
+      <li><a href="{% url 'edit_user_purchases' delivery=dv.delivery.id %}">
+        Commander
+      </a></li>
+      {% endif %}{# purchases > 0 #}
+      {% endif %}{# is_user_available #}
+
+
+      {% if nw.is_network_staff %}
+      {% if dv.delivery.is_open %}
+      <li><em>[admin]</em> <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Closed'%}">
+          Interdire les commandes
       </a></li>
       {% else %}
-      <li><a href="{% url 'set_delivery_state' delivery=d.id state='Open'%}">
-          Autoriser les commandes.
+      <li><em>[admin]</em> <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Open'%}">
+          Autoriser les commandes
       </a></li>
-      <li><a href="{% url 'set_delivery_state' delivery=d.id state='Delivered'%}">
-          Archiver la livraison.
+      <li><em>[admin]</em> <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Delivered'%}">
+          Archiver la livraison
       </a></li>
-      {% endif %}
+      {% endif %}{# delivery.is_open #}
+      <li><em>[admin]</em> <a href="{% url 'edit_delivery_products' delivery=dv.delivery.id %}">
+        Modifier les produits disponibles
+      </a></li>
+      <li><em>[admin]</em> Voir les commandes de tout le réseau {{nw.network.name}}<br/>
+        <a href="{% url 'view_delivery_purchases_html' delivery=dv.delivery.id %}">en ligne</a>,
+        <a href="{% url 'view_delivery_purchases_xlsx' delivery=dv.delivery.id %}">dans un tableau Excel</a>.
       </li>
+      {% endif %}{# is_network_staff #}
+
+
+      {% if nw.staffed_subgroup %}
+      <li><em>[admin-sous-groupe]</em> Voir les commandes du sous-groupe {{nw.subgroup.name}} pour {{dv.delivery.name}}<br/>
+        <a href="{% url 'view_subgroup_purchases_html' delivery=dv.delivery.id %}">en ligne</a>,
+        <a href="{% url 'view_subgroup_purchases_pdf' delivery=dv.delivery.id %}">en PDF</a>,
+        <a href="{% url 'view_subgroup_purchases_xlsx' delivery=dv.delivery.id %}">dans un tableau Excel</a>.
+      </li>
+      <li><em>[admin-sous-groupe]</em> <a href="{% url 'edit_subgroup_purchases' delivery=dv.delivery.id %}">
+        Modifier les commandes du sous-groupe {{nw.subgroup.name}}
+      </a></li>
+      {% endif %}{# is_subgroup_staff #}
+
+
     </ul>
   </li>
-{% empty %}
-  <li>Pas de commande en cours.</li>
-{% endfor %}
-  <li><a href="{% url 'create_delivery' network=network.id %}">Créer une nouvelle commande {{network.name}}</a></li>
-  <li><a href="{% url 'emails_network' network=network.id %}">e-mails du réseau {{network.name}}</a></li>
+  {% endfor %}{# deliveries #}
+  {% if nw.is_network_staff %}
+  <li><em>[admin]</em> <a href="">Créer une nouvelle commande {{nw.network.name}}</a></li>
+  {% endif %}
 </ul>
-{% endfor %}{# as_staff.networks #}
-
-
-
-{% for subgroup, undelivered in as_staff.subgroups %}
-<h2>Administration du sous-groupe {{subgroup.network.name}}/{{subgroup.name}}</h2>
-<ul>
-{% for d in undelivered %}
-  <li>Voir les commandes du sous-groupe {{subgroup.name}} pour {{d.name}}
-    <a href="{% url 'view_subgroup_purchases_html' delivery=d.id %}">en ligne</a>,
-    <a href="{% url 'view_subgroup_purchases_pdf' delivery=d.id %}">en PDF</a>,
-    <a href="{% url 'view_subgroup_purchases_xlsx' delivery=d.id %}">dans un tableau Excel</a>.
-  </li>
-  <li><a href="{% url 'edit_subgroup_purchases' delivery=d.id %}">
-    Modifier les commandes du sous-groupe {{subgroup.name}} pour {{d.name}}
-  </a></li>
-{% empty %}
-  <li>Pas de commande en cours.</li>
-{% endfor %}
-  <li><a href="{% url 'emails_subgroup' subgroup=subgroup.id %}">e-mails du sous-groupe {{subgroup.name}}</a></li>
-</ul>
-{% endfor %}{# as_staff.ubgroups #}
+{% endfor %}{# networks #}
 
 {% endblock content %}
