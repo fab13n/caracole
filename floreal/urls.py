@@ -27,4 +27,6 @@ urlpatterns = patterns('',
     url(r'^staff/view/purchases/subgroup/(?P<delivery>[0-9]+).xlsx$', views.view_subgroup_purchases_xlsx, name='view_subgroup_purchases_xlsx'),
     url(r'^staff/edit/purchases/subgroup/(?P<delivery>[0-9]+)$', views.edit_subgroup_purchases, name='edit_subgroup_purchases'),
     url(r'^purchases/(?P<delivery>[0-9]+)$', views.edit_user_purchases, name='edit_user_purchases'),
+    url(r'^emails/network/(?P<network>[0-9]+)$', views.view_emails, name='emails_network'),
+    url(r'^emails/subgroup/(?P<subgroup>[0-9]+)$', views.view_emails, name='emails_subgroup'),
 )

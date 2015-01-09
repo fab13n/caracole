@@ -1,0 +1,60 @@
+{% extends 'layout.html' %}
+{% load floreal_filters %}
+
+{% block head %}
+  <style type="text/css">
+    .mail-list { font-family: monospace; line-height:1; }
+  </style>
+{% endblock %}
+
+
+{% block content %}
+<h1>E-mails des membres</h1>
+
+<p>
+  Voici quelques listes d'e-mails d'utilisateurs, que vous pouvez
+  copier-coller dans votre logiciel de courrier électronique pour communiquer
+  avec les membres et administrateurs du réseau {{network.name}}.
+</p>
+
+<h2>Administateurs du réseau {{network.name}}:</h2>
+<p class='mail-list'>
+  {% for u in network.staff.all %}{{u|email}},<br/>{% endfor %}
+</p>
+
+{% if subgroups|length == 1 %}
+<h2>Administateurs du sous-groupe {{subgroups.0.name}}:</h2>
+<p class='mail-list'>
+  {% for u in subgroups.0.staff.all %}{{u|email}},<br/>{% endfor %}
+</p>
+
+{% else %}{# several subgroups #}
+
+<h2>Administateurs de sous-groupes</h2>
+<p></p>
+
+{% for sg in subgroups %}
+<h3>Sous-groupe {{sg.name}}:</h3>
+<p class='mail-list'>
+  {% for u in sg.staff.all %}{{u|email}},<br/>{% endfor %}
+</p>
+{% endfor %}
+{% endif %}
+
+{% for sg in subgroups %}
+<h2>Membres du sous-groupe {{sg.name}}:</h2>
+<p class='mail-list'>
+  {% for u in sg.users.all %}{{u|email}},<br/>{% endfor %}
+</p>
+{% endfor %}
+
+{% if subgroups|length > 1 %}
+<h2>Tous les membres du réseau {{network.name}}:</h2>
+<p class='mail-list'>
+  {% for sg in network.subgroup_set.all %}
+  {% for u in sg.users.all %}{{u|email}}, {% endfor %}
+  {% endfor %}
+</p>
+{% endif %}
+
+{% endblock %}

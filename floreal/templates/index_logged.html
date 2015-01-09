@@ -1,5 +1,5 @@
 {% extends 'layout.html' %}
-{% load price %}
+{% load floreal_filters %}
 
 {% block head %}
     <style type="text/css">
@@ -93,6 +93,7 @@
   <li>Pas de commande en cours.</li>
 {% endfor %}
   <li><a href="{% url 'create_delivery' network=network.id %}">Créer une nouvelle commande {{network.name}}</a></li>
+  <li><a href="{% url 'emails_network' network=network.id %}">e-mails du réseau {{network.name}}</a></li>
 </ul>
 {% endfor %}{# as_staff.networks #}
 
@@ -113,6 +114,7 @@
 {% empty %}
   <li>Pas de commande en cours.</li>
 {% endfor %}
+  <li><a href="{% url 'emails_subgroup' subgroup=subgroup.id %}">e-mails du sous-groupe {{subgroup.name}}</a></li>
 </ul>
 {% endfor %}{# as_staff.ubgroups #}
 

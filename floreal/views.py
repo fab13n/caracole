@@ -171,3 +171,18 @@ def edit_user_purchases(request, delivery):
         vars.update(csrf(request))
         return render_to_response('edit_user_purchases.html', vars)
 
+
+def view_emails(request, network=None, subgroup=None):
+    vars = {'user': request.user}
+    if network:
+        vars['network'] = m.Network.objects.get(id=int(network))
+    if subgroup:
+        sg = m.Subgroup.objects.get(id=subgroup)
+        vars['subgroups'] = [sg]
+        if not network:
+            vars['network'] = sg.network
+    elif network:
+        vars['subgroups'] = m.Subgroup.objects.filter(network_id=network)
+    else:
+        raise Exception("Need network or subgroup")
+    return render_to_response('emails.html', vars)

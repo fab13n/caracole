@@ -26,7 +26,7 @@
         <div id="sidebar">
           Bienvenue <em>{{user.first_name}} {{user.last_name}}</em>.
           <ul>
-            <li><a href="{% url 'index' %}">Page d'accueil</a></li>
+            <li><a href="{% url "index" %}">Page d'accueil</a></li>
             <li><a href="{% url 'auth_logout' %}">Deconnection</a></li>
             <li><a href="{% url 'auth_password_reset' %}">Changer de mot de passe</a></li>
             {% if user.is_staff %}
