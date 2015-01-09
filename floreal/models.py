@@ -189,6 +189,10 @@ class Purchase(models.Model):
         # TODO: if product has limitations, update granted quantities for all affected purchases
         super(Purchase, self).save(force_insert, force_update, using, update_fields)
 
+class LegacyPassword(models.Model):
+    email = models.CharField(max_length=64)
+    password = models.CharField(max_length=200)
+    circle = models.CharField(max_length=32)
 
 class Order(object):
     """Sum-up of what a given user has ordered in a given delivery."""
