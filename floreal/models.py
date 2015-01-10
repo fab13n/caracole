@@ -96,9 +96,15 @@ class Subgroup(models.Model):
     def __unicode__(self):
         return "%s/%s" % (self.network.name, self.name)
 
-    # TODO: override create() so that the extra user is automatically created;
-    # TODO: delete extra_user with the subgroup.
-
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        """If the extra user is missing, create it before saving."""
+        if not self.extra_user:
+            self.extra_user = User.objects.create(username="extra-%s" % self.name.lower(),
+                                                  first_name="extra",
+                                                  last_name=self.name.capitalize())
+            self.users.add(self.extra_user)
+        super(Subgroup, self).save(force_insert=force_insert, force_update=force_update,
+                                   using=using, update_fields=update_fields)
 
 class Delivery(models.Model):
     """A command of products, for a given network. It's referenced by product
