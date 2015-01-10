@@ -100,7 +100,7 @@
         add_row(prefix);
         fill_row(prefix, record);
         attach_closure(prefix);
-        product_ids += record['id']
+        product_ids.push(record['id'])
       }
       $("#product_ids").attr("value", product_ids.toString());
 

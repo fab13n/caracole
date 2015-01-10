@@ -6,16 +6,19 @@ import sqlite3
 import django
 from . import models
 
-WEB2PY_PATH = "/home/fabien/src/web2py"
+DB_PATH = "/home/fabien/src/web2py/applications/floreal/databases/storage.sqlite"
+DV_NAME = "ancienne"
+NW_NAME = "Floreal"
 
 # This way hopefully I won't commit it
 with open("/home/fabien/scratch/floreal-default-password") as f:
     DEFAULT_PASSWORD = f.read().strip()
-django.setup()
-cx = sqlite3.connect(WEB2PY_PATH+"/applications/floreal/databases/storage.sqlite")
-nw = models.Network.objects.get(name='Floreal')
 
-def create_them():
+django.setup()
+cx = sqlite3.connect(DB_PATH)
+nw = models.Network.objects.get(name=NW_NAME)
+
+def create_users():
     RQ = "SELECT email, first_name, last_name, password, name FROM auth_user, circles WHERE circles.id==auth_user.circle"
     models.LegacyPassword.objects.all().delete()
     for email, first_name, last_name, password, circle in cx.cursor().execute(RQ).fetchall():
@@ -76,6 +79,22 @@ def promote_network_admins():
         nw.save()
         u.save()
 
-create_them()
-promote_subgroup_admins()
-promote_network_admins()
+def import_products():
+    RQ = "SELECT name, max_quantity, package_quantity, unit, price " \
+         "FROM past_products"
+    dv = models.Delivery.objects.create(name=DV_NAME, network=nw)
+    for (name, quantity_limit, quantity_per_package, unit, price) in cx.cursor().execute(RQ).fetchall():
+        print "Importing product %s" % name
+        pd=models.Product.objects.create(name=name,
+                                         quantity_limit=quantity_limit,
+                                         quantity_per_package=quantity_per_package,
+                                         unit=unit,
+                                         price=price,
+                                         delivery=dv)
+        pd.save()
+
+#create_users()
+#promote_subgroup_admins()
+#promote_network_admins()
+
+import_products()
