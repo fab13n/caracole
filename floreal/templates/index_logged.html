@@ -17,6 +17,9 @@
 <ul>
   {% for dv in nw.deliveries %}
   <li>Commande {{dv.delivery.name}}:
+    {% if dv.delivery.is_archived %}
+    archivée
+    {% else %}
     <ul>
 
       {# This will fail if administrators aren't users of their own network #}
@@ -74,10 +77,11 @@
 
 
     </ul>
+    {% endif %}{# is not archived #}
   </li>
-  {% endfor %}{# deliveries #}
+  {% endfor %}{# delivery #}
   {% if nw.is_network_staff %}
-  <li><em>[admin]</em> <a href="">Créer une nouvelle commande {{nw.network.name}}</a></li>
+  <li><em>[admin]</em> <a href="{% url 'create_delivery' network=nw.network.id %}">Créer une nouvelle commande {{nw.network.name}}</a></li>
   {% endif %}
 </ul>
 {% endfor %}{# networks #}
