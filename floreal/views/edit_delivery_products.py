@@ -15,14 +15,14 @@ def edit_delivery_products(request, delivery):
     delivery = get_object_or_404(Delivery, pk=delivery)
 
     if request.method == 'POST':  # Handle submitted data
-        parse_form(request)
+        _parse_form(request)
         return redirect('index')
 
     else:  # Create and populate forms to render
         vars = make_form(delivery)
         vars['user'] = request.user
         vars.update(csrf(request))
-        return render_to_response('edit_delivery.html', vars)
+        return render_to_response('edit_delivery_products.html', vars)
 
 
 def _get_products_list(delivery):
@@ -32,9 +32,9 @@ def _get_products_list(delivery):
 
     current_products = delivery.product_set.order_by('-id')
     current_names_set = {pd.name for pd in current_products}
-    past_products = [Product.objects\
-                         .filter(name=x['name'], delivery__network=delivery.network)\
-                         .order_by('-id')[0]
+    past_products = [Product.objects
+                     .filter(name=x['name'], delivery__network=delivery.network)
+                     .order_by('-id')[0]
                      for x in Product.objects.values('name').distinct()]
     non_overridden_past_products = [pd for pd in past_products if pd.name not in current_names_set]
     return list(current_products) + non_overridden_past_products
@@ -48,10 +48,9 @@ def make_form(delivery):
 def _get_pd_fields(d, prefix, id):
     """Retrieve form fields representing a product."""
     fields = ['name', 'price', 'quantity_per_package', 'unit', 'quantity_limit', 'unit_weight']
-    k="%s%d-%s" % (prefix, id, 'name')
     raw = {f: d.get("%s%d-%s" % (prefix, id, f), None) for f in fields}
     if not any(f for f in raw.values()):
-        return { 'deleted': True }  # All fields empty means deleted
+        return {'deleted': True}  # All fields empty means deleted
     qpp = raw['quantity_per_package']
     quota = raw['quantity_limit']
     weight = raw['unit_weight']
@@ -61,19 +60,19 @@ def _get_pd_fields(d, prefix, id):
             'unit': raw['unit'],
             'quantity_limit': int(quota) if quota else None,
             'unit_weight': int(weight) if weight else None,
-            'deleted': "%s%d-deleted" % (prefix, id) in d }
+            'deleted': "%s%d-deleted" % (prefix, id) in d}
 
 
 def _pd_update(pd, fields):
     """Update a model object according to form fields."""
     pd.name = fields['name']
     pd.price = fields['price']
-    quantity_per_package = fields['quantity_per_package']
+    pd.quantity_per_package = fields['quantity_per_package']
     pd.unit = fields['unit']
-    quantity_limit = fields['quantity_limit']
+    pd.quantity_limit = fields['quantity_limit']
 
 
-def parse_form(request):
+def _parse_form(request):
     """Parse a delivery edition form and update DB accordingly."""
     d = request.POST
     print(d)
@@ -110,13 +109,13 @@ def parse_form(request):
                     print "Importing past product %s" % pd_id
                     _pd_update(pd, fields)
                     pd.delivery = dv
-                    pd.id=None
+                    pd.id = None
                     pd.save(force_insert=True)
 
     # Parse products created from blank lines
     for i in range(int(d['n_blanks'])):
         # Create new product
-        fields =  _get_pd_fields(d, 'blank', i)
+        fields = _get_pd_fields(d, 'blank', i)
         if fields['deleted']:
             print "Blank field #%d deleted/empty" % i
         else:

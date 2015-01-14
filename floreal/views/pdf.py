@@ -4,13 +4,17 @@
 """PDF views generator."""
 
 from pyfpdf import FPDF, HTMLMixin
-from floreal import models as m
+
+from .. import models as m
+
 
 DATABASE_UTF8_ENABLED = False
+
 
 def _u8(s):
     """Convert DB contents into UTF8 if necessary."""
     return unicode(s) if DATABASE_UTF8_ENABLED else str(s).decode('utf-8')
+
 
 class UserCardsDeck(FPDF, HTMLMixin):
 
@@ -18,7 +22,7 @@ class UserCardsDeck(FPDF, HTMLMixin):
         # HTMLMixin.__init__(self) # No constructor
         # super(UserCardsDeck, self).__init__()  # FPDF is an old-style class
         FPDF.__init__(self)
-        users = m.User.objects.filter(user_of__in=[subgroup]).order_by('last_name', 'first_name')
+        users = subgroup.sorted_users
         orders = m.Order.by_user_and_product(delivery, users)
         for od in orders.values():
             self._print_order(od, subgroup)

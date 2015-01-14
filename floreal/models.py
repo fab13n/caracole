@@ -122,7 +122,6 @@ class Subgroup(models.Model):
         return normal_users
 
 
-
 class Delivery(models.Model):
     """A command of products, for a given network. It's referenced by product
     descriptions and by purchase orders.
@@ -154,6 +153,7 @@ class Delivery(models.Model):
         verbose_name_plural = "Deliveries"
         unique_together = (('network', 'name'),)
         ordering = ('-id',)
+
 
 class Product(models.Model):
     """A product is only valid for one delivery. If the same product is valid across
@@ -229,10 +229,12 @@ class Purchase(models.Model):
         # TODO: if product has limitations, update granted quantities for all affected purchases
         super(Purchase, self).save(force_insert, force_update, using, update_fields)
 
+
 class LegacyPassword(models.Model):
     email = models.CharField(max_length=64)
     password = models.CharField(max_length=200)
     circle = models.CharField(max_length=32)
+
 
 class Order(object):
     """Sum-up of what a given user has ordered in a given delivery."""

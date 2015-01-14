@@ -3,6 +3,7 @@ from django.core.context_processors import csrf
 
 from .. import models as m
 
+
 def edit_user_purchases(request, delivery):
     """Let user order for himself, or modified an order on an open delivery."""
     delivery = m.Delivery.objects.get(id=delivery)
@@ -12,7 +13,7 @@ def edit_user_purchases(request, delivery):
         if _parse_form(request):
             return redirect("index")
         else:
-            #TODO: display errors in template
+            # TODO: display errors in template
             return redirect("edit_user_purchases", delivery=delivery.id)
     else:
         vars = {

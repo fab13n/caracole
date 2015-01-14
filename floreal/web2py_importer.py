@@ -22,6 +22,7 @@ try:
 except Exception:
     nw = models.Network.objects.create(name=NW_NAME)
 
+
 def create_users():
     RQ = "SELECT email, first_name, last_name, password, name FROM auth_user, circles WHERE circles.id==auth_user.circle"
     models.LegacyPassword.objects.all().delete()
@@ -34,7 +35,7 @@ def create_users():
 
         # Retrieve user
         try:
-            user = models.User.objects.get(username=email)
+            models.User.objects.get(username=email)
             print "\t * [already there]"
         except models.User.DoesNotExist:
             print "\t * Creating it"
@@ -55,6 +56,7 @@ def create_users():
             sg.users.add(user)
             sg.save()
 
+
 def promote_subgroup_admins():
     RQ = "SELECT email, circles.name " \
          "FROM auth_user, auth_membership, auth_group, circles  " \
@@ -69,6 +71,7 @@ def promote_subgroup_admins():
         sg.staff.add(models.User.objects.get(username=email))
         sg.save()
 
+
 def promote_network_admins():
     RQ = "SELECT email " \
          "FROM auth_user, auth_membership, auth_group " \
@@ -78,11 +81,12 @@ def promote_network_admins():
 
     for (email,) in cx.cursor().execute(RQ).fetchall():
         print "promoting '%s' as network admin" % email
-        u=models.User.objects.get(username=email)
-        u.is_staff=True
+        u = models.User.objects.get(username=email)
+        u.is_staff = True
         nw.staff.add(u)
         nw.save()
         u.save()
+
 
 def import_products():
     RQ = "SELECT name, max_quantity, package_quantity, unit, price " \
@@ -97,13 +101,12 @@ def import_products():
             print "Product %s already exists" % name
         else:
             print "Importing product %s" % name
-            pd=models.Product.objects.create(name=name,
-                                             quantity_limit=quantity_limit,
-                                             quantity_per_package=quantity_per_package,
-                                              unit=unit,
-                                              price=price,
-                                              delivery=dv)
-        pd.save()
+            models.Product.objects.create(name=name,
+                                          quantity_limit=quantity_limit,
+                                          quantity_per_package=quantity_per_package,
+                                          unit=unit,
+                                          price=price,
+                                          delivery=dv)
 
 create_users()
 promote_subgroup_admins()

@@ -5,6 +5,7 @@ from django.core.context_processors import csrf
 from .. import models as m
 from .delivery_description import delivery_description
 
+
 def edit_subgroup_purchases(request, delivery):
     """Allows to change the purchases of user's subgroup. Subgroup staff only."""
     delivery = m.Delivery.objects.get(id=delivery)
@@ -17,6 +18,7 @@ def edit_subgroup_purchases(request, delivery):
         vars = delivery_description(delivery, [subgroup], user=user)
         vars.update(csrf(request))
         return render_to_response('edit_subgroup_purchases.html', vars)
+
 
 def _parse_form(request):
     """
@@ -41,6 +43,6 @@ def _parse_form(request):
         except m.Purchase.DoesNotExist:
             if ordered != 0:
                 print "Creating purchase for pd=%s, u=%s, q=%f" % (pd, u, ordered)
-                pc = m.Purchase.objects.create(product_id=pd, user_id=u, ordered=ordered, granted=ordered)
+                m.Purchase.objects.create(product_id=pd, user_id=u, ordered=ordered, granted=ordered)
 
     return True  # true == no error

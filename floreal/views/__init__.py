@@ -3,8 +3,8 @@
 
 from datetime import datetime
 
-from django.shortcuts import render_to_response, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.shortcuts import render_to_response, redirect
+from django.contrib.auth.decorators import login_required
 
 from .. import models as m
 from .edit_subgroup_purchases import edit_subgroup_purchases
@@ -37,7 +37,7 @@ def index(request):
                           'staffed_subgroup': nw2staff_of.get(nw, False),
                           'is_network_staff': user in nw.staff.all(),
                           'deliveries': [{'delivery': dv,
-                                          'order':m.Order(user, dv)
+                                          'order': m.Order(user, dv)
                                           } for dv in nw.delivery_set.all()],
                           } for nw in user_networks]
             }
@@ -79,5 +79,4 @@ def view_emails(request, network=None, subgroup=None):
     else:
         raise Exception("Need network or subgroup")
     return render_to_response('emails.html', vars)
-
 
