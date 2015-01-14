@@ -1,5 +1,6 @@
 from . import models as m
 
+
 def delivery_description(delivery, subgroups, **kwargs):
     """Generate a description of the purchases performed by users in `subgroups`
     for `delivery`. The resulting dictionary is used to render HTML as well as
@@ -48,16 +49,16 @@ def delivery_description(delivery, subgroups, **kwargs):
 
     # Generate user->subgroup dict, helper to compute totals per subgroup
     user_to_subgroup = {}
-    for s in subgroups:
-        for u in s.users.iterator():
-            user_to_subgroup[u] = s
+    for sg in subgroups:
+        for u in sg.users.iterator():
+            user_to_subgroup[u] = sg
 
     # Sum quantities per subgroup and per product;
     for o in orders.itervalues():
-        s = user_to_subgroup[o.user]
+        sg = user_to_subgroup[o.user]
         for pc in o.purchases:
             if pc:
-                sg_pd_totals[s][pc.product]['quantity'] += pc.granted
+                sg_pd_totals[sg][pc.product]['quantity'] += pc.granted
 
     # Break up quantities in packages + loose items
     for pd_totals in sg_pd_totals.itervalues():
@@ -98,7 +99,7 @@ def delivery_description(delivery, subgroups, **kwargs):
         table.append(sg_item)
         for j, pd in enumerate(products):
             pd_totals_list.append(pd_totals[pd])
-        for k, u in enumerate(s.users.order_by('last_name', 'first_name')):
+        for k, u in enumerate(sg.sorted_users):
             order = orders[u]
             user_orders.append({
                 'user': u,
