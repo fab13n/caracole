@@ -30,4 +30,5 @@ urlpatterns = patterns('',
     url(r'^purchases/(?P<delivery>[0-9]+)$', views.edit_user_purchases, name='edit_user_purchases'),
     url(r'^emails/network/(?P<network>[0-9]+)$', views.view_emails, name='emails_network'),
     url(r'^emails/subgroup/(?P<subgroup>[0-9]+)$', views.view_emails, name='emails_subgroup'),
+    url(r'^history/(?P<network>[0-9]+)$', views.view_history, name='view_history'),
 )
