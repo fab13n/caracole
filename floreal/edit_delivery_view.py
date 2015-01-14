@@ -29,17 +29,20 @@ def make_form(delivery):
 
 def _get_pd_fields(d, prefix, id):
     """Retrieve form fields representing a product."""
-    fields = ['name', 'price', 'quantity_per_package', 'unit', 'quantity_limit']
-    raw = {f: d["%s%d-%s" % (prefix, id, f)] for f in fields}
+    fields = ['name', 'price', 'quantity_per_package', 'unit', 'quantity_limit', 'unit_weight']
+    k="%s%d-%s" % (prefix, id, 'name')
+    raw = {f: d.get("%s%d-%s" % (prefix, id, f), None) for f in fields}
     if not any(f for f in raw.values()):
         return { 'deleted': True }  # All fields empty means deleted
     qpp = raw['quantity_per_package']
     quota = raw['quantity_limit']
+    weight = raw['unit_weight']
     return {'name': raw['name'],
             'price': float(raw['price']),
             'quantity_per_package': int(qpp) if qpp else None,
             'unit': raw['unit'],
             'quantity_limit': int(quota) if quota else None,
+            'unit_weight': int(weight) if weight else None,
             'deleted': "%s%d-deleted" % (prefix, id) in d }
 
 
@@ -89,7 +92,8 @@ def parse_form(request):
                     print "Importing past product %s" % pd_id
                     _pd_update(pd, fields)
                     pd.delivery = dv
-                    pd.save(force_create=True)
+                    pd.id=None
+                    pd.save(force_insert=True)
 
     # Parse products created from blank lines
     for i in range(int(d['n_blanks'])):
