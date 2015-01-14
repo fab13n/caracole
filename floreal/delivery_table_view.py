@@ -1,5 +1,6 @@
 from . import models as m
 
+
 def delivery_description(delivery, subgroups, **kwargs):
     """Generate a description of the purchases performed by users in `subgroups`
     for `delivery`. The resulting dictionary is used to render HTML as well as
@@ -44,7 +45,6 @@ def delivery_description(delivery, subgroups, **kwargs):
             } for pd in products
         } for sg in subgroups
     }
-    sg_price = {sg: 0 for sg in subgroups}
 
     # Generate user->subgroup dict, helper to compute totals per subgroup
     user_to_subgroup = {}
@@ -95,14 +95,11 @@ def delivery_description(delivery, subgroups, **kwargs):
         pd_totals_list = []
         user_records = []
         # Get and order users alphabetically, except for the extra user which gets last
-        sorted_users = [u for u in users if user_to_subgroup[u] == sg and u != sg.extra_user]
-        sorted_users.sort(key=lambda u: (u.last_name.lower(), u.first_name.lower()))
-        sorted_users.append(sg.extra_user)
         sg_item = {'subgroup': sg, 'totals': pd_totals_list, 'users': user_records}
         table.append(sg_item)
         for j, pd in enumerate(products):
             pd_totals_list.append(pd_totals[pd])
-        for k, u in enumerate(sorted_users):
+        for k, u in enumerate(sg.sorted_users):
             order = orders[u]
             user_records.append({
                 'user': u,
@@ -121,4 +118,3 @@ def delivery_description(delivery, subgroups, **kwargs):
     }
     result.update(kwargs)
     return result
-
