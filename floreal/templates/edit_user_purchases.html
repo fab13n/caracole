@@ -6,29 +6,32 @@
   // <![CDATA[
 
     var PRODUCT_IDS=[{% for pd in products %}{{pd.id}},{% endfor %}];
+    var PRODUCT_WEIGHTS=[{% for pd in products %}{{pd.unit_weight}},{% endfor %}];
     var PURCHASES=[{% for pc in purchases %}
       {'product': {{pc.product.id}}, 'ordered': {{pc.ordered}} },
     {% endfor %}];
 
-
     /* update per-line totals as well as delivery total */
-    function update_prices() {
-      var total = 0
+    function update_weight_and_prices() {
+      var total_price = 0;
+      var total_weight = 0;
       for(var i=0; i<PRODUCT_IDS.length; i++) {
         var pd_id = PRODUCT_IDS[i];
         var ordered = parseFloat($("#pd"+pd_id+"-ordered_quantity").attr("value"));
         var unit_price = parseFloat($("#pd"+pd_id+"-unit_price").text().replace(',','.'));
         var price = ordered * unit_price
         $("#pd"+pd_id+"-ordered_price").text(price.toFixed(2))
-        total += price
-        console.log(pd_id + " -> " + ordered + " * " + unit_price + " = " + price + " -> Σ=" + total);
+        total_price += price
+        total_weight += ordered * PRODUCT_WEIGHTS[i];
+        console.log(pd_id + " -> " + ordered + " * " + unit_price + " = " + price + " -> Σ=" + total_price);
       }
-      $("#total_price").text(total.toFixed(2));
+      $("#total_price").text(total_price.toFixed(2));
+      $("#total_weight").text(total_weight.toFixed(0));
     }
 
     function reset_order(id) {
       $("#pd"+id+"-ordered_quantity").attr("value", "0");
-      update_prices();
+      update_weight_and_prices();
     }
 
     $(document).ready(function() {
@@ -37,8 +40,8 @@
         var pc = PURCHASES[i];
         $("#pd"+pc.product+"-ordered_quantity").attr("value", pc.ordered)
       }
-      $(":input").bind('keyup mouseup', update_prices);
-      update_prices();
+      $(":input").bind('keyup mouseup', update_weight_and_prices);
+      update_weight_and_prices();
     })
   // ]]>
   </script>
@@ -46,7 +49,7 @@
     input.quantity { text-align: right; }
     #delivery-table th { text-align: right; }
     #delivery-table td { text-align: left; }
-	#total_price_cell { font-weight: bold; }
+	.total_cell { font-weight: bold; }
   </style>
 {% endblock %}
 
@@ -80,7 +83,7 @@
         {% for pd in products %}
         <tr>
           <td>{{pd.name}}</td>
-          <td><input class="quantity" id="pd{{pd.id}}-ordered_quantity" maxlength="64" name="pd{{pd.id}}" type="number" step="1" value="0" /></td>
+          <td><input class="quantity" id="pd{{pd.id}}-ordered_quantity" maxlength="64" name="pd{{pd.id}}" type="number" step="1" min="0" value="0" /></td>
           <td>{{pd.unit}}</td>
           <td><span id="pd{{pd.id}}-unit_price">{{pd.price|price_nocurrency}}</span> €/{{pd.unit}}</td>
           <td><span id="pd{{pd.id}}-ordered_price">-</span> €</td>
@@ -88,9 +91,16 @@
           <td><input type="button" onclick="reset_order({{pd.id}});"value="Remettre à 0"></td>
         </tr>
         {% endfor %}
-        <td></td><td></td><td></td>
-        <th>Prix total:</th><td id="total_price_cell"><span id="total_price">-</span> €</td>
-        <td></td><td></td>
+        <tr>
+        <td colspan="3"></td>
+        <th>Prix total:</th><td class="total_cell"><span id="total_price">-</span> €</td>
+        <td colspan="2"></td>
+        </tr>
+        <tr>
+        <td colspan="3"></td>
+        <th>Poids total:</th><td class="total_cell"><span id="total_weight">-</span> kg</td>
+        <td colspan="2"></td>
+        </tr>
     </table>
     <input type="submit" value="Sauvegarder" />
     <input type='hidden' name='dv-id' value='{{delivery.id}}' />

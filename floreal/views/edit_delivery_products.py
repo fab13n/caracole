@@ -59,7 +59,7 @@ def _get_pd_fields(d, prefix, id):
             'quantity_per_package': int(qpp) if qpp else None,
             'unit': raw['unit'],
             'quantity_limit': int(quota) if quota else None,
-            'unit_weight': int(weight) if weight else None,
+            'unit_weight': float(weight) if weight else None,
             'deleted': "%s%d-deleted" % (prefix, id) in d}
 
 
@@ -70,6 +70,7 @@ def _pd_update(pd, fields):
     pd.quantity_per_package = fields['quantity_per_package']
     pd.unit = fields['unit']
     pd.quantity_limit = fields['quantity_limit']
+    pd.unit_weight = fields['unit_weight']
 
 
 def _parse_form(request):
