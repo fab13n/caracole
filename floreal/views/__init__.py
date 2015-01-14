@@ -80,3 +80,8 @@ def view_emails(request, network=None, subgroup=None):
         raise Exception("Need network or subgroup")
     return render_to_response('emails.html', vars)
 
+
+def view_history(request, network):
+    network = m.Network.objects.get(id=network)
+    vars = {'user': request.user, 'orders': [m.Order(request.user, dv) for dv in network.delivery_set.all()]}
+    return render_to_response("view_history.html", vars)
