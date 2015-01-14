@@ -16,7 +16,11 @@ with open("/home/fabien/scratch/floreal-default-password") as f:
 
 django.setup()
 cx = sqlite3.connect(DB_PATH)
-nw = models.Network.objects.get(name=NW_NAME)
+
+try:
+    nw = models.Network.objects.get(name=NW_NAME)
+except Exception:
+    nw = models.Network.objects.create(name=NW_NAME)
 
 def create_users():
     RQ = "SELECT email, first_name, last_name, password, name FROM auth_user, circles WHERE circles.id==auth_user.circle"
@@ -39,8 +43,9 @@ def create_users():
                                               last_name=last_name,
                                               email=email,
                                               is_staff=False,
-                                              is_active=True,
-                                              password=DEFAULT_PASSWORD)
+                                              is_active=True)
+            user.set_password(DEFAULT_PASSWORD)
+            user.save()
             try:
                 sg = models.Subgroup.objects.get(name=circle, network=nw)
                 print "\t * Joining subgroup %s" % sg.name
@@ -82,19 +87,25 @@ def promote_network_admins():
 def import_products():
     RQ = "SELECT name, max_quantity, package_quantity, unit, price " \
          "FROM past_products"
-    dv = models.Delivery.objects.create(name=DV_NAME, network=nw)
+    try:
+        dv = models.Delivery.objects.get(name=DV_NAME, network=nw)
+    except Exception:
+        print "Creating delivery %s" % DV_NAME
+        dv = models.Delivery.objects.create(name=DV_NAME, network=nw)
     for (name, quantity_limit, quantity_per_package, unit, price) in cx.cursor().execute(RQ).fetchall():
-        print "Importing product %s" % name
-        pd=models.Product.objects.create(name=name,
-                                         quantity_limit=quantity_limit,
-                                         quantity_per_package=quantity_per_package,
-                                         unit=unit,
-                                         price=price,
-                                         delivery=dv)
+        if models.Product.objects.filter(name=name):
+            print "Product %s already exists" % name
+        else:
+            print "Importing product %s" % name
+            pd=models.Product.objects.create(name=name,
+                                             quantity_limit=quantity_limit,
+                                             quantity_per_package=quantity_per_package,
+                                              unit=unit,
+                                              price=price,
+                                              delivery=dv)
         pd.save()
 
-#create_users()
-#promote_subgroup_admins()
-#promote_network_admins()
-
+create_users()
+promote_subgroup_admins()
+promote_network_admins()
 import_products()
