@@ -3,7 +3,7 @@
 
 """Excel spreadsheet views generator."""
 
-from .delivery_table_view import delivery_description
+from .delivery_description import delivery_description
 
 DATABASE_UTF8_ENABLED = True
 

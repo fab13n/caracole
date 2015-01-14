@@ -1,8 +1,24 @@
 import re
-from . import models as m
+from django.shortcuts import redirect, render_to_response
+from django.core.context_processors import csrf
 
+from .. import models as m
+from .delivery_description import delivery_description
 
-def parse_subgroup_purchases(request):
+def edit_subgroup_purchases(request, delivery):
+    """Allows to change the purchases of user's subgroup. Subgroup staff only."""
+    delivery = m.Delivery.objects.get(id=delivery)
+    user = request.user
+    subgroup = delivery.network.subgroup_set.get(staff__in=[user])
+    if request.method == 'POST':
+        _parse_form(request)
+        return redirect("edit_subgroup_purchases", delivery=delivery.id)
+    else:
+        vars = delivery_description(delivery, [subgroup], user=user)
+        vars.update(csrf(request))
+        return render_to_response('edit_subgroup_purchases.html', vars)
+
+def _parse_form(request):
     """
     Parse responses from subgroup purchase editions.
     :param request:

@@ -4,7 +4,25 @@
 """Helpers to edit products list: generate suggestions based on current and
 past products, parse POSTed forms to update a delivery's products list."""
 
-from .models import Product, Delivery
+from django.shortcuts import render_to_response, redirect, get_object_or_404
+from django.core.context_processors import csrf
+from floreal.models import Product, Delivery
+
+
+def edit_delivery_products(request, delivery):
+    """Edit a delivery (name, state, products). Network staff only."""
+
+    delivery = get_object_or_404(Delivery, pk=delivery)
+
+    if request.method == 'POST':  # Handle submitted data
+        parse_form(request)
+        return redirect('index')
+
+    else:  # Create and populate forms to render
+        vars = make_form(delivery)
+        vars['user'] = request.user
+        vars.update(csrf(request))
+        return render_to_response('edit_delivery.html', vars)
 
 
 def _get_products_list(delivery):

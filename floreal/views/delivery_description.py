@@ -1,4 +1,4 @@
-from . import models as m
+from floreal import models as m
 
 
 def delivery_description(delivery, subgroups, **kwargs):

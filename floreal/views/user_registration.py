@@ -5,7 +5,7 @@ from django import forms
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 
-from . import models as m
+from .. import models as m
 
 
 class RegistrationForm(forms.Form):
@@ -43,40 +43,15 @@ class RegistrationForm(forms.Form):
                 return password1
         raise forms.ValidationError('Les mots de passe ne correspondent pas.')
 
-def user_login(request):
-    """
-    Display the login form and handle the login action.
-    """
-
-    if request.method == "POST":
-        form = authentication_form(request, data=request.POST)
-        if form.is_valid():
-
-            # Ensure the user-originating redirection url is safe.
-            if not is_safe_url(url=redirect_to, host=request.get_host()):
-                redirect_to = resolve_url(settings.LOGIN_REDIRECT_URL)
-
-            # Okay, security check complete. Log the user in.
-            auth_login(request, form.get_user())
-
-            return HttpResponseRedirect(redirect_to)
-    else:
-        form = authentication_form(request)
-
-    current_site = get_current_site(request)
-
-    context = {
-        'form': form,
-        redirect_field_name: redirect_to,
-        'site': current_site,
-        'site_name': current_site.name,
-    }
-    if extra_context is not None:
-        context.update(extra_context)
-    return TemplateResponse(request, template_name, context,
-                            current_app=current_app)
 
 def user_register(request):
+    """
+    Register a new user: username is defined to be the same as email,
+    at least one subgroup must be registered, and if several subgroups
+    are selected, there may be only one per network.
+    :param request: HTTP request, GET or POST
+    :return: HTML form or redirection to the home page.
+    """
 
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
@@ -94,7 +69,7 @@ def user_register(request):
             sg = m.Subgroup.objects.get(id=d['subgroup'])
             sg.users.add(user)
             sg.save()
-            return HttpResponseRedirect('/')
+            return HttpResponseRedirect('/')  # TODO: reverse URL
         else:  # invalid form
             return render(request, 'registration/registration_form.html', {'form': form})
     else:

@@ -4,7 +4,7 @@
 """PDF views generator."""
 
 from pyfpdf import FPDF, HTMLMixin
-from . import models as m
+from floreal import models as m
 
 DATABASE_UTF8_ENABLED = False
 
