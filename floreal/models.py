@@ -14,7 +14,7 @@ class Plural(models.Model):
     """Remember the plural of product and unit names.
     Django supports plurals for words occurring verbatim in templates,
     but not for words coming from the DB."""
-    singular = models.CharField(max_length=64)
+    singular = models.CharField(max_length=64, unique=True)
     plural = models.CharField(max_length=64)
 
     def __unicode__(self):
@@ -69,8 +69,11 @@ class Network(models.Model):
     Regular users are not stored diretly in the network: they're stored in the network's
     subgroup they belong to."""
 
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=64, unique=True)
     staff = models.ManyToManyField(User)
+
+    class Meta:
+        ordering = ('name',)
 
     def __unicode__(self):
         return self.name
@@ -93,18 +96,22 @@ class Subgroup(models.Model):
     staff = models.ManyToManyField(User, related_name='staff_of')
     users = models.ManyToManyField(User, related_name='user_of')
 
+    class Meta:
+        unique_together = (('network', 'name'),)
+        ordering = ('name',)
+
     def __unicode__(self):
         return "%s/%s" % (self.network.name, self.name)
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         """If the extra user is missing, create it before saving."""
+        super(Subgroup, self).save(force_insert=force_insert, force_update=force_update,
+                                   using=using, update_fields=update_fields)
         if not self.extra_user:
             self.extra_user = User.objects.create(username="extra-%s" % self.name.lower(),
                                                   first_name="extra",
                                                   last_name=self.name.capitalize())
             self.users.add(self.extra_user)
-        super(Subgroup, self).save(force_insert=force_insert, force_update=force_update,
-                                   using=using, update_fields=update_fields)
 
 class Delivery(models.Model):
     """A command of products, for a given network. It's referenced by product
@@ -130,9 +137,13 @@ class Delivery(models.Model):
     def is_open(self):
         return self.state == self.OPEN
 
+    def is_archived(self):
+        return self.state == self.DELIVERED
+
     class Meta:
         verbose_name_plural = "Deliveries"
-
+        unique_together = (('network', 'name'),)
+        ordering = ('-id',)
 
 class Product(models.Model):
     """A product is only valid for one delivery. If the same product is valid across
@@ -146,12 +157,19 @@ class Product(models.Model):
     quantity_per_package = models.IntegerField(null=True, blank=True)
     unit = models.CharField(max_length=64, null=True, blank=True)
     quantity_limit = models.IntegerField(null=True, blank=True)
+    unit_weight = models.FloatField(default=0.0, blank=True)
+
+    class Meta:
+        unique_together = (('delivery', 'name'),)
+        ordering = ('name',)
 
     def __unicode__(self):
         return self.name
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         # TODO: if quantity_limit changes, update granted quantities for all affected purchases
+        if self.unit == 'kg':
+            self.unit_weight = 1.
         super(Product, self).save(force_insert, force_update, using, update_fields)
 
 
@@ -165,6 +183,9 @@ class Purchase(models.Model):
     ordered = models.DecimalField(decimal_places=3, max_digits=6)
     granted = models.DecimalField(decimal_places=3, max_digits=6)
 
+    class Meta:
+        unique_together = (('product', 'user'), )
+
     @property
     def is_satisfied(self):
         return self.granted == self.ordered
@@ -172,6 +193,10 @@ class Purchase(models.Model):
     @property
     def price(self):
         return self.granted * self.product.price
+
+    @property
+    def weight(self):
+        return self.granted * self.product.unit_weight
 
     def __unicode__(self, specify_user=True):
         if self.ordered == self.granted:
@@ -219,6 +244,7 @@ class Order(object):
         else:
             self.purchases = Purchase.objects.filter(product__delivery=delivery, user=user)
             self.price = sum(p.price for p in self.purchases)
+            self.weight = sum(p.weight for p in self.purchases)
 
     @classmethod
     def by_user_and_product(cls, delivery, users, products=None):
