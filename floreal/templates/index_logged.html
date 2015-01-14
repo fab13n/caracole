@@ -1,5 +1,6 @@
 {% extends 'layout.html' %}
 {% load floreal_filters %}
+{% load static %}
 
 {% block head %}
     <style type="text/css">
@@ -55,11 +56,11 @@
       </a></li>
       {% endif %}{# delivery.is_open #}
       <li><em>[admin]</em> <a href="{% url 'edit_delivery_products' delivery=dv.delivery.id %}">
-        Modifier les produits disponibles
+        Modifier les produits disponibles <img src="{% static 'images/edit.png' %}"/>
       </a></li>
       <li><em>[admin]</em> Voir les commandes de tout le réseau {{nw.network.name}}<br/>
         <a href="{% url 'view_delivery_purchases_html' delivery=dv.delivery.id %}">en ligne</a>,
-        <a href="{% url 'view_delivery_purchases_xlsx' delivery=dv.delivery.id %}">dans un tableau Excel</a>
+        <a href="{% url 'view_delivery_purchases_xlsx' delivery=dv.delivery.id %}">dans un tableau Excel <img src="{% static 'images/excel.png' %}"/></a>
       </li>
       {% endif %}{# is_network_staff #}
 
@@ -67,12 +68,15 @@
       {% if nw.staffed_subgroup %}
       <li><em>[admin-sous-groupe]</em> Voir les commandes du sous-groupe {{nw.subgroup.name}} pour {{dv.delivery.name}}<br/>
         <a href="{% url 'view_subgroup_purchases_html' delivery=dv.delivery.id %}">en ligne</a>,
-        <a href="{% url 'view_subgroup_purchases_pdf' delivery=dv.delivery.id %}">en PDF</a>,
-        <a href="{% url 'view_subgroup_purchases_xlsx' delivery=dv.delivery.id %}">dans un tableau Excel</a>
+        <a href="{% url 'view_subgroup_purchases_pdf' delivery=dv.delivery.id %}">en PDF <img src="{% static 'images/pdf.png' %}"/></a>,
+        <a href="{% url 'view_subgroup_purchases_xlsx' delivery=dv.delivery.id %}">dans un tableau Excel <img src="{% static 'images/excel.png' %}"/></a>
       </li>
       <li><em>[admin-sous-groupe]</em> <a href="{% url 'edit_subgroup_purchases' delivery=dv.delivery.id %}">
-        Modifier les commandes du sous-groupe {{nw.subgroup.name}}
+        Modifier les commandes du sous-groupe {{nw.subgroup.name}} <img src="{% static 'images/edit.png' %}"/>
       </a></li>
+      {% if not nw.is_network_staff %}
+      <li><em>[admin]</em> <a href="{% url 'emails_subgroup' nw.subgroup.id %}">e-mails du sous-groupe {{nw.subgroup.name}} <img src="{% static 'images/email.png' %}"/></a></li>
+      {% endif %}{# subgroup_staff but not network_staff #}
       {% endif %}{# is_subgroup_staff #}
 
 
@@ -81,6 +85,7 @@
   </li>
   {% endfor %}{# delivery #}
   {% if nw.is_network_staff %}
+  <li><em>[admin]</em> <a href="{% url 'emails_network' network=nw.network.id %}">e-mails du réseau {{nw.network.name}} <img src="{% static 'images/email.png' %}"/></a></li>
   <li><em>[admin]</em> <a href="{% url 'create_delivery' network=nw.network.id %}">Créer une nouvelle commande {{nw.network.name}}</a></li>
   {% endif %}
 </ul>
