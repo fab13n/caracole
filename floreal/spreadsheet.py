@@ -67,9 +67,9 @@ def spreadsheet(delivery, subgroups):
     else:
         sheet_title = u"Commandes %s %s" % (_u8(delivery.network.name), _u8(subgroups[0].name))
 
-    # Index of the first line with user purchases, allows to move the table's vertical position
-    # within the sheet.
-    HEADER_HEIGHT = 4
+    # By how much the first element of the 2D user/product quantity matrix is shifted
+    ROW_OFFSET = 4
+    COL_OFFSET = 1
 
     # Fixed Cells
     sheet = book.add_worksheet(sheet_title)
@@ -78,48 +78,52 @@ def spreadsheet(delivery, subgroups):
     sheet.write(0, 2, u"Sous-groupe:")
     if n_subgroups == 1:
         sheet.write(0, 3, _u8(subgroups[0].name), title_fmt)
-    sheet.write(HEADER_HEIGHT-2, 0, u"Produit", title_fmt)
-    sheet.write(HEADER_HEIGHT-1, 0, u"Prix unitaire", title_fmt)
-    sheet.write(HEADER_HEIGHT-2, n_products+1, u"total", title_fmt)
+    sheet.write(2, 0, u"Produit", title_fmt)
+    sheet.write(3, 0, u"Prix unitaire", title_fmt)
+    sheet.write(2, n_products+1, u"total", title_fmt)
 
     # Generate product names and prices rows
     for c, pd in enumerate(x['products']):
-        sheet.write(HEADER_HEIGHT-2, c+1, _u8(pd.name.decode), header_fmt)
-        sheet.write(HEADER_HEIGHT-1, c+1, pd.price, price_fmt)
+        sheet.write(2, c+COL_OFFSET, _u8(pd.name), header_fmt)
+        sheet.write(3, c+COL_OFFSET, pd.price, price_fmt)
 
-    users = [z for y in x['table'] for z in y['users']]
+    users = [u for sg in x['table'] for u in sg['users']]
     n_users = len(users)
+    print "users"
+    print [u['user'] for u in users]
 
     # Generate username columns. Rows 1,2 are taken by headers
     for r, u in enumerate(users):
-        sheet.write(r+HEADER_HEIGHT, 0, _u8(u['user'].first_name+' '+u['user'].last_name), header_fmt)
+        sheet.write(r+ROW_OFFSET, 0, _u8(u['user'].first_name+' '+u['user'].last_name), header_fmt)
 
     # Fill user commands
     for c, pd in enumerate(x['products']):
         for r, u in enumerate(users):
             order = u['orders'].purchases[c]
             quantity = order.granted if order else 0
-            sheet.write(r+HEADER_HEIGHT, c+1, quantity)
+            sheet.write(r+ROW_OFFSET, c+COL_OFFSET, quantity)
 
     # Total price per user, for every user in every subgroup
-    for y in x['table']:
-        for r, u in enumerate(y['users']):
+    r = 0
+    for sg in x['table']:
+        for u in sg['users']:
             fml = "=SUMPRODUCT(B%(firstrow)s:%(lastcol)s%(firstrow)s,B%(lastrow)s:%(lastcol)s%(lastrow)s)" % \
-                  {'firstrow': HEADER_HEIGHT, 'lastcol':col_name(n_products), 'lastrow': r+HEADER_HEIGHT+1}
-            sheet.write(r+HEADER_HEIGHT, n_products+1, fml, price_sum_fmt, u['price'])
+                  {'firstrow': ROW_OFFSET, 'lastcol':col_name(n_products), 'lastrow': r+ROW_OFFSET+1}
+            sheet.write(r+ROW_OFFSET, n_products+COL_OFFSET, fml, price_sum_fmt, u['price'])
+            r += 1
 
     # Total quantity per product
     for c, pd in enumerate(x['products']):
         fml = "=SUM(%(colname)s%(firstrow)s:%(colname)s%(lastrow)s)" % \
-              {'colname': col_name(c+1), 'firstrow':HEADER_HEIGHT+1, 'lastrow': n_users+HEADER_HEIGHT}
+              {'colname': col_name(c+1), 'firstrow':ROW_OFFSET+1, 'lastrow': n_users+ROW_OFFSET}
         val = x['product_totals'][c]['quantity']
-        sheet.write(n_users+HEADER_HEIGHT, c+1, fml, sum_fmt, val)
+        sheet.write(n_users+ROW_OFFSET, c+COL_OFFSET, fml, sum_fmt, val)
 
     # Grand total
     fml = "=SUM(%(sumcol)s%(firstrow)s:%(sumcol)s%(lastrow)s)" % \
-          {'sumcol': col_name(n_products+1),'firstrow':HEADER_HEIGHT+1, 'lastrow':n_users+HEADER_HEIGHT}
+          {'sumcol': col_name(n_products+1),'firstrow':ROW_OFFSET+1, 'lastrow':n_users+ROW_OFFSET}
     val = x['price']
-    sheet.write(n_users+HEADER_HEIGHT, n_products+1, fml, price_sum_fmt, val)
+    sheet.write(n_users+ROW_OFFSET, n_products+COL_OFFSET, fml, price_sum_fmt, val)
 
     book.close()
     return string_buffer.getvalue()
