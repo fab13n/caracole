@@ -80,12 +80,13 @@
     </script>
     <style type="text/css">
       .out_of_packages { font-weight:bold; color: #811305; }
-      input { text-align: right; }
+      input { text-align: right; height: 100%; }
       input.modified {
         font-weight: bold;
         color:       #811305;
         border:      2px solid #811305;
       }
+      td.quantity { border: none; }
     </style>
 {% endblock %}
 
@@ -141,15 +142,15 @@
         <th class="left">{{ur.user.first_name}} {{ur.user.last_name}}</th>
         {% for pc in ur.orders.purchases %}
         {% if not pc %}
-        <td><input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="0"
+        <td class="quantity"><input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="0"
                    class="quantity"
                    onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/></td>
         {% elif pc.is_satisfied %}
-        <td><input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="{{pc.ordered|floatformat}}"
+        <td class="quantity"><input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="{{pc.ordered|floatformat}}"
                    class="quantity"
                    onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/></td>
         {% else %}{# unsatisfied order #}
-        <td>
+        <td class="quantity">
             <input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="{{pc.ordered|floatformat}}"
                    class="unsatisfied_ordered quantity"
                    onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/>

@@ -56,7 +56,7 @@
       </a></li>
       <li><em>[admin]</em> Voir les commandes de tout le réseau {{nw.network.name}}<br/>
         <a href="{% url 'view_delivery_purchases_html' delivery=dv.delivery.id %}">en ligne</a>,
-        <a href="{% url 'view_delivery_purchases_xlsx' delivery=dv.delivery.id %}">dans un tableau Excel</a>.
+        <a href="{% url 'view_delivery_purchases_xlsx' delivery=dv.delivery.id %}">dans un tableau Excel</a>
       </li>
       {% endif %}{# is_network_staff #}
 
@@ -65,7 +65,7 @@
       <li><em>[admin-sous-groupe]</em> Voir les commandes du sous-groupe {{nw.subgroup.name}} pour {{dv.delivery.name}}<br/>
         <a href="{% url 'view_subgroup_purchases_html' delivery=dv.delivery.id %}">en ligne</a>,
         <a href="{% url 'view_subgroup_purchases_pdf' delivery=dv.delivery.id %}">en PDF</a>,
-        <a href="{% url 'view_subgroup_purchases_xlsx' delivery=dv.delivery.id %}">dans un tableau Excel</a>.
+        <a href="{% url 'view_subgroup_purchases_xlsx' delivery=dv.delivery.id %}">dans un tableau Excel</a>
       </li>
       <li><em>[admin-sous-groupe]</em> <a href="{% url 'edit_subgroup_purchases' delivery=dv.delivery.id %}">
         Modifier les commandes du sous-groupe {{nw.subgroup.name}}

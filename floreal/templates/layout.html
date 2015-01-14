@@ -24,11 +24,15 @@
         <!-- end content -->
         <!-- start sidebar -->
         <div id="sidebar">
+          {% if user.is_anonymous %}
+          <em>Non conneté</em>
+          {% else %}
           Connecté comme<br/>
           <em>{{user.first_name}} {{user.last_name}}</em>.
+          {% endif %}
           <ul>
+            <li><a href="{% url 'auth_logout' %}?next={% url 'index' %}">Deconnection</a></li>
             <li><a href="{% url "index" %}">Page d'accueil</a></li>
-            <li><a href="{% url 'auth_logout' %}">Deconnection</a></li>
             <li><a href="{% url 'auth_password_reset' %}">Changer de mot de passe</a></li>
             {% if user.is_staff %}
             <li><a href="/admin">{# TODO: get reverse URL to work #}Administrer DB</a></li>

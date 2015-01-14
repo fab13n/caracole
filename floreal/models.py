@@ -21,7 +21,8 @@ class Plural(models.Model):
         return "%s/%s" % (self.singular, self.plural)
 
 
-# TODO: implement a cache?
+# TODO: implement a cache, check when/how it reloads. It's a tiny table
+# TODO: and I don't want a request per word!
 def plural(noun, n=None):
     """Tries to retrieve of guess the plural of a singular French word.
     It would be great to hook this up to a (possibly online) dictionary.
@@ -105,6 +106,7 @@ class Subgroup(models.Model):
             self.users.add(self.extra_user)
         super(Subgroup, self).save(force_insert=force_insert, force_update=force_update,
                                    using=using, update_fields=update_fields)
+
 
 class Delivery(models.Model):
     """A command of products, for a given network. It's referenced by product
@@ -259,4 +261,3 @@ class Order(object):
         for u in users:
             orders[u].price = prices[u]
         return orders
-

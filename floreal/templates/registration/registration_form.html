@@ -1,11 +1,22 @@
 {% extends 'layout.html' %}
+
+{% block head %}
+<style type="text/css">
+    .errorlist { background-color: red; color:white; font-weight: bold; }
+    ul { margin: 5px; }
+    th { text-align: right; }
+    .helptext { display: none; }
+</style>
+{% endblock %}
+
 {% block content %}
 <h1>S'enregistrer comme nouvel utilisateur</h1>
-<form action="/your-name/" method="post">
-    {% csrf_token %}
+<p></p>
+<form action="" method="post">
     <table>
-    {{ form }}
+        {{form}}
+    <tr><td></td><td><input type="submit" value="S'enregistrer" /></td></tr>
     </table>
-    <input type="submit" value="Submit" />
+    {% csrf_token %}
 </form>
 {% endblock %}

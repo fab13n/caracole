@@ -11,6 +11,7 @@ from .spreadsheet import spreadsheet
 from . import pdf
 from . import edit_delivery_view
 from delivery_table_view import delivery_description
+from .user_registration_view import user_register
 from parse_subgroup_purchases import parse_subgroup_purchases
 from parse_user_purchases import parse_user_purchases
 import pprint
@@ -22,8 +23,7 @@ def index(request):
     """Main page: sum-up of current deliveries, links to active pages."""
     user = request.user
     user_subgroups = m.Subgroup.objects.filter(users__in=[user])
-    user_networks = [s.network for s in user_subgroups]
-    staffed_subgroups = m.Subgroup.objects.filter(staff__in=[user])
+    user_networks = [sg.network for sg in user_subgroups]
 
     nw2staff_of = {}
     nw2user_of = {}
@@ -31,7 +31,7 @@ def index(request):
         for sg in nw.subgroup_set.all():
             if user in sg.staff.all():
                 nw2staff_of[nw] = sg
-            if user in sg.staff.all():
+            if user in sg.users.all():
                 nw2user_of[nw] = sg
 
     vars = {'user': user,
@@ -188,3 +188,5 @@ def view_emails(request, network=None, subgroup=None):
     else:
         raise Exception("Need network or subgroup")
     return render_to_response('emails.html', vars)
+
+

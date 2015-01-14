@@ -1,10 +1,23 @@
 {% extends 'layout.html' %}
+
+{% block head %}
+<style type="text/css">
+  p#register { text-align: center; top-margin: 20px; font-size: 14pt; font-weight: bold; }
+</style>
+{% endblock %}
+
 {% block content %}
-<form method="POST">
-<table>
-  {{form}}
-</table>
+
+<h2>Vous avez déjà un compte circuits courts Caracole:</h2>
+<p>Identifiez-vous</p>
+<form action="" method="post">
+  <table>
+    {{form}}
+    <tr><td></td><td><input type="submit" value="S'identifier"/></td></tr>
+  </table>
   {% csrf_token %}
-  <input type="submit"/>
 </form>
+<h2>Vous voulez créer un compte circuits courts Caracole:</h2>
+<p id="register"><a href="{% url 'user_register' %}">Enregistrez-vous</a></p>
+
 {% endblock %}

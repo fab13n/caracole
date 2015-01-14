@@ -48,16 +48,16 @@ def delivery_description(delivery, subgroups, **kwargs):
 
     # Generate user->subgroup dict, helper to compute totals per subgroup
     user_to_subgroup = {}
-    for s in subgroups:
-        for u in s.users.iterator():
-            user_to_subgroup[u] = s
+    for sg in subgroups:
+        for u in sg.users.iterator():
+            user_to_subgroup[u] = sg
 
     # Sum quantities per subgroup and per product;
-    for o in orders.itervalues():
-        s = user_to_subgroup[o.user]
-        for pc in o.purchases:
+    for od in orders.itervalues():
+        sg = user_to_subgroup[od.user]
+        for pc in od.purchases:
             if pc:
-                sg_pd_totals[s][pc.product]['quantity'] += pc.granted
+                sg_pd_totals[sg][pc.product]['quantity'] += pc.granted
 
     # Break up quantities in packages + loose items
     for pd_totals in sg_pd_totals.itervalues():
@@ -93,18 +93,22 @@ def delivery_description(delivery, subgroups, **kwargs):
     for i, sg in enumerate(subgroups):
         pd_totals = sg_pd_totals[sg]
         pd_totals_list = []
-        user_orders = []
-        sg_item = {'subgroup': sg, 'totals': pd_totals_list, 'users': user_orders}
+        user_records = []
+        # Get and order users alphabetically, except for the extra user which gets last
+        sorted_users = [u for u in users if user_to_subgroup[u] == sg and u != sg.extra_user]
+        sorted_users.sort(key=lambda u: (u.last_name.lower(), u.first_name.lower()))
+        sorted_users.append(sg.extra_user)
+        sg_item = {'subgroup': sg, 'totals': pd_totals_list, 'users': user_records}
         table.append(sg_item)
         for j, pd in enumerate(products):
             pd_totals_list.append(pd_totals[pd])
-        for k, u in enumerate(s.users.order_by('last_name', 'first_name')):
+        for k, u in enumerate(sorted_users):
             order = orders[u]
-            user_orders.append({
+            user_records.append({
                 'user': u,
                 'orders': order,
                 'price': sum(pc.price for pc in order.purchases if pc)})
-        sg_item['price'] = sum(uo['price'] for uo in user_orders)
+        sg_item['price'] = sum(uo['price'] for uo in user_records)
 
     price = sum(x['price'] for x in table)
 
