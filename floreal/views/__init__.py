@@ -1,10 +1,9 @@
 #!/usr/bin/python
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 from datetime import datetime
 
 from django.shortcuts import render_to_response, redirect
-from django.contrib.auth.decorators import login_required
 
 from .. import models as m
 from .edit_subgroup_purchases import edit_subgroup_purchases
@@ -15,10 +14,14 @@ from .view_purchases import view_delivery_purchases_html, view_delivery_purchase
     view_subgroup_purchases_html, view_subgroup_purchases_pdf, view_subgroup_purchases_xlsx
 
 
-@login_required()
 def index(request):
     """Main page: sum-up of current deliveries, links to active pages."""
     user = request.user
+
+    if not user.is_authenticated():
+        # TODO: use reverse URL
+        return redirect('/caracole/accounts/login/?next=/caracole/')
+
     user_subgroups = m.Subgroup.objects.filter(users__in=[user])
     user_networks = [sg.network for sg in user_subgroups]
 
