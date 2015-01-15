@@ -80,13 +80,17 @@
     </script>
     <style type="text/css">
       .out_of_packages { font-weight:bold; color: #811305; }
-      input { text-align: right; height: 100%; }
+      input.quantity { text-align: right; height: 100%; width: calc(100% - 3px); padding:0px;}
+      td button { width: 50px; }
+      th.top { word-break: break-all; word-wrap: break-word;}
+      th.left { white-space: nowrap; }
       input.modified {
         font-weight: bold;
         color:       #811305;
         border:      2px solid #811305;
       }
-      td.quantity { border: none; }
+      td.quantity { border: none; width: 50px;}
+      table { table-layout: fixed; }
     </style>
 {% endblock %}
 
@@ -110,7 +114,7 @@
     <tr>
         <td class="blank">{# no product in users' column #}</td>
         {% for pd in products %}
-        <td><button type="button" onclick="cancel_pd({{pd.id}});">Annuler</button></td>
+        <td><button type="button" onclick="cancel_pd({{pd.id}});">→0</button></td>
         {% endfor %}
         <td rowspan="2"></td>
     </tr>
@@ -120,49 +124,14 @@
     <tr>
         <th class="left">Par carton</th>
         {% for pd in products %}
-        <td>{{pd.quantity_per_package}} {{pd.unit}}</td>
+        <td>
+            {% if pd.quantity_per_package %}
+            {{pd.quantity_per_package}} {{pd.unit}}
+            {% else %} - {% endif %}
+        </td>
         {% endfor %}
         {# last empty cell filled by rowspan=2 cell from row above #}
     </tr>
-
-
-    {% comment %}
-     # table[0] = { "subgroup": subgroup,
-     #              "totals": product_idx -> { "product": product,
-     #                                         "quantity": number,
-     #                                         "full_packages": number?,
-     #                                         "out_of_packages": number? }.
-     #              "users": user_idx -> { "user": user,
-     #                                     "orders": product_idx -> order.
-     #                                     "price": number },
-     #              "price": number }
-    {% endcomment %}
-    {% for ur in table.0.users %}
-    <tr class="user_row" id="subgroup_{{ur.subgroup.id}}_user_row">
-        <th class="left">{{ur.user.first_name}} {{ur.user.last_name}}</th>
-        {% for pc in ur.orders.purchases %}
-        {% if not pc %}
-        <td class="quantity"><input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="0"
-                   class="quantity"
-                   onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/></td>
-        {% elif pc.is_satisfied %}
-        <td class="quantity"><input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="{{pc.ordered|floatformat}}"
-                   class="quantity"
-                   onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/></td>
-        {% else %}{# unsatisfied order #}
-        <td class="quantity">
-            <input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="{{pc.ordered|floatformat}}"
-                   class="unsatisfied_ordered quantity"
-                   onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/>
-            {# TODO adapt dynamically when user changes request and order <= unsatisfied. #}
-            <span class="unsatisfied_granted">{{pc.granted}}</span>
-        </td>
-        {% endif %}{# unsatisfied #}
-        {% endfor %}{# purchase #}
-        <td class="price"> <span id="u{{ur.user.id}}-price">{{ur.price|floatformat:"2"}}</span>€</td>
-    </tr>
-    {% endfor %}{# users within subgroup #}
-
 
     {# Total quantities per product; is it an exact number of packages? #}
     <tr>
@@ -187,6 +156,44 @@
         {% endfor %}{# grand total by product #}
         <td><span id="total">{{price|floatformat:"2"}}</span>€</td>
     </tr>
+
+     {% comment %}
+     # table[0] = { "subgroup": subgroup,
+     #              "totals": product_idx -> { "product": product,
+     #                                         "quantity": number,
+     #                                         "full_packages": number?,
+     #                                         "out_of_packages": number? }.
+     #              "users": user_idx -> { "user": user,
+     #                                     "orders": product_idx -> order.
+     #                                     "price": number },
+     #              "price": number }
+    {% endcomment %}
+    {% for ur in table.0.users %}
+    <tr class="user_row">
+        <th class="left">{{ur.user.first_name}} {{ur.user.last_name}}</th>
+        {% for pc in ur.orders.purchases %}
+        <td class="quantity">
+            {% if not pc %}
+            <input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="0"
+                   class="quantity"
+                   onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/>
+            {% elif pc.is_satisfied %}
+            <input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="{{pc.ordered|floatformat}}"
+                   class="quantity"
+                   onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/>
+            {% else %}{# unsatisfied order #}
+            <input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="{{pc.ordered|floatformat}}"
+                   class="unsatisfied_ordered quantity"
+                   onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/>
+            {# TODO adapt dynamically when user changes request and order <= unsatisfied. #}
+            <span class="unsatisfied_granted">{{pc.granted}}</span>
+        {% endif %}{# unsatisfied #}
+        </td>
+        {% endfor %}{# purchase #}
+        <td class="price"> <span id="u{{ur.user.id}}-price">{{ur.price|floatformat:"2"}}</span>€</td>
+    </tr>
+    {% endfor %}{# users within subgroup #}
+
   </table>
   <input type="submit" value="Sauvegarder" onclick="disable_unmodified_inputs()"/>
   <input type="hidden" name="dv-id" value="{{delivery.id}}"/>
