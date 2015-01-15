@@ -83,3 +83,7 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "floreal", "static"),
 )
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'floreal.legacy_auth_backend.LegacyBackend')
