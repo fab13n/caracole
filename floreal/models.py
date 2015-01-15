@@ -21,8 +21,7 @@ class Plural(models.Model):
         return "%s/%s" % (self.singular, self.plural)
 
 
-# TODO: implement a cache, check when/how it reloads. It's a tiny table
-# TODO: and I don't want a request per word!
+# TODO: implement a cache?
 def plural(noun, n=None):
     """Tries to retrieve of guess the plural of a singular French word.
     It would be great to hook this up to a (possibly online) dictionary.
@@ -154,7 +153,6 @@ class Delivery(models.Model):
         unique_together = (('network', 'name'),)
         ordering = ('-id',)
 
-
 class Product(models.Model):
     """A product is only valid for one delivery. If the same product is valid across
     several deliveries, there are several homonym products in DB, one per delivery,
@@ -167,7 +165,7 @@ class Product(models.Model):
     quantity_per_package = models.IntegerField(null=True, blank=True)
     unit = models.CharField(max_length=64, null=True, blank=True)
     quantity_limit = models.IntegerField(null=True, blank=True)
-    unit_weight = models.DecimalField(decimal_places=1, max_digits=4, default=0.0, blank=True)
+    unit_weight = models.FloatField(default=0.0, blank=True)
 
     class Meta:
         unique_together = (('delivery', 'name'),)
@@ -229,12 +227,11 @@ class Purchase(models.Model):
         # TODO: if product has limitations, update granted quantities for all affected purchases
         super(Purchase, self).save(force_insert, force_update, using, update_fields)
 
-
 class LegacyPassword(models.Model):
     email = models.CharField(max_length=64)
     password = models.CharField(max_length=200)
     circle = models.CharField(max_length=32)
-
+    migrated = models.BooleanField(default=False)
 
 class Order(object):
     """Sum-up of what a given user has ordered in a given delivery."""
@@ -253,11 +250,10 @@ class Order(object):
         if purchases:
             self.purchases = purchases
             self.price = None
-            self.weight = None
         else:
             self.purchases = Purchase.objects.filter(product__delivery=delivery, user=user)
-            self.price = sum(pc.price for pc in self.purchases)
-            self.weight = sum(pc.weight for pc in self.purchases)
+            self.price = sum(p.price for p in self.purchases)
+            self.weight = sum(p.weight for p in self.purchases)
 
     @classmethod
     def by_user_and_product(cls, delivery, users, products=None):
@@ -277,7 +273,6 @@ class Order(object):
                 self.product = product
                 self.user = user
                 self.price = 0
-                self.weight = 0
                 self.ordered = 0
                 self.granted = 0
 
@@ -288,11 +283,9 @@ class Order(object):
             products = delivery.product_set.order_by('name')
         purchases_by_user = {u: {} for u in users}
         prices = {u: 0 for u in users}
-        weights = {u: 0 for u in users}
         for pc in Purchase.objects.filter(product__delivery=delivery, user__in=users):
             purchases_by_user[pc.user][pc.product] = pc
             prices[pc.user] += pc.price
-            weights[pc.user] += pc.weight
 
         def purchase_line(u):
             return [purchases_by_user[u].get(pd, None) or DummyPurchase(pd, u) for pd in products]
@@ -300,5 +293,5 @@ class Order(object):
         orders = {u: Order(u, delivery, purchases=purchase_line(u)) for u in users}
         for u in users:
             orders[u].price = prices[u]
-            orders[u].weight = weights[u]
         return orders
+
