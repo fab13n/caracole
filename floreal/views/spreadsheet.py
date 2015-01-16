@@ -31,17 +31,19 @@ ROW_OFFSET = 11
 COL_OFFSET = 2
 
 
-def _make_sheet(sheet, title, fmt, buyers, products, purchases, purchase_fmls=None):
+def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=None):
     """
     :param buyers: ordered list of buyers
     :param products: ordered list of products
     :param purchases: function (buyer_idx, product_idx) -> quantity
     :return:
     """
+    sheet = book.add_worksheet(title)
     sheet.set_column(0, 0, 30)
     sheet.set_row(2, 50)
     sheet.write(0, 0, u"Achats:")
     sheet.write(0, 1, _u8(title), fmt['title'])
+    sheet.write(0, 2, _u8(products[0].delivery.name), fmt['title'])
     sheet.write(2, 0, u"Produit", fmt['title'])
     sheet.write(3, 0, u"Prix unitaire", fmt['title'])
     sheet.write(4, 0, u"Poids unitaire", fmt['title'])
@@ -164,7 +166,6 @@ def spreadsheet(delivery, subgroups):
 
     if len(subgroups)>1:
         title = _u8(delivery.network.name)
-        sheet = book.add_worksheet(title)
         buyers = [sg['subgroup'].name for sg in x['table']]
         def purchases(sg_idx, pd_idx):
             return x['table'][sg_idx]['totals'][pd_idx]['quantity']
@@ -173,16 +174,15 @@ def spreadsheet(delivery, subgroups):
                 'subgroup':x['table'][sg_idx]['subgroup'].name,
                 'colname':_col_name(pd_idx+COL_OFFSET)}
 
-        _make_sheet(sheet, title, fmt, buyers, x['products'], purchases, purchase_fmls)
+        _make_sheet(book, title, fmt, buyers, x['products'], purchases, purchase_fmls)
 
     # subgroups
     for sg in x['table']:
         title = _u8(sg['subgroup'].name)
         buyers = [u['user'].first_name + " " + u['user'].last_name for u in sg['users']]
-        sheet = book.add_worksheet(title)
         def purchases(u_idx, pd_idx):
             return sg['users'][u_idx]['orders'].purchases[pd_idx].granted
-        _make_sheet(sheet, title, fmt, buyers, x['products'], purchases)
+        _make_sheet(book, title, fmt, buyers, x['products'], purchases)
 
     book.close()
     return string_buffer.getvalue()

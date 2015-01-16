@@ -33,8 +33,15 @@
 <h2>Administateurs de sous-groupes</h2>
 <p></p>
 
+<h3>Tous les administrateurs de sous-groupes</h3>
+<p class='mail-list'>
 {% for sg in subgroups %}
-<h3>Sous-groupe {{sg.name}}:</h3>
+{% for u in sg.staff.all %}{{u|email}},<br/>{% endfor %}
+{% endfor %}
+</p>
+
+{% for sg in subgroups %}
+<h3>Administrateurs du sous-groupe {{sg.name}}:</h3>
 <p class='mail-list'>
   {% for u in sg.staff.all %}{{u|email}},<br/>{% endfor %}
 </p>
@@ -44,7 +51,7 @@
 {% for sg in subgroups %}
 <h2>Membres du sous-groupe {{sg.name}}:</h2>
 <p class='mail-list'>
-  {% for u in sg.users.all %}{{u|email}},<br/>{% endfor %}
+  {% for u in sg.users.all %}{% if u.email %}{{u|email}},<br/>{% endif %}{% endfor %}
 </p>
 {% endfor %}
 
@@ -52,7 +59,7 @@
 <h2>Tous les membres du réseau {{network.name}}:</h2>
 <p class='mail-list'>
   {% for sg in network.subgroup_set.all %}
-  {% for u in sg.users.all %}{{u|email}}, {% endfor %}
+  {% for u in sg.users.all %}{% if u.email %}{{u|email}}, {% endif %}{% endfor %}
   {% endfor %}
 </p>
 {% endif %}
