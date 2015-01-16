@@ -117,8 +117,7 @@ class Subgroup(models.Model):
     def sorted_users(self):
         normal_users = [u for u in self.users.all() if u != self.extra_user]
         normal_users.sort(key=lambda u: (u.last_name.lower(), u.first_name.lower()))
-        normal_users.append(self.extra_user)
-        return normal_users
+        return [self.extra_user] + normal_users
 
 
 class Delivery(models.Model):

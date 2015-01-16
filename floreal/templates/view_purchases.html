@@ -8,7 +8,7 @@
       function attach_visibility_toggle(sg_id) {
         $('#subgroup_row_'+sg_id).click(function() {
           // console.log("Toggle visibility for subgroup "+sg_id);
-          $('#subgroup_'+sg_id+'_user_row').toggle();
+          $('.subgroup_'+sg_id+'_user_row').toggle();
         })
       }
       $(document).ready(function() {
@@ -45,54 +45,14 @@
     <tr>
         <th class="left">Par paquet</th>
         {% for pd in products %}
+        {% if pd.quantity_per_package %}
         <td>{{pd.quantity_per_package}} {{pd.unit}}</td>
+        {% else %}
+        <td>-</td>
+        {% endif %}
         {% endfor %}
         <td>{# no quantity in "Price" column #}</td>
     </tr>
-
-
-    {% comment %}
-     # table: subgroup_idx -> { "subgroup": subgroup,
-     #                          "totals": product_idx -> { "product": product,
-     #                                                     "quantity": number,
-     #                                                     "full_packages": number,
-     #                                                     "out_of_packages": number }.
-     #                          "users": user_idx -> { "user": user,
-     #                                                 "orders": product_idx -> order.
-     #                                                 "price": number },
-     #                          "price": number }
-    {% endcomment %}
-    {% for sgr in table %}
-    {% if table|length > 1 %}
-    <tr class="subgroup_row" id="subgroup_row_{{sgr.subgroup.id}}">
-        <th class="left">{{sgr.subgroup.name}}</th>
-        {% for t in sgr.totals %}
-        <td>{{t.quantity|floatformat}}</td>
-        {% endfor %}
-        <td>{{sgr.price|price}}</td>
-    </tr>
-    {% endif %}
-    {# each subgroup user's row #}
-    {% for ur in sgr.users %}
-    <tr class="user_row" id="subgroup_{{sgr.subgroup.id}}_user_row">
-        <th class="left">{{ur.user.first_name}} {{ur.user.last_name}}</th>
-        {% for pc in ur.orders.purchases %}
-        {% if not pc %}
-        <td>-</td>
-        {% elif pc.is_satisfied %}
-        <td>{{pc.granted|floatformat}}</td>
-        {% else %}
-        <td>
-            <span class="unsatisfied_ordered">{{pc.ordered|floatformat}}</span>
-            <span class="unsatisfied_granted">{{pc.granted|floatformat}}</span>
-        </td>
-        {% endif %}{# unsatisfied #}
-        {% endfor %}{# purchase #}
-        <td class="price">{{ur.price|price}}</td>
-    </tr>
-    {% endfor %}{# users within subgroup #}
-    {% endfor %}{# subgroup #}
-
 
     {# Total quantities per product; is it an exact number of packages? #}
     <tr>
@@ -117,6 +77,52 @@
         {% endfor %}{# grand total by product #}
         <td>{{price|price}}</td>
     </tr>
+
+    {% comment %}
+     # table: subgroup_idx -> { "subgroup": subgroup,
+     #                          "totals": product_idx -> { "product": product,
+     #                                                     "quantity": number,
+     #                                                     "full_packages": number,
+     #                                                     "out_of_packages": number }.
+     #                          "users": user_idx -> { "user": user,
+     #                                                 "orders": product_idx -> order.
+     #                                                 "price": number,
+     #                                                 "has_ordered": boolean },
+     #                          "price": number }
+    {% endcomment %}
+    {% for sgr in table %}
+    {% if table|length > 1 %}
+    <tr class="subgroup_row" id="subgroup_row_{{sgr.subgroup.id}}">
+        <th class="left">{{sgr.subgroup.name}}</th>
+        {% for t in sgr.totals %}
+        <td>{{t.quantity|floatformat}}</td>
+        {% endfor %}
+        <td>{{sgr.price|price}}</td>
+    </tr>
+    {% endif %}
+    {# each subgroup user's row #}
+    {% for ur in sgr.users %}
+    {% if ur.price > 0 %}
+    <tr class="user_row subgroup_{{sgr.subgroup.id}}_user_row">
+        <th class="left">{{ur.user.first_name}} {{ur.user.last_name}}</th>
+        {% for pc in ur.orders.purchases %}
+        {% if not pc %}
+        <td>-</td>
+        {% elif pc.is_satisfied %}
+        <td>{{pc.granted|floatformat}}</td>
+        {% else %}
+        <td>
+            <span class="unsatisfied_ordered">{{pc.ordered|floatformat}}</span>
+            <span class="unsatisfied_granted">{{pc.granted|floatformat}}</span>
+        </td>
+        {% endif %}{# unsatisfied #}
+        {% endfor %}{# purchase #}
+        <td class="price">{{ur.price|price}}</td>
+    </tr>
+    {% endif %}{# price == 0, no purchase by this user #}
+    {% endfor %}{# users within subgroup #}
+    {% endfor %}{# subgroup #}
+
 
 </table>
 {% endblock %}
