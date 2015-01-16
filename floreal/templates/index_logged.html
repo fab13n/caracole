@@ -52,7 +52,7 @@
           Autoriser les commandes
       </a></li>
       <li><em>[admin]</em> <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Delivered'%}">
-          Archiver la livraison
+          Archiver la livraison <img src="{% static 'images/bin.png' %}"/>
       </a></li>
       {% endif %}{# delivery.is_open #}
       <li><em>[admin]</em> <a href="{% url 'edit_delivery_products' delivery=dv.delivery.id %}">
