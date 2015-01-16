@@ -49,7 +49,7 @@
       </a></li>
       {% else %}
       <li><em>[admin]</em> <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Open'%}">
-          Autoriser les commandes
+          Autoriser les commandes <img src="{% static 'images/purchase.png' %}"/>
       </a></li>
       <li><em>[admin]</em> <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Delivered'%}">
           Archiver la livraison <img src="{% static 'images/bin.png' %}"/>
