@@ -31,16 +31,13 @@ ROW_OFFSET = 11
 COL_OFFSET = 2
 
 
-def _make_sheet(book, title, fmt, buyers, products, purchases):
+def _make_sheet(sheet, title, fmt, buyers, products, purchases, purchase_fmls=None):
     """
     :param buyers: ordered list of buyers
     :param products: ordered list of products
     :param purchases: function (buyer_idx, product_idx) -> quantity
     :return:
     """
-
-    # Fixed Cells
-    sheet = book.add_worksheet(title)
     sheet.set_column(0, 0, 30)
     sheet.set_row(2, 50)
     sheet.write(0, 0, u"Achats:")
@@ -82,7 +79,11 @@ def _make_sheet(book, title, fmt, buyers, products, purchases):
     for c, pd in enumerate(products):
         for r in range(n_buyers):
             qty = purchases(r, c)
-            sheet.write(r+ROW_OFFSET, c+COL_OFFSET, qty)
+            if purchase_fmls:
+                fml = purchase_fmls(r, c)
+                sheet.write(r+ROW_OFFSET, c+COL_OFFSET, fml, fmt['qty'], qty)
+            else:
+                sheet.write(r+ROW_OFFSET, c+COL_OFFSET, qty, fmt['qty'])
             qty_buyer[r] += qty
             qty_product[c] += qty
             price_buyer[r] += qty * pd.price
@@ -160,17 +161,28 @@ def spreadsheet(delivery, subgroups):
         'qty': book.add_format({})}
 
     x = delivery_description(delivery, subgroups)
-    title = "XXXXX"
-    buyers = [u['user'].first_name+' '+u['user'].last_name for sg in x['table'] for u in sg['users']]
-    u2sg_idx = [(u_idx, sg_idx) for sg_idx, sg in enumerate(x['table']) for (u_idx, _) in enumerate(sg['users'])]
 
-    def purchases(u_idx, pd_idx):
-        u_sg_idx, sg_idx = u2sg_idx[u_idx]
-        print "purchase(%d, %d):" % (u_idx, pd_idx)
-        print x['table'][sg_idx]['users'][u_sg_idx]['orders'].purchases[pd_idx].granted
-        return x['table'][sg_idx]['users'][u_sg_idx]['orders'].purchases[pd_idx].granted
+    if len(subgroups)>1:
+        title = _u8(delivery.network.name)
+        sheet = book.add_worksheet(title)
+        buyers = [sg['subgroup'].name for sg in x['table']]
+        def purchases(sg_idx, pd_idx):
+            return x['table'][sg_idx]['totals'][pd_idx]['quantity']
+        def purchase_fmls(sg_idx, pd_idx):
+            return "=%(subgroup)s!%(colname)s$7" % {
+                'subgroup':x['table'][sg_idx]['subgroup'].name,
+                'colname':_col_name(pd_idx+COL_OFFSET)}
 
-    _make_sheet(book, title, fmt, buyers, x['products'], purchases)
+        _make_sheet(sheet, title, fmt, buyers, x['products'], purchases, purchase_fmls)
+
+    # subgroups
+    for sg in x['table']:
+        title = _u8(sg['subgroup'].name)
+        buyers = [u['user'].first_name + " " + u['user'].last_name for u in sg['users']]
+        sheet = book.add_worksheet(title)
+        def purchases(u_idx, pd_idx):
+            return sg['users'][u_idx]['orders'].purchases[pd_idx].granted
+        _make_sheet(sheet, title, fmt, buyers, x['products'], purchases)
 
     book.close()
     return string_buffer.getvalue()
