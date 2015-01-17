@@ -26,10 +26,9 @@
       {# This will fail if administrators aren't users of their own network #}
       {% if dv.delivery.is_open %}
       {% if dv.order.purchases|length > 0 %}
-      <li><a href="{% url 'edit_user_purchases' delivery=dv.order.delivery.id %}">
-        modifier la commande</a>:
+      <li><a href="{% url 'edit_user_purchases' delivery=dv.order.delivery.id %}">modifier votre commande</a>:
         <ul>
-          {% for p in order.purchases %}
+          {% for p in dv.order.purchases %}
           <li>{{p}}</li>
           {% endfor %}{# purchases #}
         </ul>

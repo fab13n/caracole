@@ -205,7 +205,7 @@ class Purchase(models.Model):
     def weight(self):
         return self.granted * self.product.unit_weight
 
-    def __unicode__(self, specify_user=True):
+    def __unicode__(self, specify_user=False):
         if self.ordered == self.granted:
             fmt = u"%(granted)g %(unit)s %(prod_name)s à %(price).2f€"
         else:
