@@ -1,5 +1,6 @@
 {% extends "layout_wide.html" %}
 {% load floreal_filters %}
+{% load static %}
 
 {% block head %}
 {% if table|length > 1 %}
@@ -24,6 +25,8 @@
       .subgroup_row, .subgroup_row th { color: white; background-color: #a75a50; font-weight: bold; }
       th.left { white-space: nowrap; }
       tr.one  { background-color: #d5b1ac; }
+      .blank  { text-align: left; }
+      table { margin-top: 30px; }
     </style>
 {% endblock %}
 
@@ -35,7 +38,18 @@
 
     {# Product names #}
     <tr>
-        <td class="blank" colspan="2">{# no product in user name and total columns #}</td>
+        <td class="blank" colspan="2">
+          {# no product in user name and total columns #}
+          {% if table|length > 1 %}
+            <a href="{% url 'view_delivery_purchases_xlsx' delivery=delivery.id %}">Télécharger le tableau Excel <img src="{% static 'images/excel.png' %}"/></a>
+          {% else %}
+            Télécharger:
+            <ul>
+              <li><a href="{% url 'view_subgroup_purchases_xlsx' delivery=delivery.id %}">le tableau Excel <img src="{% static 'images/excel.png' %}"/></a></li>
+              <li><a href="{% url 'view_subgroup_purchases_pdf' delivery=delivery.id %}">les fiches PDF <img src="{% static 'images/pdf.png' %}"/></a></li>
+            </ul>
+          {% endif %}
+        </td>
         {% for pd in products %}
         <th class="top">{{pd.name}}</th>
         {% endfor %}
