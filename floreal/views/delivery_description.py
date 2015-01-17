@@ -17,10 +17,10 @@ def delivery_description(delivery, subgroups, **kwargs):
                                      "totals": product_idx -> { "product": product,
                                                                 "quantity": number,
                                                                 "full_packages": number,
-                                                                "out_of_packages": number }.
+                                                                "out_of_packages": number },
                                      "users": user_idx -> { "user": user,
-                                                            "orders": product_idx -> order.
-                                                             "price": number},
+                                                            "orders": product_idx -> order,
+                                                            "price": number },
                                      "price": number },
           "product_totals": product_idx -> { "product": product,
                                              "quantity": number,

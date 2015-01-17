@@ -1,5 +1,6 @@
 {% extends "layout_wide.html" %}
 {% load floreal_filters %}
+{% load static %}
 
 {% block head %}
 {% if table|length > 1 %}
@@ -8,7 +9,7 @@
       function attach_visibility_toggle(sg_id) {
         $('#subgroup_row_'+sg_id).click(function() {
           // console.log("Toggle visibility for subgroup "+sg_id);
-          $('#subgroup_'+sg_id+'_user_row').toggle();
+          $('.subgroup_'+sg_id+'_user_row').toggle();
         })
       }
       $(document).ready(function() {
@@ -19,10 +20,14 @@
         $('.user_row').toggle()
       })
     </script>
+{% endif %}
     <style type="text/css">
       .subgroup_row, .subgroup_row th { color: white; background-color: #a75a50; font-weight: bold; }
+      th.left { white-space: nowrap; }
+      tr.one  { background-color: #d5b1ac; }
+      .blank  { text-align: left; }
+      table { margin-top: 30px; }
     </style>
-{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -33,70 +38,40 @@
 
     {# Product names #}
     <tr>
-        <td class="blank">{# no product in users' column #}</td>
+        <td class="blank" colspan="2">
+          {# no product in user name and total columns #}
+          {% if table|length > 1 %}
+            <a href="{% url 'view_delivery_purchases_xlsx' delivery=delivery.id %}">Télécharger le tableau Excel <img src="{% static 'images/excel.png' %}"/></a>
+          {% else %}
+            Télécharger:
+            <ul>
+              <li><a href="{% url 'view_subgroup_purchases_xlsx' delivery=delivery.id %}">le tableau Excel <img src="{% static 'images/excel.png' %}"/></a></li>
+              <li><a href="{% url 'view_subgroup_purchases_pdf' delivery=delivery.id %}">les fiches PDF <img src="{% static 'images/pdf.png' %}"/></a></li>
+            </ul>
+          {% endif %}
+        </td>
         {% for pd in products %}
         <th class="top">{{pd.name}}</th>
         {% endfor %}
-        <th class="top">Prix</th>
     </tr>
 
 
     {# Product quantities per package, if applicable #}
     <tr>
-        <th class="left">Par paquet</th>
+        <th class="left" colspan="2">Quantité par paquet</th>
         {% for pd in products %}
+        {% if pd.quantity_per_package %}
         <td>{{pd.quantity_per_package}} {{pd.unit}}</td>
-        {% endfor %}
-        <td>{# no quantity in "Price" column #}</td>
-    </tr>
-
-
-    {% comment %}
-     # table: subgroup_idx -> { "subgroup": subgroup,
-     #                          "totals": product_idx -> { "product": product,
-     #                                                     "quantity": number,
-     #                                                     "full_packages": number,
-     #                                                     "out_of_packages": number }.
-     #                          "users": user_idx -> { "user": user,
-     #                                                 "orders": product_idx -> order.
-     #                                                 "price": number },
-     #                          "price": number }
-    {% endcomment %}
-    {% for sgr in table %}
-    {% if table|length > 1 %}
-    <tr class="subgroup_row" id="subgroup_row_{{sgr.subgroup.id}}">
-        <th class="left">{{sgr.subgroup.name}}</th>
-        {% for t in sgr.totals %}
-        <td>{{t.quantity|floatformat}}</td>
-        {% endfor %}
-        <td>{{sgr.price|price}}</td>
-    </tr>
-    {% endif %}
-    {# each subgroup user's row #}
-    {% for ur in sgr.users %}
-    <tr class="user_row" id="subgroup_{{sgr.subgroup.id}}_user_row">
-        <th class="left">{{ur.user.first_name}} {{ur.user.last_name}}</th>
-        {% for pc in ur.orders.purchases %}
-        {% if not pc %}
-        <td>-</td>
-        {% elif pc.is_satisfied %}
-        <td>{{pc.granted|floatformat}}</td>
         {% else %}
-        <td>
-            <span class="unsatisfied_ordered">{{pc.ordered|floatformat}}</span>
-            <span class="unsatisfied_granted">{{pc.granted|floatformat}}</span>
-        </td>
-        {% endif %}{# unsatisfied #}
-        {% endfor %}{# purchase #}
-        <td class="price">{{ur.price|price}}</td>
+        <td>-</td>
+        {% endif %}
+        {% endfor %}
     </tr>
-    {% endfor %}{# users within subgroup #}
-    {% endfor %}{# subgroup #}
-
 
     {# Total quantities per product; is it an exact number of packages? #}
     <tr>
         <th class="left">Total</th>
+        <td>{{price|price}}</td>
         {% for pt in product_totals %}
         <td>
             {% if pt.out_of_packages %}{# Some loose items #}
@@ -115,8 +90,58 @@
             {% endif %}
         </td>
         {% endfor %}{# grand total by product #}
-        <td>{{price|price}}</td>
     </tr>
+
+    {% comment %}
+     # table: subgroup_idx -> { "subgroup": subgroup,
+     #                          "totals": product_idx -> { "product": product,
+     #                                                     "quantity": number,
+     #                                                     "full_packages": number,
+     #                                                     "out_of_packages": number }.
+     #                          "users": user_idx -> { "user": user,
+     #                                                 "orders": product_idx -> order.
+     #                                                 "price": number,
+     #                                                 "has_ordered": boolean },
+     #                          "price": number }
+    {% endcomment %}
+    {% for sgr in table %}
+    {% if table|length > 1 %}
+    <tr class="subgroup_row" id="subgroup_row_{{sgr.subgroup.id}}">
+        <th class="left">{{sgr.subgroup.name}}</th>
+        <td>{{sgr.price|price}}</td>
+        {% for t in sgr.totals %}
+        <td>{{t.quantity|floatformat}}</td>
+        {% endfor %}
+    </tr>
+    {% endif %}
+
+    {% if sgr.price > 0 %}{# if there is at least one purchase for that subgroup #}
+    {% for ur in sgr.users %}{# each subgroup user's row #}
+    {% if ur.price > 0 %}{# this user made some purchases #}
+    <tr class="user_row subgroup_{{sgr.subgroup.id}}_user_row {% cycle 'one' 'two' 'three' 'four' %}">
+        <th class="left">{{ur.user.first_name}} {{ur.user.last_name}}</th>
+        <td class="price">{{ur.price|price}}</td>
+        {% for pc in ur.orders.purchases %}
+        {% if not pc %}
+        <td>-</td>
+        {% elif pc.is_satisfied %}
+        <td>{{pc.granted|floatformat}}</td>
+        {% else %}
+        <td>
+            <span class="unsatisfied_ordered">{{pc.ordered|floatformat}}</span>
+            <span class="unsatisfied_granted">{{pc.granted|floatformat}}</span>
+        </td>
+        {% endif %}{# unsatisfied #}
+        {% endfor %}{# purchase #}
+    </tr>
+    {% endif %}{# price == 0, no purchase by this user #}
+    {% endfor %}{# users within subgroup #}
+    {% else %}{# nopurchase for this subgroup #}
+    <tr class="user_row subgroup_{{sgr.subgroup.id}}_user_row">
+      <th></th><td>-</td><td colspan="{{sgr.totals|length}}">aucun achat pour {{sgr.subgroup.name}}</td>
+    </tr>
+    {% endif %}
+    {% endfor %}{# subgroup #}
 
 </table>
 {% endblock %}

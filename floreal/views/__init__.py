@@ -44,7 +44,7 @@ def index(request):
                                           } for dv in nw.delivery_set.all()],
                           } for nw in user_networks]
             }
-    return render_to_response('index_logged.html', vars)
+    return render_to_response('index.html', vars)
 
 
 def create_delivery(request, network):

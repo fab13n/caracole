@@ -117,8 +117,7 @@ class Subgroup(models.Model):
     def sorted_users(self):
         normal_users = [u for u in self.users.all() if u != self.extra_user]
         normal_users.sort(key=lambda u: (u.last_name.lower(), u.first_name.lower()))
-        normal_users.append(self.extra_user)
-        return normal_users
+        return [self.extra_user] + normal_users
 
 
 class Delivery(models.Model):
@@ -206,7 +205,7 @@ class Purchase(models.Model):
     def weight(self):
         return self.granted * self.product.unit_weight
 
-    def __unicode__(self, specify_user=True):
+    def __unicode__(self, specify_user=False):
         if self.ordered == self.granted:
             fmt = u"%(granted)g %(unit)s %(prod_name)s à %(price).2f€"
         else:
