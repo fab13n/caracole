@@ -22,6 +22,13 @@ TEMPLATE_DEBUG = True
 TEMPLATE_STRING_IF_INVALID = "[[[Invalid template variable %s]]]"
 ALLOWED_HOSTS = []
 
+EMAIL_USE_TLS = True
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'circuits.courts.caracole@gmail.com'
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_HOST_PASSWORD = '31escargots'
+EMAIL_SUBJECT_PREFIX = '[Circuits Courts Caracole] '
 
 # Application definition
 
@@ -74,6 +81,7 @@ USE_I18N = True
 USE_L10N = False
 USE_TZ = True
 
+LOGIN_REDIRECT_URL = "index"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
