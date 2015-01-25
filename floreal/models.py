@@ -1,8 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 
+import re
+
 from django.db import models
 from django.contrib.auth.models import User
+from django.conf import settings
 
 # A user belongs can belong to several networks, through one subgroup per network.
 # They might also be staff of several subgroups,
@@ -108,7 +111,10 @@ class Subgroup(models.Model):
         super(Subgroup, self).save(force_insert=force_insert, force_update=force_update,
                                    using=using, update_fields=update_fields)
         if not self.extra_user:
+            extra_email = settings.EMAIL_HOST_USER.replace("@gmail.com",
+                        "+extra_"+re.sub('[^A-Za-z0-9]','_', self.name)+"@gmail.com")
             self.extra_user = User.objects.create(username="extra-%s" % self.name.lower(),
+                                                  email=extra_email,
                                                   first_name="extra",
                                                   last_name=self.name.capitalize())
             self.users.add(self.extra_user)

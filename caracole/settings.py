@@ -30,6 +30,11 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 EMAIL_HOST_PASSWORD = '31escargots'
 EMAIL_SUBJECT_PREFIX = '[Circuits Courts Caracole] '
 
+# longusernameandemail settings
+MAX_USERNAME_LENGTH = 128
+MAX_EMAIL_LENGTH = 128
+REQUIRE_UNIQUE_EMAIL = False
+
 # Application definition
 
 INSTALLED_APPS = (
@@ -40,6 +45,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'registration',  # WARNING that's django-registration-redux, not django-registration!
+    'longerusernameandemail', # sudo pip install django-longerusernameandemail
     'floreal',
 )
 
@@ -58,17 +64,23 @@ ROOT_URLCONF = 'floreal.urls'
 WSGI_APPLICATION = 'caracole.wsgi.application'
 
 DATABASES = {
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.mysql',
+    #     'NAME': 'caracole',
+    #     'USER': 'caracole',
+    #     'PASSWORD': 'caracole',
+    #     'HOST': 'localhost',
+    #     'PORT': '3306',
+    #     'OPTIONS': {'init_command': 'SET storage_engine=INNODB,'\
+    #                                 'character_set_connection=utf8,'\
+    #                                 'collation_connection=utf8_unicode_ci' } }
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'floreal',
-        'USER': 'floreal',
-        'PASSWORD': 'floreal',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'caracole',
+        'USER': 'caracole',
+        'PASSWORD': 'caracole',
         'HOST': 'localhost',
-        'PORT': '3306',
-    },
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'PORT': '',
     }
 }
 
