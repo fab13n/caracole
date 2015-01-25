@@ -1,4 +1,6 @@
-def allocate(Q, wishes):
+from floreal import models as m
+
+def allocate(limit, wishes):
     """ Resources allocation in case of penury: When a list of consumers want
     some resources, and that resource exists in insufficient quantity to
     satisfy the total demand, a way must be found to allocate existing resources
@@ -13,26 +15,26 @@ def allocate(Q, wishes):
     the ceiling are attributed to the consumers who asked for the most
     resources, i.e. presumably the most unsatisfied ones.
 
-    :param Q: total quantity allocated.
-    :param wishes: quantities wished by each consumer (dictionary, arbitrary key types).
-    :return:  quantities allocated to each consumer (dictionary, same keys as above).
+    :param limit: total quantity allocated.
+    :param wishes: quantities wished by each customer (dictionary, arbitrary key types).
+    :return:  quantities allocated to each customer (dictionary, same keys as above).
     """
     wish_values = wishes.values()
-    if sum(wish_values) <= Q:
+    if sum(wish_values) <= limit:
         # print "There's enough for everyone!"
         return wishes
-    unallocated = Q  # resources left to attribute
+    unallocated = limit  # resources left to attribute
     granted = {k: 0 for k in wishes.keys()}  # what consumers have been granted so far
     n_unsatisfied = len(wishes) - wish_values.count(0)  # nb of consumers still unsatisfied
     ceiling = 0  # current limit (increases until everything is allocated)
 
     # first stage: find a ceiling that leaves less than one unit per unsatisfied buyer
     while unallocated >= n_unsatisfied:
-        lot = unallocated/n_unsatisfied  # We can safely distribute at least this much
+        lot = unallocated / n_unsatisfied  # We can safely distribute at least this much
         ceiling += lot
         # print ("%i units left; allocating %i units to %i unsatisfied people" % (unallocated, lot, n_unsatisfied))
         for k, wish_k in wishes.items():
-            wish_more_k = wish_k-granted[k]
+            wish_more_k = wish_k - granted[k]
             if wish_more_k > 0:  # this consumer isn't satisfied yet, give him some more
                 lot_k = min(wish_more_k, lot)  # don't give more than what he asked for, though.
                 # print ("person %i wishes %i more unit, receives %i"%(i, wish_i, lot_i))
@@ -51,9 +53,33 @@ def allocate(Q, wishes):
     # Some invariant checks
     if True:
         assert unallocated == 0
-        assert sum(granted.values()) == Q
+        assert sum(granted.values()) == limit
         for k in wishes.keys():
             assert granted[k] <= wishes[k]
             assert granted[k] <= ceiling+1
 
     return granted
+
+
+def set_limit(pd):
+    """
+    Use `allocate()` to ensure that product `pd` hasn't been granted in amount larger than `limit`.
+    :param pd: product featuring the quantity limit
+    """
+    # TODO: in case of limitation, first cancel extra users' orders
+    purchases = m.Purchase.objects.filter(product=pd)
+    wishes = {pc.user_id: int(pc.ordered) for pc in purchases}
+    formerly_granted = {pc.user_id: int(pc.granted) for pc in purchases}
+    if pd.quantity_limit is None:  # No limit, granted==ordered for everyone
+        granted = wishes
+    else:  # Apply limitations
+        granted = allocate(int(pd.quantity_limit), wishes)
+
+    for pc in purchases:
+        uid = pc.user_id
+        if formerly_granted[uid] != granted[uid]:  # Save some DB accesses
+            pc.granted = granted[uid]
+            print "%s %s had their purchase of %s modified: ordered %s, formerly granted %s, now granted %s" % (
+                pc.user.first_name, pc.user.last_name, pc.product.name, pc.ordered, formerly_granted[uid], pc.granted
+            )
+            pc.save(force_update=True)
