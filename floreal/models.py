@@ -15,7 +15,7 @@ class Plural(models.Model):
     Django supports plurals for words occurring verbatim in templates,
     but not for words coming from the DB."""
     singular = models.CharField(max_length=64, unique=True)
-    plural = models.CharField(max_length=64)
+    plural = models.CharField(max_length=64, null=True, blank=True, default=None)
 
     def __unicode__(self):
         return "%s/%s" % (self.singular, self.plural)
@@ -33,16 +33,22 @@ def plural(noun, n=None):
     if n is not None and -2 < n < 2:
         return noun  # No need to pluralize
     try:
-        return Plural.objects.get(singular=noun).plural
+        r = Plural.objects.get(singular=noun).plural
+        if r is not None:
+            return r
     except Plural.DoesNotExist:
-        if noun[-1] == 's' or noun[-1] == 'x':
-            return noun  # Probably invariant
-        elif noun[-2:] == 'al':
-            return noun[:-2] + 'aux'
-        elif noun[-3:] == 'eau':
-            return noun + 'x'
-        else:
-            return noun + 's'  # probably a regular plural
+        # Put the singular alone in DB, so that we know it needs to be filled
+        Plural.objects.create(singular=noun, plural=None)
+
+    # Not found in DB, or found to be None: try to guess it
+    if noun[-1] == 's' or noun[-1] == 'x':
+        return noun  # Probably invariant
+    elif noun[-2:] == 'al':
+        return noun[:-2] + 'aux'
+    elif noun[-3:] == 'eau':
+        return noun + 'x'
+    else:
+        return noun + 's'  # probably a regular plural
 
 
 def articulate(noun, n=1):
@@ -174,7 +180,6 @@ class Product(models.Model):
         return self.name
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        # TODO: if quantity_limit changes, update granted quantities for all affected purchases
         if self.unit == 'kg':
             self.unit_weight = 1.
         super(Product, self).save(force_insert, force_update, using, update_fields)
@@ -222,15 +227,16 @@ class Purchase(models.Model):
             result += " pour %s %s" % (self.user.first_name, self.user.last_name)
         return result
 
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        # TODO: if product has limitations, update granted quantities for all affected purchases
-        super(Purchase, self).save(force_insert, force_update, using, update_fields)
 
 class LegacyPassword(models.Model):
+    """Used to authentify legacy users, regeistered with the old web2py version of the app,
+    the first time they log in. At first login, their password is migrated to Django's regular
+    authentication backend, so it normally happens only once par legacy user."""
     email = models.CharField(max_length=64)
     password = models.CharField(max_length=200)
     circle = models.CharField(max_length=32)
     migrated = models.BooleanField(default=False)
+
 
 class Order(object):
     """Sum-up of what a given user has ordered in a given delivery."""
