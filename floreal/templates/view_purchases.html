@@ -27,6 +27,8 @@
       tr.one  { background-color: #d5b1ac; }
       .blank  { text-align: left; }
       table { margin-top: 30px; }
+      .unsatisfied_ordered {  color: red; text-decoration: line-through; }
+      .unsatisfied_granted {  font-weight: bold; color: red; }
     </style>
 {% endblock %}
 
@@ -41,7 +43,7 @@
         <td class="blank" colspan="2">
           {# no product in user name and total columns #}
           {% if table|length > 1 %}
-            <a href="{% url 'view_delivery_purchases_xlsx' delivery=delivery.id %}">Télécharger le tableau Excel <img src="{% static 'images/excel.png' %}"/></a>
+            <a href="{% url 'view_delivery_purchases_xlsx' delivery=delivery.id %}">Télécharger le tableau&nbsp;Excel <img src="{% static 'images/excel.png' %}"/></a>
           {% else %}
             Télécharger:
             <ul>
@@ -58,7 +60,7 @@
 
     {# Product quantities per package, if applicable #}
     <tr>
-        <th class="left" colspan="2">Quantité par paquet</th>
+        <th class="left" colspan="2">Quantité par carton</th>
         {% for pd in products %}
         {% if pd.quantity_per_package %}
         <td>{{pd.quantity_per_package}} {{pd.unit}}</td>
