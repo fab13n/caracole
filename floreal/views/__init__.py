@@ -22,7 +22,6 @@ def index(request):
     user = request.user
 
     if not user.is_authenticated():
-        # TODO: use reverse URL
         return redirect(reverse(auth_view.login), args={'redirect_field_name': 'toto'})
 
     user_subgroups = m.Subgroup.objects.filter(users__in=[user])
