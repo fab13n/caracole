@@ -4,6 +4,8 @@
 from datetime import datetime
 
 from django.shortcuts import render_to_response, redirect
+from django.core.urlresolvers import reverse
+import django.contrib.auth.views as auth_view
 
 from .. import models as m
 from .edit_subgroup_purchases import edit_subgroup_purchases
@@ -14,13 +16,13 @@ from .view_purchases import view_delivery_purchases_html, view_delivery_purchase
     view_subgroup_purchases_html, view_subgroup_purchases_pdf, view_subgroup_purchases_xlsx
 
 
+
 def index(request):
     """Main page: sum-up of current deliveries, links to active pages."""
     user = request.user
 
     if not user.is_authenticated():
-        # TODO: use reverse URL
-        return redirect('/caracole/accounts/login/?next=/caracole/')
+        return redirect(reverse(auth_view.login), args={'redirect_field_name': 'toto'})
 
     user_subgroups = m.Subgroup.objects.filter(users__in=[user])
     user_networks = [sg.network for sg in user_subgroups]

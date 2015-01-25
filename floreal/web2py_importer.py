@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf8 -*-
 
 """Migrate old passwords DB from the sqlite Web2Py DB to Django"""
 
@@ -7,7 +8,6 @@ import django
 from . import models
 
 DB_PATH = "/home/fabien/src/web2py/applications/floreal/databases/storage.sqlite"
-DV_NAME = "ancienne"
 NW_NAME = "Floreal"
 
 # This way hopefully I won't commit it
@@ -29,16 +29,16 @@ def create_users():
     for email, first_name, last_name, password, circle in cx.cursor().execute(RQ).fetchall():
         if first_name == "Extra":
             continue
-        print "Importing %s %s from %s" % (first_name, last_name, circle)
+        print "* Importing %s %s from %s" % (first_name, last_name, circle)
         # Store legacy password
         models.LegacyPassword.objects.create(email=email, password=password, circle=circle)
 
         # Retrieve user
         try:
             models.User.objects.get(username=email)
-            print "\t * [already there]"
+            print "\t* [already there]"
         except models.User.DoesNotExist:
-            print "\t * Creating it"
+            print "\t* Creating it"
             user = models.User.objects.create(username=email,
                                               first_name=first_name,
                                               last_name=last_name,
@@ -49,9 +49,9 @@ def create_users():
             user.save()
             try:
                 sg = models.Subgroup.objects.get(name=circle, network=nw)
-                print "\t * Joining subgroup %s" % sg.name
+                print "\t* Joining subgroup %s" % sg.name
             except models.Subgroup.DoesNotExist:
-                print "\t * Creating and joining subgroup %s" % circle
+                print "\t* Creating and joining subgroup %s" % circle
                 sg = models.Subgroup.objects.create(name=circle, network=nw)
             sg.users.add(user)
             sg.save()
@@ -66,7 +66,7 @@ def promote_subgroup_admins():
          "AND auth_user.circle==circles.id"
 
     for email, circle in cx.cursor().execute(RQ).fetchall():
-        print "promoting %s as admin of subgroup %s" % (email, circle)
+        print "* promoting %s as admin of subgroup %s" % (email, circle)
         sg = models.Subgroup.objects.get(name=circle)
         sg.staff.add(models.User.objects.get(username=email))
         sg.save()
@@ -80,35 +80,39 @@ def promote_network_admins():
          "AND auth_group.role=='floreal_global_admin' "
 
     for (email,) in cx.cursor().execute(RQ).fetchall():
-        print "promoting '%s' as network admin" % email
+        print "* promoting '%s' as network admin" % email
         u = models.User.objects.get(username=email)
         u.is_staff = True
         nw.staff.add(u)
         nw.save()
         u.save()
 
+def import_purchases():
+    DV = "SELECT id, name, is_open, date FROM deliveries"
+    for (dv_id, dv_name, is_open, date) in cx.cursor().execute(DV).fetchall():
+        print "* Create delivery %s" % dv_name
+        dv = models.Delivery.objects.create(name=dv_name, network=nw, state='O' if is_open!='F' else 'C')
+        PD = "SELECT id, name, package_quantity, price, unit FROM products WHERE delivery=%s" % dv_id
+        for (pd_id, pd_name, package_quantity, price, unit) in cx.cursor().execute(PD).fetchall():
+            print "\t* Create product %s at EUR%s/%s" % (pd_name, price, unit)
+            pd = models.Product.objects.create(name=pd_name, delivery=dv, price=price,
+                                               quantity_per_package=package_quantity, unit=unit, quantity_limit=None)
+            PC = "SELECT email, circles.name, granted_quantity FROM auth_user, purchases, circles " \
+                 "WHERE product=%s AND user=auth_user.id AND circles.id=circle" % pd_id
+            for (email, circle_name, qty) in cx.cursor().execute(PC).fetchall():
+                print "\t\t* Bought (%s %s) by %s from %s" % (qty, unit, email or "extra", circle_name)
+                if email:
+                    u = models.User.objects.get(email=email)
+                else:
+                    # Retrieve extra user
+                    sg = models.Subgroup.objects.get(name=circle_name)
+                    u = sg.extra_user
+                models.Purchase.objects.create(user=u, product=pd, ordered=qty, granted=qty)
 
-def import_products():
-    RQ = "SELECT name, max_quantity, package_quantity, unit, price " \
-         "FROM past_products"
-    try:
-        dv = models.Delivery.objects.get(name=DV_NAME, network=nw)
-    except Exception:
-        print "Creating delivery %s" % DV_NAME
-        dv = models.Delivery.objects.create(name=DV_NAME, network=nw)
-    for (name, quantity_limit, quantity_per_package, unit, price) in cx.cursor().execute(RQ).fetchall():
-        if models.Product.objects.filter(name=name):
-            print "Product %s already exists" % name
-        else:
-            print "Importing product %s" % name
-            models.Product.objects.create(name=name,
-                                          quantity_limit=quantity_limit,
-                                          quantity_per_package=quantity_per_package,
-                                          unit=unit,
-                                          price=price,
-                                          delivery=dv)
+def run():
+    create_users()
+    promote_subgroup_admins()
+    promote_network_admins()
+    import_purchases()
 
-create_users()
-promote_subgroup_admins()
-promote_network_admins()
-import_products()
+run()

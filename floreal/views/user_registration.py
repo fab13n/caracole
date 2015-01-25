@@ -69,7 +69,7 @@ def user_register(request):
             sg = m.Subgroup.objects.get(id=d['subgroup'])
             sg.users.add(user)
             sg.save()
-            return HttpResponseRedirect('/')  # TODO: reverse URL
+            return HttpResponseRedirect('index')
         else:  # invalid form
             return render(request, 'registration/registration_form.html', {'form': form})
     else:
