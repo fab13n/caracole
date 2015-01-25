@@ -42,6 +42,7 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
     """
     sheet = book.add_worksheet(title)
     sheet.set_column(0, 0, 30)
+    sheet.set_column(1, 1, 12)
     sheet.set_row(0, 75)
     sheet.set_row(2, 50)
     sheet.merge_range('A1:J1', u"Achats du réseau %s: \n commande %s pour %s" % (
@@ -182,18 +183,18 @@ def spreadsheet(delivery, subgroups):
     fmt = {
         'hdr_title': book.add_format({'bold': True, 'bg_color': red2, 'font_color': 'white', 'align': 'center'}),
         'hdr_title_right': book.add_format({'bold': True, 'bg_color': red2, 'font_color': 'white', 'align': 'right'}),
-        'hdr_price': book.add_format({'num_format': u'#,##0.00€', 'bold': True, 'bg_color': red3}),
-        'hdr_user_price': book.add_format({'num_format': u'#,##0.00€', 'bold': True}),
-        'hdr_user_price_cycle': book.add_format({'num_format': u'#,##0.00€', 'bold': True, 'bg_color': red4}),
-        'hdr_weight': book.add_format({'num_format': u'0"kg"', 'bold': True, 'bg_color': red3}),
+        'hdr_price': book.add_format({'num_format': u'0.00€', 'bold': True, 'bg_color': red3}),
+        'hdr_user_price': book.add_format({'num_format': u'0.00€', 'bold': True}),
+        'hdr_user_price_cycle': book.add_format({'num_format': u'0.00€', 'bold': True, 'bg_color': red4}),
+        'hdr_weight': book.add_format({'num_format': u'0.###"kg"', 'bold': True, 'bg_color': red3}),
         'hdr_qty': book.add_format({'bold': True, 'bg_color': red3, 'align': 'right'}),
         'hdr_user_qty': book.add_format({'bold': True, 'bg_color': red3}),
         'hdr_user_qty_cycle': book.add_format({'bold': True, 'bg_color': red3}),
         'hdr_blank': book.add_format({'bg_color': red3}),
 
         'title': book.add_format({'bold': True, 'align': 'vjustify', 'font_color': red1, 'font_size': 24}),
-        'price': book.add_format({'num_format': u'#,##0.00€'}),
-        'weight': book.add_format({'num_format': u'0"kg"'}),
+        'price': book.add_format({'num_format': u'0.00€'}),
+        'weight': book.add_format({'num_format': u'0.###"kg"'}),
         'qty': book.add_format({}),
         'qty_v_cycle': book.add_format({'bg_color': red4}),
         'qty_h_cycle': book.add_format({'bg_color': red4}),

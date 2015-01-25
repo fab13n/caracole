@@ -6,8 +6,9 @@ past products, parse POSTed forms to update a delivery's products list."""
 
 from django.shortcuts import render_to_response, redirect, get_object_or_404
 from django.core.context_processors import csrf
-from floreal.models import Product, Delivery
 
+from ..models import Product, Delivery
+from ..penury import set_limit
 
 def edit_delivery_products(request, delivery):
     """Edit a delivery (name, state, products). Network staff only."""
@@ -128,3 +129,7 @@ def _parse_form(request):
                                         unit=fields['unit'],
                                         delivery=dv)
             pd.save()
+
+    # In case of change in quantity limitations, adjust granted quantities for purchases
+    for pd in dv.product_set.all():
+        set_limit(pd)

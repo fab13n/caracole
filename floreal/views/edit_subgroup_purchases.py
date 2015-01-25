@@ -3,8 +3,8 @@ from django.shortcuts import redirect, render_to_response
 from django.core.context_processors import csrf
 
 from .. import models as m
+from ..penury import set_limit
 from .delivery_description import delivery_description
-
 
 def edit_subgroup_purchases(request, delivery):
     """Allows to change the purchases of user's subgroup. Subgroup staff only."""
@@ -44,5 +44,7 @@ def _parse_form(request):
             if ordered != 0:
                 print "Creating purchase for pd=%s, u=%s, q=%f" % (pd, u, ordered)
                 m.Purchase.objects.create(product_id=pd, user_id=u, ordered=ordered, granted=ordered)
+        # Update ordered / granted mismatches in case of product penury, for every purchase
+        set_limit(pd)
 
     return True  # true == no error

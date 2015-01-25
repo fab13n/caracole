@@ -2,7 +2,7 @@ from django.shortcuts import redirect, render_to_response
 from django.core.context_processors import csrf
 
 from .. import models as m
-
+from ..penury import set_limit
 
 def edit_user_purchases(request, delivery):
     """Let user order for himself, or modified an order on an open delivery."""
@@ -48,5 +48,6 @@ def _parse_form(request):
         pc.ordered = ordered
         pc.granted = ordered
         pc.save()
+        set_limit(pd)  # In case of penury
 
     return True  # true == no error
