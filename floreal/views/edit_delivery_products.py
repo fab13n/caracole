@@ -31,7 +31,7 @@ def _get_products_list(delivery):
     in this network whose name doesn't occur in current delivery. When several
     products with the same name exist in the past, the most recent one is kept."""
 
-    current_products = delivery.product_set.order_by('-id')
+    current_products = delivery.product_set.all()
     current_names_set = {pd.name for pd in current_products}
     past_products = [Product.objects
                      .filter(name=x['name'], delivery__network=delivery.network)

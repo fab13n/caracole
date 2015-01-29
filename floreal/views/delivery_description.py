@@ -29,7 +29,7 @@ def delivery_description(delivery, subgroups, **kwargs):
           "price": number }
     """
     # List of products, ordered by name
-    products = delivery.product_set.order_by('name')
+    products = delivery.product_set.all()
     # Iterable of all users in subgroups
     users = m.User.objects.filter(user_of__in=subgroups)
     # Dictionary user -> list of ordered, indexed as products

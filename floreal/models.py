@@ -174,7 +174,7 @@ class Product(models.Model):
 
     class Meta:
         unique_together = (('delivery', 'name'),)
-        ordering = ('name',)
+        ordering = ('-quantity_per_package', 'name',)
 
     def __unicode__(self):
         return self.name
@@ -285,7 +285,7 @@ class Order(object):
                 return False
 
         if not products:
-            products = delivery.product_set.order_by('name')
+            products = delivery.product_set.all()
         purchases_by_user = {u: {} for u in users}
         prices = {u: 0 for u in users}
         for pc in Purchase.objects.filter(product__delivery=delivery, user__in=users):
