@@ -12,7 +12,8 @@ from .edit_subgroup_purchases import edit_subgroup_purchases
 from .edit_user_purchases import edit_user_purchases
 from .user_registration import user_register
 from .edit_delivery_products import edit_delivery_products
-from .view_purchases import view_delivery_purchases_html, view_delivery_purchases_xlsx, \
+from .view_purchases import \
+    view_delivery_purchases_html, view_delivery_purchases_pdf, view_delivery_purchases_xlsx, \
     view_subgroup_purchases_html, view_subgroup_purchases_pdf, view_subgroup_purchases_xlsx
 
 

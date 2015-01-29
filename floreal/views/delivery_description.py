@@ -17,11 +17,14 @@ def delivery_description(delivery, subgroups, **kwargs):
                                      "totals": product_idx -> { "product": product,
                                                                 "quantity": number,
                                                                 "full_packages": number,
-                                                                "out_of_packages": number },
+                                                                "out_of_packages": number,
+                                                                "weight": number },
                                      "users": user_idx -> { "user": user,
                                                             "orders": product_idx -> order,
-                                                            "price": number },
-                                     "price": number },
+                                                            "price": number,
+                                                            "weight": number },
+                                     "price": number,
+                                     "weight": number},
           "product_totals": product_idx -> { "product": product,
                                              "quantity": number,
                                              "full_packages": number,
@@ -87,8 +90,10 @@ def delivery_description(delivery, subgroups, **kwargs):
     #                                              "out_of_packages": number }.
     #                   "users": user_idx -> { "user": user,
     #                                          "orders": product_idx -> order.
-    #                                          "price": number },
-    #                   "price": number }
+    #                                          "price": number,
+    #                                          "weight": number },
+    #                   "price": number,
+    #                   "weight": number }
     table = []
     for i, sg in enumerate(subgroups):
         pd_totals = sg_pd_totals[sg]
@@ -104,8 +109,10 @@ def delivery_description(delivery, subgroups, **kwargs):
             user_records.append({
                 'user': u,
                 'orders': order,
-                'price': sum(pc.price for pc in order.purchases if pc)})
+                'price': sum(pc.price for pc in order.purchases if pc),
+                'weight': sum(pc.weight for pc in order.purchases if pc)})
         sg_item['price'] = sum(uo['price'] for uo in user_records)
+        sg_item['weight'] = sum(uo['weight'] for uo in user_records)
 
     price = sum(x['price'] for x in table)
 

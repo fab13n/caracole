@@ -32,6 +32,14 @@ def view_delivery_purchases_xlsx(request, delivery):
                               spreadsheet(delivery, subgroups))
 
 
+def view_delivery_purchases_pdf(request, delivery):
+    """View the purchases of each subgroup as an Adobe PDF file. Subgroup staff only."""
+    delivery = Delivery.objects.get(id=delivery)
+    return _non_html_response((delivery.network.name, delivery.name), "pdf",
+                              "application/pdf",
+                              pdf.all(delivery))
+
+
 def view_subgroup_purchases_html(request, delivery):
     """View the purchases of a subgroup. Subgroup staff only."""
     delivery = Delivery.objects.get(id=delivery)

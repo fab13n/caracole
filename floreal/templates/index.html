@@ -59,7 +59,8 @@
       </a></li>
       <li><em>[admin]</em> Voir les commandes de tout le réseau {{nw.network.name}}<br/>
         <a href="{% url 'view_delivery_purchases_html' delivery=dv.delivery.id %}">en ligne <img src="{% static 'images/grid.png' %}"/></a>,
-        <a href="{% url 'view_delivery_purchases_xlsx' delivery=dv.delivery.id %}">dans un tableau Excel <img src="{% static 'images/excel.png' %}"/></a>
+        <a href="{% url 'view_delivery_purchases_xlsx' delivery=dv.delivery.id %}">dans un tableau Excel <img src="{% static 'images/excel.png' %}"/></a>,
+        <a href="{% url 'view_delivery_purchases_pdf' delivery=dv.delivery.id %}">en PDF <img src="{% static 'images/pdf.png' %}"/></a>
       </li>
       {% endif %}{# is_network_staff #}
 
