@@ -136,9 +136,11 @@ class Delivery(models.Model):
 
     OPEN = 'O'
     CLOSED = 'C'
+    FROZEN = 'F'
     DELIVERED = 'D'
     STATE_CHOICES = ((OPEN, "Open"),
                      (CLOSED, "Closed"),
+                     (FROZEN, "Frozen"),
                      (DELIVERED, "Delivered"))
     name = models.CharField(max_length=64)
     network = models.ForeignKey(Network)
@@ -147,8 +149,13 @@ class Delivery(models.Model):
     def __unicode__(self):
         return "%s/%s" % (self.network.name, self.name)
 
-    def is_open(self):
+    def is_user_open(self):
+        """Users can pass & modify orders."""
         return self.state == self.OPEN
+
+    def is_admin_open(self):
+        """Admins can pass & modify orders."""
+        return self.state == self.OPEN or self.state == self.CLOSED
 
     def is_archived(self):
         return self.state == self.DELIVERED

@@ -19,40 +19,52 @@
   {% for dv in nw.deliveries %}
   <li>Commande {{dv.delivery.name}}:
     {% if dv.delivery.is_archived %}
-    archivée
+    archivée ;
+    <a href="{% url 'view_delivery_purchases_html' delivery=dv.delivery.id %}">voir</a>,
+    <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Closed'%}">réactiver</a>.
     {% else %}
     <ul>
-
       {# This will fail if administrators aren't users of their own network #}
-      {% if dv.delivery.is_open %}
       {% if dv.order.purchases|length > 0 %}
-      <li><a href="{% url 'edit_user_purchases' delivery=dv.order.delivery.id %}">modifier votre commande</a>:
+      <li>
+        {% if dv.delivery.is_user_open %}
+        <a href="{% url 'edit_user_purchases' delivery=dv.order.delivery.id %}">modifier votre commande</a>:
+        {% else %}
+        Votre commande n'est plus modifiable :
+        {% endif %}
         <ul>
           {% for p in dv.order.purchases %}
           <li>{{p}}</li>
           {% endfor %}{# purchases #}
         </ul>
       </li>
-      {% else %}{# no purchase yet #}
+      {% elif dv.delivery.is_user_open %}{# no purchase yet #}
       <li><em><a href="{% url 'edit_user_purchases' delivery=dv.delivery.id %}">
         Commander
       </a></em></li>
       {% endif %}{# purchases > 0 #}
-      {% endif %}{# is_user_available #}
 
 
       {% if nw.is_network_staff %}
-      {% if dv.delivery.is_open %}
-      <li><em>[admin]</em> <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Closed'%}">
-          Interdire les commandes <img src="{% static 'images/minus.png' %}"/>
+      {% if dv.delivery.is_user_open %}
+      <li><em>[admin]</em> Commandes autorisées à tous ; <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Closed'%}">
+          réserver aux admins <img src="{% static 'images/minus.png' %}"/>
       </a></li>
-      {% else %}
-      <li><em>[admin]</em> <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Open'%}">
-          Autoriser les commandes <img src="{% static 'images/purchase.png' %}"/>
-      </a></li>
-      <li><em>[admin]</em> <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Delivered'%}">
-          Archiver la livraison <img src="{% static 'images/bin.png' %}"/>
-      </a></li>
+      {% elif dv.delivery.is_admin_open %}
+      <li><em>[admin]</em>Commandes réservées aux admins.
+          <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Open'%}">
+            autoriser à tous <img src="{% static 'images/purchase.png' %}"/></a>,
+          <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Frozen'%}">
+            interdire à tous <img src="{% static 'images/minus.png' %}"/></a>,
+          <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Delivered'%}">
+            archiver <img src="{% static 'images/bin.png' %}"/></a>
+      </li>
+      {% else %}{# frozen #}
+      <li><em>[admin]</em> Commandes interdites à tous ; autoriser
+        <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='CLosed'%}">aux admins <img src="{% static 'images/edit.png' %}"/></a>,
+        <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Open'%}">à tout le monde <img src="{% static 'images/purchase.png' %}"/></a> ;
+        <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Delivered'%}">archiver <img src="{% static 'images/bin.png' %}"/></a>.
+      </li>
       {% endif %}{# delivery.is_open #}
       <li><em>[admin]</em> <a href="{% url 'edit_delivery_products' delivery=dv.delivery.id %}">
         Modifier les produits proposés <img src="{% static 'images/edit.png' %}"/>
