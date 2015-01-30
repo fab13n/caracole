@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 from floreal import models as m
 
 def allocate(limit, wishes):

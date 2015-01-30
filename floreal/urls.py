@@ -1,17 +1,9 @@
 #!/usr/bin/python
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 from django.conf.urls import patterns, include, url
 from django.contrib import admin
 from . import views
-
-# URL organization
-# index -> "/"
-# edit_delivery_products(delivery) -> "staff/edit/delivery/<d>"
-# view_delivery_purchases(delivery) -> "staff/view/purchases/<d>"
-# view_subgroup_purchases(delivery, subgroup) -> "staff/view/purchases/<d>/<s>"
-# edit_subgroup_purchases(delivery, subgroup) -> "staff/edit/purchases/<d>/<s>"
-# edit_user_purchases(delivery, user) -> "purchases/<d>"
 
 urlpatterns = patterns('',
     url(r'^$', views.index, name='index'),
