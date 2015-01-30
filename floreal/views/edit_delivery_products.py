@@ -6,21 +6,26 @@ past products, parse POSTed forms to update a delivery's products list."""
 
 from django.shortcuts import render_to_response, redirect, get_object_or_404
 from django.core.context_processors import csrf
+from django.http import HttpResponseForbidden
 
 from ..models import Product, Delivery
 from ..penury import set_limit
+
 
 def edit_delivery_products(request, delivery):
     """Edit a delivery (name, state, products). Network staff only."""
 
     delivery = get_object_or_404(Delivery, pk=delivery)
 
+    if request.user not in network.staff.all():
+        return HttpResponseForbidden('Réservé aux administrateurs du réseau '+delivery.network.name)
+
     if request.method == 'POST':  # Handle submitted data
         _parse_form(request)
         return redirect('index')
 
     else:  # Create and populate forms to render
-        vars = make_form(delivery)
+        vars = _make_form(delivery)
         vars['user'] = request.user
         vars.update(csrf(request))
         return render_to_response('edit_delivery_products.html', vars)
@@ -41,7 +46,7 @@ def _get_products_list(delivery):
     return list(current_products) + non_overridden_past_products
 
 
-def make_form(delivery):
+def _make_form(delivery):
     return {'delivery': delivery,
             'products': _get_products_list(delivery)}
 
