@@ -6,7 +6,7 @@
 from pyfpdf import FPDF, HTMLMixin
 
 from .. import models as m
-
+from .delivery_description import delivery_description
 
 DATABASE_UTF8_ENABLED = False
 
@@ -16,44 +16,24 @@ def _u8(s):
     return unicode(s) if DATABASE_UTF8_ENABLED else str(s).decode('utf-8')
 
 
-class UserCardsDeck(FPDF, HTMLMixin):
+class CardsDeck(FPDF, HTMLMixin):
 
-    def __init__(self, delivery, subgroup):
+    FULL_PAGES = False # Half pages
+
+    def __init__(self):
         # HTMLMixin.__init__(self) # No constructor
         # super(UserCardsDeck, self).__init__()  # FPDF is an old-style class
         FPDF.__init__(self)
-        users = subgroup.sorted_users
-        orders = m.Order.by_user_and_product(delivery, users)
-        for od in orders.values():
-            self._print_order(od, subgroup)
 
     def _print(self, utxt):
         # Latin1 / Latin9 don't seem able to cope with Euro sign
         self.write_html(utxt.replace(u'€', u'EUR').encode('latin9'))
 
-
-    def _print_order(self, od, sg):
-
-        items = u''.join([u"<li>%s</li>" % pc.__unicode__(specify_user=False) for pc in od.purchases if pc])
-
-        if items:
-            self._jump_to_next_order()
-            self._print(u"""
-                    <h1>Commande %(u)s: %(total).02f€</h1>
-                    <h2>%(nw)s / %(dv)s / %(sg)s</h2>
-                    <ul>%(od)s</ul>""" % {
-                    'u': m.articulate(od.user.first_name + " " + od.user.last_name),
-                    'total': od.price,
-                    'nw': od.delivery.network.name,
-                    'dv': od.delivery.name,
-                    'sg': sg.name,
-                    'od': items})
-
     def _jump_to_next_order(self):
         """Start the next user card: either go to the 2nd half of the current page,
         or to the top of a new page."""
         try:
-            if self.get_y() > self.h/2:
+            if self.get_y() > self.h/2 or self.FULL_PAGES:
                 self.add_page()
             else:
                 self.set_y(self.h/2);
@@ -62,7 +42,91 @@ class UserCardsDeck(FPDF, HTMLMixin):
             self.add_page()
 
 
+class UserCardsDeck(CardsDeck):
+
+    def __init__(self, title, delivery, sg):
+        CardsDeck.__init__(self)
+        users = sg.sorted_users
+        orders = m.Order.by_user_and_product(delivery, users)
+        for od in orders.values():
+            self._print_card(od, title)
+
+    def _print_card(self, od, title):
+        items = u''.join([u"<li>%s</li>" % pc.__unicode__() for pc in od.purchases if pc])
+        if items:
+            self._jump_to_next_order()
+            self._print(u"""
+                    <h1>Commande %(u)s: %(total).02f€</h1>
+                    <h2>%(title)s</h2>
+                    <ul>%(od)s</ul>""" % {
+                    'u': m.articulate(od.user.first_name + " " + od.user.last_name),
+                    'total': od.price,
+                    'title': title,
+                    'od': items})
+
+
+class SubgroupCardsDeck(CardsDeck):
+
+    FULL_PAGES = True
+
+    def __init__(self, title, dv):
+        CardsDeck.__init__(self)
+        all_subgroups = m.Subgroup.objects.filter(network=dv.network)
+        descr = delivery_description(dv, all_subgroups)
+        for table in descr['table']:
+            self._print_card(title, table)
+
+    def _print_item(self, totals):
+        qty = totals['quantity']
+        pd = totals['product']
+        values = {
+            'granted': qty,
+            'unit': pd.unit,
+            'prod_name': m.articulate(pd.name),
+            'price': pd.price * qty}
+        if pd.quantity_per_package and qty >= pd.quantity_per_package:
+            values.update({
+              'packages': qty // pd.quantity_per_package,
+              'loose': qty % pd.quantity_per_package
+            })
+            if values['loose']:  # Some loose items
+                 r = u"%(packages)g cartons plus %(loose)s %(unit)s %(prod_name)s" % values
+            else:  # Round number of packages
+                r = u"%(packages)g cartons %(prod_name)s" % values
+        else:  # Unpackaged product
+            r = u"%(granted)g %(unit)s %(prod_name)s" % values
+        if pd.unit_weight and (pd.unit != 'kg' or 'packages' in values):
+            r += " (%s kg)" % qty*int(pd.unit_weight)
+        return r
+
+    def _print_card(self, title, table):
+        items = u''.join([u"<li>%s</li>" % self._print_item(t) for t in table['totals'] if t['quantity']])
+        if items:
+            self._jump_to_next_order()
+            self._print(u"""
+                    <h1>Commande %(u)s: %(price).02f€, %(weight)s kg</h1>
+                    <h2>%(title)s</h2>
+                    <ul>%(od)s</ul>""" % {
+                    'u': m.articulate(table['subgroup'].name),
+                    'price': table['price'],
+                    'weight': table['weight'],
+                    'title': title,
+                    'od': items})
+
+
+
 def subgroup(delivery, sg):
     """Generate a PDF of every user order in this delivery for this subgroup"""
-    pdf = UserCardsDeck(delivery, sg)
+    title = "%(nw)s / %(dv)s / %(sg)s" % {'nw': delivery.network.name,
+                                          'dv': delivery.name,
+                                          'sg': sg.name}
+    pdf = UserCardsDeck(title, delivery, sg)
+    return pdf.output(dest='S')
+
+
+def all(delivery):
+    """Generate a PDF of every subgroup in this delivery"""
+    title = "%(nw)s / %(dv)s" % {'nw': delivery.network.name,
+                                 'dv': delivery.name}
+    pdf = SubgroupCardsDeck(title, delivery)
     return pdf.output(dest='S')

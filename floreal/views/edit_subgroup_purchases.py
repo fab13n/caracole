@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 import re
 from django.shortcuts import redirect, render_to_response
 from django.core.context_processors import csrf
@@ -11,6 +14,11 @@ def edit_subgroup_purchases(request, delivery):
     delivery = m.Delivery.objects.get(id=delivery)
     user = request.user
     subgroup = delivery.network.subgroup_set.get(staff__in=[user])
+
+    if request.user not in subgroup.staff.all() and request.user not in delivery.network.staff.all():
+        return HttpResponseForbidden('Réservé aux administrateurs du réseau ' + delivery.network.name + \
+                                     ' ou du sous-groupe '+subgroup.name)
+
     if request.method == 'POST':
         _parse_form(request)
         return redirect("edit_subgroup_purchases", delivery=delivery.id)

@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
 
@@ -30,6 +33,14 @@ def view_delivery_purchases_xlsx(request, delivery):
     return _non_html_response((delivery.network.name, delivery.name), "xlsx",
                               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                               spreadsheet(delivery, subgroups))
+
+
+def view_delivery_purchases_pdf(request, delivery):
+    """View the purchases of each subgroup as an Adobe PDF file. Subgroup staff only."""
+    delivery = Delivery.objects.get(id=delivery)
+    return _non_html_response((delivery.network.name, delivery.name), "pdf",
+                              "application/pdf",
+                              pdf.all(delivery))
 
 
 def view_subgroup_purchases_html(request, delivery):

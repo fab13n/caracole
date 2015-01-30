@@ -42,13 +42,16 @@
     <tr>
         <td class="blank" colspan="2">
           {# no product in user name and total columns #}
+          Télécharger:
           {% if table|length > 1 %}
-            <a href="{% url 'view_delivery_purchases_xlsx' delivery=delivery.id %}">Télécharger le tableau&nbsp;Excel <img src="{% static 'images/excel.png' %}"/></a>
-          {% else %}
-            Télécharger:
             <ul>
-              <li><a href="{% url 'view_subgroup_purchases_xlsx' delivery=delivery.id %}">le tableau Excel <img src="{% static 'images/excel.png' %}"/></a></li>
-              <li><a href="{% url 'view_subgroup_purchases_pdf' delivery=delivery.id %}">les fiches PDF <img src="{% static 'images/pdf.png' %}"/></a></li>
+              <li><a href="{% url 'view_delivery_purchases_xlsx' delivery=delivery.id %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
+              <li><a href="{% url 'view_delivery_purchases_pdf' delivery=delivery.id %}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
+            </ul>
+          {% else %}
+            <ul>
+              <li><a href="{% url 'view_subgroup_purchases_xlsx' delivery=delivery.id %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
+              <li><a href="{% url 'view_subgroup_purchases_pdf' delivery=delivery.id %}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
             </ul>
           {% endif %}
         </td>
