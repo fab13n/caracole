@@ -51,12 +51,6 @@ class SubgroupCardsDeck(CardsDeck):
         for table in descr['table']:
             self._print_subgroup_card(title, table)
 
-    def _print_price_sheet(self, dv):
-        self._print('<ul>')
-        for pd in dv.product_set.all():
-            self._print('')
-        self._print('</ul>')
-
     def _print_item(self, totals):
         qty = totals['quantity']
         pd = totals['product']
@@ -77,7 +71,7 @@ class SubgroupCardsDeck(CardsDeck):
         else:  # Unpackaged product
             r = u"%(granted)g %(unit)s %(prod_name)s" % values
         if pd.unit_weight and (pd.unit != 'kg' or 'packages' in values):
-            r += " (%s kg)" % (float(qty)*float(pd.unit_weight))
+            r += u" (%s kg)" % (float(qty)*float(pd.unit_weight))
         return r
 
     def _print_subgroup_card(self, title, table):
@@ -103,11 +97,20 @@ class UserCardsDeck(SubgroupCardsDeck):
         CardsDeck.__init__(self)
         users = sg.sorted_users
         orders = m.Order.by_user_and_product(delivery, users)
+
         descr = delivery_description(delivery, [sg])
         self._print_subgroup_card(title, descr['table'][0])
+
+        self._print_price_sheet(delivery)
+
         for u in users:
             od = orders[u]  # Don't iterate directly on orders, it wouldn't preserve order
             self._print_user_card(od, title)
+
+    def _print_price_sheet(self, dv):
+        self._jump_to_next_order()
+        prices = [u'<li>%s: %.02f€/%s</li>' % (pd.name, pd.price, pd.unit) for pd in dv.product_set.all()]
+        self._print(u'<h1>Prix des produits</h1><ul>%s</ul>' % ''.join(prices))
 
     def _print_user_card(self, od, title):
         items = u''.join([u"<li>%s</li>" % pc.__unicode__() for pc in od.purchases if pc])
