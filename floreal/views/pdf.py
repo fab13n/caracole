@@ -15,7 +15,6 @@ def _u8(s):
     """Convert DB contents into UTF8 if necessary."""
     return unicode(s) if DATABASE_UTF8_ENABLED else str(s).decode('utf-8')
 
-
 class CardsDeck(FPDF, HTMLMixin):
 
     FULL_PAGES = False # Half pages
@@ -42,39 +41,21 @@ class CardsDeck(FPDF, HTMLMixin):
             self.add_page()
 
 
-class UserCardsDeck(CardsDeck):
-
-    def __init__(self, title, delivery, sg):
-        CardsDeck.__init__(self)
-        users = sg.sorted_users
-        orders = m.Order.by_user_and_product(delivery, users)
-        for od in orders.values():
-            self._print_card(od, title)
-
-    def _print_card(self, od, title):
-        items = u''.join([u"<li>%s</li>" % pc.__unicode__() for pc in od.purchases if pc])
-        if items:
-            self._jump_to_next_order()
-            self._print(u"""
-                    <h1>Commande %(u)s: %(total).02f€</h1>
-                    <h2>%(title)s</h2>
-                    <ul>%(od)s</ul>""" % {
-                    'u': m.articulate(od.user.first_name + " " + od.user.last_name),
-                    'total': od.price,
-                    'title': title,
-                    'od': items})
-
-
 class SubgroupCardsDeck(CardsDeck):
 
     FULL_PAGES = True
 
-    def __init__(self, title, dv):
+    def __init__(self, title, dv, subgroups):
         CardsDeck.__init__(self)
-        all_subgroups = m.Subgroup.objects.filter(network=dv.network)
-        descr = delivery_description(dv, all_subgroups)
+        descr = delivery_description(dv, subgroups)
         for table in descr['table']:
-            self._print_card(title, table)
+            self._print_subgroup_card(title, table)
+
+    def _print_price_sheet(self, dv):
+        self._print('<ul>')
+        for pd in dv.product_set.all():
+            self._print('')
+        self._print('</ul>')
 
     def _print_item(self, totals):
         qty = totals['quantity']
@@ -90,16 +71,16 @@ class SubgroupCardsDeck(CardsDeck):
               'loose': qty % pd.quantity_per_package
             })
             if values['loose']:  # Some loose items
-                 r = u"%(packages)g cartons plus %(loose)s %(unit)s %(prod_name)s" % values
+                r = u"%(packages)g cartons plus %(loose)s %(unit)s %(prod_name)s" % values
             else:  # Round number of packages
                 r = u"%(packages)g cartons %(prod_name)s" % values
         else:  # Unpackaged product
             r = u"%(granted)g %(unit)s %(prod_name)s" % values
         if pd.unit_weight and (pd.unit != 'kg' or 'packages' in values):
-            r += " (%s kg)" % qty*int(pd.unit_weight)
+            r += " (%s kg)" % (float(qty)*float(pd.unit_weight))
         return r
 
-    def _print_card(self, title, table):
+    def _print_subgroup_card(self, title, table):
         items = u''.join([u"<li>%s</li>" % self._print_item(t) for t in table['totals'] if t['quantity']])
         if items:
             self._jump_to_next_order()
@@ -113,6 +94,33 @@ class SubgroupCardsDeck(CardsDeck):
                     'title': title,
                     'od': items})
 
+
+class UserCardsDeck(SubgroupCardsDeck):
+
+    FULL_PAGES = False
+
+    def __init__(self, title, delivery, sg):
+        CardsDeck.__init__(self)
+        users = sg.sorted_users
+        orders = m.Order.by_user_and_product(delivery, users)
+        descr = delivery_description(delivery, [sg])
+        self._print_subgroup_card(title, descr['table'][0])
+        for u in users:
+            od = orders[u]  # Don't iterate directly on orders, it wouldn't preserve order
+            self._print_user_card(od, title)
+
+    def _print_user_card(self, od, title):
+        items = u''.join([u"<li>%s</li>" % pc.__unicode__() for pc in od.purchases if pc])
+        if items:
+            self._jump_to_next_order()
+            self._print(u"""
+                    <h1>Commande %(u)s: %(total).02f€</h1>
+                    <h2>%(title)s</h2>
+                    <ul>%(od)s</ul>""" % {
+                    'u': m.articulate(od.user.first_name + " " + od.user.last_name),
+                    'total': od.price,
+                    'title': title,
+                    'od': items})
 
 
 def subgroup(delivery, sg):
@@ -128,5 +136,6 @@ def all(delivery):
     """Generate a PDF of every subgroup in this delivery"""
     title = "%(nw)s / %(dv)s" % {'nw': delivery.network.name,
                                  'dv': delivery.name}
-    pdf = SubgroupCardsDeck(title, delivery)
+    all_subgroups = m.Subgroup.objects.filter(network=dv.network)
+    pdf = SubgroupCardsDeck(title, delivery,all_subgroups)
     return pdf.output(dest='S')
