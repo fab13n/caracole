@@ -9,6 +9,7 @@ import xlsxwriter as xls
 from .delivery_description import delivery_description
 
 DATABASE_UTF8_ENABLED = True
+PROTECT_FORMULA_CELLS = False
 
 
 def _u8(s):
@@ -41,6 +42,8 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
     :return:
     """
     sheet = book.add_worksheet(title)
+    if PROTECT_FORMULA_CELLS:
+        sheet.protect()
     sheet.set_column(0, 0, 30)
     sheet.set_column(1, 1, 12)
     sheet.set_row(0, 75)
@@ -97,19 +100,19 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
             v_cycle = r % V_CYCLE_LENGTH == V_CYCLE_LENGTH-1
             h_cycle = c % H_CYCLE_LENGTH == H_CYCLE_LENGTH-1
             if h_cycle and v_cycle:
-                fmt_q = fmt['qty_vh_cycle']
+                fmt_name = 'qty_vh_cycle'
             elif h_cycle:
-                fmt_q = fmt['qty_h_cycle']
+                fmt_name = 'qty_h_cycle'
             elif v_cycle:
-                fmt_q = fmt['qty_v_cycle']
+                fmt_name = 'qty_v_cycle'
             else:
-                fmt_q = fmt['qty']
+                fmt_name = 'qty'
 
             if purchase_fmls:
                 fml = purchase_fmls(r, c)
-                sheet.write(r+ROW_OFFSET, c+COL_OFFSET, fml, fmt_q, qty)
+                sheet.write(r+ROW_OFFSET, c+COL_OFFSET, fml, fmt['f_'+fmt_name], qty)
             else:
-                sheet.write(r+ROW_OFFSET, c+COL_OFFSET, qty, fmt_q)
+                sheet.write(r+ROW_OFFSET, c+COL_OFFSET, qty, fmt[fmt_name])
             qty_buyer[r] += qty
             qty_product[c] += qty
             price_buyer[r] += qty * pd.price
@@ -186,7 +189,7 @@ def spreadsheet(delivery, subgroups):
         'hdr_price': book.add_format({'num_format': u'0.00€', 'bold': True, 'bg_color': red3}),
         'hdr_user_price': book.add_format({'num_format': u'0.00€', 'bold': True}),
         'hdr_user_price_cycle': book.add_format({'num_format': u'0.00€', 'bold': True, 'bg_color': red4}),
-        'hdr_weight': book.add_format({'num_format': u'0.###"kg"', 'bold': True, 'bg_color': red3}),
+        'hdr_weight': book.add_format({'num_format': u'0.###"kg"', 'bold': True, 'bg_color': red3, 'align': 'right'}),
         'hdr_qty': book.add_format({'bold': True, 'bg_color': red3, 'align': 'right'}),
         'hdr_user_qty': book.add_format({'bold': True, 'bg_color': red3}),
         'hdr_user_qty_cycle': book.add_format({'bold': True, 'bg_color': red3}),
@@ -199,12 +202,21 @@ def spreadsheet(delivery, subgroups):
         'qty_v_cycle': book.add_format({'bg_color': red4}),
         'qty_h_cycle': book.add_format({'bg_color': red4}),
         'qty_vh_cycle': book.add_format({}),
-
+        'f_qty': book.add_format({}),
+        'f_qty_v_cycle': book.add_format({'bg_color': red4}),
+        'f_qty_h_cycle': book.add_format({'bg_color': red4}),
+        'f_qty_vh_cycle': book.add_format({}),
 
         'user_name': book.add_format({'bold': True, 'font_color': red1, 'bg_color': red3, 'align': 'right'}),
         'user_name_cycle': book.add_format({'bold': True, 'font_color': red1, 'bg_color': red2, 'align': 'right'}),
         'pd_name': book.add_format({'font_size': 10, 'bg_color': red2, 'font_color': 'white', 'align': 'center', 'valign': 'bottom', 'text_wrap': True}),
     }
+    # Everything but raw quantities is protected, i.e. everything with a style other than "qty_*"
+    if PROTECT_FORMULA_CELLS:
+        for name, f in fmt.iteritems():
+            if name[0:2] == 'qty':
+                f.set_locked(False)
+
     x = delivery_description(delivery, subgroups)
 
     if len(subgroups)>1:
