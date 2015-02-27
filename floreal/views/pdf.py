@@ -51,7 +51,7 @@ class SubgroupCardsDeck(CardsDeck):
         for table in descr['table']:
             self._print_subgroup_card(title, table)
 
-    def _print_item(self, totals):
+    def _print_subgroup_item(self, totals):
         qty = totals['quantity']
         pd = totals['product']
         values = {
@@ -75,7 +75,7 @@ class SubgroupCardsDeck(CardsDeck):
         return r
 
     def _print_subgroup_card(self, title, table):
-        items = u''.join([u"<li>%s</li>" % self._print_item(t) for t in table['totals'] if t['quantity']])
+        items = u''.join([u"<li>%s</li>" % self._print_subgroup_item(t) for t in table['totals'] if t['quantity']])
         if items:
             self._jump_to_next_order()
             self._print(u"""
@@ -112,18 +112,61 @@ class UserCardsDeck(SubgroupCardsDeck):
         prices = [u'<li>%s: %.02f€/%s</li>' % (pd.name, pd.price, pd.unit) for pd in dv.product_set.all()]
         self._print(u'<h1>Prix des produits</h1><ul>%s</ul>' % ''.join(prices))
 
+    def _print_user_item(self, pc):
+        return u"""<tr>
+            <td>%(name)s</td>
+            <td>%(u_price).02fEUR</td>
+            <td>%(ordered_qty)s %(unit)s</td>
+            <td>%(ordered_price).02fEUR</td>
+            <td>_</td>
+            <td>_</td>
+        </tr>
+        """ % {
+            'name': pc.product.name,
+            'u_price': pc.product.price,
+            'unit': pc.product.unit,
+            'ordered_qty': pc.ordered,
+            'ordered_price': pc.price,
+        }
+
     def _print_user_card(self, od, title):
-        items = u''.join([u"<li>%s</li>" % pc.__unicode__() for pc in od.purchases if pc])
+        items = u''.join(self._print_user_item(pc) for pc in od.purchases if pc)
         if items:
+            extra_line = "<tr><td>_</td><td>_</td><td> </td><td> </td><td>_</td><td>_</td></tr>\n"
             self._jump_to_next_order()
             self._print(u"""
                     <h1>Commande %(u)s: %(total).02f€</h1>
                     <h2>%(title)s</h2>
-                    <ul>%(od)s</ul>""" % {
+                    <table border="1" align="center" width="100%%">
+                      <thead>
+                        <tr>
+                          <th width="40%%">Produit</th>
+                          <th width="10%%">Prix U.</th>
+                          <th width="15%%">Commandé</th>
+                          <th width="10%%">Commandé</th>
+                          <th width="15%%">Modif.</th>
+                          <th width="10%%">Prix mod.</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        %(items)s
+                        %(extra)s
+                      </tbody>
+                      <tfoot>
+                        <tr>
+                          <td colspan="3">Total</td>
+                          <td>%(total).02f€</td>
+                          <td> </td>
+                          <td>_</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                    """ % {
                     'u': m.articulate(od.user.first_name + " " + od.user.last_name),
                     'total': od.price,
                     'title': title,
-                    'od': items})
+                    'items': items,
+                    'extra': extra_line * 3})
 
 
 def subgroup(delivery, sg):
