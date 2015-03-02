@@ -64,21 +64,31 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
 
 
     # Generate product names and prices rows
-    for c, pd in enumerate(products):
-        # python row / Excel row: content
-        # 2/3: Name
-        # 3/4: Unit price
-        # 4/5: Unit weight
-        # 5/6: per package
-        # 6/7: # units
-        # 7/8: # full ackages
-        # 8/9: # lose units
-        # 9/10: total weight
-        # 10/11: total price (1 cell)
-        sheet.write(2, c+COL_OFFSET, _u8(pd.name), fmt['pd_name'])
-        sheet.write(3, c+COL_OFFSET, pd.price, fmt['hdr_price'])
-        sheet.write(4, c+COL_OFFSET, pd.unit_weight, fmt['hdr_weight'])
-        sheet.write(5, c+COL_OFFSET, pd.quantity_per_package or "-", fmt['hdr_qty'])
+    if purchase_fmls:
+        for c, pd in enumerate(products):
+            # python row / Excel row: content
+            # 2/3: Name
+            # 3/4: Unit price
+            # 4/5: Unit weight
+            # 5/6: per package
+            # 6/7: # units
+            # 7/8: # full ackages
+            # 8/9: # lose units
+            # 9/10: total weight
+            # 10/11: total price (1 cell)
+            sheet.write(2, c+COL_OFFSET, _u8(pd.name), fmt['pd_name'])
+            sheet.write(3, c+COL_OFFSET, pd.price, fmt['hdr_price'])
+            sheet.write(4, c+COL_OFFSET, pd.unit_weight, fmt['hdr_weight'])
+            sheet.write(5, c+COL_OFFSET, pd.quantity_per_package or "-", fmt['hdr_qty'])
+    else:
+        # In subgroup sheets, recopy value from 1st page
+        for c, pd in enumerate(products):
+            fml = "=%(nw)s!%(col)s%%s" % {'nw': products[0].delivery.network.name,
+                                         'col': _col_name(c+COL_OFFSET)}
+            sheet.write(2, c+COL_OFFSET, fml%3, fmt['pd_name'], _u8(pd.name))
+            sheet.write(3, c+COL_OFFSET, fml%4, fmt['hdr_price'], pd.price)
+            sheet.write(4, c+COL_OFFSET, fml%5, fmt['hdr_weight'], pd.unit_weight)
+            sheet.write(5, c+COL_OFFSET, fml%6, fmt['hdr_qty'], pd.quantity_per_package)
 
     n_products = len(products)
     n_buyers = len(buyers)
