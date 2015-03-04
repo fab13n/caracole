@@ -34,7 +34,7 @@ COL_OFFSET = 2
 V_CYCLE_LENGTH = 5
 H_CYCLE_LENGTH = 5
 
-def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=None):
+def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=None, one_subgroup=False):
     """
     :param buyers: ordered list of buyers
     :param products: ordered list of products
@@ -64,7 +64,7 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
 
 
     # Generate product names and prices rows
-    if purchase_fmls:
+    if purchase_fmls or one_subgroup:
         for c, pd in enumerate(products):
             # python row / Excel row: content
             # 2/3: Name
@@ -229,7 +229,7 @@ def spreadsheet(delivery, subgroups):
 
     x = delivery_description(delivery, subgroups)
 
-    if len(subgroups)>1:
+    if len(subgroups) > 1:
         title = _u8(delivery.network.name)
         buyers = [sg['subgroup'].name for sg in x['table']]
         def purchases(sg_idx, pd_idx):
@@ -247,7 +247,7 @@ def spreadsheet(delivery, subgroups):
         buyers = [u['user'].first_name + " " + u['user'].last_name for u in sg['users']]
         def purchases(u_idx, pd_idx):
             return sg['users'][u_idx]['orders'].purchases[pd_idx].granted
-        _make_sheet(book, title, fmt, buyers, x['products'], purchases)
+        _make_sheet(book, title, fmt, buyers, x['products'], purchases, one_subgroup=True)
 
     book.close()
     return string_buffer.getvalue()
