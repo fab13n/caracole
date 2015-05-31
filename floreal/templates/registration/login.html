@@ -12,7 +12,9 @@
 <p>Identifiez-vous</p>
 <form action="" method="post">
   <table>
-    {{form}}
+    {# I'm too lazy to figure out how to change the label from "username" to "e-mail" in the default form #}
+    <tr><th><label for="id_username">e-mail :</label></th><td>{{form.username}}</td></tr>
+    <tr><th><label for="id_password">Mot de passe :</label></th><td>{{form.password}}</td></tr>
     <tr><td></td><td><input type="submit" value="S'identifier"/></td></tr>
   </table>
   {% csrf_token %}
