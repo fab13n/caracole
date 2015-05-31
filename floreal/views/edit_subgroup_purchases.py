@@ -4,16 +4,18 @@
 import re
 from django.shortcuts import redirect, render_to_response
 from django.core.context_processors import csrf
+from django.http import HttpResponseForbidden
 
 from .. import models as m
 from ..penury import set_limit
 from .delivery_description import delivery_description
+from .view_purchases import get_subgroup
 
 def edit_subgroup_purchases(request, delivery):
     """Allows to change the purchases of user's subgroup. Subgroup staff only."""
     delivery = m.Delivery.objects.get(id=delivery)
     user = request.user
-    subgroup = delivery.network.subgroup_set.get(staff__in=[user])
+    subgroup = get_subgroup(request, delivery.network)
 
     if request.user not in subgroup.staff.all() and request.user not in delivery.network.staff.all():
         return HttpResponseForbidden('Réservé aux administrateurs du réseau ' + delivery.network.name + \
