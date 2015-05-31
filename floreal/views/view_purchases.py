@@ -10,11 +10,11 @@ from .spreadsheet import spreadsheet
 from .delivery_description import delivery_description
 
 
-def _get_subgroup(request, network):
+def get_subgroup(request, network):
     if 'subgroup' in request.GET:
         return Subgroup.objects.get(network=network, name__iexact=request.GET['subgroup'])
     else:
-        return delivery.network.subgroup_set.get(staff__in=[request.user])
+        return network.subgroup_set.get(staff__in=[request.user])
 
 def _non_html_response(name_bits, name_extension, mime_type, content):
     """Common helper to serve PDF and Excel content."""
@@ -52,7 +52,7 @@ def view_delivery_purchases_pdf(request, delivery):
 def view_subgroup_purchases_html(request, delivery):
     """View the purchases of a subgroup. Subgroup staff only."""
     delivery = Delivery.objects.get(id=delivery)
-    subgroup = _get_subgroup(request, delivery.network)
+    subgroup = get_subgroup(request, delivery.network)
     return render_to_response('view_purchases.html',
                               delivery_description(delivery, [subgroup]))
 
@@ -60,7 +60,7 @@ def view_subgroup_purchases_html(request, delivery):
 def view_subgroup_purchases_xlsx(request, delivery):
     """View the purchases of a subgroup as an MS-Excel file. Subgroup staff only."""
     delivery = Delivery.objects.get(id=delivery)
-    subgroup = _get_subgroup(request, delivery.network)
+    subgroup = get_subgroup(request, delivery.network)
     return _non_html_response((delivery.network.name, delivery.name, subgroup.name), "xlsx",
                               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                               spreadsheet(delivery, [subgroup]))
@@ -69,7 +69,7 @@ def view_subgroup_purchases_xlsx(request, delivery):
 def view_subgroup_purchases_pdf(request, delivery):
     """View the purchases of a subgroup as an Adobe PDF file. Subgroup staff only."""
     delivery = Delivery.objects.get(id=delivery)
-    subgroup = _get_subgroup(request, delivery.network)
+    subgroup = get_subgroup(request, delivery.network)
     return _non_html_response((delivery.network.name, delivery.name, subgroup.name), "pdf",
                               "application/pdf",
                               pdf.subgroup(delivery, subgroup))

@@ -182,6 +182,6 @@ def all(delivery):
     """Generate a PDF of every subgroup in this delivery"""
     title = "%(nw)s / %(dv)s" % {'nw': delivery.network.name,
                                  'dv': delivery.name}
-    all_subgroups = m.Subgroup.objects.filter(network=dv.network)
-    pdf = SubgroupCardsDeck(title, delivery,all_subgroups)
+    all_subgroups = m.Subgroup.objects.filter(network=delivery.network)
+    pdf = SubgroupCardsDeck(title, delivery, all_subgroups)
     return pdf.output(dest='S')
