@@ -76,7 +76,7 @@ class Network(models.Model):
     subgroup they belong to."""
 
     name = models.CharField(max_length=64, unique=True)
-    staff = models.ManyToManyField(User)
+    staff = models.ManyToManyField(User, related_name='staff_of_network')
 
     class Meta:
         ordering = ('name',)
@@ -99,8 +99,8 @@ class Subgroup(models.Model):
     network = models.ForeignKey(Network)
     extra_user = models.ForeignKey(User, null=True, blank=True, related_name='+')
     # Users might only be staff of one subgroup per network
-    staff = models.ManyToManyField(User, related_name='staff_of')
-    users = models.ManyToManyField(User, related_name='user_of')
+    staff = models.ManyToManyField(User, related_name='staff_of_subgroup')
+    users = models.ManyToManyField(User, related_name='user_of_subgroup')
 
     class Meta:
         unique_together = (('network', 'name'),)
@@ -164,6 +164,7 @@ class Delivery(models.Model):
         verbose_name_plural = "Deliveries"
         unique_together = (('network', 'name'),)
         ordering = ('-id',)
+
 
 class Product(models.Model):
     """A product is only valid for one delivery. If the same product is valid across

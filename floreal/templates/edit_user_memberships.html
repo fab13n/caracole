@@ -1,0 +1,135 @@
+{% extends 'layout.html' %}
+{% load floreal_filters %}
+
+{% block head %}
+  <style type="text/css">
+    td, th { border: none; }
+    th.rotate {
+      height: 140px;
+      white-space: nowrap;
+    }
+    th.rotate > div {
+      transform: translate(10px, 55px) rotate(315deg);
+      width: 30px;
+    }
+    th.rotate > div > span {
+      border-bottom: 1px solid #ccc;
+      padding: 5px 10px;
+      background-color: white;
+    }
+    th.name {
+      text-align: right;
+    }
+    tr.modified th.name {
+       font-style: italic;
+    }
+  </style>
+  <script type='text/javascript'>
+  // <![CDATA[
+  var initial_state = {{% for u in users %}
+    {{u.id}}: { subgroup: {{u.subgroup}}, is_subgroup_admin: {{u.is_subgroup_admin|lower}}, is_network_admin: {{u.is_network_admin|lower}}, name: "{{u.name}}" },{% endfor %}
+  };
+
+  function init_boxes() {
+    for(var uid in initial_state) {
+      if(! initial_state.hasOwnProperty(uid)) { continue; }
+      var r = initial_state[uid];
+      $("#u"+uid+"-sg"+r.subgroup).prop("checked", true);
+      if( r.is_subgroup_admin) { $("[name=u"+uid+"-subgroup-admin]").prop("checked", true); }
+      if( r.is_network_admin) { $("[name=u"+uid+"-network-admin]").prop("checked", true); }
+    }
+  };
+
+  function hide_all_but_letter(x) {
+    $("tr.user").hide();
+    $("tr.user-starts-with-"+x).show();
+  };
+
+  function show_all() {
+    $("tr.user").show();
+  };
+
+  function hide_all_but_subgroup(sgid) {
+    $("tr.user").hide();
+    $("tr.user-of-subgroup-"+sgid).show();
+  };
+
+  function update_user_group(uid, sgid) {
+    var row = $("tr#u"+uid);
+    var classes = row.prop('class').split(/\s+/);
+    for(var i=0; i<classes.length; i++) {
+      var c = classes[i];
+      if(c.startsWith('user-of-subgroup-')) { row.removeClass(c); }
+    }
+    row.addClass('user-of-subgroup-'+sgid);
+    mark_user_modified(uid);
+  };
+
+  function mark_user_modified(uid) {
+    $("tr#u"+uid).addClass('modified');
+    $("#submit").prop('disabled', false);
+  };
+
+  function disable_unmodified_inputs() {
+    /* Disabled fields won't be sent in the POST request, this dramatically reduces it. */
+    $("tr:not(.modified) input").prop('disabled', true);
+    modified=[];
+    $("tr.modified").each(function(i, input) { modified += input.id + ","; });
+    $("#modified-users").attr("value", modified);
+
+  };
+
+  $(document).ready(init_boxes);
+  // ]]>
+  </script>
+
+{% endblock %}
+
+
+{% block content %}
+<h1>Gestion des sous-groupes du réseau {{network.name}}.</h1>
+<p>
+  Cette page permet aux administrateurs du réseau {{network.name}} de
+  répartir les membres entre les sous-groupes, et de désigner les
+  administrateurs de sous-groupes.
+</p>
+
+<p>
+  Montrer les utilisateurs dont le nom commence par:<br/>
+  <a href="#" onclick="show_all();">Tous</a>
+  {% for X in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
+  <a href="#" onclick="hide_all_but_letter('{{X}}');">{{X}}</a>{% endfor %}
+</p>
+<p>
+  Montrer seulement les utilisateurs du sous-groupe:<br/>
+  <a href="#" onclick="show_all();">Tous</a>
+  {% for sg in subgroups %}
+  <a href="#" onclick="hide_all_but_subgroup('{{sg.id}}');">{{sg.name}}</a>{% endfor %}
+  <a href="#" onclick="hide_all_but_subgroup(-1);">Non-membre</a>
+</p>
+
+<form method="post" action="#">
+  {% csrf_token %}
+  <input type="hidden" id="modified-users" name="modified" value=""/>
+  <table>
+    <tr>
+      <td><input id="submit" type="submit" value="Sauvegarder" onclick="disable_unmodified_inputs()" disabled="true"/></td>
+      <th class="rotate"><div><span>Admin réseau</span></div></th>
+      <th class="rotate"><div><span>Admin sous-groupe</span></div></th>
+      {% for sg in subgroups %}
+      <th class="rotate"><div><span>{{sg.name}}</span></div></th>{% endfor %}
+      <th class="rotate"><div><span>Non-membre</span></div></th>
+    </tr>
+    {% for u in users %}
+    <tr id="u{{u.id}}" class="user-starts-with-{{u.initial}} user-of-subgroup-{{u.subgroup}} user">
+      <th class="name">{{u.name}}</th>
+      <td><input type="checkbox" name="u{{u.id}}-network-admin" onclick="mark_user_modified({{u.id}});"/></td>
+      <td><input type="checkbox" name="u{{u.id}}-subgroup-admin" onclick="mark_user_modified({{u.id}});"/></td>
+      {% for sg in subgroups %}
+      <td><input type="radio" id="u{{u.id}}-sg{{sg.id}}" name="u{{u.id}}-sg" value="{{sg.id}}" onclick="update_user_group({{u.id}}, {{sg.id}});"/></td>{% endfor %}
+      <td><input type="radio" id="u{{u.id}}-sg-1" name="u{{u.id}}-sg" value="-1" onclick="update_user_group({{u.id}}, -1);"/></td>
+    </tr>
+    {% endfor %}
+  </table>
+</form>
+{% endblock %}
