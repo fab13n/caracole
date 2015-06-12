@@ -17,7 +17,7 @@ def edit_delivery_products(request, delivery):
 
     delivery = get_object_or_404(Delivery, pk=delivery)
 
-    if request.user not in network.staff.all():
+    if request.user not in delivery.network.staff.all():
         return HttpResponseForbidden('Réservé aux administrateurs du réseau '+delivery.network.name)
 
     if request.method == 'POST':  # Handle submitted data
