@@ -60,8 +60,9 @@ def _parse_form(request, network):
             for sg in old_sg:
                 u.user_of_subgroup.remove(sg)
                 u.staff_of_subgroup.remove(sg)
-            new_sg = m.Subgroup.objects.get(pk=sgid)
-            u.user_of_subgroup.add(new_sg)
+            if sgid != -1:
+                new_sg = m.Subgroup.objects.get(pk=sgid)
+                u.user_of_subgroup.add(new_sg)
             if is_subgroup_admin:
                 u.staff_of_subgroup.add(new_sg)
         else:  # Subgroup hasn't changed
