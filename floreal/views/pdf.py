@@ -15,9 +15,11 @@ def _u8(s):
     """Convert DB contents into UTF8 if necessary."""
     return unicode(s) if DATABASE_UTF8_ENABLED else str(s).decode('utf-8')
 
+
 class CardsDeck(FPDF, HTMLMixin):
 
-    FULL_PAGES = False # Half pages
+    # FULL_PAGES = False # Half pages
+    FULL_PAGES = True # Full pages
 
     def __init__(self):
         # HTMLMixin.__init__(self) # No constructor
@@ -26,7 +28,8 @@ class CardsDeck(FPDF, HTMLMixin):
 
     def _print(self, utxt):
         # Latin1 / Latin9 don't seem able to cope with Euro sign
-        self.write_html(utxt.replace(u'€', u'EUR').encode('latin9'))
+        #self.write_html(utxt.replace(u'€', u'EUR').encode('latin9'))
+        self.write_html(utxt.replace(u'€', chr(128)).encode('latin9'))
 
     def _jump_to_next_order(self):
         """Start the next user card: either go to the 2nd half of the current page,
@@ -91,7 +94,8 @@ class SubgroupCardsDeck(CardsDeck):
 
 class UserCardsDeck(SubgroupCardsDeck):
 
-    FULL_PAGES = False
+    # FULL_PAGES = False # Half pages
+    FULL_PAGES = True # Full pages
 
     def __init__(self, title, delivery, sg):
         CardsDeck.__init__(self)
@@ -115,9 +119,9 @@ class UserCardsDeck(SubgroupCardsDeck):
     def _print_user_item(self, pc):
         return u"""<tr>
             <td>%(name)s</td>
-            <td>%(u_price).02fEUR</td>
+            <td>%(u_price).02f€</td>
             <td>%(ordered_qty)s %(unit)s</td>
-            <td>%(ordered_price).02fEUR</td>
+            <td>%(ordered_price).02f€</td>
             <td>_</td>
             <td>_</td>
         </tr>
@@ -152,14 +156,14 @@ class UserCardsDeck(SubgroupCardsDeck):
                         %(items)s
                         %(extra)s
                       </tbody>
-                      <tfoot>
+                      <thead>
                         <tr>
                           <td colspan="3">Total</td>
                           <td>%(total).02f€</td>
                           <td> </td>
                           <td>_</td>
                         </tr>
-                      </tfoot>
+                      </thead>
                     </table>
                     """ % {
                     'u': m.articulate(od.user.first_name + " " + od.user.last_name),

@@ -16,13 +16,20 @@
 {% for nw in networks %}
 <h2>Réseau {{nw.network.name}}</h2>
 <ul>
+  {% if nw.is_network_staff %}
+  <li><em>[admin]</em> <a href="{% url 'create_delivery' network=nw.network.id %}">Créer une nouvelle commande {{nw.network.name}} <img src="{% static 'images/plus.png' %}"/></a></li>
+  <li><em>[admin]</em> <a href="{% url 'edit_user_memberships' network=nw.network.id %}">Répartir les membres en sous-groupes {{nw.network.name}} <img src="{% static 'images/edit.png' %}"/></a></li>
+  <li><em>[admin]</em> <a href="{% url 'emails_network' network=nw.network.id %}">e-mails du réseau {{nw.network.name}} <img src="{% static 'images/email.png' %}"/></a></li>
+  {% endif %}
   {% for dv in nw.deliveries %}
-  <li>Commande {{dv.delivery.name}}:
+  <li>
     {% if dv.delivery.is_archived %}
+    <em>[admin]</em> Commande {{dv.delivery.name}}:
     archivée ;
     <a href="{% url 'view_delivery_purchases_html' delivery=dv.delivery.id %}">voir</a>,
     <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Closed'%}">réactiver</a>.
     {% else %}
+    Commande {{dv.delivery.name}}:
     <ul>
       {# This will fail if administrators aren't users of their own network #}
       {% if dv.order.purchases|length > 0 %}
@@ -96,10 +103,6 @@
     {% endif %}{# is not archived #}
   </li>
   {% endfor %}{# delivery #}
-  {% if nw.is_network_staff %}
-  <li><em>[admin]</em> <a href="{% url 'emails_network' network=nw.network.id %}">e-mails du réseau {{nw.network.name}} <img src="{% static 'images/email.png' %}"/></a></li>
-  <li><em>[admin]</em> <a href="{% url 'create_delivery' network=nw.network.id %}">Créer une nouvelle commande {{nw.network.name}} <img src="{% static 'images/plus.png' %}"/></a></li>
-  {% endif %}
 </ul>
 {% endfor %}{# networks #}
 
