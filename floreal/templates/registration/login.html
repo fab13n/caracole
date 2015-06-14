@@ -1,15 +1,9 @@
 {% extends 'layout.html' %}
 
-{% block head %}
-<style type="text/css">
-  p#register { text-align: center; top-margin: 20px; font-size: 14pt; font-weight: bold; }
-</style>
-{% endblock %}
-
 {% block content %}
 
 <h2>Vous avez déjà un compte circuits courts Caracole:</h2>
-<p>Identifiez-vous</p>
+<p>Identifiez-vous :</p>
 <form action="" method="post">
   <table>
     {# I'm too lazy to figure out how to change the label from "username" to "e-mail" in the default form #}
@@ -19,7 +13,9 @@
   </table>
   {% csrf_token %}
 </form>
-<h2>Vous voulez créer un compte circuits courts Caracole:</h2>
-<p id="register"><a href="{% url 'user_register' %}">Enregistrez-vous</a></p>
+
+<p>On vous a proposé de rejoindre un ciruit Caracole ? <a href="{% url 'user_register' %}">Enregistrez-vous</a>.</p>
+
+<p>Vous avez oublié votre mot de passe ? <a href="{% url 'auth_password_reset' %}">Remettez-le à zéro</a>.</p>
 
 {% endblock %}

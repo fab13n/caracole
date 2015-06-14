@@ -1,11 +1,14 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 
+import re
+
 from django import forms
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 
 from .. import models as m
+from caracole.settings import SELECT_SUBGROUPS_UPON_REGISTRATION
 
 
 class RegistrationForm(forms.Form):
@@ -14,7 +17,8 @@ class RegistrationForm(forms.Form):
     last_name = forms.CharField(label='Nom de famille')
     password1 = forms.CharField(label='Mot de passe', widget=forms.PasswordInput())
     password2 = forms.CharField(label='Mot de passe (à nouveau)', widget=forms.PasswordInput())
-    subgroup = forms.ModelMultipleChoiceField(m.Subgroup.objects.all(), label='Réseau et sous-groupe')
+    if SELECT_SUBGROUPS_UPON_REGISTRATION:
+        subgroup = forms.ModelMultipleChoiceField(m.Subgroup.objects.all(), label='Réseau et sous-groupe')
 
     def clean_subgroup(self):
         """Check that no network is multi-subscribed"""
@@ -25,7 +29,7 @@ class RegistrationForm(forms.Form):
                 raise forms.ValidationError("Ne pas sélectionner plus d'un sous-groupe par réseau.")
             else:
                 seen_networks.add(sg.network)
-        if len(seen_networks) == 0:
+        if SELECT_SUBGROUPS_UPON_REGISTRATION and len(seen_networks) == 0:
             raise forms.ValidationError("Souscrire à au moins un sous-groupe.")
         return subgroups
 
@@ -43,6 +47,19 @@ class RegistrationForm(forms.Form):
                 return password1
         raise forms.ValidationError('Les mots de passe ne correspondent pas.')
 
+    def clean_first_name(self):
+        capitalized = self.cleaned_data['first_name'].strip().lower().title()
+        if not capitalized:
+            raise forms.ValidationError('Entrer un prénom.')
+        cleaned = re.sub(r"\bEt\b", "et", capitalized)
+        return cleaned
+
+    def clean_last_name(self):
+        capitalized = self.cleaned_data['last_name'].strip().lower().title()
+        if not capitalized:
+            raise forms.ValidationError('Entrer un nom de famille.')
+        cleaned = re.sub(r"\bD(['e])\b", r"d\1", capitalized)  # Particules are lowercased in French
+        return cleaned
 
 def user_register(request):
     """
@@ -66,9 +83,10 @@ def user_register(request):
             )
             user.set_password(d['password1'])
             user.save()
-            sg = m.Subgroup.objects.get(id=d['subgroup'])
-            sg.users.add(user)
-            sg.save()
+            if SELECT_SUBGROUPS_UPON_REGISTRATION:
+                sg = m.Subgroup.objects.get(id=d['subgroup'])
+                sg.users.add(user)
+                sg.save()
             return HttpResponseRedirect('index')
         else:  # invalid form
             return render(request, 'registration/registration_form.html', {'form': form})
