@@ -58,7 +58,7 @@
           réserver aux admins <img src="{% static 'images/minus.png' %}"/>
       </a></li>
       {% elif dv.delivery.is_admin_open %}
-      <li><em>[admin]</em>Commandes réservées aux admins.
+      <li><em>[admin]</em> Commandes réservées aux admins ;
           <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Open'%}">
             autoriser à tous <img src="{% static 'images/purchase.png' %}"/></a>,
           <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Frozen'%}">
