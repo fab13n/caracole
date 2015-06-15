@@ -4,6 +4,8 @@
 
 {% block head %}
     <style type="text/css">
+      .yes { font-weight: bold; color: green !important; }
+      .no  { font-weight: bold; color: red !important; }
     </style>
 {% endblock head %}
 
@@ -22,8 +24,9 @@
   <li><em>[admin]</em> <a href="{% url 'emails_network' network=nw.network.id %}">e-mails du réseau {{nw.network.name}} <img src="{% static 'images/email.png' %}"/></a></li>
   {% endif %}
   {% for dv in nw.deliveries %}
+  {% with dv.delivery.state_name as state %}
   <li>
-    {% if dv.delivery.is_archived %}
+    {% if state == "Archived" %}
     <em>[admin]</em> Commande {{dv.delivery.name}}:
     archivée ;
     <a href="{% url 'view_delivery_purchases_html' delivery=dv.delivery.id %}">voir</a>,
@@ -32,12 +35,12 @@
     Commande {{dv.delivery.name}}:
     <ul>
       {# This will fail if administrators aren't users of their own network #}
-      {% if dv.order.purchases|length > 0 %}
+      {% if dv.order.purchases %}
       <li>
-        {% if dv.delivery.is_user_open %}
+        {% if state == "Open" %}
         <a href="{% url 'edit_user_purchases' delivery=dv.order.delivery.id %}">modifier votre commande</a>:
         {% else %}
-        Votre commande n'est plus modifiable :
+        Votre commande n'est {% if state == "Preparation" %}pas encore{% else %}plus{% endif %} modifiable :
         {% endif %}
         <ul>
           {% for p in dv.order.purchases %}
@@ -45,34 +48,50 @@
           {% endfor %}{# purchases #}
         </ul>
       </li>
-      {% elif dv.delivery.is_user_open %}{# no purchase yet #}
+      {% elif state == "Open" %}{# no purchase yet #}
       <li><em><a href="{% url 'edit_user_purchases' delivery=dv.delivery.id %}">
         Commander
       </a></em></li>
-      {% endif %}{# purchases > 0 #}
+      {% endif %}{# some purchases #}
 
 
       {% if nw.is_network_staff %}
-      {% if dv.delivery.is_user_open %}
+      {% if state == "Open" %}
       <li><em>[admin]</em> Commandes autorisées à tous ; <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Closed'%}">
           réserver aux admins <img src="{% static 'images/minus.png' %}"/>
       </a></li>
-      {% elif dv.delivery.is_admin_open %}
-      <li><em>[admin]</em>Commandes réservées aux admins.
+      {% elif dv.delivery.is_admin_only %}{# preparation or closed #}
+      <li><em>[admin]</em> Commande en cours de {% if state == "Closed" %}finalisation{% else %}préparation{% endif %}.<br/>
           <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Open'%}">
-            autoriser à tous <img src="{% static 'images/purchase.png' %}"/></a>,
-          <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Frozen'%}">
-            interdire à tous <img src="{% static 'images/minus.png' %}"/></a>,
-          <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Delivered'%}">
+            ré-autoriser à tous <img src="{% static 'images/purchase.png' %}"/></a>,
+          <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Finalized'%}">
+            interdire aux responsables de sous-groupes <img src="{% static 'images/minus.png' %}"/></a>,
+          <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Archived'%}">
             archiver <img src="{% static 'images/bin.png' %}"/></a>
       </li>
-      {% else %}{# frozen #}
-      <li><em>[admin]</em> Commandes interdites à tous ; autoriser
-        <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='CLosed'%}">aux admins <img src="{% static 'images/edit.png' %}"/></a>,
+      {% if state == "Closed" %}
+      {% with dv.delivery.getFinalizationStatus as status %}
+      {% if status.unfinalized %}
+      <ul>
+        {% if status.finalized %}
+        <li>Commande finalisée pour :<br/>
+          <span class="yes">{% for sg in status.finalized %} {{sg.name}}{% endfor %}</span>.</li>
+        {% endif %}
+        <li>Commande non finalisée pour :<br/>
+          <span class="no">{% for sg in status.unfinalized %} {{sg.name}}{% endfor %}</span>.</li>
+      </ul>
+      {% else %}{# All subgroups finalized #}
+      <li><span class="yes">Tous les sous-groupes ont finalisé la commande.</span> </li>
+      {% endif %}{# Some unfinalized subgroups? #}
+      {% endwith %}{# finalization status #}
+      {% endif %}{# delivery closed #}
+      {% else %}{# finalized #}
+      <li><em>[admin]</em> Commande finalisée ; ré-autoriser
+        <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Closed'%}">aux admins de sous-groupe <img src="{% static 'images/edit.png' %}"/></a>,
         <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Open'%}">à tout le monde <img src="{% static 'images/purchase.png' %}"/></a> ;
         <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Delivered'%}">archiver <img src="{% static 'images/bin.png' %}"/></a>.
       </li>
-      {% endif %}{# delivery.is_open #}
+      {% endif %}{# delivery.state_name == "Open" #}
       <li><em>[admin]</em> <a href="{% url 'edit_delivery_products' delivery=dv.delivery.id %}">
         Modifier les produits proposés <img src="{% static 'images/edit.png' %}"/>
       </a></li>
@@ -90,9 +109,21 @@
         <a href="{% url 'view_subgroup_purchases_xlsx' delivery=dv.delivery.id %}">dans un tableau Excel <img src="{% static 'images/excel.png' %}"/></a>,
         <a href="{% url 'view_subgroup_purchases_pdf' delivery=dv.delivery.id %}">en PDF <img src="{% static 'images/pdf.png' %}"/></a>
       </li>
+      {% if state == "Closed" %}
+      <li>
+        <em>[admin-sous-groupe]</em>
+        {% if dv.finalized %}
+        <a href="{% url 'set_unfinalized' delivery=dv.delivery.id subgroup=nw.subgroup.id %}">Annuler la finalisation pour le sous-groupe {{nw.subgroup.name}}</a>
+        {% else %}
+        <a href="{% url 'set_finalized' delivery=dv.delivery.id subgroup=nw.subgroup.id %}" class="yes">finaliser pour le sous-groupe {{nw.subgroup.name}}</a>
+        {% endif %}
+      </li>
+      {% endif %}{# state == closed #}
+      {% if dv.delivery.is_admin_open %}
       <li><em>[admin-sous-groupe]</em> <a href="{% url 'edit_subgroup_purchases' delivery=dv.delivery.id %}">
         Modifier les commandes du sous-groupe {{nw.subgroup.name}} <img src="{% static 'images/edit.png' %}"/>
       </a></li>
+      {% endif %}
       {% if not nw.is_network_staff %}
       <li><em>[admin]</em> <a href="{% url 'emails_subgroup' nw.subgroup.id %}">e-mails du sous-groupe {{nw.subgroup.name}} <img src="{% static 'images/email.png' %}"/></a></li>
       {% endif %}{# subgroup_staff but not network_staff #}
@@ -102,6 +133,7 @@
     </ul>
     {% endif %}{# is not archived #}
   </li>
+  {% endwith %}
   {% endfor %}{# delivery #}
 </ul>
 {% endfor %}{# networks #}
