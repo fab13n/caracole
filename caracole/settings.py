@@ -30,9 +30,12 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 EMAIL_HOST_PASSWORD = '31escargots'
 EMAIL_SUBJECT_PREFIX = '[Circuits Courts Caracole] '
 
+SELECT_SUBGROUPS_UPON_REGISTRATION = False
+
 # Application definition
 
 INSTALLED_APPS = (
+    'floreal',  # Before auth, so that app's password management templates take precedence
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,7 +43,6 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'registration',  # WARNING that's django-registration-redux, not django-registration!
-    'floreal',
 )
 
 MIDDLEWARE_CLASSES = (
