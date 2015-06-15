@@ -30,8 +30,8 @@ def index(request):
     user_subgroups = m.Subgroup.objects.filter(users__in=[user])
     user_networks = [sg.network for sg in user_subgroups]
 
-    nw2staff_of = {}
-    nw2user_of = {}
+    nw2staff_of = {}  # network -> subgroup I'm member of
+    nw2user_of = {}   # network -> subgroup I'm staffing
     for nw in user_networks:
         for sg in nw.subgroup_set.all():
             if user in sg.staff.all():
@@ -39,13 +39,18 @@ def index(request):
             if user in sg.users.all():
                 nw2user_of[nw] = sg
 
+    def is_subgroup_finalized(dv, sg):
+        return dv.state=='C' and dv.finalizedFor.filter(id=sg.id).exists()
+
+
     vars = {'user': user,
             'networks': [{'network': nw,
                           'subgroup': nw2user_of[nw],
                           'staffed_subgroup': nw2staff_of.get(nw, False),
                           'is_network_staff': user in nw.staff.all(),
                           'deliveries': [{'delivery': dv,
-                                          'order': m.Order(user, dv)
+                                          'order': m.Order(user, dv),
+                                          'finalized': is_subgroup_finalized(dv, nw2user_of[nw])
                                           } for dv in nw.delivery_set.all()],
                           } for nw in user_networks]
             }
@@ -71,9 +76,21 @@ def set_delivery_state(request, delivery, state):
     delivery = m.Delivery.objects.get(id=delivery)
     if request.user not in delivery.network.staff.all():
         return HttpResponseForbidden('Réservé aux administrateurs du réseau '+delivery.network.name)
-    [state_code] = [code for (code, name) in m.Delivery.STATE_CHOICES if name==state]
+    [state_code] = [code for (code, name) in m.Delivery.STATE_CHOICES.items() if name == state]
     delivery.state = state_code
     delivery.save()
+    return redirect('index')
+
+def set_finalization(request, delivery, subgroup, state):
+    """Mark the delivery as finalized for this subgroup."""
+    delivery = m.Delivery.objects.get(id=delivery)
+    subgroup = m.Subgroup.objects.get(id=subgroup)
+    if request.user not in subgroup.staff.all():
+        return HttpResponseForbidden('Réservé aux administrateurs de sous-groupe')
+    if state:
+        delivery.finalizedFor.add(subgroup)
+    else:
+        delivery.finalizedFor.remove(subgroup)
     return redirect('index')
 
 

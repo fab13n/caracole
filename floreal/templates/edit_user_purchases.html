@@ -1,5 +1,6 @@
 {% extends 'layout.html' %}
 {% load floreal_filters %}
+{% load static %}
 
 {% block head %}
   <script type='text/javascript'>
@@ -47,9 +48,10 @@
   </script>
   <style type="text/css">
     input.quantity { text-align: right; }
-    #delivery-table th { text-align: right; }
-    #delivery-table td { text-align: left; }
 	.total_cell { font-weight: bold; }
+    .product-name { text-align: right; }
+    .product-unit { text-align: left; }
+    .unit-price { padding-left: 10px; }
   </style>
 {% endblock %}
 
@@ -82,23 +84,23 @@
         </tr>
         {% for pd in products %}
         <tr>
-          <td>{{pd.name}}</td>
+          <td class="product-name">{{pd.name}}</td>
           <td><input class="quantity" id="pd{{pd.id}}-ordered_quantity" maxlength="64" name="pd{{pd.id}}" type="number" step="1" min="0" value="0" /></td>
-          <td>{{pd.unit}}</td>
-          <td><span id="pd{{pd.id}}-unit_price">{{pd.price|price_nocurrency}}</span> €/{{pd.unit}}</td>
+          <td class="product-unit">{{pd.unit}}</td>
+          <td class="unit-price"><span id="pd{{pd.id}}-unit_price">{{pd.price|price_nocurrency}}</span> €/{{pd.unit}}</td>
           <td><span id="pd{{pd.id}}-ordered_price">-</span> €</td>
           <td>{% if pd.quantity_per_package %}{{pd.quantity_per_package}} {{pd.unit}}/carton{% else %} - {% endif %}</td>
-          <td><input type="button" onclick="reset_order({{pd.id}});"value="Remettre à 0"></td>
+          <td><input type="image" src={% static 'images/minus.png' %} onclick="reset_order({{pd.id}}); return false" value="Remettre à 0"></td>
         </tr>
         {% endfor %}
         <tr>
         <td colspan="3"></td>
-        <th>Prix total:</th><td class="total_cell"><span id="total_price">-</span> €</td>
+        <th>Prix total:</th><td class="total_cell"><span id="total_price">-</span>&nbsp;€</td>
         <td colspan="2"></td>
         </tr>
         <tr>
         <td colspan="3"></td>
-        <th>Poids total:</th><td class="total_cell"><span id="total_weight">-</span> kg</td>
+        <th>Poids total:</th><td class="total_cell"><span id="total_weight">-</span>&nbsp;kg</td>
         <td colspan="2"></td>
         </tr>
     </table>

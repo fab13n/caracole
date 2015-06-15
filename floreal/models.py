@@ -140,31 +140,41 @@ class Delivery(models.Model):
     closed (only subgroup staff members can modify purchases), or
     delivered (nobody can modify it)."""
 
-    OPEN = 'O'
-    CLOSED = 'C'
-    FROZEN = 'F'
-    DELIVERED = 'D'
-    STATE_CHOICES = ((OPEN, "Open"),
-                     (CLOSED, "Closed"),
-                     (FROZEN, "Frozen"),
-                     (DELIVERED, "Delivered"))
+    PREPARATION = 'P'  # In preparation: network admins haven't set all products and prices yet.
+    OPEN = 'O'         # Open for orders by regular users.
+    CLOSED = 'C'       # Closed fro regular users; subgroup admin can still correct the orders.
+    FINALIZED = 'F'    # Finalized: even subgroup admins can't access the delivery anymore.
+    ARCHIVED = 'A'     # Don't even display it anymore.
+    STATE_CHOICES = {PREPARATION: "Preparation",
+                     OPEN: "Open",
+                     CLOSED: "Closed",
+                     FINALIZED: "Finalized",
+                     ARCHIVED: "Archived"}
     name = models.CharField(max_length=64)
     network = models.ForeignKey(Network)
-    state = models.CharField(max_length=1, choices=STATE_CHOICES, default=CLOSED)
+    state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=PREPARATION)
+    finalizedFor = models.ManyToManyField(Subgroup)  # Which groups have completed bookkeeping update after delivery
 
     def __unicode__(self):
         return "%s/%s" % (self.network.name, self.name)
-
-    def is_user_open(self):
-        """Users can pass & modify orders."""
-        return self.state == self.OPEN
 
     def is_admin_open(self):
         """Admins can pass & modify orders."""
         return self.state == self.OPEN or self.state == self.CLOSED
 
-    def is_archived(self):
-        return self.state == self.DELIVERED
+    def state_name(self):
+        return self.STATE_CHOICES[self.state]
+
+    def getFinalizationStatus(self):
+        """Retrieve every subgroup of the network which hasn't finalized this delivery yet."""
+        if self.state == self.ARCHIVED:
+            return True
+        if self.state != self.CLOSED:
+            return False
+        subgroups = self.network.subgroup_set.all()
+        finalized = self.finalizedFor.all()
+        unfinalized = subgroups.exclude(id__in=set(sg.id for sg in finalized))
+        return {'finalized': finalized, 'unfinalized': unfinalized}
 
     class Meta:
         verbose_name_plural = "Deliveries"
