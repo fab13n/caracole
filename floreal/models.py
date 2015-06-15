@@ -114,7 +114,11 @@ class Subgroup(models.Model):
         super(Subgroup, self).save(force_insert=force_insert, force_update=force_update,
                                    using=using, update_fields=update_fields)
         if not self.extra_user:
-            self.extra_user = User.objects.create(username="extra-%s" % self.name.lower(),
+            extra_username = "extra-%s-%d" % (self.name.lower(), self.network.id)
+            extra_email = settings.EMAIL_HOST_USER.replace("@gmail.com",
+                        extra_username+"@gmail.com")
+            self.extra_user = User.objects.create(username=extra_username,
+                                                  email=extra_email,
                                                   first_name="extra",
                                                   last_name=self.name.capitalize())
             self.users.add(self.extra_user)
