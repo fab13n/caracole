@@ -66,7 +66,13 @@ def create_delivery(request, network):
               u'Août', u'Septembre', u'Octobre', u'Novembre', u'Décembre']
     now = datetime.now()
     name = '%s %d' % (months[now.month-1], now.year)
-    d = m.Delivery.objects.create(network=network, name=name, state=m.Delivery.CLOSED)
+    n = 1
+    while m.Delivery.objects.filter(network=network, name=name).exists():
+        if n == 1:
+            fmt = u"%dème de " + name
+        n += 1
+        name = fmt % n
+    d = m.Delivery.objects.create(network=network, name=name, state=m.Delivery.PREPARATION)
     d.save()
     return redirect('edit_delivery_products', delivery=d.id)
 

@@ -158,7 +158,7 @@ class Delivery(models.Model):
 
     def is_admin_open(self):
         """Admins can pass & modify orders."""
-        return self.state == self.OPEN or self.state == self.CLOSED
+        return self.state in (self.OPEN, self.CLOSED, self.PREPARATION)
 
     def state_name(self):
         return self.STATE_CHOICES[self.state]

@@ -25,13 +25,13 @@
   {% endif %}
   {% for dv in nw.deliveries %}
   {% with dv.delivery.state_name as state %}
-  <li> {#({{state}})#}
+  <li> ({{state}})
     {% if state == "Archived" %}
     <em>[admin]</em> Commande {{dv.delivery.name}}:
     archivée ;
     <a href="{% url 'view_delivery_purchases_html' delivery=dv.delivery.id %}">voir</a>,
     <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Closed'%}">réactiver</a>.
-    {% else %}
+    {% else %}{# state != "Archived" #}
     Commande {{dv.delivery.name}}:
     <ul>
       {# This will fail if administrators aren't users of their own network #}
@@ -39,20 +39,20 @@
       <li>
         {% if state == "Open" %}
         <a href="{% url 'edit_user_purchases' delivery=dv.order.delivery.id %}">modifier votre commande</a>:
-        {% else %}
+        {% else %}{# not open %}
         Votre commande n'est {% if state == "Preparation" %}pas encore{% else %}plus{% endif %} modifiable :
-        {% endif %}
+        {% endif %}{# not open #}
         <ul>
           {% for p in dv.order.purchases %}
           <li>{{p}}</li>
           {% endfor %}{# purchases #}
         </ul>
       </li>
-      {% elif state == "Open" %}{# no purchase yet #}
+      {% elif state == "Open" %}{# no purchase yet, state == "Open" #}
       <li><em><a href="{% url 'edit_user_purchases' delivery=dv.delivery.id %}">
         Commander
       </a></em></li>
-      {% endif %}{# some purchases #}
+      {% endif %}{# no purchases yet, state == "Open" #}
 
 
       {% if nw.is_network_staff %}
@@ -61,9 +61,17 @@
           réserver aux admins <img src="{% static 'images/minus.png' %}"/>
       </a></li>
       {% elif dv.delivery.is_admin_open %}{# preparation or closed #}
-      <li><em>[admin]</em> Commande en cours de {% if state == "Closed" %}finalisation{% else %}préparation{% endif %}.<br/>
+      <li><em>[admin]</em>
+          {% if state == "Closed" %}Commande en cours de finalisation :
+          les membres ne peuvent plus commander, mais les responsables de sous-groupes peuvent
+          encore ajuster les commandes.
+          {% else %}Commande en cours de préparation :
+          les membres ne peuvent pas encore commander, vous pouvez modifier librement les produits proposés et leurs prix.
+          {% endif %}<br/>
+
+
           <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Open'%}">
-            ré-autoriser à tous <img src="{% static 'images/purchase.png' %}"/></a>,
+            autoriser les commandes <img src="{% static 'images/purchase.png' %}"/></a>,
           <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Finalized'%}">
             interdire aux responsables de sous-groupes <img src="{% static 'images/minus.png' %}"/></a>,
           <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Archived'%}">
@@ -85,7 +93,7 @@
       {% endif %}{# Some unfinalized subgroups? #}
       {% endwith %}{# finalization status #}
       {% endif %}{# delivery closed #}
-      {% else %}{# finalized #}
+      {% else %}{# not finalized, not in preparation #}
       <li><em>[admin]</em> Commande finalisée ; ré-autoriser
         <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Closed'%}">aux admins de sous-groupe <img src="{% static 'images/edit.png' %}"/></a>,
         <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Open'%}">à tout le monde <img src="{% static 'images/purchase.png' %}"/></a> ;
