@@ -34,10 +34,12 @@ EMAIL_SUBJECT_PREFIX = '[Circuits Courts Caracole] '
 MAX_USERNAME_LENGTH = 128
 MAX_EMAIL_LENGTH = 128
 REQUIRE_UNIQUE_EMAIL = False
+SELECT_SUBGROUPS_UPON_REGISTRATION = True
 
 # Application definition
 
 INSTALLED_APPS = (
+    'floreal',  # Before auth, so that app's password management templates take precedence
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -46,7 +48,6 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'registration',  # WARNING that's django-registration-redux, not django-registration!
     'longerusernameandemail', # sudo pip install django-longerusernameandemail
-    'floreal',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -64,16 +65,6 @@ ROOT_URLCONF = 'floreal.urls'
 WSGI_APPLICATION = 'caracole.wsgi.application'
 
 DATABASES = {
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.mysql',
-    #     'NAME': 'caracole',
-    #     'USER': 'caracole',
-    #     'PASSWORD': 'caracole',
-    #     'HOST': 'localhost',
-    #     'PORT': '3306',
-    #     'OPTIONS': {'init_command': 'SET storage_engine=INNODB,'\
-    #                                 'character_set_connection=utf8,'\
-    #                                 'collation_connection=utf8_unicode_ci' } }
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'caracole',

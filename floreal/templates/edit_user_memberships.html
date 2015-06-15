@@ -1,4 +1,4 @@
-{% extends 'layout.html' %}
+{% extends 'layout_wide.html' %}
 {% load floreal_filters %}
 
 {% block head %}
@@ -15,13 +15,17 @@
     th.rotate > div > span {
       border-bottom: 1px solid #ccc;
       padding: 5px 10px;
-      background-color: white;
+      // background-color: white;
     }
     th.name {
       text-align: right;
+      white-space: nowrap;
     }
     tr.modified th.name {
        font-style: italic;
+    }
+    tr.user-of-subgroup--1 {
+       background-color: #c0c0c0;
     }
   </style>
   <script type='text/javascript'>
