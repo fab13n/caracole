@@ -134,7 +134,7 @@
         <th><label for="dv-state">Commandes autorisées :</label></th>
         <td><select id="dv-state" name="dv-state">
           <option value="O" {% if delivery.state == "O" %}selected="selected"{% endif %}>Oui</option>
-          <option value="C" {% if delivery.state != "O" %}selected="selected"{% endif %}>Non</option>
+          <option value="P" {% if delivery.state != "O" %}selected="selected"{% endif %}>Non</option>
         </select></td>
       </tr>
     </table>
