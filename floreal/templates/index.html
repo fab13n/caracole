@@ -25,7 +25,7 @@
   {% endif %}
   {% for dv in nw.deliveries %}
   {% with dv.delivery.state_name as state %}
-  <li>
+  <li> {#({{state}})#}
     {% if state == "Archived" %}
     <em>[admin]</em> Commande {{dv.delivery.name}}:
     archivée ;
@@ -60,7 +60,7 @@
       <li><em>[admin]</em> Commandes autorisées à tous ; <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Closed'%}">
           réserver aux admins <img src="{% static 'images/minus.png' %}"/>
       </a></li>
-      {% elif dv.delivery.is_admin_only %}{# preparation or closed #}
+      {% elif dv.delivery.is_admin_open %}{# preparation or closed #}
       <li><em>[admin]</em> Commande en cours de {% if state == "Closed" %}finalisation{% else %}préparation{% endif %}.<br/>
           <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Open'%}">
             ré-autoriser à tous <img src="{% static 'images/purchase.png' %}"/></a>,
@@ -109,6 +109,11 @@
         <a href="{% url 'view_subgroup_purchases_xlsx' delivery=dv.delivery.id %}">dans un tableau Excel <img src="{% static 'images/excel.png' %}"/></a>,
         <a href="{% url 'view_subgroup_purchases_pdf' delivery=dv.delivery.id %}">en PDF <img src="{% static 'images/pdf.png' %}"/></a>
       </li>
+      {% if dv.delivery.is_admin_open %}{# open or closed #}
+      <li><em>[admin-sous-groupe]</em> <a href="{% url 'edit_subgroup_purchases' delivery=dv.delivery.id %}">
+        Modifier les commandes du sous-groupe {{nw.subgroup.name}} <img src="{% static 'images/edit.png' %}"/>
+      </a></li>
+      {% endif %}
       {% if state == "Closed" %}
       <li>
         <em>[admin-sous-groupe]</em>
@@ -119,13 +124,8 @@
         {% endif %}
       </li>
       {% endif %}{# state == closed #}
-      {% if dv.delivery.is_admin_open %}
-      <li><em>[admin-sous-groupe]</em> <a href="{% url 'edit_subgroup_purchases' delivery=dv.delivery.id %}">
-        Modifier les commandes du sous-groupe {{nw.subgroup.name}} <img src="{% static 'images/edit.png' %}"/>
-      </a></li>
-      {% endif %}
       {% if not nw.is_network_staff %}
-      <li><em>[admin]</em> <a href="{% url 'emails_subgroup' nw.subgroup.id %}">e-mails du sous-groupe {{nw.subgroup.name}} <img src="{% static 'images/email.png' %}"/></a></li>
+      <li><em>[admin-sous-groupe]</em> <a href="{% url 'emails_subgroup' nw.subgroup.id %}">e-mails du sous-groupe {{nw.subgroup.name}} <img src="{% static 'images/email.png' %}"/></a></li>
       {% endif %}{# subgroup_staff but not network_staff #}
       {% endif %}{# is_subgroup_staff #}
 

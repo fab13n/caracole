@@ -152,7 +152,7 @@ class Delivery(models.Model):
     def __unicode__(self):
         return "%s/%s" % (self.network.name, self.name)
 
-    def is_admin_only(self):
+    def is_admin_open(self):
         """Admins can pass & modify orders."""
         return self.state == self.OPEN or self.state == self.CLOSED
 

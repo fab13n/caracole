@@ -1,5 +1,6 @@
 {% extends "layout_wide.html" %}
 {% load floreal_filters %}
+{% load static %}
 
 {% block head %}
     <script type='text/javascript'>
@@ -67,6 +68,19 @@
         });
       }
 
+      function cancel_u(u_id) {
+        var name = $("#u"+u_id+"-name").text();
+        if(! confirm("Annuler toute la commande de "+name+" ?")) {
+          return;
+        }
+        $.each(PRODUCTS, function(i, pd) {
+          $("input[name='pd"+pd.id+"u"+u_id+"']").attr("value", "0");
+        });
+        $.each(PRODUCTS, function(i, pd) {
+          update_totals(pd.id, u_id);
+        });
+      }
+
       function disable_unmodified_inputs() {
         /* Disabled inputs aren't submitted. */
         $("input.quantity").not(".modified").prop("disabled", "true");
@@ -87,13 +101,14 @@
       })
     // ]]>
     </script>
+
     <style type="text/css">
       .out_of_packages { font-weight:bold; color: #811305; }
+      .unsatisfied_granted { text-decoration: line-through; }
       input.quantity { text-align: right; height: 100%; width: calc(100% - 3px); padding:0px;}
-      td button { width: 50px; }
       th.top { word-break: break-all; word-wrap: break-word;}
       th.left { white-space: nowrap; }
-      td.quantity { border: none; width: 50px;}
+      td.quantity { border: none; width: 50px; }
       table { table-layout: fixed; }
       input[type=number] { border: 1px solid #c08982; }
       tr.one, tr.one input { background-color: #d5b1ac; }
@@ -119,16 +134,14 @@
         {% for pd in products %}
         <th class="top" id="pd{{pd.id}}-name">{{pd.name}}</th>
         {% endfor %}
-        <th class="top">Prix</th>
     </tr>
 
     {# product cancelling buttons #}
     <tr>
         <td class="blank" colspan="2">{# no product in users' column #}</td>
         {% for pd in products %}
-        <td><button type="button" onclick="cancel_pd({{pd.id}});">→0</button></td>
+        <td><input type="image" src={% static 'images/minus.png' %} onclick="cancel_pd({{pd.id}}); return false"/></td>
         {% endfor %}
-        <td rowspan="2"></td>
     </tr>
 
 
@@ -184,7 +197,7 @@
     {% endcomment %}
     {% for ur in table.0.users %}
     <tr class="user_row {% if ur.user.first_name == 'extra' %}extra{% else %}user{% endif %} {% cycle 'one' 'two' 'three' 'four' %}">
-        <th class="left">{{ur.user.first_name}} {{ur.user.last_name}}</th>
+        <th class="left" id="u{{ur.user.id}}-name">{{ur.user.first_name}} {{ur.user.last_name}}</th>
         <td class="price"> <span id="u{{ur.user.id}}-price">{{ur.price|floatformat:"2"}}</span>€</td>
         {% for pc in ur.orders.purchases %}
         <td class="quantity">
@@ -205,6 +218,7 @@
         {% endif %}{# unsatisfied #}
         </td>
         {% endfor %}{# purchase #}
+        <td><input type="image" src={% static 'images/minus.png' %} onclick="cancel_u({{ur.user.id}}); return false"/></td>
     </tr>
     {% endfor %}{# users within subgroup #}
 
