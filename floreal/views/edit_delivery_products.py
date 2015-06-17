@@ -38,10 +38,14 @@ def _get_products_list(delivery):
 
     current_products = delivery.product_set.all()
     current_names_set = {pd.name for pd in current_products}
-    past_products = [Product.objects
-                     .filter(name=x['name'], delivery__network=delivery.network)
-                     .order_by('-id')[0]
-                     for x in Product.objects.values('name').distinct()]
+    all_names = Product.objects.filter(delivery__network=delivery.network).values('name')
+    if all_names.exists():
+        past_products = [Product.objects
+                         .filter(name=x['name'], delivery__network=delivery.network)
+                         .order_by('-id')[0]
+                         for x in all_names.distinct()]
+    else:
+        past_products = []
     non_overridden_past_products = [pd for pd in past_products if pd.name not in current_names_set]
     return list(current_products) + non_overridden_past_products
 
