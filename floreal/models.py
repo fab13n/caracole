@@ -7,6 +7,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.conf import settings
 
+from caracole import settings
+
 # A user belongs can belong to several networks, through one subgroup per network.
 # They might also be staff of several subgroups,
 # and staff of several networks.
@@ -117,9 +119,11 @@ class Subgroup(models.Model):
         super(Subgroup, self).save(force_insert=force_insert, force_update=force_update,
                                    using=using, update_fields=update_fields)
         if not self.extra_user:
-            extra_username = "extra-%s-%d" % (self.name.lower(), self.network.id)
-            extra_email = settings.EMAIL_HOST_USER.replace("@gmail.com",
-                        extra_username+"@gmail.com")
+            extra_username = "extra-%s" % self.name.lower()
+            if User.objects.filter(username=extra_username).exists():
+                extra_username = "extra-%s-%s" % (self.network.name.lower(), self.name.lower())
+            # TODO: doesn't necessarily end in gmail.com!
+            extra_email = settings.EMAIL_HOST_USER.replace("@gmail.com", extra_username + "@gmail.com")
             self.extra_user = User.objects.create(username=extra_username,
                                                   email=extra_email,
                                                   first_name="extra",
