@@ -39,7 +39,7 @@
       <li>
         {% if state == "Open" %}
         <a href="{% url 'edit_user_purchases' delivery=dv.order.delivery.id %}">modifier votre commande</a>:
-        {% else %}{# not open %}
+        {% else %}{# not open #}
         Votre commande n'est {% if state == "Preparation" %}pas encore{% else %}plus{% endif %} modifiable :
         {% endif %}{# not open #}
         <ul>
@@ -82,10 +82,10 @@
       {% if status.unfinalized %}
       <ul>
         {% if status.finalized %}
-        <li>Commande finalisée pour :<br/>
+        <li>Commande finalisée pour les sous-groupes :<br/>
           <span class="yes">{% for sg in status.finalized %} {{sg.name}}{% endfor %}</span>.</li>
         {% endif %}
-        <li>Commande non finalisée pour :<br/>
+        <li>Commande non finalisée pour les sous-groupes :<br/>
           <span class="no">{% for sg in status.unfinalized %} {{sg.name}}{% endfor %}</span>.</li>
       </ul>
       {% else %}{# All subgroups finalized #}
