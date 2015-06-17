@@ -28,8 +28,8 @@ class CardsDeck(FPDF, HTMLMixin):
 
     def _print(self, utxt):
         # Latin1 / Latin9 don't seem able to cope with Euro sign
-        #self.write_html(utxt.replace(u'€', u'EUR').encode('latin9'))
-        self.write_html(utxt.replace(u'€', chr(128)).encode('latin9'))
+        self.write_html(utxt.replace(u'€', u'EUR').encode('latin9'))
+        # self.write_html(utxt.replace(u'€', chr(128)).encode('latin9'))
 
     def _jump_to_next_order(self):
         """Start the next user card: either go to the 2nd half of the current page,
