@@ -25,7 +25,7 @@
   {% endif %}
   {% for dv in nw.deliveries %}
   {% with dv.delivery.state_name as state %}
-  <li> ({{state}})
+  <li> <div title="({{dv.delivery.name}}: {{state}})">
     {% if state == "Archived" %}
     <em>[admin]</em> Commande {{dv.delivery.name}}:
     archivée ;
@@ -78,6 +78,7 @@
             archiver <img src="{% static 'images/bin.png' %}"/></a>
       </li>
       {% if state == "Closed" %}
+      {% if 0 %}{# finalization currently disabled #}
       {% with dv.delivery.getFinalizationStatus as status %}
       {% if status.unfinalized %}
       <ul>
@@ -93,6 +94,7 @@
       {% endif %}{# Some unfinalized subgroups? #}
       {% endwith %}{# finalization status #}
       {% endif %}{# delivery closed #}
+      {% endif %}{# finalization currently disabled #}
       {% else %}{# not finalized, not in preparation #}
       <li><em>[admin]</em> Commande finalisée ; ré-autoriser
         <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Closed'%}">aux admins de sous-groupe <img src="{% static 'images/edit.png' %}"/></a>,
@@ -106,7 +108,7 @@
       <li><em>[admin]</em> Voir les commandes de tout le réseau {{nw.network.name}}<br/>
         <a href="{% url 'view_delivery_purchases_html' delivery=dv.delivery.id %}">en ligne <img src="{% static 'images/grid.png' %}"/></a>,
         <a href="{% url 'view_delivery_purchases_xlsx' delivery=dv.delivery.id %}">dans un tableau Excel <img src="{% static 'images/excel.png' %}"/></a>,
-        <a href="{% url 'view_delivery_purchases_pdf' delivery=dv.delivery.id %}">en PDF <img src="{% static 'images/pdf.png' %}"/></a>
+        <a href="{% url 'view_delivery_purchases_latex' delivery=dv.delivery.id %}">en PDF <img src="{% static 'images/pdf.png' %}"/></a>
       </li>
       {% endif %}{# is_network_staff #}
 
@@ -115,13 +117,14 @@
       <li><em>[admin-sous-groupe]</em> Voir les commandes du sous-groupe {{nw.subgroup.name}} pour {{dv.delivery.name}}<br/>
         <a href="{% url 'view_subgroup_purchases_html' delivery=dv.delivery.id %}">en ligne <img src="{% static 'images/grid.png' %}"/></a>,
         <a href="{% url 'view_subgroup_purchases_xlsx' delivery=dv.delivery.id %}">dans un tableau Excel <img src="{% static 'images/excel.png' %}"/></a>,
-        <a href="{% url 'view_subgroup_purchases_pdf' delivery=dv.delivery.id %}">en PDF <img src="{% static 'images/pdf.png' %}"/></a>
+        <a href="{% url 'view_subgroup_purchases_latex' delivery=dv.delivery.id %}">en PDF <img src="{% static 'images/pdf.png' %}"/></a>
       </li>
       {% if dv.delivery.is_admin_open %}{# open or closed #}
       <li><em>[admin-sous-groupe]</em> <a href="{% url 'edit_subgroup_purchases' delivery=dv.delivery.id %}">
         Modifier les commandes du sous-groupe {{nw.subgroup.name}} <img src="{% static 'images/edit.png' %}"/>
       </a></li>
       {% endif %}
+      {% if 0 %}{# finalization currently disabled #}
       {% if state == "Closed" %}
       <li>
         <em>[admin-sous-groupe]</em>
@@ -132,6 +135,7 @@
         {% endif %}
       </li>
       {% endif %}{# state == closed #}
+      {% endif %}{# finalization currently disabled #}
       {% if not nw.is_network_staff %}
       <li><em>[admin-sous-groupe]</em> <a href="{% url 'emails_subgroup' nw.subgroup.id %}">e-mails du sous-groupe {{nw.subgroup.name}} <img src="{% static 'images/email.png' %}"/></a></li>
       {% endif %}{# subgroup_staff but not network_staff #}
@@ -140,7 +144,7 @@
 
     </ul>
     {% endif %}{# is not archived #}
-  </li>
+  </div></li>
   {% endwith %}
   {% endfor %}{# delivery #}
 </ul>
