@@ -24,7 +24,11 @@ def price(f):
 
 @register.filter
 def qty(f):
-    return u"%g" % f
+    s = (u"%g" % f).rstrip('0').rstrip('.')
+    if len(s) == 0:
+        return u"0"
+    else:
+        return s
 
 @register.filter
 def unit(u):
