@@ -13,6 +13,7 @@
 \usepackage[table]{xcolor}
 \newcommand\rb[1]{\rotatebox[origin=c]{90}{\ #1\ }}
 \newcommand\ct{% templatetag openvariable %}\scriptsize ct{% templatetag closevariable %}
+\newcommand\nope{\multicolumn{1}{c|}{.}}
 \definecolor{lightgray}{gray}{0.9}
 \setlength\tabcolsep{1.5pt} % no space around table cells
 \begin{document}
@@ -24,12 +25,12 @@
 {\bf Total}
 {% for totals in d.product_totals %} &
 {% if not totals.quantity %}
-\_
+\nope
 {% elif totals.full_packages == None %}
 {\bf {{totals.quantity|qty}}{{totals.product.unit|unit}} }
 {% else%}
-{\bf {{totals.full_packages}}\ct
-{% if totals.out_of_packages %} + {{totals.out_of_packages}}{{totals.product.unit|unit}}{% endif %}
+{\bf {{totals.full_packages|qty}}\ct
+{% if totals.out_of_packages %} + {{totals.out_of_packages|qty}}{{totals.product.unit|unit}}{% endif %}
 }
 {% endif %}{# packaged #}
 {% endfor %}{# totals #}
@@ -40,12 +41,12 @@
 {% cycle '\rowcolor{lightgray}'  '' as color_cycle %} {{table.subgroup.name}}
 {% for totals in table.totals %} &
 {% if not totals.quantity %}
-\_
+\nope
 {% elif totals.full_packages == None %}
-{{totals.quantity}}{{totals.product.unit|unit}}
+{{totals.quantity|qty}}{{totals.product.unit|unit}}
 {% else%}
-{{totals.full_packages}}\ct
-{% if totals.out_of_packages %} + {{totals.out_of_packages}}{{totals.product.unit|unit}}{% endif %}
+{{totals.full_packages|qty}}\ct
+{% if totals.out_of_packages %} + {{totals.out_of_packages|qty}}{{totals.product.unit|unit}}{% endif %}
 {% endif %}{# packaged #}
 {% endfor %}{# totals #} \\
 {% endif %}{# price #}
