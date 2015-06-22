@@ -1,0 +1,53 @@
+{% autoescape off %}
+\documentclass[a4paper,french,10pt,landscape]{letter}
+\usepackage[top=1cm, bottom=1cm, left=1cm, right=1cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{babel}
+\usepackage{palatino}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{eurosym}
+\usepackage[table]{xcolor}
+\newcommand\rb[1]{\rotatebox[origin=c]{90}{\ #1\ }}
+\definecolor{lightgray}{gray}{0.9}
+\setlength\tabcolsep{1.5pt} % no space around table cells
+\begin{document}
+\begin{longtable}{|r|{% for _ in d.products %}l|{% endfor %}}
+\hline
+
+{% for pd in d.products %} & \rb{ {{pd.name}} } {% endfor %} \\ \hline
+\endhead
+{\bf Total}
+{% for totals in d.product_totals %} &
+{% if not totals.quantity %}
+\_
+{% elif totals.full_packages == None %}
+{\bf {{totals.quantity}}{% if totals.product.unit == "kg" %}{{totals.product.unit}}{% else %}pc{% endif %}}
+{% else%}
+{\bf {{totals.full_packages}}ct
+{% if totals.out_of_packages %} + {{totals.out_of_packages}}{% if totals.product.unit == "kg" %}{{totals.product.unit}}{% else %}pc{% endif %}{% endif %}
+}
+{% endif %}{# packaged #}
+{% endfor %}{# totals #}
+\\ \hline
+
+{% for table in d.table %}
+{% if table.price %}
+{% cycle '\rowcolor{lightgray}'  '' as color_cycle %} {{table.subgroup.name}}
+{% for totals in table.totals %} &
+{% if not totals.quantity %}
+\_
+{% elif totals.full_packages == None %}
+{{totals.quantity}}{% if totals.product.unit == "kg" %}{{totals.product.unit}}{% else %}pc{% endif %}
+{% else%}
+{{totals.full_packages}}ct
+{% if totals.out_of_packages %} + {{totals.out_of_packages}}{% if totals.product.unit == "kg" %}{{totals.product.unit}}{% else %}pc{% endif %}{% endif %}
+{% endif %}{# packaged #}
+{% endfor %}{# totals #} \\
+{% endif %}{# price #}
+{% endfor %}{# table #}
+\hline
+\end{longtable}
+\end{document}
+{% endautoescape %}
