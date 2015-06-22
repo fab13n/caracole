@@ -11,7 +11,7 @@ def delivery_description(delivery, subgroups, **kwargs):
     and their subgroup's purchases to subgroup staff (in this case `subgroups` is expected
     to have only one element).
 
-    The resulting dictionaty is structured as follows, with many data organized by numeric
+    The resulting dictionary is structured as follows, with many data organized by numeric
     indexes rather than hashtables in order to ease tabular rendering:
 
         { "delivery": delivery,

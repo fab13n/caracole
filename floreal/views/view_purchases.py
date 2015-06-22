@@ -5,7 +5,7 @@ from django.http import HttpResponse
 from django.shortcuts import render_to_response
 
 from ..models import Delivery, Subgroup
-from . import pdf
+from . import pdf, latex
 from .spreadsheet import spreadsheet
 from .delivery_description import delivery_description
 
@@ -42,11 +42,18 @@ def view_delivery_purchases_xlsx(request, delivery):
 
 
 def view_delivery_purchases_pdf(request, delivery):
-    """View the purchases of each subgroup as an Adobe PDF file. Subgroup staff only."""
+    """View the purchases of each subgroup as an Adobe PDF file. Network staff only."""
     delivery = Delivery.objects.get(id=delivery)
     return _non_html_response((delivery.network.name, delivery.name), "pdf",
                               "application/pdf",
                               pdf.all(delivery))
+
+def view_delivery_purchases_latex(request, delivery):
+    """View the purchases of each subgroup as an Adobe PDF file. Network staff only."""
+    delivery = Delivery.objects.get(id=delivery)
+    return _non_html_response((delivery.network.name, delivery.name), "pdf",
+                              "application/pdf",
+                              latex.delivery(delivery))
 
 
 def view_subgroup_purchases_html(request, delivery):
@@ -73,3 +80,12 @@ def view_subgroup_purchases_pdf(request, delivery):
     return _non_html_response((delivery.network.name, delivery.name, subgroup.name), "pdf",
                               "application/pdf",
                               pdf.subgroup(delivery, subgroup))
+
+
+def view_subgroup_purchases_latex(request, delivery):
+    """View the purchases of a subgroup as an Adobe PDF file. Subgroup staff only."""
+    delivery = Delivery.objects.get(id=delivery)
+    subgroup = get_subgroup(request, delivery.network)
+    f = latex.subgroup(delivery, subgroup)
+    return _non_html_response((delivery.network.name, delivery.name, subgroup.name), "pdf",
+                              "application/pdf", f)
