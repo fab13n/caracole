@@ -1,4 +1,6 @@
+{% load latex %}
 {% autoescape off %}
+
 \documentclass[a4paper,french,10pt,landscape]{letter}
 \usepackage[top=1cm, bottom=1cm, left=1cm, right=1cm]{geometry}
 \usepackage[T1]{fontenc}
@@ -10,6 +12,7 @@
 \usepackage{eurosym}
 \usepackage[table]{xcolor}
 \newcommand\rb[1]{\rotatebox[origin=c]{90}{\ #1\ }}
+\newcommand\ct{% templatetag openvariable %}\scriptsize ct{% templatetag closevariable %}
 \definecolor{lightgray}{gray}{0.9}
 \setlength\tabcolsep{1.5pt} % no space around table cells
 \begin{document}
@@ -23,10 +26,10 @@
 {% if not totals.quantity %}
 \_
 {% elif totals.full_packages == None %}
-{\bf {{totals.quantity}}{% if totals.product.unit == "kg" %}{{totals.product.unit}}{% else %}pc{% endif %}}
+{\bf {{totals.quantity|qty}}{{totals.product.unit|unit}} }
 {% else%}
-{\bf {{totals.full_packages}}ct
-{% if totals.out_of_packages %} + {{totals.out_of_packages}}{% if totals.product.unit == "kg" %}{{totals.product.unit}}{% else %}pc{% endif %}{% endif %}
+{\bf {{totals.full_packages}}\ct
+{% if totals.out_of_packages %} + {{totals.out_of_packages}}{{totals.product.unit|unit}}{% endif %}
 }
 {% endif %}{# packaged #}
 {% endfor %}{# totals #}
@@ -39,10 +42,10 @@
 {% if not totals.quantity %}
 \_
 {% elif totals.full_packages == None %}
-{{totals.quantity}}{% if totals.product.unit == "kg" %}{{totals.product.unit}}{% else %}pc{% endif %}
+{{totals.quantity}}{{totals.product.unit|unit}}
 {% else%}
-{{totals.full_packages}}ct
-{% if totals.out_of_packages %} + {{totals.out_of_packages}}{% if totals.product.unit == "kg" %}{{totals.product.unit}}{% else %}pc{% endif %}{% endif %}
+{{totals.full_packages}}\ct
+{% if totals.out_of_packages %} + {{totals.out_of_packages}}{{totals.product.unit|unit}}{% endif %}
 {% endif %}{# packaged #}
 {% endfor %}{# totals #} \\
 {% endif %}{# price #}

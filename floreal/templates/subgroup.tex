@@ -1,3 +1,4 @@
+{% load latex %}
 {% autoescape off %}
 \documentclass[a4paper,french,10pt,landscape]{letter}
 \usepackage[top=1cm, bottom=1cm, left=1cm, right=1cm]{geometry}
@@ -10,6 +11,7 @@
 \usepackage{eurosym}
 \usepackage[table]{xcolor}
 \newcommand\rb[1]{\rotatebox[origin=c]{90}{\ #1\ }}
+\newcommand\nope{\multicolumn{1}{c|}{.}}
 \definecolor{lightgray}{gray}{0.9}
 \setlength\tabcolsep{1.5pt} % no space around table cells
 \begin{document}
@@ -18,15 +20,15 @@
 \hline
 & \rb{Total} {% for pd in d.products %} & \rb{ {{pd.name}} } {% endfor %} \\
 \hline
-Prix & {{t.price}}\euro {% for pd in d.products %} & {{pd.price}}\euro {% endfor %}\\
+Prix unitaire& {{t.price|price}} {% for pd in d.products %} & {{pd.price|price}} {% endfor %}\\
 \hline
 \endhead
 {% for ur in t.users %}
 {% if ur.orders.price %}
 {% cycle '\rowcolor{lightgray}'  '' as color_cycle %}
-{{ur.user.first_name}} & {% for pc in ur.orders.purchases %} & {{pc.ordered|default:"\\_"}} {% endfor %} \\
+{{ur.user.first_name}} & {% for pc in ur.orders.purchases %} & {{pc.ordered|default:"\\nope"}} {% endfor %} \\
 {{ color_cycle }}
-{{ur.user.last_name}} & {{ur.orders.price}}\euro {% for pc in ur.orders.purchases %} & {% if pc.price %}{{pc.price}}\euro {% else %} \_ {% endif %} {% endfor %} \\
+{{ur.user.last_name}} & {{ur.orders.price|price}} {% for pc in ur.orders.purchases %} & {% if pc.price %}{{pc.price|price}} {% else %}\nope{% endif %} {% endfor %} \\
 {% endif %}
 {% endfor %}
 {% endwith %}
