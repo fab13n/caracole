@@ -26,7 +26,7 @@ Prix unitaire& {{t.price|price}} {% for pd in d.products %} & {{pd.price|price}}
 {% for ur in t.users %}
 {% if ur.orders.price %}
 {% cycle '\rowcolor{lightgray}'  '' as color_cycle %}
-{{ur.user.first_name}} & {% for pc in ur.orders.purchases %} & {{pc.ordered|default:"\\nope"}} {% endfor %} \\
+{{ur.user.first_name}} & {% for pc in ur.orders.purchases %} & {% if pc.ordered %} {{pc.ordered|qty}} {% else %} \nope {% endif %}{% endfor %} \\
 {{ color_cycle }}
 {{ur.user.last_name}} & {{ur.orders.price|price}} {% for pc in ur.orders.purchases %} & {% if pc.price %}{{pc.price|price}} {% else %}\nope{% endif %} {% endfor %} \\
 {% endif %}
