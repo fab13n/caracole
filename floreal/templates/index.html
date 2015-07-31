@@ -27,10 +27,12 @@
   {% with dv.delivery.state_name as state %}
   <li> <div title="({{dv.delivery.name}}: {{state}})">
     {% if state == "Archived" %}
+    {% if nw.is_network_staff %}
     <em>[admin]</em> Commande {{dv.delivery.name}}:
     archivée ;
     <a href="{% url 'view_delivery_purchases_html' delivery=dv.delivery.id %}">voir</a>,
     <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Closed'%}">réactiver</a>.
+    {% endif %}{# archived & is_network_staff #}
     {% else %}{# state != "Archived" #}
     Commande {{dv.delivery.name}}:
     <ul>
@@ -99,7 +101,7 @@
       <li><em>[admin]</em> Commande finalisée ; ré-autoriser
         <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Closed'%}">aux admins de sous-groupe <img src="{% static 'images/edit.png' %}"/></a>,
         <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Open'%}">à tout le monde <img src="{% static 'images/purchase.png' %}"/></a> ;
-        <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Delivered'%}">archiver <img src="{% static 'images/bin.png' %}"/></a>.
+        <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Archived'%}">archiver <img src="{% static 'images/bin.png' %}"/></a>.
       </li>
       {% endif %}{# delivery.state_name == "Open" #}
       <li><em>[admin]</em> <a href="{% url 'edit_delivery_products' delivery=dv.delivery.id %}">
