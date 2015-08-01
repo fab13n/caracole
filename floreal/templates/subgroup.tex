@@ -1,20 +1,6 @@
+{% extends 'common.tex' %}
 {% load latex %}
-{% autoescape off %}
-\documentclass[a4paper,french,10pt,landscape]{letter}
-\usepackage[top=1cm, bottom=1cm, left=1cm, right=1cm]{geometry}
-\usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
-\usepackage{babel}
-\usepackage{palatino}
-\usepackage{graphicx}
-\usepackage{longtable}
-\usepackage{eurosym}
-\usepackage[table]{xcolor}
-\newcommand\rb[1]{\rotatebox[origin=c]{90}{\ #1\ }}
-\newcommand\nope{\multicolumn{1}{c|}{.}}
-\definecolor{lightgray}{gray}{0.9}
-\setlength\tabcolsep{1.5pt} % no space around table cells
-\begin{document}
+{% block content %}
 {% with d.table.0 as t %}
 \begin{longtable}{|r|c|{% for _ in d.products %}l|{% endfor %}}
 \hline
@@ -34,5 +20,4 @@ Prix unitaire& {{t.price|price}} {% for pd in d.products %} & {{pd.price|price}}
 {% endwith %}
 \hline
 \end{longtable}
-\end{document}
-{% endautoescape %}
+{% endblock %}

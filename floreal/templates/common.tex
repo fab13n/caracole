@@ -1,0 +1,21 @@
+{% load latex %}
+{% autoescape off %}
+\documentclass[a4paper,french,10pt,landscape]{letter}
+\usepackage[top=1cm, bottom=1cm, left=1cm, right=1cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{babel}
+\usepackage{palatino}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{eurosym}
+\usepackage[table]{xcolor}
+\newcommand\rb[1]{\rotatebox[origin=c]{90}{\ #1\ }}
+\newcommand\ct{% templatetag openvariable %}\scriptsize ct{% templatetag closevariable %}
+\newcommand\nope{\multicolumn{1}{c|}{.}}
+\definecolor{lightgray}{gray}{0.9}
+\setlength\tabcolsep{1.5pt} % no space around table cells
+\begin{document}
+{% block content %}{% endblock %}
+\end{document}
+{% endautoescape %}
