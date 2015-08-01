@@ -22,7 +22,7 @@ def edit_user_purchases(request, delivery):
         vars = {
             'user': user,
             'delivery': delivery,
-            'subgroup': delivery.network.subgroup_set.get(staff__in=[user]),
+            'subgroup': delivery.network.subgroup_set.get(users__in=[user]),
             'products': m.Product.objects.filter(delivery=delivery),
             'purchases': order.purchases
         }
