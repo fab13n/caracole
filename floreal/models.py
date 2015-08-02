@@ -197,6 +197,7 @@ class Product(models.Model):
     unit = models.CharField(max_length=64, null=True, blank=True)
     quantity_limit = models.IntegerField(null=True, blank=True)
     unit_weight = models.DecimalField(decimal_places=3, max_digits=6, default=0.0, blank=True)
+    quantum = models.DecimalField(decimal_places=2, max_digits=3, default=1, blank=True)
 
     class Meta:
         unique_together = (('delivery', 'name'),)

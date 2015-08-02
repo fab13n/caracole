@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+{% load static %}
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>Circuits courts Caracole</title>
+    <link href="{% static 'layout/default_semi_wide.css' %}" rel="stylesheet" type="text/css" />
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon" />
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <script type="text/javascript" src="{% static 'js/jquery.js' %}"></script>
+    {% block head %} {% endblock %}
+  </head>
+  <body>
+    <div id="wrapper">
+      <div id="logo">
+        <h1><a href='{% url "index" %}'>Circuits Courts Caracole</a></h1>
+        <h2>Gestion associative de commandes en circuits courts</h2>
+      </div>
+      <!-- start page -->
+      <div id="page">
+        <!-- start content -->
+        <div id="content">
+          {% block content %}NO CONTENT{% endblock %}
+        </div>
+        <!-- end content -->
+        <div style="clear: both;">&nbsp;</div>
+      </div>
+      <!-- end page -->
+      <!-- start footer -->
+      <div id="footer">
+        <div id="footer-wrap">
+          <p id="legal">
+            (c) 2012-2015 <a href='mailto://fleutot+caracole@gmail.com'>F. Fleutot</a>.
+            CSS (c) <a href="http://www.freecsstemplates.org/">Free
+            CSS Templates</a>.
+          </p>
+        </div>
+      </div>
+      <!-- end footer -->
+    </div>
+  </body>
+</html>
+  

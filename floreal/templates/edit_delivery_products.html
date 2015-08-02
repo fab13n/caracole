@@ -1,4 +1,4 @@
-{% extends 'layout.html' %}
+{% extends 'layout_semi_wide.html' %}
 
 {% block head %}
   <script type='text/javascript'>
@@ -10,11 +10,12 @@
 
     var PRODUCTS = [{% for pd in products %}
       { 'id': "{{pd.id|escapejs}}",
-        'name': "{{pd.name|escapejs}}" ,
-        'price': "{{pd.price|escapejs}}" ,
-        'unit': "{{pd.unit|escapejs}}" ,
-        'quantity_limit': "{{pd.quantity_limit|escapejs}}" ,
-        'quantity_per_package': "{{pd.quantity_per_package|escapejs}}" ,
+        'name': "{{pd.name|escapejs}}",
+        'price': "{{pd.price|escapejs}}",
+        'unit': "{{pd.unit|escapejs}}",
+        'quantity_limit': "{{pd.quantity_limit|escapejs}}",
+        'quantity_per_package': "{{pd.quantity_per_package|escapejs}}",
+        'quantum': "{{pd.quantum|default_if_none:""|escapejs}}",
         'unit_weight': "{{pd.unit_weight|escapejs}}",
         'deleted': false,
         'delivery': {{pd.delivery.id}} },
@@ -57,8 +58,10 @@
             <td>€/</td>\n\
             <td class="unit"><input id="%-unit" maxlength="64" name="%-unit" type="text" /></td>\n\
             <td class="qpp"><input id="%-quantity_per_package" name="%-quantity_per_package" type="number" /></td>\n\
-            <td class="unit-label">&nbsp;<span class="%-unit-mirror"></span><span class="%-if-unit-mirror">/carton</span></td>\n\
+            <td class="unit-label">&nbsp;<span class="%-unit-mirror"></span><span class="%-if-unit-mirror">/ct</span></td>\n\
             <td class="quota"><input id="%-quantity_limit" name="%-quantity_limit" min="0" type="number"/></td>\n\
+            <td class="unit-label">&nbsp;<span class="%-unit-mirror"></span></td>\n\
+            <td class="quantum"><input id="%-quantum" name="%-quantum" min="0" type="number"/></td>\n\
             <td class="unit-label">&nbsp;<span class="%-unit-mirror"></span></td>\n\
             <td class="weight"><input id="%-unit_weight" name="%-unit_weight" min="0" step="0.1" type="number"/></td><td>kg</td>\n\
             <td class="deleted">\n\
@@ -117,6 +120,7 @@
       td.qpp input { width: 40px; text-align: right; }
       .quota, .qpp { padding-left: 20px; }
       td.quota input { width: 40px; }
+      td.quantum input { width: 40px; }
       td.weight input { width: 40px; text-align: right; }
       tr.deleted { text-decoration: line-through; }
       tr.deleted input { text-decoration: line-through; }
@@ -147,6 +151,7 @@
             <th>Unité</th>
             <th colspan="2" class="qpp">Par carton</th>
             <th colspan="2" class="quota">Quota</th>
+            <th colspan="2">Quantum</th>
             <th colspan="2">Poids</th>
             <th>Effacer ?</th>
         </tr>
