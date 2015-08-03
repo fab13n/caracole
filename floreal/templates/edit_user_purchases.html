@@ -5,15 +5,15 @@
 {% block head %}
   <script type='text/javascript'>
   // <![CDATA[
-
+    {# TODO: refactor in objects #}
     var PRODUCT_IDS=[{% for pd in products %}{{pd.id}},{% endfor %}];
+    var PRODUCT_QUANTA={ {% for pd in products %}{{pd.id}}: {{pd.quantum|default_if_none:0}},{% endfor %} };
     var PRODUCT_WEIGHTS=[{% for pd in products %}{{pd.unit_weight}},{% endfor %}];
-    var PURCHASES=[{% for pc in purchases %}
-      {'product': {{pc.product.id}}, 'ordered': {{pc.ordered}} },
-    {% endfor %}];
+    var PRODUCT_UNITS={ {% for pd in products %}{{pd.id}}: "{{pd.unit|escapejs}}",{% endfor %} };
+    var PURCHASES={ {% for pc in purchases %}{{pc.product.id}}: {{pc.ordered}}, {% endfor %} };
 
     /* update per-line totals as well as delivery total */
-    function update_weight_and_prices() {
+    function update_weight_prices_and_errors() {
       var total_price = 0;
       var total_weight = 0;
       for(var i=0; i<PRODUCT_IDS.length; i++) {
@@ -25,9 +25,12 @@
         total_price += price
         total_weight += ordered * PRODUCT_WEIGHTS[i];
         console.log(pd_id + " -> " + ordered + " * " + unit_price + " = " + price + " -> Σ=" + total_price);
+        check_quantum(pd_id);
       }
       $("#total_price").text(total_price.toFixed(2));
       $("#total_weight").text(total_weight.toFixed(0));
+      // Prevent submission if there's at least one quantum error
+      $("input[type=submit]").prop('disabled', $(".quantum-error").length > 0);
     }
 
     function reset_order(id) {
@@ -35,14 +38,37 @@
       update_weight_and_prices();
     }
 
+    /* If there is an ordering quantum, and the order isn't a multiple thereof, display a warning and
+     * disable submission. Otherwise, remove any existing quantum error message. */
+    function check_quantum(id) {
+      var quantum = PRODUCT_QUANTA[id];
+      var msgid = "pd"+id+"-quantum-error";
+      if(quantum) {
+        var ordered = Number($("#pd"+id+"-ordered_quantity").val());
+        if(ordered % quantum == 0) { // Remove any message (there might be none)
+          $("#"+msgid).remove();
+          return true; // no error
+        } else if($("#"+msgid).length == 0) { // A message is needed and there is none
+          $("#row-"+id).after("<tr id='"+msgid+"' class='quantum-error'><td colspan=7>"+
+            "Ce produit doit être commandé par multiples de "+quantum+" "+PRODUCT_UNITS[id]);
+          return false; // error
+        } else { // message needed, but already there
+          return false; // error
+        }
+      } else {
+        return true; // no quantum => no error
+      }
+    }
+
     $(document).ready(function() {
       /* Set purchases */
-      for(var i=0; i<PURCHASES.length; i++) {
-        var pc = PURCHASES[i];
-        $("#pd"+pc.product+"-ordered_quantity").attr("value", pc.ordered)
+      for(id in PURCHASES) {
+        if(PURCHASES.hasOwnProperty(id)) {
+          $("#pd"+id+"-ordered_quantity").attr("value", PURCHASES[id]);
+        }
       }
-      $(":input").bind('keyup mouseup', update_weight_and_prices);
-      update_weight_and_prices();
+      $(":input").bind('keyup mouseup', update_weight_prices_and_errors);
+      update_weight_prices_and_errors();
     })
   // ]]>
   </script>
@@ -52,6 +78,8 @@
     .product-name { text-align: right; }
     .product-unit { text-align: left; }
     .unit-price { padding-left: 10px; }
+    tr.quantum-error td { font-weight: bold; background-color: red; color: white; }
+    input[type=submit]:disabled { background-color: gray; border: 5px outset lightgray; }
   </style>
 {% endblock %}
 
@@ -83,9 +111,9 @@
             <th>Effacer ?</th>
         </tr>
         {% for pd in products %}
-        <tr>
+        <tr id="row-{{pd.id}}">
           <td class="product-name">{{pd.name}}</td>
-          <td><input class="quantity" id="pd{{pd.id}}-ordered_quantity" maxlength="64" name="pd{{pd.id}}" type="number" step="1" min="0" value="0" /></td>
+          <td><input class="quantity" id="pd{{pd.id}}-ordered_quantity" maxlength="64" name="pd{{pd.id}}" type="number" step="{{pd.quantum|default_if_none:1}}" min="0" value="0" /></td>
           <td class="product-unit">{{pd.unit}}</td>
           <td class="unit-price"><span id="pd{{pd.id}}-unit_price">{{pd.price|price_nocurrency}}</span> €/{{pd.unit}}</td>
           <td><span id="pd{{pd.id}}-ordered_price">-</span> €</td>

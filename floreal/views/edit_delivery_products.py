@@ -57,18 +57,20 @@ def _make_form(delivery):
 
 def _get_pd_fields(d, prefix, id):
     """Retrieve form fields representing a product."""
-    fields = ['name', 'price', 'quantity_per_package', 'unit', 'quantity_limit', 'unit_weight']
+    fields = ['name', 'price', 'quantity_per_package', 'unit', 'quantity_limit', 'quantum', 'unit_weight']
     raw = {f: d.get("%s%d-%s" % (prefix, id, f), None) for f in fields}
     if not any(f for f in raw.values()):
         return {'deleted': True}  # All fields empty means deleted
     qpp = raw['quantity_per_package']
     quota = raw['quantity_limit']
+    quantum = raw['quantum']
     weight = raw['unit_weight']
     return {'name': raw['name'],
             'price': float(raw['price']),
             'quantity_per_package': int(qpp) if qpp else None,
             'unit': raw['unit'],
             'quantity_limit': int(quota) if quota else None,
+            'quantum': float(quantum) if quantum else None,
             'unit_weight': float(weight) if weight else None,
             'deleted': "%s%d-deleted" % (prefix, id) in d}
 
@@ -81,6 +83,7 @@ def _pd_update(pd, fields):
     pd.unit = fields['unit']
     pd.quantity_limit = fields['quantity_limit']
     pd.unit_weight = fields['unit_weight']
+    pd.quantum = fields['quantum']
 
 
 def _parse_form(request):

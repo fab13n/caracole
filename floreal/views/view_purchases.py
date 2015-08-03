@@ -5,7 +5,7 @@ from django.http import HttpResponse
 from django.shortcuts import render_to_response
 
 from ..models import Delivery, Subgroup
-from . import pdf, latex
+from . import latex
 from .spreadsheet import spreadsheet
 from .delivery_description import delivery_description
 
