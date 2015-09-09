@@ -126,7 +126,7 @@
     </tr>
     {% for u in users %}
     <tr id="u{{u.id}}" class="user-starts-with-{{u.initial}} user-of-subgroup-{{u.subgroup}} user">
-      <th class="name">{{u.name}}</th>
+      <th class="name" title='{{u.email}}'>{{u.name}}</th>
       <td><input type="checkbox" name="u{{u.id}}-network-admin" onclick="mark_user_modified({{u.id}});"/></td>
       <td><input type="checkbox" name="u{{u.id}}-subgroup-admin" onclick="mark_user_modified({{u.id}});"/></td>
       {% for sg in subgroups %}

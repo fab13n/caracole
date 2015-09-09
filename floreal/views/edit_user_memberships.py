@@ -22,7 +22,7 @@ def edit_user_memberships(request, network):
             return redirect("edit_user_memberships", network=network.id)
 
     def parse_user(u):
-        r = {'id': u.id, 'name': u.first_name + ' ' + u.last_name}
+        r = {'id': u.id, 'name': u.first_name + ' ' + u.last_name, 'email': u.email}
         try:
             r['subgroup'] = u.user_of_subgroup.get(network=network).id
         except m.Subgroup.DoesNotExist:
