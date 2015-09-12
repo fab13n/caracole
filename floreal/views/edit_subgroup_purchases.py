@@ -17,7 +17,7 @@ def edit_subgroup_purchases(request, delivery):
     user = request.user
     subgroup = get_subgroup(request, delivery.network)
 
-    if request.user not in subgroup.staff.all() and request.user not in delivery.network.staff.all():
+    if user not in subgroup.staff.all() and user not in delivery.network.staff.all():
         return HttpResponseForbidden('Réservé aux administrateurs du réseau ' + delivery.network.name + \
                                      ' ou du sous-groupe '+subgroup.name)
 

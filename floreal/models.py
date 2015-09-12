@@ -1,7 +1,8 @@
 #!/usr/bin/python
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 import re
+from datetime import datetime
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -123,11 +124,12 @@ class Subgroup(models.Model):
             if User.objects.filter(username=extra_username).exists():
                 extra_username = "extra-%s-%s" % (self.network.name.lower(), self.name.lower())
             # TODO: doesn't necessarily end in gmail.com!
-            extra_email = settings.EMAIL_HOST_USER.replace("@gmail.com", extra_username + "@gmail.com")
+            extra_email = settings.EMAIL_HOST_USER.replace("@gmail.com", "+" + extra_username + "@gmail.com")
             self.extra_user = User.objects.create(username=extra_username,
                                                   email=extra_email,
                                                   first_name="extra",
-                                                  last_name=self.name.capitalize())
+                                                  last_name=self.name.capitalize(),
+                                                  last_login=datetime.now())
             self.users.add(self.extra_user)
 
     @property
