@@ -35,7 +35,7 @@
 
     function reset_order(id) {
       $("#pd"+id+"-ordered_quantity").attr("value", "0");
-      update_weight_and_prices();
+      update_weight_prices_and_errors();
     }
 
     /* If there is an ordering quantum, and the order isn't a multiple thereof, display a warning and

@@ -42,15 +42,18 @@ def _parse_form(request):
     prev_purchases = {pc.product: pc for pc in od.purchases}
     for pd in dv.product_set.all():
         ordered = float(d["pd%s" % pd.id])
-        if ordered <= 0:
+        if ordered <= 0 and pd not in prev_purchases:
             continue
         if pd in prev_purchases:
             pc = prev_purchases[pd]
         else:
             pc = m.Purchase.objects.create(user=request.user, product=pd, ordered=0, granted=0)
-        pc.ordered = ordered
-        pc.granted = ordered
-        pc.save()
+        if ordered <= 0:
+            pc.delete()
+        else:
+            pc.ordered = ordered
+            pc.granted = ordered
+            pc.save()
         set_limit(pd)  # In case of penury
 
     return True  # true == no error
