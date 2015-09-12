@@ -53,8 +53,11 @@ def _parse_form(request):
         except m.Purchase.DoesNotExist:
             if ordered != 0:
                 print "Creating purchase for pd=%s, u=%s, q=%f" % (pd, u, ordered)
-                m.Purchase.objects.create(product_id=pd, user_id=u, ordered=ordered, granted=ordered)
+                pc = m.Purchase.objects.create(product_id=pd, user_id=u, ordered=ordered, granted=ordered)
+            else:
+                pc = None
         # Update ordered / granted mismatches in case of product penury, for every purchase
-        set_limit(pd)
+        if pc:
+            set_limit(pc.product)
 
     return True  # true == no error
