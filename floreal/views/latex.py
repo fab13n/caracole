@@ -26,6 +26,9 @@ def _run(descr, template_name):
             pdf_string = g.read()
     return pdf_string
 
+def cards(dv, sg):
+    descr = delivery_description(dv, [sg])
+    return _run(descr, "cards.tex")
 
 def subgroup(dv, sg):
     descr = delivery_description(dv, [sg])

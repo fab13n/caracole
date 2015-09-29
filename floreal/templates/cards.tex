@@ -1,0 +1,21 @@
+{% extends 'common.tex' %}
+{% load latex %}
+{% block content %}
+{% with d.table.0 as t %}
+{% for ur in t.users %}
+{% if ur.orders.price %}
+\begin{longtable}{|r|c|{% for _ in d.products %}l|{% endfor %}}
+\hline
+& \rb{Total} {% for pd in d.products %} & \rb{ {{pd.name}} } {% endfor %} \\
+\hline
+Prix unitaire& {{t.price|price}} {% for pd in d.products %} & {{pd.price|price}} {% endfor %}\\
+\hline
+\endhead
+{{ur.user.first_name}} & {% for pc in ur.orders.purchases %} & {% if pc.ordered %} {{pc.ordered|qty}} {% else %} \nope {% endif %}{% endfor %} \\
+{{ur.user.last_name}} & {{ur.orders.price|price}} {% for pc in ur.orders.purchases %} & {% if pc.price %}{{pc.price|price}} {% else %}\nope{% endif %} {% endfor %} \\
+\hline
+\end{longtable}
+{% endif %}
+{% endfor %}
+{% endwith %}
+{% endblock %}

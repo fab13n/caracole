@@ -89,3 +89,11 @@ def view_subgroup_purchases_latex(request, delivery):
     f = latex.subgroup(delivery, subgroup)
     return _non_html_response((delivery.network.name, delivery.name, subgroup.name), "pdf",
                               "application/pdf", f)
+
+def view_subgroup_cards_latex(request, delivery):
+    """View the purchases of a subgroup as an Adobe PDF file. Subgroup staff only."""
+    delivery = Delivery.objects.get(id=delivery)
+    subgroup = get_subgroup(request, delivery.network)
+    f = latex.cards(delivery, subgroup)
+    return _non_html_response((delivery.network.name, delivery.name, subgroup.name), "pdf",
+                              "application/pdf", f)
