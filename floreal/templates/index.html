@@ -119,7 +119,8 @@
       <li><em>[admin-sous-groupe]</em> Voir les commandes du sous-groupe {{nw.subgroup.name}} pour {{dv.delivery.name}}<br/>
         <a href="{% url 'view_subgroup_purchases_html' delivery=dv.delivery.id %}">en ligne <img src="{% static 'images/grid.png' %}"/></a>,
         <a href="{% url 'view_subgroup_purchases_xlsx' delivery=dv.delivery.id %}">dans un tableau Excel <img src="{% static 'images/excel.png' %}"/></a>,
-        <a href="{% url 'view_subgroup_purchases_latex' delivery=dv.delivery.id %}">en PDF <img src="{% static 'images/pdf.png' %}"/></a>
+        <a href="{% url 'view_subgroup_purchases_latex' delivery=dv.delivery.id %}">en PDF <img src="{% static 'images/pdf.png' %}"/></a>,
+        <a href="{% url 'view_subgroup_cards_latex' delivery=dv.delivery.id %}">en fiches individuelles <img src="{% static 'images/pdf.png' %}"/></a>
       </li>
       {% if dv.delivery.is_admin_open %}{# open or closed #}
       <li><em>[admin-sous-groupe]</em> <a href="{% url 'edit_subgroup_purchases' delivery=dv.delivery.id %}">
