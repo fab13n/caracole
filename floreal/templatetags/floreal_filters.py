@@ -16,3 +16,10 @@ def price_nocurrency(f):
 @register.filter
 def email(u):
     return '"%s %s" <%s>' % (u.first_name, u.last_name, u.email)
+
+@register.filter
+def unit_multiple(unit):
+    if unit[0].isdigit():
+        return u"×"+unit
+    else:
+        return u" "+unit

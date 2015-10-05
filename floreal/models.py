@@ -244,10 +244,11 @@ class Purchase(models.Model):
 
     def __unicode__(self, specify_user=False):
         if self.ordered == self.granted:
-            fmt = u"%(granted)g %(unit)s %(prod_name)s à %(price).2f€"
+            fmt = u"%(granted)g%(mult)s%(unit)s %(prod_name)s à %(price).2f€"
         else:
-            fmt = u"%(granted)g %(unit)s (au lieu de %(ordered)g) %(prod_name)s à %(price).2f€"
+            fmt = u"%(granted)g%(mult)s%(unit)s (au lieu de %(ordered)g) %(prod_name)s à %(price).2f€"
         result = fmt % {
+            'mult': u'×' if self.product.unit[0].isdigit() else u' ',
             'granted': self.granted,
             'ordered': self.ordered,
             'unit': plural(self.product.unit, self.granted),
