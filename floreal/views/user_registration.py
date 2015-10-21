@@ -87,8 +87,11 @@ def user_register(request):
                 sg = m.Subgroup.objects.get(id=d['subgroup'])
                 sg.users.add(user)
                 sg.save()
-            return HttpResponseRedirect('index')
+            return HttpResponseRedirect('registration_post.html')
         else:  # invalid form
             return render(request, 'registration/registration_form.html', {'form': form})
     else:
         return render(request, 'registration/registration_form.html', {'form': RegistrationForm()})
+
+def user_register_post(request):
+    return render(request, 'registration/registration_post.html', {})

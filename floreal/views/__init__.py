@@ -11,9 +11,10 @@ from django.http import HttpResponseForbidden
 from .. import models as m
 from .edit_subgroup_purchases import edit_subgroup_purchases
 from .edit_user_purchases import edit_user_purchases
-from .user_registration import user_register
+from .user_registration import user_register, user_register_post
 from .edit_delivery_products import edit_delivery_products
 from .edit_user_memberships import edit_user_memberships
+from .adjust_subgroup import adjust_subgroup
 from .view_purchases import \
     view_delivery_purchases_html, view_delivery_purchases_pdf, view_delivery_purchases_xlsx, \
     view_subgroup_purchases_html, view_subgroup_purchases_pdf, view_subgroup_purchases_xlsx, \
