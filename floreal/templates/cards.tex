@@ -1,21 +1,66 @@
 {% extends 'common.tex' %}
 {% load latex %}
+
+{% block documentclassparams %}a4paper,french,10pt,landscape{% endblock %}
+
+{% block preamble %}
+\usepackage{multicol}
+\setlength{\columnseprule}{0.5pt}
+\usepackage{adjustbox}
+\usepackage[empty,cm]{fullpage}
+\newlength{\orderheight}
+% max_order_size = {{d.max_order_size}}
+{% if d.max_order_size > 16 %}
+\setlength{\orderheight}{180mm}  % One order per column
+{% elif d.max_order_size > 10 %}
+\setlength{\orderheight}{85mm}  % Two orders per column
+{% else %}
+\setlength{\orderheight}{58mm}  % Three orders per column
+{% endif %}
+{% endblock %}
+
 {% block content %}
+\begin{multicols}{2}
 {% with d.table.0 as t %}
 {% for ur in t.users %}
 {% if ur.orders.price %}
-\begin{longtable}{|r|c|{% for _ in d.products %}l|{% endfor %}}
+% product | unit price | ordered qty | ordered price | granted qty | granted price
+{# minipage=[alignment][height]{width} #}
+{# more than 16 lines, 1 per column, 180mm #}
+{# up to 16 lines, 2 per column, 85mm #}
+{# up to x lines, 3 per column, 58mm #}
+\begin{adjustbox}{minipage=[c][\orderheight]{13cm}}
+\begin{tabular}[c]{|r|l|rl|r|p{1cm}|p{1cm}|}
+\cline{3-7}
+\multicolumn{2}{c|}{\bf {{ur.user.first_name}} {{ur.user.last_name}}}&
+\multicolumn{3}{c|}{Commandés}&
+\multicolumn{2}{c|}{Livrés}\\
 \hline
-& \rb{Total} {% for pd in d.products %} & \rb{ {{pd.name}} } {% endfor %} \\
+{% for pc in ur.orders.purchases %}{% if pc.ordered %}
+{{pc.product.name}} &
+{{pc.product.price|price}}/{{pc.product.unit}} &
+{{pc.ordered|qty}} &
+{{pc.product.unit}} &
+{{pc.price|price}} & & \\
+{% endif %}{%endfor %}
+\hline \hline
+\multicolumn{1}{|r}{\hspace{40mm}Total} && {{ur.weight}} & kg & {\bf {{ur.price|price}}} &&\\
 \hline
-Prix unitaire& {{t.price|price}} {% for pd in d.products %} & {{pd.price|price}} {% endfor %}\\
-\hline
-\endhead
-{{ur.user.first_name}} & {% for pc in ur.orders.purchases %} & {% if pc.ordered %} {{pc.ordered|qty}} {% else %} \nope {% endif %}{% endfor %} \\
-{{ur.user.last_name}} & {{ur.orders.price|price}} {% for pc in ur.orders.purchases %} & {% if pc.price %}{{pc.price|price}} {% else %}\nope{% endif %} {% endfor %} \\
-\hline
-\end{longtable}
+\end{tabular}
+
+{\scriptsize\em Circuit court {{t.subgroup.network.name}},
+ sous-groupe {{t.subgroup.name}},
+ commande {{d.delivery.name}} }
+\end{adjustbox}
+{% if d.max_order_size > 16 %}
+{# One order per column #}
+{% elif d.max_order_size > 10 %}
+{% cycle "\hrule" "" %} {# Two orders per column #}
+{% else %}
+{% cycle "\hrule" "hrule" "" %} {# Three orders per column #}
+{% endif %}
 {% endif %}
 {% endfor %}
 {% endwith %}
+\end{multicols}
 {% endblock %}

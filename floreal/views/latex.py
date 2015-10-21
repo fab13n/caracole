@@ -28,6 +28,9 @@ def _run(descr, template_name):
 
 def cards(dv, sg):
     descr = delivery_description(dv, [sg])
+    # Maximum number of purchase lines in the delivery description
+    # TODO: won't work with multiple subgroups (multiple elements in ['table'])
+    descr['max_order_size'] = max(len(filter(lambda pc: pc, ur['orders'].purchases)) for ur in descr['table'][0]['users'])
     return _run(descr, "cards.tex")
 
 def subgroup(dv, sg):

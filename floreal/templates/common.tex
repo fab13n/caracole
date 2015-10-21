@@ -1,6 +1,6 @@
 {% load latex %}
 {% autoescape off %}
-\documentclass[a4paper,french,10pt,landscape]{letter}
+\documentclass[{% block documentclassparams %}a4paper,french,10pt,landscape{% endblock %}]{letter}
 \usepackage[top=1cm, bottom=1cm, left=1cm, right=1cm]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
@@ -15,6 +15,7 @@
 \newcommand\nope{\multicolumn{1}{c|}{.}}
 \definecolor{lightgray}{gray}{0.9}
 \setlength\tabcolsep{1.5pt} % no space around table cells
+{% block preamble %}{% endblock %}
 \begin{document}
 {% block content %}{% endblock %}
 \end{document}

@@ -13,6 +13,7 @@ def price_nocurrency(f):
         return ur"%d{\scriptsize ,%02d}" % (euros, cents)
     else:
         return ur"%d" % euros
+
 @register.filter
 def price(f):
     euros = int(f)
