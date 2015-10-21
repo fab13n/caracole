@@ -1,0 +1,108 @@
+{% extends 'layout.html' %}
+{% load floreal_filters %}
+{% load static %}
+
+{% block head %}
+  <script type='text/javascript'>
+  // <![CDATA[
+    {# TODO: refactor in objects #}
+    var PRODUCT_IDS=[{% for pd in products %}{{pd.id}},{% endfor %}];
+    var QUANTITY_PER_PACKAGE={ {% for pd in products %}{{pd.id}}: {{pd.quantity_per_package|default_if_none:"false"}},{% endfor %} };
+    var PRODUCT_UNITS={ {% for pd in products %}{{pd.id}}: "{{pd.unit|unit_multiple}}",{% endfor %} };
+    var PRODUCT_PRICES={ {% for pd in products %}{{pd.id}}: "{{pd.price}}",{% endfor %} };
+
+    /* update per-line totals as well as delivery total */
+    function update_packaged_quantities() {
+      var total_price = 0;
+      for(var i=0; i<PRODUCT_IDS.length; i++) {
+        var pd_id = PRODUCT_IDS[i];
+        var qpp = QUANTITY_PER_PACKAGE[pd_id];
+        var quantity = parseFloat($("#pd"+pd_id+"-total").attr("value"));
+        if(qpp) {
+          var packages = Math.floor(quantity/qpp);
+          var loose = quantity % qpp;
+          $("#pd"+pd_id+"-packages").text(packages)
+          if(loose) {
+            $("#pd"+pd_id+"-loose").text(" + "+loose+PRODUCT_UNITS[pd_id]);
+          } else {
+            $("#pd"+pd_id+"-loose").text("");
+          }
+        }
+        var price = PRODUCT_PRICES[pd_id] * quantity;
+        $("#pd"+pd_id+"-price").text(price.toFixed(2));
+        total_price += price;
+      }
+      $("#total_price").text(total_price.toFixed(2));
+    }
+
+    function reset_order(id) {
+      $("#pd"+id+"-total").attr("value", "0");
+      update_packaged_quantities();
+    }
+
+    $(document).ready(function() {
+      $(":input").bind('keyup mouseup', update_packaged_quantities);
+      update_packaged_quantities();
+    })
+  // ]]>
+  </script>
+  <style type="text/css">
+    input.quantity { text-align: right; }
+	.total_cell { font-weight: bold; }
+    .product-name { text-align: right; }
+    td,th { text-align: left; padding-left: 10px; padding-right: 10px; }
+  </style>
+{% endblock %}
+
+{% block content %}
+<h1>Ajuster la commande</h1>
+<p></p>
+<form method="POST">
+    <table id="delivery-table">
+      <tr>
+        <th>Livraison :</th>
+        <td>{{delivery.network.name}} / {{delivery.name}}</td>
+      </tr>
+      <tr>
+        <th>Sous-groupe :</th>
+        <td>{{table.0.subgroup.name}}</td>
+      </tr>
+    </table>
+    <div style="height: 20px;"></div>
+    <table id="products-table">
+        {# columns: product-name | editable-quantity | unit | number-of-packages | price | reset-to-zero #}
+        <tr>
+            <th>Produit</th>
+            <th colspan="3">Quantité</th>
+            <th>Prix</th>
+            <th>Supprimer</th>
+        </tr>
+        {% for pt in product_totals %}
+        <tr>
+            <th class="product-name">{{pt.product.name}}</th>
+            <td><input class="quantity"
+                       id="pd{{pt.product.id}}-total"
+                       maxlength="64"
+                       name="pd{{pt.product.id}}"
+                       type="number"
+                       min="0" value="{{pt.quantity|floatformat}}"/></td>
+            <td>{{pt.product.unit|unit_multiple}}</td>
+            <td>
+                {% if pt.product.quantity_per_package %}
+                = <span id="pd{{pt.product.id}}-packages">XXX</span> ct <span id="pd{{pt.product.id}}-loose"> + XXX</span>
+                {% endif %}
+            </td>
+            <td><span id="pd{{pt.product.id}}-price">XXX</span>€</td>
+            <td><input type="image"
+                       src={% static 'images/minus.png' %}
+                       onclick="reset_order({{pt.product.id}}); return false"
+                       value="Remettre à 0"></td>
+        </tr>
+        {% endfor %}{# totals by product #}
+        <tr><th>Total:</th><td colspan="3"></td><th><span id="total_price">XXX</span>€</th></tr>
+    </table>
+    <input type="submit" value="Valider" />
+    <input type='hidden' name='dv-id' value='{{delivery.id}}' />
+    {% csrf_token %}
+</form>
+{% endblock %}
