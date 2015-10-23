@@ -21,7 +21,8 @@ def delivery_description(delivery, subgroups, **kwargs):
                                                                 "quantity": number,
                                                                 "full_packages": number,
                                                                 "out_of_packages": number,
-                                                                "weight": number },
+                                                                "weight": number,
+                                                                 "price": number},
                                      "users": user_idx -> { "user": user,
                                                             "orders": product_idx -> order,
                                                             "price": number,
@@ -65,11 +66,13 @@ def delivery_description(delivery, subgroups, **kwargs):
             if pc:
                 sg_pd_totals[sg][pc.product]['quantity'] += pc.granted
 
-    # Break up quantities in packages + loose items
+    # Break up quantities in packages + loose items, compute price
     for pd_totals in sg_pd_totals.itervalues():
         for pd, totals in pd_totals.iteritems():
             qty = totals['quantity']
             qpp = pd.quantity_per_package
+            totals['price'] = qty * totals['product'].price
+            totals['weight'] = qty * totals['product'].unit_weight
             if qpp:
                 totals['full_packages'] = qty // qpp
                 totals['out_of_packages'] = qty % qpp
@@ -90,9 +93,10 @@ def delivery_description(delivery, subgroups, **kwargs):
     #                   "totals": product_idx -> { "product": product,
     #                                              "quantity": number,
     #                                              "full_packages": number,
-    #                                              "out_of_packages": number }.
+    #                                              "out_of_packages": number,
+    #                                              "price": number},
     #                   "users": user_idx -> { "user": user,
-    #                                          "orders": product_idx -> order.
+    #                                          "orders": product_idx -> order,
     #                                          "price": number,
     #                                          "weight": number },
     #                   "price": number,

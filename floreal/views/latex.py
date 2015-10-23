@@ -31,12 +31,13 @@ def cards(dv, sg):
     # Maximum number of purchase lines in the delivery description
     # TODO: won't work with multiple subgroups (multiple elements in ['table'])
     descr['max_order_size'] = max(len(filter(lambda pc: pc, ur['orders'].purchases)) for ur in descr['table'][0]['users'])
-    return _run(descr, "cards.tex")
+    return _run(descr, "subgroup-cards.tex")
 
 def subgroup(dv, sg):
     descr = delivery_description(dv, [sg])
-    return _run(descr, "subgroup.tex")
+    return _run(descr, "subgroup-table.tex")
 
 def delivery(dv):
     descr = delivery_description(dv, dv.network.subgroup_set.all())
-    return _run(descr, "delivery.tex")
+    # return _run(descr, "delivery-table.tex")
+    return _run(descr, "delivery-list.tex")

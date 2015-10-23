@@ -26,9 +26,6 @@
 {% if ur.orders.price %}
 % product | unit price | ordered qty | ordered price | granted qty | granted price
 {# minipage=[alignment][height]{width} #}
-{# more than 16 lines, 1 per column, 180mm #}
-{# up to 16 lines, 2 per column, 85mm #}
-{# up to x lines, 3 per column, 58mm #}
 \begin{adjustbox}{minipage=[c][\orderheight]{13cm}}
 \begin{tabular}[c]{|r|l|rl|r|p{1cm}|p{1cm}|}
 \cline{3-7}
