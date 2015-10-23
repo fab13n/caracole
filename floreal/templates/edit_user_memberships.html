@@ -66,6 +66,8 @@
       if(c.startsWith('user-of-subgroup-')) { row.removeClass(c); }
     }
     row.addClass('user-of-subgroup-'+sgid);
+    // Disable admin checkboxes iff non-member
+    $("#u"+uid+" input[type=checkbox]").prop("disabled", sgid==-1)
     mark_user_modified(uid);
   };
 
