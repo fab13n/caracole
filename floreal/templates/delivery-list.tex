@@ -1,0 +1,52 @@
+{% extends 'common.tex' %}
+{% load latex %}
+
+{% block documentclassparams %}a4paper,french,10pt{% endblock %}
+
+{% block content %}
+
+% product | price / unit | qty | price | weight
+\begin{longtable}{|r|r@{/}l| l |r|r|}
+\multicolumn{6}{c}{\em Circuit court {{d.delivery.network.name}}, commande {{d.delivery.name}}}\\
+\multicolumn{6}{c}{}\\
+{% for table in d.table %}{# for each subgroup summary #}
+  {% if table.price %}{# some orders in this subgroup #}
+    \cline{4-6}
+    \multicolumn{3}{c|}{\bf Sous-groupe {{table.subgroup.name}}}
+    &
+    {Quantité}
+    &
+    {Prix}
+    &
+    {Poids}
+    \\
+    \hline
+    {% for totals in table.totals %}{# for each product #}
+      {% if totals.quantity %}{# some order of this product in this subgroup #}
+        {{totals.product.name}}
+        &
+        {{totals.product.price|price}}
+        &
+        {{totals.product.unit}}
+        &
+        {% if totals.full_packages == None %}
+          {{totals.quantity|qty}}{{totals.product.unit|unit}}
+        {% else %}
+          {{totals.full_packages|qty}}\ct
+          {% if totals.out_of_packages %} + {{totals.out_of_packages|qty}}{{totals.product.unit|unit}}{% endif %}
+        {% endif %}{# packaged #}
+        &
+        {{totals.price |price}}
+        &
+        {{totals.weight}}{{"kg"|unit}}
+        \\
+      {% endif %}{# some order of this product in this subgroup #}
+    {% endfor %}{# for each product #}
+    \hline
+    {# for each subgroup summary #}\multicolumn{4}{|c|}{\bf Total} & {{table.price|price}} & {{table.weight}}{{"kg"|unit}} \\
+    \hline
+    \multicolumn{6}{c}{ }\\  % space between subgroups
+  {% endif %}{# some orders in this subgroup #}
+{% endfor %}{# for each subgroup summary #}
+\end{longtable}
+{% endblock %}
