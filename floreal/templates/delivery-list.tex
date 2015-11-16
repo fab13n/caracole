@@ -30,20 +30,20 @@
         {{totals.product.unit}}
         &
         {% if totals.full_packages == None %}
-          {{totals.quantity|qty}}{{totals.product.unit|unit}}
+          {{totals.quantity|qty}}{{totals.product.unit|short_unit}}
         {% else %}
           {{totals.full_packages|qty}}\ct
-          {% if totals.out_of_packages %} + {{totals.out_of_packages|qty}}{{totals.product.unit|unit}}{% endif %}
+          {% if totals.out_of_packages %} + {{totals.out_of_packages|qty}}{{totals.product.unit|short_unit}}{% endif %}
         {% endif %}{# packaged #}
         &
         {{totals.price |price}}
         &
-        {{totals.weight}}{{"kg"|unit}}
+        {{totals.weight}}{{"kg"|short_unit}}
         \\
       {% endif %}{# some order of this product in this subgroup #}
     {% endfor %}{# for each product #}
     \hline
-    {# for each subgroup summary #}\multicolumn{4}{|c|}{\bf Total} & {{table.price|price}} & {{table.weight}}{{"kg"|unit}} \\
+    {# for each subgroup summary #}\multicolumn{4}{|c|}{\bf Total} & {{table.price|price}} & {{table.weight}}{{"kg"|short_unit}} \\
     \hline
     \multicolumn{6}{c}{ }\\  % space between subgroups
   {% endif %}{# some orders in this subgroup #}
