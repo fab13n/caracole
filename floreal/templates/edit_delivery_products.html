@@ -27,7 +27,7 @@
       var inputs = $("#"+prefix+"-row input[type=number], #"+prefix+"-row input[type=text]")
       if( deleted) {
         $("#"+prefix+"-row").addClass('deleted');
-        inputs.attr('disabled', 'disable');
+        inputs.attr('disabled', 'disabled');
       } else {
         $("#"+prefix+"-row").removeClass('deleted');
         inputs.removeAttr('disabled');

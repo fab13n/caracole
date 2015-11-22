@@ -28,8 +28,7 @@
   <li> <div title="({{dv.delivery.name}}: {{state}})">
     {% if state == "Archived" %}
     {% if nw.is_network_staff %}
-    <em>[admin]</em> Commande {{dv.delivery.name}}:
-    archivée ;
+    <em>[admin]</em> Commande {{dv.delivery.name}}: archivée ;
     <a href="{% url 'view_delivery_purchases_html' delivery=dv.delivery.id %}">voir</a>,
     <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Closed'%}">réactiver</a>.
     {% endif %}{# archived & is_network_staff #}
@@ -70,8 +69,6 @@
           {% else %}Commande en cours de préparation :
           les membres ne peuvent pas encore commander, vous pouvez modifier librement les produits proposés et leurs prix.
           {% endif %}<br/>
-
-
           <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Open'%}">
             autoriser les commandes <img src="{% static 'images/purchase.png' %}"/></a>,
           <a href="{% url 'set_delivery_state' delivery=dv.delivery.id state='Finalized'%}">
@@ -80,21 +77,15 @@
             archiver <img src="{% static 'images/bin.png' %}"/></a>
       </li>
       {% if state == "Closed" %}
-      {% if 0 %}{# finalization currently disabled #}
-      {% with dv.delivery.getFinalizationStatus as status %}
-      {% if status.unfinalized %}
-      <ul>
-        {% if status.finalized %}
-        <li>Commande finalisée pour les sous-groupes :<br/>
-          <span class="yes">{% for sg in status.finalized %} {{sg.name}}{% endfor %}</span>.</li>
-        {% endif %}
-        <li>Commande non finalisée pour les sous-groupes :<br/>
-          <span class="no">{% for sg in status.unfinalized %} {{sg.name}}{% endfor %}</span>.</li>
-      </ul>
-      {% else %}{# All subgroups finalized #}
-      <li><span class="yes">Tous les sous-groupes ont finalisé la commande.</span> </li>
-      {% endif %}{# Some unfinalized subgroups? #}
-      {% endwith %}{# finalization status #}
+      {% if 1 %}{# finalization enabled #}
+      {% with dv.delivery.getSubgroupStates as sg_states %}
+      <li>Sous-groupes pas encore vérifiés par leurs admins :
+      {% for sg in sg_states.1 %}<span class="sg4dvd-state-1">{{sg.name}}</span> {% empty %}aucun ;{% endfor %}</li>
+      <li>Sous-groupes dont la commande est prête :
+      {% for sg in sg_states.2 %}<span class="sg4dvd-state-2">{{sg.name}}</span> {% empty %}aucun ;{% endfor %}</li>
+      <li>Sous-groupes dont les comptes ont été validés :
+      {% for sg in sg_states.3 %}<span class="sg4dvd-state-3">{{sg.name}}</span> {% empty %}aucun ;{% endfor %}</li>
+      {% endwith %}{# subgroup states #}
       {% endif %}{# delivery closed #}
       {% endif %}{# finalization currently disabled #}
       {% else %}{# not finalized, not in preparation #}
@@ -127,15 +118,25 @@
         Modifier les commandes du sous-groupe {{nw.subgroup.name}} <img src="{% static 'images/edit.png' %}"/>
       </a></li>
       {% endif %}
-      {% if 0 %}{# finalization currently disabled #}
+      {% if 1 %}{# finalization enabled #}
       {% if state == "Closed" %}
       <li>
-        <em>[admin-sous-groupe]</em>
-        {% if dv.finalized %}
-        <a href="{% url 'set_unfinalized' delivery=dv.delivery.id subgroup=nw.subgroup.id %}">Annuler la finalisation pour le sous-groupe {{nw.subgroup.name}}</a>
-        {% else %}
-        <a href="{% url 'set_finalized' delivery=dv.delivery.id subgroup=nw.subgroup.id %}" class="yes">finaliser pour le sous-groupe {{nw.subgroup.name}}</a>
-        {% endif %}
+        <em>[admin-sous-groupe]</em> État de la commande pour le sous-groupe {{nw.subgroup.name}} :
+        <form method="post" action="{% url 'set_subgroup_state_for_delivery' %}" id="set-subgroup-state-dv{{dv.delivery.id}}">
+          <input type="hidden" name="dv" value="{{dv.delivery.id}}"/>
+          <input type="hidden" name="sg" value="{{nw.subgroup.id}}"/>
+          <input type="radio" name="state" value="1"/><span class="sg4dv-state-1">Non revue</span>
+          <input type="radio" name="state" value="2"/><span class="sg4dv-state-2">Validée pour livraison</span>
+          <input type="radio" name="state" value="3"/><span class="sg4dv-state-3">Corrigée après livraison</span>
+          <input type="submit" name="submit" id="dv{{dv.delivery.id}}-set-subgroup-state-submit" value="Valider"/>
+        </form>
+        <script type='text/javascript'>
+          $("#set-subgroup-state-dv{{dv.delivery.id}} input:radio[value={{dv.subgroup_state}}]").prop("checked", true);
+          $("#set-subgroup-state-dv{{dv.delivery.id}} input:submit").attr("disabled", "disabled");
+          $("#set-subgroup-state-dv{{dv.delivery.id}} input:radio").change(function() {
+            $("#set-subgroup-state-dv{{dv.delivery.id}} input:submit").removeAttr("disabled");
+          })
+        </script>
       </li>
       {% endif %}{# state == closed #}
       {% endif %}{# finalization currently disabled #}

@@ -40,9 +40,8 @@ def index(request):
             if user in sg.users.all():
                 nw2user_of[nw] = sg
 
-    def is_subgroup_finalized(dv, sg):
-        return dv.state=='C' and dv.finalizedFor.filter(id=sg.id).exists()
-
+    def subgroup_state(dv, sg):
+        return dv.state == 'C' and dv.get_stateForSubgroup(sg)
 
     vars = {'user': user,
             'networks': [{'network': nw,
@@ -51,7 +50,7 @@ def index(request):
                           'is_network_staff': user in nw.staff.all(),
                           'deliveries': [{'delivery': dv,
                                           'order': m.Order(user, dv),
-                                          'finalized': is_subgroup_finalized(dv, nw2user_of[nw])
+                                          'subgroup_state': subgroup_state(dv, nw2user_of[nw])
                                           } for dv in nw.delivery_set.all()],
                           } for nw in user_networks]
             }
@@ -88,16 +87,12 @@ def set_delivery_state(request, delivery, state):
     delivery.save()
     return redirect('index')
 
-def set_finalization(request, delivery, subgroup, state):
-    """Mark the delivery as finalized for this subgroup."""
-    delivery = m.Delivery.objects.get(id=delivery)
-    subgroup = m.Subgroup.objects.get(id=subgroup)
-    if request.user not in subgroup.staff.all():
-        return HttpResponseForbidden('Réservé aux administrateurs de sous-groupe')
-    if state:
-        delivery.finalizedFor.add(subgroup)
-    else:
-        delivery.finalizedFor.remove(subgroup)
+def set_subgroup_state_for_delivery(request):
+    """Change the delivery state for this subgroup."""
+    delivery = m.Delivery.objects.get(id=request.POST.get('dv'))
+    subgroup = m.Subgroup.objects.get(id=request.POST.get('sg'))
+    state = int(request.POST.get('state'))
+    delivery.set_stateForSubgroup(subgroup, state)
     return redirect('index')
 
 

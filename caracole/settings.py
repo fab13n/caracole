@@ -34,7 +34,7 @@ EMAIL_SUBJECT_PREFIX = '[Circuits Courts Caracole] '
 MAX_USERNAME_LENGTH = 128
 MAX_EMAIL_LENGTH = 128
 REQUIRE_UNIQUE_EMAIL = False
-SELECT_SUBGROUPS_UPON_REGISTRATION = True
+SELECT_SUBGROUPS_UPON_REGISTRATION = False
 
 # Application definition
 
@@ -66,12 +66,8 @@ WSGI_APPLICATION = 'caracole.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'caracole',
-        'USER': 'caracole',
-        'PASSWORD': 'caracole',
-        'HOST': 'localhost',
-        'PORT': '',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': '/home/fabien/src/caracole/database.sqlite3'
     }
 }
 
@@ -84,7 +80,7 @@ USE_I18N = True
 USE_L10N = False
 USE_TZ = True
 
-LOGIN_REDIRECT_URL = "index"
+LOGIN_REDIRECT_URL = "/"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
@@ -95,6 +91,4 @@ STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "floreal", "static"),
 )
 
-AUTHENTICATION_BACKENDS = (
-    'django.contrib.auth.backends.ModelBackend',
-    'floreal.legacy_auth_backend.LegacyBackend')
+AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend',)

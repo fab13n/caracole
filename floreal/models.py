@@ -160,7 +160,21 @@ class Delivery(models.Model):
     name = models.CharField(max_length=64)
     network = models.ForeignKey(Network)
     state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=PREPARATION)
-    finalizedFor = models.ManyToManyField(Subgroup)  # Which groups have completed bookkeeping update after delivery
+
+    def get_stateForSubgroup(self, sg):
+        try:
+            return self.subgroupstatefordelivery_set.get(delivery=self, subgroup=sg).state
+        except models.ObjectDoesNotExist:
+            return 1
+
+    def set_stateForSubgroup(self, sg, state):
+        try:
+            x = self.subgroupstatefordelivery_set.get(delivery=self, subgroup=sg)
+            x.state = state
+            x.save()
+        except models.ObjectDoesNotExist:
+            SubgroupStateForDelivery.objects.create(delivery=self, subgroup=sg, state=state)
+
 
     def __unicode__(self):
         return "%s/%s" % (self.network.name, self.name)
@@ -172,21 +186,26 @@ class Delivery(models.Model):
     def state_name(self):
         return self.STATE_CHOICES[self.state]
 
-    def getFinalizationStatus(self):
-        """Retrieve every subgroup of the network which hasn't finalized this delivery yet."""
-        if self.state == self.ARCHIVED:
-            return True
-        if self.state != self.CLOSED:
-            return False
-        subgroups = self.network.subgroup_set.all()
-        finalized = self.finalizedFor.all()
-        unfinalized = subgroups.exclude(id__in=set(sg.id for sg in finalized))
-        return {'finalized': finalized, 'unfinalized': unfinalized}
+    def getSubgroupStates(self):
+        """Returns three lists of subgroups, sorted by state wrt this command."""
+        result = [None, [], [], []]
+        for s in SubgroupStateForDelivery.objects.filter(delivery=self):
+            result[s.state].append(s.subgroup)
+        return result
 
     class Meta:
         verbose_name_plural = "Deliveries"
         unique_together = (('network', 'name'),)
         ordering = ('-id',)
+
+
+class SubgroupStateForDelivery(models.Model):
+    INITIAL = 1
+    READY_FOR_DELIVERY = 2
+    READY_FOR_ACCOUNTING = 3
+    state = models.PositiveSmallIntegerField()
+    delivery = models.ForeignKey(Delivery)
+    subgroup = models.ForeignKey(Subgroup)
 
 
 class Product(models.Model):

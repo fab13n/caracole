@@ -283,6 +283,12 @@ em { font-style: normal; color: #811305; font-weight: bold; }
     margin:           10px;
 }
 
+[type=submit]:disabled {
+    color:            white;
+    background-color: #818181;
+    border-color: #818181;
+}
+
 table {
     border-collapse: collapse; 
 }
