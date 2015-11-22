@@ -45,7 +45,11 @@
       var msgid = "pd"+id+"-quantum-error";
       if(quantum) {
         var ordered = Number($("#pd"+id+"-ordered_quantity").val());
-        if(ordered % quantum == 0) { // Remove any message (there might be none)
+        var reminder = Math.abs(ordered % quantum)
+        var EPSILON = 1e-9;
+        if(reminder <= EPSILON || reminder >= quantum-EPSILON ) {
+          // Test allows an EPSILON error, because of double rounding errors wrt powers of 5
+          // If they're multiple, remove the message (nothing happens if there weren't one)
           $("#"+msgid).remove();
           return true; // no error
         } else if($("#"+msgid).length == 0) { // A message is needed and there is none
