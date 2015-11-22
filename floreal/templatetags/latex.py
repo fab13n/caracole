@@ -1,9 +1,35 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import re
+
 from django import template
 
+
 register = template.Library()
+
+_unsafe_tex_chars = {
+        '&': r'\&',
+        '%': r'\%',
+        '$': r'\$',
+        '#': r'\#',
+        '_': r'\_',
+        '{': r'\{',
+        '}': r'\}',
+        '~': r'\textasciitilde{}',
+        '^': r'\^{}',
+        '\\': r'\textbackslash{}',
+        '<': r'\textless',
+        '>': r'\textgreater',
+    }
+_unsafe_tex_regex = re.compile('|'.join(re.escape(unicode(key))
+                                        for key in sorted(_unsafe_tex_chars.keys(), key=lambda item: - len(item))))
+
+@register.filter
+def tex_safe(x):
+    """Escape TeX's special characters."""
+    return _unsafe_tex_regex.sub(lambda match: _unsafe_tex_chars[match.group()], x)
+
 
 @register.filter
 def price_nocurrency(f):
@@ -25,14 +51,19 @@ def price(f):
 
 @register.filter
 def qty(f):
-    s = (u"%g" % f).rstrip('0').rstrip('.')
-    if len(s) == 0:
-        return u"0"
-    else:
-        return s
+    return u"%g" % f
 
 @register.filter
-def unit(u):
+def short_unit(u):
     if u != 'kg':
         u = 'pc'
     return ur"{\scriptsize %s}" % u
+
+@register.filter
+def unit(u):
+    if u[0].isdigit():
+        return r"$\times$" + tex_safe(u)
+    else:
+        return tex_safe(u)
+
+
