@@ -38,12 +38,12 @@
         &
         {{totals.price |price}}
         &
-        {{totals.weight}}{{"kg"|unit}}
+        {{totals.weight|qty}}{{"kg"|unit}}
         \\
       {% endif %}{# some order of this product in this subgroup #}
     {% endfor %}{# for each product #}
     \hline
-    {# for each subgroup summary #}\multicolumn{4}{|c|}{\bf Total} & {{table.price|price}} & {{table.weight}}{{"kg"|unit}} \\
+    {# for each subgroup summary #}\multicolumn{4}{|c|}{\bf Total} & {{table.price|price}} & {{table.weight|qty}}{{"kg"|unit}} \\
     \hline
     \multicolumn{6}{c}{ }\\  % space between subgroups
   {% endif %}{# some orders in this subgroup #}
