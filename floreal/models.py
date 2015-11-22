@@ -202,13 +202,13 @@ class Delivery(models.Model):
         ordering = ('-id',)
 
 
-class Section(models.Model):
-    """Products are optionally sorted into sections, so that their display to customers can be organized.
-    The list of available sections is specific to a network. Sections can be nested."""
-    name = models.CharField(max_length=64)
-    network = models.ForeignKey(Network)
-    parent = models.ForeignKey('Section', null=True, blank=True, default=None)
-    is_active = models.BooleanField(default=True)  # Use this instead of deleting unused sections
+#class Section(models.Model):
+#    """Products are optionally sorted into sections, so that their display to customers can be organized.
+#    The list of available sections is specific to a network. Sections can be nested."""
+#    name = models.CharField(max_length=64)
+#    network = models.ForeignKey(Network)
+#    parent = models.ForeignKey('Section', null=True, blank=True, default=None)
+#    is_active = models.BooleanField(default=True)  # Use this instead of deleting unused sections
 
 
 class Product(models.Model):
@@ -218,7 +218,7 @@ class Product(models.Model):
     """
 
     name = models.CharField(max_length=64)
-    section = models.ForeignKey(Section, null=True, blank=True, default=None)
+    # section = models.ForeignKey(Section, null=True, blank=True, default=None)
     delivery = models.ForeignKey(Delivery)
     price = models.DecimalField(decimal_places=2, max_digits=6)
     quantity_per_package = models.IntegerField(null=True, blank=True)
