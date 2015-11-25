@@ -28,7 +28,7 @@ def edit_user_memberships(request, network):
             subgroups = u.user_of_subgroup
             r['subgroup'] = subgroups.get(network=network).id
         except m.Subgroup.DoesNotExist:
-            r['subgroup'] = -1 # if subgroups.exists() else -2
+            r['subgroup'] = -1 if subgroups.exists() else -2
         except m.Subgroup.MultipleObjectsReturned:
             raise ValueError("User %s belong to several subgroups of the same network!" % u.username)
         r['is_subgroup_admin'] = u.staff_of_subgroup.filter(network=network).exists()

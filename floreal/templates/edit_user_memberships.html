@@ -17,15 +17,21 @@
       padding: 5px 10px;
       // background-color: white;
     }
-    th.name {
+    th.name, th.email {
       text-align: right;
       white-space: nowrap;
     }
-    tr.modified th.name {
+    tr.modified th.name,tr.modified th.email {
        font-style: italic;
     }
     tr.user-of-subgroup--1 {
        background-color: #c0c0c0;
+    }
+    tr.user-of-subgroup--2 {
+       background-color: #808080;
+    }
+    td.radio-subgroup:nth-child(3n+2) {
+       border-left: 1px solid #ccc;
     }
   </style>
   <script type='text/javascript'>
@@ -41,6 +47,10 @@
       $("#u"+uid+"-sg"+r.subgroup).prop("checked", true);
       if( r.is_subgroup_admin) { $("[name=u"+uid+"-subgroup-admin]").prop("checked", true); }
       if( r.is_network_admin) { $("[name=u"+uid+"-network-admin]").prop("checked", true); }
+      if(r.subgroup < 0) {
+        var invalid_choice = r.subgroup == -1 ? -2 : -1;
+        $("#u"+uid+"-sg"+invalid_choice).attr("disabled", "disabled");
+      }
     }
   };
 
@@ -111,7 +121,8 @@
   <a href="#" onclick="show_all();">Tous</a>
   {% for sg in subgroups %}
   <a href="#" onclick="hide_all_but_subgroup('{{sg.id}}');">{{sg.name}}</a>{% endfor %}
-  <a href="#" onclick="hide_all_but_subgroup(-1);">Non-membre</a>
+  <a href="#" onclick="hide_all_but_subgroup(-1);">Membre d'autres réseaux</a>
+  <a href="#" onclick="hide_all_but_subgroup(-2);">Non-membres</a>
 </p>
 
 <form method="post" action="#">
@@ -119,21 +130,24 @@
   <input type="hidden" id="modified-users" name="modified" value=""/>
   <table>
     <tr>
-      <td><input id="submit" type="submit" value="Sauvegarder" onclick="disable_unmodified_inputs()" disabled="true"/></td>
+      <td colspan="2"><input id="submit" type="submit" value="Sauvegarder" onclick="disable_unmodified_inputs()" disabled="true"/></td>
       <th class="rotate"><div><span>Admin réseau</span></div></th>
       <th class="rotate"><div><span>Admin sous-groupe</span></div></th>
       {% for sg in subgroups %}
       <th class="rotate"><div><span>{{sg.name}}</span></div></th>{% endfor %}
+      <th class="rotate"><div><span>Membre d'autres réseaux</span></div></th>
       <th class="rotate"><div><span>Non-membre</span></div></th>
     </tr>
     {% for u in users %}
     <tr id="u{{u.id}}" class="user-starts-with-{{u.initial}} user-of-subgroup-{{u.subgroup}} user">
-      <th class="name" title='{{u.email}}'>{{u.name}}</th>
+      <th class="email">{{u.email}}</th>
+      <th class="name">{{u.name}}</th>
       <td><input type="checkbox" name="u{{u.id}}-network-admin" onclick="mark_user_modified({{u.id}});"/></td>
       <td><input type="checkbox" name="u{{u.id}}-subgroup-admin" onclick="mark_user_modified({{u.id}});"/></td>
       {% for sg in subgroups %}
-      <td><input type="radio" id="u{{u.id}}-sg{{sg.id}}" name="u{{u.id}}-sg" value="{{sg.id}}" onclick="update_user_group({{u.id}}, {{sg.id}});"/></td>{% endfor %}
+      <td class="radio-subgroup"><input type="radio" id="u{{u.id}}-sg{{sg.id}}" name="u{{u.id}}-sg" value="{{sg.id}}" onclick="update_user_group({{u.id}}, {{sg.id}});"/></td>{% endfor %}
       <td><input type="radio" id="u{{u.id}}-sg-1" name="u{{u.id}}-sg" value="-1" onclick="update_user_group({{u.id}}, -1);"/></td>
+      <td><input type="radio" id="u{{u.id}}-sg-2" name="u{{u.id}}-sg" value="-2" onclick="update_user_group({{u.id}}, -2);"/></td>
     </tr>
     {% endfor %}
   </table>
