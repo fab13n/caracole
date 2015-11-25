@@ -22,11 +22,13 @@ def edit_user_memberships(request, network):
             return redirect("edit_user_memberships", network=network.id)
 
     def parse_user(u):
+        # TODO: cache admin tables
         r = {'id': u.id, 'name': u.first_name + ' ' + u.last_name, 'email': u.email}
         try:
-            r['subgroup'] = u.user_of_subgroup.get(network=network).id
+            subgroups = u.user_of_subgroup
+            r['subgroup'] = subgroups.get(network=network).id
         except m.Subgroup.DoesNotExist:
-            r['subgroup'] = -1
+            r['subgroup'] = -1 # if subgroups.exists() else -2
         except m.Subgroup.MultipleObjectsReturned:
             raise ValueError("User %s belong to several subgroups of the same network!" % u.username)
         r['is_subgroup_admin'] = u.staff_of_subgroup.filter(network=network).exists()
@@ -35,7 +37,8 @@ def edit_user_memberships(request, network):
         return r
     def is_extra(u):
         return u.user_of_subgroup.filter(extra_user=u).exists()
-    users = [parse_user(u) for u in m.User.objects.order_by('last_name') if not is_extra(u)]
+    users = [parse_user(u) for u in m.User.objects.filter(is_active=True)
+                                                  .order_by('last_name') if not is_extra(u)]
     vars = {'user': request.user,
             'network': network,
             'users': users,
