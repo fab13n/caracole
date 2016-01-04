@@ -45,13 +45,13 @@
           Télécharger:
           {% if table|length > 1 %}
             <ul>
-              <li><a href="{% url 'view_delivery_purchases_xlsx' delivery=delivery.id %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
-              <li><a href="{% url 'view_delivery_purchases_latex' delivery=delivery.id %}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
+              <li><a href="{% url 'view_all_purchases_xlsx' delivery=delivery.id %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
+              <li><a href="{% url 'view_all_purchases_latex' delivery=delivery.id %}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
             </ul>
           {% else %}
             <ul>
-              <li><a href="{% url 'view_subgroup_purchases_xlsx' delivery=delivery.id %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
-              <li><a href="{% url 'view_subgroup_purchases_latex' delivery=delivery.id %}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
+              <li><a href="{% url 'view_subgroup_purchases_xlsx' delivery=delivery.id subgroup=xxx %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
+              <li><a href="{% url 'view_subgroup_purchases_latex' delivery=delivery.id subgroup=xxx%}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
             </ul>
           {% endif %}
         </td>
@@ -113,7 +113,7 @@
         <th class="left">{{sgr.subgroup.name}}</th>
         <td>{{sgr.price|price}}</td>
         {% for t in sgr.totals %}
-        <td>{{t.quantity|floatformat}}</td>
+        <td>{% if t.quantity %}{{t.quantity|floatformat}}{% else %}-{% endif %}</td>
         {% endfor %}
     </tr>
     {% endif %}
@@ -139,9 +139,9 @@
     </tr>
     {% endif %}{# price == 0, no purchase by this user #}
     {% endfor %}{# users within subgroup #}
-    {% else %}{# nopurchase for this subgroup #}
+    {% else %}{# no purchase for this subgroup #}
     <tr class="user_row subgroup_{{sgr.subgroup.id}}_user_row">
-      <th></th><td>-</td><td colspan="{{sgr.totals|length}}">aucun achat pour {{sgr.subgroup.name}}</td>
+      <th></th><td>-</td><td colspan="{{sgr.totals|length}}">aucun achat pour le sous-groupe {{sgr.subgroup.name}}</td>
     </tr>
     {% endif %}
     {% endfor %}{# subgroup #}

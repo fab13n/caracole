@@ -11,11 +11,11 @@ from ..penury import set_limit
 from .delivery_description import delivery_description
 from .view_purchases import get_subgroup
 
-def edit_subgroup_purchases(request, delivery):
+def edit_subgroup_purchases(request, delivery, subgroup):
     """Allows to change the purchases of user's subgroup. Subgroup staff only."""
     delivery = m.Delivery.objects.get(id=delivery)
     user = request.user
-    subgroup = get_subgroup(request, delivery.network)
+    subgroup = m.Subgroup.objects.get(id=subgroup)
 
     if user not in subgroup.staff.all() and user not in delivery.network.staff.all():
         return HttpResponseForbidden('Réservé aux administrateurs du réseau ' + delivery.network.name + \

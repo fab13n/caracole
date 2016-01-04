@@ -16,9 +16,7 @@ from .edit_delivery_products import edit_delivery_products
 from .edit_user_memberships import edit_user_memberships
 from .adjust_subgroup import adjust_subgroup
 from .view_purchases import \
-    view_delivery_purchases_html, view_delivery_purchases_pdf, view_delivery_purchases_xlsx, \
-    view_subgroup_purchases_html, view_subgroup_purchases_pdf, view_subgroup_purchases_xlsx, \
-    view_subgroup_purchases_latex, view_delivery_purchases_latex, view_subgroup_cards_latex
+    view_purchases_html, view_purchases_pdf, view_purchases_latex, view_purchases_xlsx, view_cards_latex
 
 
 def index(request):
@@ -55,6 +53,26 @@ def index(request):
                           } for nw in user_networks]
             }
     return render_to_response('index.html', vars)
+
+
+def edit_delivery(request, delivery):
+    dv = m.Delivery.objects.get(id=delivery)
+    if dv.network.staff.filter(id=request.user.id).exists():
+        # All subgroups in the network for network admins
+        subgroups = dv.network.subgroup_set.all()
+    else:
+        # Only subgroups in which user in subgroup-admin
+        subgroups = dv.network.subgroup_set.filter(staff=request.user)
+    vars = {
+        'user': request.user,
+        'dv': dv,
+        'subgroups': subgroups,
+        'S': m.Delivery.STATE_CHOICES,
+        'CAN_VIEW_NETWORK': 1,  # always true for admins
+        'CAN_EDIT_PURCHASES': 1,  # state != frozen
+        'CAN_EDIT_PRODUCTS': 1,  # is network admin
+    }
+    return render_to_response('delivery-admin/edit.html', vars)
 
 
 def create_delivery(request, network):

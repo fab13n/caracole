@@ -147,16 +147,19 @@ class Delivery(models.Model):
     closed (only subgroup staff members can modify purchases), or
     delivered (nobody can modify it)."""
 
-    PREPARATION = 'P'  # In preparation: network admins haven't set all products and prices yet.
-    OPEN = 'O'         # Open for orders by regular users.
-    CLOSED = 'C'       # Closed fro regular users; subgroup admin can still correct the orders.
-    FINALIZED = 'F'    # Finalized: even subgroup admins can't access the delivery anymore.
-    ARCHIVED = 'A'     # Don't even display it anymore.
-    STATE_CHOICES = {PREPARATION: "Preparation",
-                     OPEN: "Open",
-                     CLOSED: "Closed",
-                     FINALIZED: "Finalized",
-                     ARCHIVED: "Archived"}
+    PREPARATION = 'A'
+    ORDERING_ALL = 'B'
+    ORDERING_ADMIN = 'C'
+    FROZEN = 'D'
+    REGULATING = 'E'
+    TERMINATED = 'F'
+    STATE_CHOICES = {
+        PREPARATION: u"En préparation",
+        ORDERING_ALL: u"Commande ouverte",
+        ORDERING_ADMIN: u"Commande réservée auxa dmins",
+        FROZEN: u"Gelée",
+        REGULATING: u"Régularisation en cours",
+        TERMINATED: u"Terminée" }
     name = models.CharField(max_length=64)
     network = models.ForeignKey(Network)
     state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=PREPARATION)

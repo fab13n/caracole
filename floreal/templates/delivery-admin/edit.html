@@ -1,0 +1,185 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block head %}
+<style type="text/css">
+    ol.progtrckr {
+        margin: 0;
+        padding: 0;
+        list-style-type: none;
+    }
+
+    ol.progtrckr li {
+        display: inline-block;
+        text-align: center;
+        line-height: 3em;
+    }
+
+    /*
+    ol.progtrckr[data-progtrckr-steps="2"] li { width: 49%; }
+    ol.progtrckr[data-progtrckr-steps="3"] li { width: 33%; }
+    ol.progtrckr[data-progtrckr-steps="4"] li { width: 24%; }
+    ol.progtrckr[data-progtrckr-steps="5"] li { width: 19%; }
+    ol.progtrckr[data-progtrckr-steps="6"] li { width: 16%; }
+    ol.progtrckr[data-progtrckr-steps="7"] li { width: 14%; }
+    ol.progtrckr[data-progtrckr-steps="8"] li { width: 12%; }
+    ol.progtrckr[data-progtrckr-steps="9"] li { width: 11%; }
+    */
+
+    ol.progtrckr li {
+      width: 15%;
+      font-size: 10px;
+    }
+
+    ol.progtrckr li.progtrckr-done {
+        color: black;
+        border-bottom: 4px solid #811305;
+    }
+    ol.progtrckr li.progtrckr-todo {
+        color: silver;
+        border-bottom: 4px solid silver;
+    }
+
+    ol.progtrckr li:after {
+        content: "\00a0\00a0";
+    }
+    ol.progtrckr li:before {
+        position: relative;
+        bottom: -2.5em;
+        float: left;
+        left: 50%;
+        line-height: 1em;
+    }
+    ol.progtrckr li.progtrckr-done:before {
+        content: "\2713";
+        color: white;
+        background-color: #811305;
+        height: 1.2em;
+        width: 1.2em;
+        line-height: 1.2em;
+        border: none;
+        border-radius: 1.2em;
+    }
+    ol.progtrckr li.progtrckr-todo:before {
+        content: "\039F";
+        color: silver;
+        background-color: white;
+        font-size: 1.5em;
+        bottom: -1.6em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h2>Gérer la commande "{{dv.name}}" de {{dv.network.name}}</h2>
+
+<ol class="progtrckr" data-progtrckr-steps="6">
+    <li class="progtrckr-done">Préparation</li>
+    <li class="progtrckr-done">Ouverte</li>
+    <li class="progtrckr-done">Admins</li>
+    <li class="progtrckr-done">Gelée</li>
+    <li class="progtrckr-todo">Ŕégularisation</li>
+    <li class="progtrckr-todo">Terminée</li>
+</ol>
+
+<p>
+    Vous êtes administrateur pour le réseau {{dv.network.name}}. La commande {{dv.name}} est
+    {% if dv.state == S.PREPARATION %}
+    <em>en préparation</em> : les membres n'ont pas encore été autorisés à commander.
+    {% elif dv.state == S.ORDERING_ALL %}
+    <em>en cours</em> : tous les membres peuvent passer commande.
+    {% elif dv.state == S.ORDERING_ADMIN %}
+    <em>réservée aux admins</em> : ils peuvent modifier les commandes des membres de leurs sous groupes, mais les
+    membres normaux ne peuvent plus commander ou modifier eux-mêmes.
+    {% elif dv.state == S.FROZEN %}
+    <em>envoyée et gelée</em> : la commande a été envoyée au producteur, plus personne ne peut la modifier
+    {% elif dv.state == S.REGULATING %}
+    <em>livrée, à régulariser</em> : les admins corrigent les différences entre ce qui a été commandé et ce qui a
+    effectivement été livré.
+    {% elif dv.state == S.TERMINATED %}
+    <em>terminée</em>.
+    {% endif %}
+    Vous pouvez :
+</p>
+<ul>
+    {# Next step #}
+    {% if dv.state == S.PREPARATION %}
+    <li>Passer à l'étape suivante : <a href="{% url 'index' %}">ouvrir la commande à tous</a>.</li>
+    {% elif dv.state == S.ORDERING_ALL %}
+    <li>Passer à l'étape suivante : <a href="{% url 'index' %}">réserver la commande aux admins</a>.</li>
+    {% elif dv.state == S.ORDERING_ADMIN %}
+    <li>Passer à l'étape suivante : <a href="{% url 'index' %}">geler la commande pour l'envoyer</a>.</li>
+    {% elif dv.state == S.FROZEN %}
+    <li>Passer à l'étape suivante : <a href="{% url 'index' %}">rouvrir aux admins pour régulariser la compta</a>.</li>
+    {% elif dv.state == S.REGULATING %}
+    <li>Passer à l'étape suivante : <a href="{% url 'index' %}">marquer la commande comme terminée</a>.</li>
+    {% elif dv.state == S.TERMINATED %}
+    <li>(aucune action, commande terminée)</li>
+    {% endif %}
+
+    {% if CAN_EDIT_PRODUCTS %}
+    <li><a href="{% url 'edit_delivery_products' delivery=dv.id %}">
+        Modifier la liste des produits proposés <img src="{% static 'images/edit.png' %}"/>
+    </a></li>
+    {% endif %}
+
+    {% if CAN_EDIT_PURCHASES %}
+    {% if subgroups|length == 0 %}
+    <!-- Aucun sous-groupe éditable -->
+    {% elif subgroups|length == 1 %}
+    {% with subgroups.0 as sg %}
+    <li><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id %}">
+        Modifier les commandes du sous-groupe {{sg.name}} <img src="{% static 'images/edit.png' %}"/>
+    </a></li>
+    {% endwith %}
+    {% else %}{# subgroups|length > 1 #}
+    <li>Modifier la commandes du sous-groupe <img src="{% static 'images/edit.png' %}"/> :
+        <ul>
+            {% for sg in dv.network.subgroup_set.all %}
+            <li style="display: inline-block;"><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id %}">{{sg.name}}</a></li>
+            {% endfor %}
+        </ul>
+    </li>
+    {% endif %}{# subgroups.length #}
+    {% endif %}{# CAN_EDIT_PURCHASES #}
+
+    {% if dv.state == S.TERMINATED %}
+    <li>TODO: réactiver</li>
+    {% else %}
+    {% if subgroups|length == 0 %}
+    <!-- Aucun sous-groupe visualisable -->
+    {% elif subgroups|length == 1 %}
+    {% with subgroups.0 as sg %}
+    <li>Voir les commandes du sous-groupe {{sg.name}} :<br/>
+        <a href="{% url 'view_subgroup_purchases_html' delivery=dv.id subgroup=sg.id %}">en ligne <img src="{% static 'images/grid.png' %}"/></a>,
+        <a href="{% url 'view_subgroup_purchases_xlsx' delivery=dv.id subgroup=sg.id %}">dans un tableau Excel <img src="{% static 'images/excel.png' %}"/></a>,
+        <a href="{% url 'view_subgroup_purchases_latex' delivery=dv.id subgroup=sg.id %}">en PDF <img src="{% static 'images/pdf.png' %}"/></a>,
+        <a href="{% url 'view_subgroup_cards_latex' delivery=dv.id subgroup=sg.id %}">en fiches individuelles <img src="{% static 'images/pdf.png' %}"/></a>
+    </li>
+    {% endwith %}
+    {% else %}{# subgroups|length > 1 #}
+    <li>Voir les commandes par sous-groupes :</li>
+    <table>
+        <tr><td></td><th>En ligne</th><th>Excel</th><th>PDF</th><th>Fiches</th></tr>
+        {% for sg in subgroups %}
+        <tr>
+            <th>{{sg.name}}</th>
+            <td><a href="{% url 'view_subgroup_purchases_html' delivery=dv.id subgroup=sg.id %}"><img src="{% static 'images/grid.png' %}"/</a></td>
+            <td><a href="{% url 'view_subgroup_purchases_xlsx' delivery=dv.id subgroup=sg.id  %}"><img src="{% static 'images/excel.png' %}"/></a></td>
+            <td><a href="{% url 'view_subgroup_purchases_latex' delivery=dv.id subgroup=sg.id  %}"><img src="{% static 'images/pdf.png' %}"/></a></td>
+            <td><a href="{% url 'view_subgroup_cards_latex' delivery=dv.id subgroup=sg.id  %}"><img src="{% static 'images/pdf.png' %}"/></a></td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}{# subgroups.length #}
+    {% if CAN_VIEW_NETWORK %}
+    <li>Voir toutes les commandes<br/>
+        <a href="{% url 'view_all_purchases_html' delivery=dv.id %}">en ligne <img src="{% static 'images/grid.png' %}"/></a>,
+        <a href="{% url 'view_all_purchases_xlsx' delivery=dv.id %}">dans un tableau Excel <img src="{% static 'images/excel.png' %}"/></a>,
+        <a href="{% url 'view_all_purchases_latex' delivery=dv.id %}">en PDF <img src="{% static 'images/pdf.png' %}"/></a>
+    </li>
+    {% endif %}{# CAN_VIEW_NETWORK #}
+    {% endif %}{# ! S.TERMINATED #}
+</ul>
+{% endblock %}
