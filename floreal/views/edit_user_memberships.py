@@ -11,38 +11,45 @@ from .. import models as m
 
 
 def edit_user_memberships(request, network):
-    network = m.Network.objects.get(id=network)
-    if request.user not in network.staff.all():
-        return HttpResponseForbidden('Réservé aux administrateurs du réseau ' + network.name)
+    nw = m.Network.objects.get(id=network)
+    if request.user not in nw.staff.all():
+        return HttpResponseForbidden('Réservé aux administrateurs du réseau ' + nw.name)
+
     if request.method == 'POST':
-        if _parse_form(request, network):
+        if _parse_form(request, nw):
             return redirect("index")
         else:
             # TODO: display errors in template
-            return redirect("edit_user_memberships", network=network.id)
+            return redirect("edit_user_memberships", network=nw.id)
+
+    # Precompute relationships instead of performing multiple DB queries in each call to `parse_user`
+    network_subgroups = nw.subgroup_set.all()
+    is_nw_admin = {u.id for u in nw.staff.all()}
+    is_sg_admin = {u.id for sg in network_subgroups for u in sg.staff.all()}
+    is_sg_user = {u.id:sg.id for sg in network_subgroups for u in sg.users.all()}
+    is_nowhere = {u.id for u in m.User.objects.filter(user_of_subgroup=None, is_active=True)}
+    is_extra = {sg.extra_user.id for sg in m.Subgroup.objects.all()}
 
     def parse_user(u):
-        # TODO: cache admin tables
-        r = {'id': u.id, 'name': u.first_name + ' ' + u.last_name, 'email': u.email}
-        try:
-            subgroups = u.user_of_subgroup
-            r['subgroup'] = subgroups.get(network=network).id
-        except m.Subgroup.DoesNotExist:
-            r['subgroup'] = -1 if subgroups.exists() else -2
-        except m.Subgroup.MultipleObjectsReturned:
-            raise ValueError("User %s belong to several subgroups of the same network!" % u.username)
-        r['is_subgroup_admin'] = u.staff_of_subgroup.filter(network=network).exists()
-        r['is_network_admin'] = network.staff.filter(id=u.id).exists()
-        r['initial'] = u.last_name and u.last_name[0].upper() or '?'
-        return r
-    def is_extra(u):
-        return u.user_of_subgroup.filter(extra_user=u).exists()
-    users = [parse_user(u) for u in m.User.objects.filter(is_active=True)
-                                                  .order_by('last_name') if not is_extra(u)]
+        return {
+            'id': u.id,
+            'name': u.first_name + ' ' + u.last_name,
+            'email': u.email,
+            'subgroup': -2 if u.id in is_nowhere else is_sg_user.get(u.id, -1),
+            'is_subgroup_admin': u.id in is_sg_admin,
+            'is_network_admin': u.id in is_nw_admin,
+            'initial': u.last_name and u.last_name[0].upper() or '?'}
+
+    users = [parse_user(u)
+             for u in m.User.objects
+                 .filter(is_active=True)
+                 .order_by('last_name')
+             if u.id not in is_extra]
+
     vars = {'user': request.user,
-            'network': network,
+            'network': nw,
             'users': users,
-            'subgroups':network.subgroup_set.order_by('name')
+            'subgroups':nw.subgroup_set.order_by('name')
     }
     vars.update(csrf(request))
     return render_to_response('edit_user_memberships.html', vars)
