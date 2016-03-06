@@ -6,7 +6,7 @@ from datetime import datetime
 from django.shortcuts import render_to_response, redirect
 from django.core.urlresolvers import reverse
 import django.contrib.auth.views as auth_view
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, HttpResponseBadRequest
 
 from .. import models as m
 from .edit_subgroup_purchases import edit_subgroup_purchases
@@ -19,40 +19,47 @@ from .view_purchases import \
     view_purchases_html, view_purchases_pdf, view_purchases_latex, view_purchases_xlsx, view_cards_latex
 
 
-def index(request):
-    """Main page: sum-up of current deliveries, links to active pages."""
+def get_network(x):
+    return m.Network.objects.get(id=int(x))
+
+def get_subgroup(x):
+    return m.Subgroup.objects.get(id=int(x))
+
+def get_delivery(x):
+    return m.Delivery.objects.get(id=int(x))
+
+
+def active_deliveries(request):
+    """List the deliveries for which the current user can order or administrate."""
+
     user = request.user
+    if not user.is_authenticated(): return redirect(reverse(auth_view.login))
 
-    if not user.is_authenticated():
-        return redirect(reverse(auth_view.login), args={'redirect_field_name': 'toto'})
+    SUBGROUP_ADMIN_STATES = [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN,m.Delivery.REGULATING]
 
+    vars = {'user': request.user, 'Delivery': m.Delivery, 'SubgroupState': m.SubgroupStateForDelivery}
     user_subgroups = m.Subgroup.objects.filter(users__in=[user])
     user_networks = [sg.network for sg in user_subgroups]
+    vars['deliveries'] = m.Delivery.objects.filter(network__in=user_networks, state=m.Delivery.ORDERING_ALL)
 
-    nw2staff_of = {}  # network -> subgroup I'm member of
-    nw2user_of = {}   # network -> subgroup I'm staffing
-    for nw in user_networks:
-        for sg in nw.subgroup_set.all():
-            if user in sg.staff.all():
-                nw2staff_of[nw] = sg
-            if user in sg.users.all():
-                nw2user_of[nw] = sg
+    vars['network_admin'] = m.Network.objects.filter(staff__in=[user])
+    subgroup_admin = m.Subgroup.objects.filter(staff__in=[user])
+    subgroup_admin = [{'sg': sg, 'dv': sg.network.delivery_set.filter(state__in=SUBGROUP_ADMIN_STATES)} for sg in subgroup_admin]
+    subgroup_admin = [sg_dv for sg_dv in subgroup_admin if sg_dv['dv'].exists()]
+    vars['subgroup_admin'] = subgroup_admin
+    return render_to_response('active_deliveries.html', vars)
 
-    def subgroup_state(dv, sg):
-        return dv.state == 'C' and dv.get_stateForSubgroup(sg)
+def network_admin(request, network):
+    user = request.user
+    nw = get_network(network)
+    vars = {'user': user, 'nw': nw, 'deliveries': m.Delivery.objects.filter(network=nw)}
+    return render_to_response('network_admin.html', vars)
 
-    vars = {'user': user,
-            'networks': [{'network': nw,
-                          'subgroup': nw2user_of[nw],
-                          'staffed_subgroup': nw2staff_of.get(nw, False),
-                          'is_network_staff': user in nw.staff.all(),
-                          'deliveries': [{'delivery': dv,
-                                          'order': m.Order(user, dv),
-                                          'subgroup_state': subgroup_state(dv, nw2user_of[nw])
-                                          } for dv in nw.delivery_set.all()],
-                          } for nw in user_networks]
-            }
-    return render_to_response('index.html', vars)
+def subgroup_admin(request, subgroup):
+    user = request.user
+    sg = get_subgroup(subgroup)
+    vars = {'user': user, 'sg': sg, 'Delivery': m.Delivery}
+    return render_to_response('subgroup_admin.html', vars)
 
 
 def edit_delivery(request, delivery):
@@ -67,12 +74,13 @@ def edit_delivery(request, delivery):
         'user': request.user,
         'dv': dv,
         'subgroups': subgroups,
-        'S': m.Delivery.STATE_CHOICES,
-        'CAN_VIEW_NETWORK': 1,  # always true for admins
-        'CAN_EDIT_PURCHASES': 1,  # state != frozen
-        'CAN_EDIT_PRODUCTS': 1,  # is network admin
+        'Delivery': m.Delivery,
+        'SubgroupState': m.SubgroupStateForDelivery,
+        'steps': [{'s': s, 'text': m.Delivery.STATE_CHOICES[s], 'is_done': dv.state>=s, 'is_current': dv.state==s} for s in 'ABCDEF'],
+        'CAN_EDIT_PURCHASES': dv.state in [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN, m.Delivery.REGULATING],
+        'CAN_EDIT_PRODUCTS': dv.state != m.Delivery.TERMINATED,  # is network admin
     }
-    return render_to_response('delivery-admin/edit.html', vars)
+    return render_to_response('edit_delivery.html', vars)
 
 
 def create_delivery(request, network):
@@ -96,22 +104,26 @@ def create_delivery(request, network):
 
 
 def set_delivery_state(request, delivery, state):
-    """Change a delivery's state between "Open", "Closed" and "Delivered"."""
-    delivery = m.Delivery.objects.get(id=delivery)
-    if request.user not in delivery.network.staff.all():
-        return HttpResponseForbidden('Réservé aux administrateurs du réseau '+delivery.network.name)
-    [state_code] = [code for (code, name) in m.Delivery.STATE_CHOICES.items() if name == state]
-    delivery.state = state_code
-    delivery.save()
-    return redirect('index')
+    """Change a delivery's state."""
+    dv = get_delivery(delivery)
+    if request.user not in dv.network.staff.all():
+        return HttpResponseForbidden('Réservé aux administrateurs du réseau '+dv.network.name)
+    if state not in m.Delivery.STATE_CHOICES:
+        return HttpResponseBadRequest(state+" n'est pas un état valide.")
+    dv.state = state
+    dv.save()
+    return redirect('edit_delivery', delivery=dv.id)
 
-def set_subgroup_state_for_delivery(request):
+def set_subgroup_state_for_delivery(request, subgroup, delivery, state):
     """Change the delivery state for this subgroup."""
-    delivery = m.Delivery.objects.get(id=request.POST.get('dv'))
-    subgroup = m.Subgroup.objects.get(id=request.POST.get('sg'))
-    state = int(request.POST.get('state'))
-    delivery.set_stateForSubgroup(subgroup, state)
-    return redirect('index')
+    dv = get_delivery(delivery)
+    sg = get_subgroup(subgroup)
+    dv.set_stateForSubgroup(sg, state)
+    target = request.REQUEST.get('next', False)
+    if target:
+        return redirect(target)
+    else:
+        return redirect('edit_delivery', delivery=dv.id)
 
 
 def view_emails(request, network=None, subgroup=None):

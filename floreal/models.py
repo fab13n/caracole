@@ -147,19 +147,19 @@ class Delivery(models.Model):
     closed (only subgroup staff members can modify purchases), or
     delivered (nobody can modify it)."""
 
-    PREPARATION = 'A'
-    ORDERING_ALL = 'B'
+    PREPARATION    = 'A'
+    ORDERING_ALL   = 'B'
     ORDERING_ADMIN = 'C'
-    FROZEN = 'D'
-    REGULATING = 'E'
-    TERMINATED = 'F'
+    FROZEN         = 'D'
+    REGULATING     = 'E'
+    TERMINATED     = 'F'
     STATE_CHOICES = {
-        PREPARATION: u"En préparation",
-        ORDERING_ALL: u"Commande ouverte",
-        ORDERING_ADMIN: u"Commande réservée auxa dmins",
-        FROZEN: u"Gelée",
-        REGULATING: u"Régularisation en cours",
-        TERMINATED: u"Terminée" }
+        PREPARATION:    u"En préparation",
+        ORDERING_ALL:   u"Ouverte",
+        ORDERING_ADMIN: u"Admins",
+        FROZEN:         u"Gelée",
+        REGULATING:     u"Régularisation",
+        TERMINATED:     u"Terminée" }
     name = models.CharField(max_length=64)
     network = models.ForeignKey(Network)
     state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=PREPARATION)
@@ -168,7 +168,7 @@ class Delivery(models.Model):
         try:
             return self.subgroupstatefordelivery_set.get(delivery=self, subgroup=sg).state
         except models.ObjectDoesNotExist:
-            return 1
+            return SubgroupStateForDelivery.DEFAULT
 
     def set_stateForSubgroup(self, sg, state):
         try:
@@ -177,7 +177,6 @@ class Delivery(models.Model):
             x.save()
         except models.ObjectDoesNotExist:
             SubgroupStateForDelivery.objects.create(delivery=self, subgroup=sg, state=state)
-
 
     def __unicode__(self):
         return "%s/%s" % (self.network.name, self.name)
@@ -196,6 +195,13 @@ class Delivery(models.Model):
             result[s.state].append(s.subgroup)
         return result
 
+    def subgroupMinState(self):
+        states = self.subgroupstatefordelivery_set
+        if states.count() < self.network.subgroup_set.count():
+            return SubgroupStateForDelivery.DEFAULT  # Some unset subgroups
+        else:
+            return min(s.state for s in states.all())
+
     class Meta:
         verbose_name_plural = "Deliveries"
         unique_together = (('network', 'name'),)
@@ -203,10 +209,15 @@ class Delivery(models.Model):
 
 
 class SubgroupStateForDelivery(models.Model):
-    INITIAL = 1
-    READY_FOR_DELIVERY = 2
-    READY_FOR_ACCOUNTING = 3
-    state = models.PositiveSmallIntegerField()
+    INITIAL              = 'X'
+    READY_FOR_DELIVERY   = 'Y'
+    READY_FOR_ACCOUNTING = 'Z'
+    DEFAULT = INITIAL
+    STATE_CHOICES = {
+        INITIAL:              u"Non validé",
+        READY_FOR_DELIVERY:   u"Commande validée",
+        READY_FOR_ACCOUNTING: u"Compta validée"}
+    state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=DEFAULT)
     delivery = models.ForeignKey(Delivery)
     subgroup = models.ForeignKey(Subgroup)
 

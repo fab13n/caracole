@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+from floreal.models import SubgroupStateForDelivery
+
 from django import template
 
 register = template.Library()
@@ -23,3 +25,8 @@ def unit_multiple(unit):
         return u"×"+unit
     else:
         return u" "+unit
+
+@register.filter
+def subgroup_state(sg, dv):
+    x = dv.subgroupstatefordelivery_set.filter(delivery=dv, subgroup=sg)
+    return x[0].state if x else SubgroupStateForDelivery.DEFAULT

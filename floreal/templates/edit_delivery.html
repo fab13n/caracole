@@ -1,0 +1,187 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load floreal_filters %}
+
+{% block head %}
+<style type="text/css">
+    ol.progtrckr { margin: 0; padding: 0; list-style-type: none; }
+    ol.progtrckr li { display: inline-block; text-align: center; line-height: 3em; width: 15%; font-size: 10px; }
+    ol.progtrckr li.progtrckr-True { color: black; border-bottom: 4px solid #811305; }
+    ol.progtrckr li.progtrckr-False { color: silver; border-bottom: 4px solid silver; }
+    ol.progtrckr li.progtrckr-True:before { content: "\2713"; color: white; background-color: #811305;
+        height: 1.2em; width: 1.2em; line-height: 1.2em; border: none; border-radius: 1.2em; }
+    ol.progtrckr li.progtrckr-False:before {
+        content: "\039F"; color: silver; background-color: white; font-size: 1.5em; bottom: -1.6em;}
+    ol.progtrckr li:before { position: relative; bottom: -2.5em; float: left; left: 50%; line-height: 1em; }
+    ol.progtrckr li:after { content: "\00a0\00a0"; }
+
+    tr.network-row {  border: 1px solid #811305; }
+</style>
+<script type='text/javascript'>
+  // <![CDATA[
+  function force_subgroup_validation(sg, sg_name, dv, state) {
+    var text = "Forcer la validation pour le sous-groupe SG ?"
+    if( confirm(text.replace('SG', sg_name))) {
+      var url = "{% url 'set_subgroup_state_for_delivery' subgroup="SG" delivery="DV" state="ST" %}";
+      url = url.replace('SG', sg).replace('DV',dv).replace('ST', state);
+      window.location = url;
+    }
+  }
+  // ]]>
+</script>
+{% endblock %}
+
+{% block content %}
+
+<h2>Gérer la commande "{{dv.name}}" de {{dv.network.name}}</h2>
+
+<ol class="progtrckr" data-progtrckr-steps="6">
+    {% for x in steps %}
+    <li id="progtrckr-{{x.s}}" class="progtrckr-{{x.is_done}}">
+        {% if x.is_current %}
+        {{x.text}}
+        {% else %}
+        <a href="{% url 'set_delivery_state' delivery=dv.id state=x.s %}">{{x.text}}</a>
+        {% endif %}
+    </li>
+    {% endfor %}
+</ol>
+<p> {### DESCRIPTION ###}
+    Vous êtes administrateur pour le réseau {{dv.network.name}}. La commande {{dv.name}} est
+    {% if dv.state == Delivery.PREPARATION %}
+    <em>en préparation</em> : les membres n'ont pas encore été autorisés à commander.
+    {% elif dv.state == Delivery.ORDERING_ALL %}
+    <em>en cours</em> : tous les membres peuvent passer commande.
+    {% elif dv.state == Delivery.ORDERING_ADMIN %}
+    <em>réservée aux admins</em> : ils peuvent modifier les commandes des membres de leurs sous groupes, mais les
+    membres normaux ne peuvent plus commander ou modifier eux-mêmes.
+    {% elif dv.state == Delivery.FROZEN %}
+    <em>envoyée et gelée</em> : la commande a été envoyée au producteur, plus personne ne peut la modifier
+    {% elif dv.state == Delivery.REGULATING %}
+    <em>livrée, à régulariser</em> : les admins corrigent les différences entre ce qui a été commandé et ce qui a
+    effectivement été livré.
+    {% elif dv.state == Delivery.TERMINATED %}
+    <em>terminée</em>.
+    {% endif %}
+    Vous pouvez :
+</p>
+<ul>
+    {### MOVE TO NEXT STEP ###}
+    {% if dv.state == Delivery.PREPARATION %}
+    <li>Passer à l'étape suivante :
+        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.ORDERING_ALL %}">ouvrir la commande à tous</a>✔.
+    </li>
+    {% elif dv.state == Delivery.ORDERING_ALL %}
+    <li>Passer à l'étape suivante :
+        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.ORDERING_ADMIN %}">réserver la commande aux admins</a>✔.
+    </li>
+    <li>Vous pouvez aussi revenir en arrière et
+        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.ORDERING_ALL %}">rouvrir la commande à tous</a>✘.
+    </li>
+    <li>Directement
+        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.FROZEN %}">geler la commande pour l'envoyer</a>✔.
+    </li>
+    {% elif dv.state == Delivery.ORDERING_ADMIN %}
+    <li>Passer à l'étape suivante :
+        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.FROZEN %}">geler la commande pour l'envoyer</a>✔.
+    </li>
+    <li>Vous pouvez aussi revenir en arrière et
+        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.ORDERING_ALL %}">rouvrir la commande à tous</a>✘.
+    </li>
+    {% elif dv.state == Delivery.FROZEN %}
+    <li>Passer à l'étape suivante :
+        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.REGULATING %}">rouvrir aux admins pour régulariser la compta</a>✔, ou
+        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.TERMINATED %}">marquer la commande comme terminée</a>✔.
+    </li>
+    {% elif dv.state == Delivery.REGULATING %}
+    <li>Passer à l'étape suivante :
+        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.TERMINATED %}">marquer la commande comme terminée</a>✔.
+    </li>
+    {% elif dv.state == Delivery.TERMINATED %}
+    <li>(aucune action, commande terminée.
+        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.PREPARATION %}">Réactiver</a>)
+    </li>
+    {% else %}
+    <li><em>Erreur interne:commande en état invalide "{{dv.state}}" !</em></li>
+    {% endif %}
+
+    {% if CAN_EDIT_PRODUCTS %}
+    <li><a href="{% url 'edit_delivery_products' delivery=dv.id %}">
+        Modifier la liste des produits proposés <img src="{% static 'images/edit.png' %}"/>
+    </a></li>
+    {% endif %}
+
+    {### VIEW AND EDIT PURCHASES ###}
+    {% if dv.state != Delivery.TERMINATED %}
+    {% if subgroups|length == 0 %}
+    <!-- Aucun sous-groupe visualisable -->
+    {% elif subgroups|length == 1 %}
+    {% with subgroups.0 as sg %}
+    <li>Voir les commandes du sous-groupe {{sg.name}} :<br/>
+        <a href="{% url 'view_subgroup_purchases_html' delivery=dv.id subgroup=sg.id %}">en ligne <img src="{% static 'images/grid.png' %}"/></a>,
+        <a href="{% url 'view_subgroup_purchases_xlsx' delivery=dv.id subgroup=sg.id %}">dans un tableau Excel <img src="{% static 'images/excel.png' %}"/></a>,
+        <a href="{% url 'view_subgroup_purchases_latex' delivery=dv.id subgroup=sg.id %}">en PDF <img src="{% static 'images/pdf.png' %}"/></a>,
+        <a href="{% url 'view_subgroup_cards_latex' delivery=dv.id subgroup=sg.id %}">en fiches individuelles <img src="{% static 'images/pdf.png' %}"/></a>
+    </li>
+    {% if CAN_EDIT_PURCHASES %}
+    <li><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id %}">
+        Modifier les commandes du sous-groupe {{sg.name}} <img src="{% static 'images/edit.png' %}"/>
+    </a></li>
+    {% endif %}
+    {% endwith %}
+    {% else %}{# subgroups|length > 1 #}
+    <li>Voir {%if CAN_EDIT_PURCHASES%} ou modifier {% endif %} les commandes par sous-groupes :</li>
+    <table>
+        <tr><td></td><th>En ligne</th><th>Excel</th><th>PDF</th><th>Fiches</th>
+            {% if CAN_EDIT_PURCHASES%}<th>Éditer</th>{% endif %}
+            {% if dv.state == Delivery.ORDERING_ADMIN %}<th>Validée ?</th>
+            {% elif dv.state == Delivery.REGULATING %}<th>Régularisée ?</th>{% endif %}
+        </tr>
+        {% for sg in subgroups %}
+        <tr>
+            <th class="left">Sous-groupe {{sg.name}}</th>
+            <td><a href="{% url 'view_subgroup_purchases_html' delivery=dv.id subgroup=sg.id %}"><img src="{% static 'images/grid.png' %}"/</a></td>
+            <td><a href="{% url 'view_subgroup_purchases_xlsx' delivery=dv.id subgroup=sg.id  %}"><img src="{% static 'images/excel.png' %}"/></a></td>
+            <td><a href="{% url 'view_subgroup_purchases_latex' delivery=dv.id subgroup=sg.id  %}"><img src="{% static 'images/pdf.png' %}"/></a></td>
+            <td><a href="{% url 'view_subgroup_cards_latex' delivery=dv.id subgroup=sg.id  %}"><img src="{% static 'images/pdf.png' %}"/></a></td>
+            {% if CAN_EDIT_PURCHASES %}
+            <td><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id %}"><img src="{%  static 'images/edit.png'%}"/></a></td>
+            {% endif %}
+            {% if dv.state == Delivery.ORDERING_ADMIN %}
+            <td>
+                {% if sg|subgroup_state:dv == SubgroupState.INITIAL %}
+                <a href="" onclick="force_subgroup_validation({{sg.id}}, '{{sg.name}}', {{dv.id}}, '{{SubgroupState.READY_FOR_DELIVERY}}'); return false">✘</a>
+                {% else %}
+                ✔
+                {% endif %}
+            </td>
+            {% elif dv.state == Delivery.REGULATING %}
+            <td>
+                {% if sg|subgroup_state:dv != SubgroupState.READY_FOR_ACCONTING %}
+                {{ sg|subgroup_state:dv }}
+                TODO2
+                {% else %}
+                DONE2
+                {% endif %}
+            </td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+        <tr class="network-row">
+            <th class="left">Tout le réseau {{dv.network.name}}</th>
+            <td><a href="{% url 'view_all_purchases_html' delivery=dv.id %}"><img src="{% static 'images/grid.png' %}"/</a></td>
+            <td><a href="{% url 'view_all_purchases_xlsx' delivery=dv.id %}"><img src="{% static 'images/excel.png' %}"/></a></td>
+            <td><a href="{% url 'view_all_purchases_latex' delivery=dv.id %}"><img src="{% static 'images/pdf.png' %}"/></a></td>
+            <td><!-- pas de fiches pour tout le reseau --> - </td>
+            {%if CAN_EDIT_PURCHASES%}<td><!-- pas d'edition pour tout le reseau --> - </td>{%endif%}
+            {% if dv.state == Delivery.ORDERING_ADMIN %}
+            <td>{% if dv.subgroupMinState < SubgroupState.READY_FOR_DELIVERY %}✘{% else %}✔{% endif %}</td>
+            {% elif dv.state == Delivery.REGULATING %}
+            <td>{% if dv.subgroupMinState < SubgroupState.READY_FOR_ACCOUNTING %}✘{% else %}✔{% endif %}</td>
+            {% endif %}
+        </tr>
+    </table>
+    {% endif %}{# subgroups.length > 1#}
+    {% endif %}{# ! Delivery.TERMINATED #}
+</ul>
+{% endblock %}
