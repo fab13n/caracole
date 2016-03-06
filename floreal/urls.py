@@ -8,6 +8,7 @@ from . import views
 urlpatterns = patterns('',
     url(r'^$', views.active_deliveries, name='index'),
     url(r'^edit/dv-(?P<delivery>[^/]+)$', views.edit_delivery, name='edit_delivery'),
+    url(r'^network-admin/nw-(?P<network>[^/]+)$', views.network_admin, name='network_admin'),
 
     url(r'^admin/', include(admin.site.urls), name='admin'),
 
@@ -36,5 +37,5 @@ urlpatterns = patterns('',
     url(r'^view/sg-(?P<subgroup>[^/]+)/dv-(?P<delivery>[^/]+)/cards.pdf$', views.view_cards_latex, name='view_subgroup_cards_latex'),
     url(r'^emails/nw-(?P<network>[^/]+)$', views.view_emails, name='emails_network'),
     url(r'^emails/sg-(?P<subgroup>[^/]+)$', views.view_emails, name='emails_subgroup'),
-    url(r'^history/nw-(?P<network>[^/]+)$', views.view_history, name='view_history'),
+    url(r'^history$', views.view_history, name='view_history'),
 )

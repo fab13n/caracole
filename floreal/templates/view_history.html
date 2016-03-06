@@ -1,4 +1,5 @@
 {% extends 'layout.html' %}
+{% load floreal_filters %}
 
 {% block head %}
 <style type="text/css">
@@ -9,8 +10,8 @@
 {% block content %}
 <h2>Historique des commandes de {{user.first_name}} {{user.last_name}}</h2>
 <ul>
-  {% for od in orders %}
-  <li>{{od.delivery.name}}:
+  {% for nw, od in orders %}
+  <li>{{nw.name}}, {{od.delivery.name}}, {{od.price|price}}:
     <ul>
       {% for pc in od.purchases %}
       <li>{{pc}}</li>

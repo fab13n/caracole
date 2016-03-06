@@ -194,19 +194,8 @@ class Delivery(models.Model):
     def __unicode__(self):
         return "%s/%s" % (self.network.name, self.name)
 
-    def is_admin_open(self):
-        """Admins can pass & modify orders."""
-        return self.state in (self.OPEN, self.CLOSED, self.PREPARATION)
-
     def state_name(self):
         return self.STATE_CHOICES[self.state]
-
-    def getSubgroupStates(self):
-        """Returns three lists of subgroups, sorted by state wrt this command."""
-        result = [None, [], [], []]
-        for s in SubgroupStateForDelivery.objects.filter(delivery=self):
-            result[s.state].append(s.subgroup)
-        return result
 
     def subgroupMinState(self):
         states = self.subgroupstatefordelivery_set
@@ -221,7 +210,6 @@ class Delivery(models.Model):
         ordering = ('-id',)
 
 
-<<<<<<< HEAD
 class SubgroupStateForDelivery(models.Model):
     INITIAL              = 'X'
     READY_FOR_DELIVERY   = 'Y'

@@ -30,7 +30,8 @@ def get_delivery(x):
 
 
 def active_deliveries(request):
-    """List the deliveries for which the current user can order or administrate."""
+    """Main page: list deliveries open for ordering as a user, networks for which the user is full admin,
+     and orders for which he has subgroup-admin actions to take."""
 
     user = request.user
     if not user.is_authenticated(): return redirect(reverse(auth_view.login))
@@ -49,20 +50,17 @@ def active_deliveries(request):
     vars['subgroup_admin'] = subgroup_admin
     return render_to_response('active_deliveries.html', vars)
 
+
 def network_admin(request, network):
     user = request.user
     nw = get_network(network)
     vars = {'user': user, 'nw': nw, 'deliveries': m.Delivery.objects.filter(network=nw)}
     return render_to_response('network_admin.html', vars)
 
-def subgroup_admin(request, subgroup):
-    user = request.user
-    sg = get_subgroup(subgroup)
-    vars = {'user': user, 'sg': sg, 'Delivery': m.Delivery}
-    return render_to_response('subgroup_admin.html', vars)
-
 
 def edit_delivery(request, delivery):
+    """Edit a delivery as a full network admin: act upon its lifecycle, control which subgroups have been validated,
+    change the products characteristics, change other users' orders."""
     dv = m.Delivery.objects.get(id=delivery)
     if dv.network.staff.filter(id=request.user.id).exists():
         # All subgroups in the network for network admins
@@ -78,7 +76,7 @@ def edit_delivery(request, delivery):
         'SubgroupState': m.SubgroupStateForDelivery,
         'steps': [{'s': s, 'text': m.Delivery.STATE_CHOICES[s], 'is_done': dv.state>=s, 'is_current': dv.state==s} for s in 'ABCDEF'],
         'CAN_EDIT_PURCHASES': dv.state in [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN, m.Delivery.REGULATING],
-        'CAN_EDIT_PRODUCTS': dv.state != m.Delivery.TERMINATED,  # is network admin
+        'CAN_EDIT_PRODUCTS': dv.state != m.Delivery.TERMINATED
     }
     return render_to_response('edit_delivery.html', vars)
 
@@ -114,8 +112,9 @@ def set_delivery_state(request, delivery, state):
     dv.save()
     return redirect('edit_delivery', delivery=dv.id)
 
+
 def set_subgroup_state_for_delivery(request, subgroup, delivery, state):
-    """Change the delivery state for this subgroup."""
+    """Change the state of a subgroup/delivery combo."""
     dv = get_delivery(delivery)
     sg = get_subgroup(subgroup)
     dv.set_stateForSubgroup(sg, state)
@@ -143,7 +142,10 @@ def view_emails(request, network=None, subgroup=None):
     return render_to_response('emails.html', vars)
 
 
-def view_history(request, network):
-    network = m.Network.objects.get(id=network)
-    vars = {'user': request.user, 'orders': [m.Order(request.user, dv) for dv in network.delivery_set.all()]}
+def view_history(request):
+    orders = [(nw, m.Order(request.user, dv))
+              for nw in m.Network.objects.all()
+              for dv in nw.delivery_set.all()]
+    orders = [(nw, od) for (nw, od) in orders if od.price > 0]  # Filter out empty orders
+    vars = {'user': request.user, 'orders': orders}
     return render_to_response("view_history.html", vars)

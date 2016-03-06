@@ -24,7 +24,7 @@
 <h2>Aucune commande en cours</h2>
 {% endif %}
 
-<p><a href="">Historique de vos anciennes commandes</a></p>
+<p><a href="{% url 'view_history' %}">Historique de vos anciennes commandes</a></p>
 
 {% if network_admin or subgroup_admin %}
 <h2>Administrer</h2>
