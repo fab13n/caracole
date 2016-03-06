@@ -39,16 +39,13 @@
         <ul class="horizontal">
             {% if dv.state == Delivery.ORDERING_ALL %}
             <li><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id%}">
-                Modifier<img src="{% static 'images/edit.png' %}"/>
-            </a></li>
+                Modifier<img src="{% static 'images/edit.png' %}"/></a></li>
             {% elif dv.state == Delivery.ORDERING_ADMIN %}
             {% if sg|subgroup_state:dv < SubgroupState.READY_FOR_DELIVERY %}
             <li><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id%}">
-                Modifier<img src="{% static 'images/edit.png' %}"/>
-            </a></li>
+                Modifier<img src="{% static 'images/edit.png' %}"/></a></li>
             <li><a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.READY_FOR_DELIVERY %}?next=/">
-                <span class="no">Valider la commande du sous-groupe {{sg.name}}</span>
-            </a>✔</li>
+                <span class="no">Valider la commande du sous-groupe {{sg.name}}</span></a>✔</li>
             {% else %}{# dv.state == READY_FOR_DELIVERY #}
             <li><span class="yes">Commande validée pour le sous-groupe {{sg.name}}</span>
                 (<a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.INITIAL %}?next=/">annuler</a>✘)
@@ -57,14 +54,11 @@
             {% else %}{# dv.state == REGULATING #}
             {% if sg|subgroup_state:dv < SubgroupState.READY_FOR_ACCOUNTING %}
             <li><a href="{% url 'adjust_subgroup' delivery=dv.id subgroup=sg.id%}">
-                Régulariser les comptes<img src="{% static 'images/edit.png' %}"/>
-            </a></li>
+                Régulariser les comptes<img src="{% static 'images/edit.png' %}"/></a></li>
             <li><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id%}">
-                Modifier<img src="{% static 'images/edit.png' %}"/>
-            </a></li>
+                Modifier<img src="{% static 'images/edit.png' %}"/></a></li>
             <li><a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.READY_FOR_ACCOUNTING %}?next=/">
-                <span class="no">Valider la comptabilité du sous-groupe {{sg.name}}</span>
-            </a>✔</li>
+                <span class="no">Valider la comptabilité du sous-groupe {{sg.name}}</span></a>✔</li>
             {% else %}{# READY_FOR_ACCOUNTING #}
             <li><span class="yes">Comptabilité validée pour le sous-groupe {{sg.name}}</span>
                 (<a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.READY_FOR_DELIVERY %}?next=/">annuler</a>✘)
