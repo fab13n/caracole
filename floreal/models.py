@@ -27,6 +27,9 @@ class Plural(models.Model):
         return "%s/%s" % (self.singular, self.plural)
 
 
+# Cache for plurals, to avoid many DB lookups when a pluralized word appears many times in a page.
+_plural_cache = {}
+
 # TODO: implement a cache?
 def plural(noun, n=None):
     """Tries to retrieve of guess the plural of a singular French word.
@@ -38,9 +41,16 @@ def plural(noun, n=None):
 
     if n is not None and -2 < n < 2:
         return noun  # No need to pluralize
+
+    try:
+        return _plural_cache[noun]  # Found in cache
+    except KeyError:
+        pass
+
     try:
         r = Plural.objects.get(singular=noun).plural
         if r is not None:
+            _plural_cache[noun] = r
             return r
     except Plural.DoesNotExist:
         # Put the singular alone in DB, so that we know it needs to be filled
@@ -48,13 +58,16 @@ def plural(noun, n=None):
 
     # Not found in DB, or found to be None: try to guess it
     if noun[-1] == 's' or noun[-1] == 'x':
-        return noun  # Probably invariant
+        r = noun  # Probably invariant
     elif noun[-2:] == 'al':
-        return noun[:-2] + 'aux'
+        r = noun[:-2] + 'aux'
     elif noun[-3:] == 'eau':
-        return noun + 'x'
+        r = noun + 'x'
     else:
-        return noun + 's'  # probably a regular plural
+        r = noun + 's'  # probably a regular plural
+
+    _plural_cache[noun] = r
+    return r
 
 
 def articulate(noun, n=1):
@@ -208,6 +221,7 @@ class Delivery(models.Model):
         ordering = ('-id',)
 
 
+<<<<<<< HEAD
 class SubgroupStateForDelivery(models.Model):
     INITIAL              = 'X'
     READY_FOR_DELIVERY   = 'Y'
@@ -222,6 +236,15 @@ class SubgroupStateForDelivery(models.Model):
     subgroup = models.ForeignKey(Subgroup)
 
 
+#class Section(models.Model):
+#    """Products are optionally sorted into sections, so that their display to customers can be organized.
+#    The list of available sections is specific to a network. Sections can be nested."""
+#    name = models.CharField(max_length=64)
+#    network = models.ForeignKey(Network)
+#    parent = models.ForeignKey('Section', null=True, blank=True, default=None)
+#    is_active = models.BooleanField(default=True)  # Use this instead of deleting unused sections
+
+
 class Product(models.Model):
     """A product is only valid for one delivery. If the same product is valid across
     several deliveries, there are several homonym products in DB, one per delivery,
@@ -229,6 +252,7 @@ class Product(models.Model):
     """
 
     name = models.CharField(max_length=64)
+    # section = models.ForeignKey(Section, null=True, blank=True, default=None)
     delivery = models.ForeignKey(Delivery)
     price = models.DecimalField(decimal_places=2, max_digits=6)
     quantity_per_package = models.IntegerField(null=True, blank=True)
@@ -255,7 +279,7 @@ class Purchase(models.Model):
     If the product isn't available in unlimited quantity, then the ordered quantity
     might differ from the granted one."""
 
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, null=True)
     product = models.ForeignKey(Product)
     ordered = models.DecimalField(decimal_places=3, max_digits=6)
     granted = models.DecimalField(decimal_places=3, max_digits=6)

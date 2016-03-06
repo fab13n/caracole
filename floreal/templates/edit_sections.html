@@ -1,0 +1,70 @@
+{% extends 'layout.html' %}
+{% load floreal_filters %}
+
+{% block head %}
+    <style type="text/css">
+    </style>
+    <script type='text/javascript'>
+    // <![CDATA[
+    function add_row(prefix, id) {
+      // Add the row
+      $("#sections-table").append('\n\
+          <tr id="%-row">\n\
+            <td class="name">
+              <input id="%-id" name="%-id" value="'+id+'"type="hidden"/>\n\
+              <input id="%-name" maxlength="64" name="%-name" type="text" />\n\
+            </td>\n\
+            <td class="parent-section">\n\
+              <select id="%-parent" name="%-parent">\n\
+                <option value="none" selected="selected">-</option>\n\
+              </select>\n\
+            </td>\n\
+            <td class="deleted">\n\
+              <input id="%-deleted" name="%-deleted" onchange="reflect_deletion(\'%\')" type="checkbox" value="off">\n\
+            </td>\n\
+          </tr>'.replace(/%/g, prefix));
+      // Populate the <select/> element
+      for(var i in sections) {
+        var sc = sections[i];
+        var elem = $("#"+prefix+"-parent");
+        elem.append('<option value="'+i+'">'+sc.name+'</select>');
+        if(sc.parent) { elem.val(
+      }
+    }
+
+    function set_rows(prefix) {
+      for(var i in
+    }
+
+    // ]]>
+    </script>
+{% endblock %}
+
+
+{% block content %}
+<h1>Sections disponibles pour le réseau {{network.name}}</h1>
+<form method="post" action="">
+    <table id="sections-table">
+        <tr>
+            <th>Section :</th>
+            <th>Sous-section de :</th>
+            <th>Effacer</th>
+        </tr>
+        {% for sc in active_sections %}
+        <tr>
+            <td><input type="text" name="sc{{sc.id}}-name" value="{{sc.name}}"/></td>
+            <td>
+                <!-- options will be filled and maintained in Javascript -->
+                <select id="sc{{sc.id}}-parent" name="sc{{sc.id}}-parent">
+                    <option value="none" selected="selected">-</option>
+                </select>
+            </td>
+            <td></td>
+        </tr>
+        {% endfor %}
+
+    </table>
+    {% csrf_token %}
+</form>
+
+{% endblock %}

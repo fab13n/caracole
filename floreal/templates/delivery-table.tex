@@ -11,10 +11,10 @@
 {% if not totals.quantity %}
 \nope
 {% elif totals.full_packages == None %}
-{\bf {{totals.quantity|qty}}{{totals.product.unit|unit}} }
+{\bf {{totals.quantity|qty}}{{totals.product.unit|short_unit}} }
 {% else%}
 {\bf {{totals.full_packages|qty}}\ct
-{% if totals.out_of_packages %} + {{totals.out_of_packages|qty}}{{totals.product.unit|unit}}{% endif %}
+{% if totals.out_of_packages %} + {{totals.out_of_packages|qty}}{{totals.product.unit|short_unit}}{% endif %}
 }
 {% endif %}{# packaged #}
 {% endfor %}{# totals #}
@@ -27,10 +27,10 @@
 {% if not totals.quantity %}
 \nope
 {% elif totals.full_packages == None %}
-{{totals.quantity|qty}}{{totals.product.unit|unit}}
+{{totals.quantity|qty}}{{totals.product.unit|short_unit}}
 {% else%}
 {{totals.full_packages|qty}}\ct
-{% if totals.out_of_packages %} + {{totals.out_of_packages|qty}}{{totals.product.unit|unit}}{% endif %}
+{% if totals.out_of_packages %} + {{totals.out_of_packages|qty}}{{totals.product.unit|short_unit}}{% endif %}
 {% endif %}{# packaged #}
 {% endfor %}{# totals #} \\
 {% endif %}{# price #}
