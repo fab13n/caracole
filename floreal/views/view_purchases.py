@@ -63,15 +63,19 @@ def view_purchases_latex(request, delivery, subgroup=None):
         content = latex.subgroup(delivery, subgroup)
         name_bits = (delivery.network.name, delivery.name, subgroup.name)
     else:
-        content = latex.delivery(delivery)
+        content = latex.delivery_table(delivery)
         name_bits = (delivery.network.name, delivery.name)
-    return _non_html_response(name_bits, "pdf", "application/pdf",content)
+    return _non_html_response(name_bits, "pdf", "application/pdf", content)
 
 
-def view_cards_latex(request, delivery, subgroup):
+def view_cards_latex(request, delivery, subgroup=None):
     """View the purchases of a subgroup as an Adobe PDF file. Subgroup staff only."""
     delivery = Delivery.objects.get(id=delivery)
-    subgroup = Subgroup.objects.get(id=subgroup)
-    f = latex.cards(delivery, subgroup)
-    return _non_html_response((delivery.network.name, delivery.name, subgroup.name), "pdf",
-                              "application/pdf", f)
+    if subgroup:
+        subgroup = Subgroup.objects.get(id=subgroup)
+        content = latex.cards(delivery, subgroup)
+        name_bits = (delivery.network.name, delivery.name, subgroup.name)
+    else:
+        content = latex.delivery_cards(delivery)
+        name_bits = (delivery.network.name, delivery.name)
+    return _non_html_response(name_bits, "pdf", "application/pdf", content)

@@ -172,7 +172,7 @@
             <td><a href="{% url 'view_all_purchases_html' delivery=dv.id %}"><img src="{% static 'images/grid.png' %}"/</a></td>
             <td><a href="{% url 'view_all_purchases_xlsx' delivery=dv.id %}"><img src="{% static 'images/excel.png' %}"/></a></td>
             <td><a href="{% url 'view_all_purchases_latex' delivery=dv.id %}"><img src="{% static 'images/pdf.png' %}"/></a></td>
-            <td><!-- pas de fiches pour tout le reseau --> - </td>
+            <td><a href="{% url 'view_all_cards_latex' delivery=dv.id %}"><img src="{% static 'images/pdf.png' %}"/></a></td>
             {%if CAN_EDIT_PURCHASES%}<td><!-- pas d'edition pour tout le reseau --> - </td>{%endif%}
             {% if dv.state == Delivery.ORDERING_ADMIN %}
             <td>{% if dv.subgroupMinState < SubgroupState.READY_FOR_DELIVERY %}✘{% else %}✔{% endif %}</td>

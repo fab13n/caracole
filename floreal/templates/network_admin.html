@@ -13,7 +13,7 @@
   <li><a href="{% url 'create_delivery' network=nw.id %}">Créer une nouvelle commande {{nw.name}} <img src="{% static 'images/plus.png' %}"/></a></li>
   <li><a href="{% url 'edit_user_memberships' network=nw.id %}">Répartir les membres en sous-groupes {{nw.name}} <img src="{% static 'images/edit.png' %}"/></a></li>
   <li><a href="{% url 'emails_network' network=nw.id %}">e-mails du réseau {{nw.name}} <img src="{% static 'images/email.png' %}"/></a></li>
-  <li>Éditer une commande existante :
+  <li>Voir ou éditer une commande existante :
       <ul>
           {% for dv in deliveries %}
           <li><a href="{% url 'edit_delivery' delivery=dv.id %}">{{dv.name}}</a></li>
