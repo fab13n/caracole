@@ -3,6 +3,8 @@
 
 from django.conf.urls import patterns, include, url
 from django.contrib import admin
+from django.views.generic import TemplateView
+
 from . import views
 
 urlpatterns = patterns('',
@@ -40,4 +42,7 @@ urlpatterns = patterns('',
     url(r'^emails/nw-(?P<network>[^/]+)$', views.view_emails, name='emails_network'),
     url(r'^emails/sg-(?P<subgroup>[^/]+)$', views.view_emails, name='emails_subgroup'),
     url(r'^history$', views.view_history, name='view_history'),
+
+    url(r'^charte.html$', TemplateView.as_view(template_name='charte.html'), name='charte'),
+
 )
