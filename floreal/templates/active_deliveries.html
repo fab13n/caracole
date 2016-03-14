@@ -53,8 +53,10 @@
             {% endif %}{# subgroup_state #}
             {% else %}{# dv.state == REGULATING #}
             {% if sg|subgroup_state:dv < SubgroupState.READY_FOR_ACCOUNTING %}
+            <!--
             <li><a href="{% url 'adjust_subgroup' delivery=dv.id subgroup=sg.id%}">
                 Régulariser les comptes<img src="{% static 'images/edit.png' %}"/></a></li>
+			-->
             <li><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id%}">
                 Modifier<img src="{% static 'images/edit.png' %}"/></a></li>
             <li><a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.READY_FOR_ACCOUNTING %}?next=/">
