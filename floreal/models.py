@@ -120,6 +120,7 @@ class Subgroup(models.Model):
     # Users might only be staff of one subgroup per network
     staff = models.ManyToManyField(User, related_name='staff_of_subgroup')
     users = models.ManyToManyField(User, related_name='user_of_subgroup')
+    candidates = models.ManyToManyField(User, related_name='candidate_of_subgroup', through='Candidacy')
 
     class Meta:
         unique_together = (('network', 'name'),)
@@ -150,6 +151,12 @@ class Subgroup(models.Model):
         normal_users = [u for u in self.users.all() if u != self.extra_user]
         normal_users.sort(key=lambda u: (u.last_name.lower(), u.first_name.lower()))
         return [self.extra_user] + normal_users
+
+
+class Candidacy(models.Model):
+    user = models.ForeignKey(User)
+    subgroup = models.ForeignKey(Subgroup)
+    message = models.TextField(null=True, blank=True)
 
 
 class Delivery(models.Model):

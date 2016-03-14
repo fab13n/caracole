@@ -22,11 +22,17 @@ from .view_purchases import \
 def get_network(x):
     return m.Network.objects.get(id=int(x))
 
+
 def get_subgroup(x):
     return m.Subgroup.objects.get(id=int(x))
 
+
 def get_delivery(x):
     return m.Delivery.objects.get(id=int(x))
+
+
+def get_candidacy(x):
+    return m.Candidacy.objects.get(id=int(x))
 
 
 def active_deliveries(request):
@@ -45,10 +51,56 @@ def active_deliveries(request):
 
     vars['network_admin'] = m.Network.objects.filter(staff__in=[user])
     subgroup_admin = m.Subgroup.objects.filter(staff__in=[user])
-    subgroup_admin = [{'sg': sg, 'dv': sg.network.delivery_set.filter(state__in=SUBGROUP_ADMIN_STATES)} for sg in subgroup_admin]
-    subgroup_admin = [sg_dv for sg_dv in subgroup_admin if sg_dv['dv'].exists()]
+    subgroup_admin = [{'sg': sg,
+                       'dv': sg.network.delivery_set.filter(state__in=SUBGROUP_ADMIN_STATES),
+                       'cd': sg.candidacy_set.all()}
+                       for sg in subgroup_admin]
+    subgroup_admin = [sg_dv_cd for sg_dv_cd in subgroup_admin if sg_dv_cd['dv'].exists() or sg_dv_cd['cd'].exists]
     vars['subgroup_admin'] = subgroup_admin
     return render_to_response('active_deliveries.html', vars)
+
+
+def candidacy(request):
+    """Generate a page to choose and request candidacy among the legal ones."""
+    user = request.user
+    user_of_subgroups = m.Subgroup.objects.filter(users__in=[user])
+    candidate_to_subgroups = m.Subgroup.objects.filter(candidacy__user__in=[user])
+    # name, user_of, candidate_to, can_be_candidate_to
+    networks = []
+    for nw in m.Network.objects.all():
+        us = user_of_subgroups.filter(network=nw)
+        cs = candidate_to_subgroups.filter(network=nw)
+        item = {'name': nw.name,
+                'user_of': us[0] if us.exists() else None,
+                'candidate_to': cs[0] if cs.exists() else None,
+                'can_be_candidate_to': nw.subgroup_set.all()}
+
+        for non_candidate in (item['user_of'], item['candidate_to']):
+            if non_candidate:
+                item['can_be_candidate_to'] = item['can_be_candidate_to'].exclude(id=non_candidate.id)
+        networks.append(item)
+    return render_to_response('candidacy.html', {'networks': networks})
+
+
+
+def apply_candidacy(request, subgroup):
+    """Create the candidacy, after checking again its legality."""
+    user = request.user
+    sg = get_subgroup(subgroup)
+
+
+def validate_candidacy(request, candidacy, response):
+    """A (legal) candidacy has been answered by an admin.
+    Check the admin was entitled to accept it, and perform corresponding membership changes."""
+    # Response = 'Y':
+    # If cd.user was in a subgroup of that nw, cancel it + subgroup admin status if applicable.
+    # Exception: if he's nw-admin + sg-admin, transfer sg-admin status.
+    # Delete candidacy and create user membership instead.
+    # Send e-mail confirmation.
+    #
+    # Response = 'N': cancel candidacy, send an e-mail to candidate with rejecting admin's contact.
+    user = request.user
+    cd = get_candidacy(candidacy)
 
 
 def network_admin(request, network):

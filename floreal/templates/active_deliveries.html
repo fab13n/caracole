@@ -32,42 +32,56 @@
     {% for nw in network_admin %}
     <li><a href="{% url 'network_admin' network=nw.id %}">Administrer le réseau {{nw.name}}</a></li>
     {% endfor %}{# network_admin #}
-    {% for sg_dv in subgroup_admin %}
-    {% with sg_dv.sg as sg %}
-    {% for dv in sg_dv.dv %}
-    <li>Commande <em>{{dv.name}}</em> / {{sg.network.name}} / {{sg.name}} ({{dv.state_name}}):
-        <ul class="horizontal">
-            {% if dv.state == Delivery.ORDERING_ALL %}
-            <li><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id%}">
-                Modifier<img src="{% static 'images/edit.png' %}"/></a></li>
-            {% elif dv.state == Delivery.ORDERING_ADMIN %}
-            {% if sg|subgroup_state:dv < SubgroupState.READY_FOR_DELIVERY %}
-            <li><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id%}">
-                Modifier<img src="{% static 'images/edit.png' %}"/></a></li>
-            <li><a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.READY_FOR_DELIVERY %}?next=/">
-                <span class="no">Valider la commande du sous-groupe {{sg.name}}</span></a>✔</li>
-            {% else %}{# dv.state == READY_FOR_DELIVERY #}
-            <li><span class="yes">Commande validée pour le sous-groupe {{sg.name}}</span>
-                (<a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.INITIAL %}?next=/">annuler</a>✘)
+
+    {% for sg_dv_cd in subgroup_admin %}
+    {% with sg_dv_cd.sg as sg %}
+    <li>Réseau {{sg.network.name}}, sous-groupe {{sg.name}}:
+        <ul>
+            {% for cd in sg_dv_cd.cd %}
+            <li>Candidature de {{cd.user.first_name}} {{cd.user.last_name}}
+                <a href="mailto://{{cd.user.email}}">({{cd.user.email}})</a>:
+                <a href="{% url 'validate_candidacy' candicacy=cd answer='Y' %}"><span class="yes">Accepter</span></a>✔
+                /
+                <a href="{% url 'validate_candidacy' candicacy=cd answer='N' %}"><span class="no">Refuser</span></a>✘
             </li>
-            {% endif %}{# subgroup_state #}
-            {% else %}{# dv.state == REGULATING #}
-            {% if sg|subgroup_state:dv < SubgroupState.READY_FOR_ACCOUNTING %}
-            <li><a href="{% url 'adjust_subgroup' delivery=dv.id subgroup=sg.id%}">
-                Régulariser les comptes<img src="{% static 'images/edit.png' %}"/></a></li>
-            <li><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id%}">
-                Modifier<img src="{% static 'images/edit.png' %}"/></a></li>
-            <li><a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.READY_FOR_ACCOUNTING %}?next=/">
-                <span class="no">Valider la comptabilité du sous-groupe {{sg.name}}</span></a>✔</li>
-            {% else %}{# READY_FOR_ACCOUNTING #}
-            <li><span class="yes">Comptabilité validée pour le sous-groupe {{sg.name}}</span>
-                (<a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.READY_FOR_DELIVERY %}?next=/">annuler</a>✘)
+            {% endfor %}
+
+            {% for dv in sg_dv_cd.dv %}
+            <li>Commande <em>{{dv.name}}</em> / {{sg.network.name}} / {{sg.name}} ({{dv.state_name}}):
+                <ul class="horizontal">
+                    {% if dv.state == Delivery.ORDERING_ALL %}
+                    <li><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id%}">
+                        Modifier<img src="{% static 'images/edit.png' %}"/></a></li>
+                    {% elif dv.state == Delivery.ORDERING_ADMIN %}
+                    {% if sg|subgroup_state:dv < SubgroupState.READY_FOR_DELIVERY %}
+                    <li><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id%}">
+                        Modifier<img src="{% static 'images/edit.png' %}"/></a></li>
+                    <li><a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.READY_FOR_DELIVERY %}?next=/">
+                        <span class="no">Valider la commande du sous-groupe {{sg.name}}</span></a>✔</li>
+                    {% else %}{# dv.state == READY_FOR_DELIVERY #}
+                    <li><span class="yes">Commande validée pour le sous-groupe {{sg.name}}</span>
+                        (<a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.INITIAL %}?next=/">annuler</a>✘)
+                    </li>
+                    {% endif %}{# subgroup_state #}
+                    {% else %}{# dv.state == REGULATING #}
+                    {% if sg|subgroup_state:dv < SubgroupState.READY_FOR_ACCOUNTING %}
+                    <!--<li><a href="{% url 'adjust_subgroup' delivery=dv.id subgroup=sg.id%}">
+                        Régulariser les comptes<img src="{% static 'images/edit.png' %}"/></a></li>-->
+                    <li><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id%}">
+                        Modifier<img src="{% static 'images/edit.png' %}"/></a></li>
+                    <li><a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.READY_FOR_ACCOUNTING %}?next=/">
+                        <span class="no">Valider la comptabilité du sous-groupe {{sg.name}}</span></a>✔</li>
+                    {% else %}{# READY_FOR_ACCOUNTING #}
+                    <li><span class="yes">Comptabilité validée pour le sous-groupe {{sg.name}}</span>
+                        (<a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.READY_FOR_DELIVERY %}?next=/">annuler</a>✘)
+                    </li>
+                    {% endif %}{# subgroup_state #}
+                    {% endif %}{# dv.state == ??? #}
+                </ul>
             </li>
-            {% endif %}{# subgroup_state #}
-            {% endif %}{# dv.state == ??? #}
+            {% endfor %}{# dv #}
         </ul>
     </li>
-    {% endfor %}{# dv #}
     {% endwith %}{# sg #}
     {% endfor %}{# subgroup_admin #}
 </ul>
