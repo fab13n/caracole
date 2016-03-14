@@ -1,0 +1,26 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load floreal_filters %}
+
+{% block head %}
+<style type="text/css">
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Inscriptions aux réseaux</h1>
+{% for nw in networks %}
+<h2>Réseau {{nw.name}} :</h2>
+<ul>
+{% if nw.user_of %}<li>Membre du sous-groupe {{nw.user_of.name}}</li>{% endif %}
+{% if nw.candidate_to %}<li>Candidat au sous-groupe {{nw.candidate_of.name}}</li>{% endif %}
+{% if not nw.candidate_to and not nw.user_of %}<li>Non inscrit.</li>{% endif %}
+{% if nw.can_be_candidate_to %}
+<li>Demander à rejoindre le sous-groupe
+{% for sg in nw.can_be_candidate_to %}
+<a href="{% url 'apply_candidacy' old_subgroup=nw.user_of subgroup=sg.id %}">{{sg.name}}</a>
+{% endfor %}
+</li>
+{% endif %}
+{% endfor %}
+{% endblock %}

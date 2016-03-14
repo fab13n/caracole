@@ -28,6 +28,10 @@ urlpatterns = patterns('',
     url(r'^edit-purchases/sg-(?P<subgroup>[^/]+)/dv-(?P<delivery>[^/]+)$', views.edit_subgroup_purchases, name='edit_subgroup_purchases'),
     url(r'^edit-purchases/dv-(?P<delivery>[^/]+)$', views.edit_user_purchases, name='edit_user_purchases'),
 
+    url(r'^edit-candidacy/cd-(?P<candidacy>[^/]+)$', views.candidacy, name='candidacy'),
+    url(r'^set-candidacy/cd-(?P<candidacy>[^/]+)/(?P<response>[YN])$', views.apply_candidacy, name='apply_candidacy'),
+    url(r'^validate-candidacy/cd-(?P<candidacy>[^/]+)/(?P<response>[YM])$', views.validate_candidacy, name='validate_candidacy'),
+
     url(r'^view/dv-(?P<delivery>[^/]+).html$', views.view_purchases_html, name='view_all_purchases_html'),
     url(r'^view/dv-(?P<delivery>[^/]+)/table.pdf$', views.view_purchases_latex, name='view_all_purchases_latex'),
     url(r'^view/dv-(?P<delivery>[^/]+)/cards.pdf$', views.view_cards_latex, name='view_all_cards_latex'),
