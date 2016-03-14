@@ -44,7 +44,6 @@
                 /
                 <a href="{% url 'validate_candidacy' candicacy=cd answer='N' %}"><span class="no">Refuser</span></a>✘
             </li>
-<<<<<<< HEAD
             {% endfor %}
 
             {% for dv in sg_dv_cd.dv %}
@@ -79,7 +78,6 @@
                     {% endif %}{# subgroup_state #}
                     {% endif %}{# dv.state == ??? #}
                 </ul>
-=======
             {% endif %}{# subgroup_state #}
             {% else %}{# dv.state == REGULATING #}
             {% if sg|subgroup_state:dv < SubgroupState.READY_FOR_ACCOUNTING %}
@@ -94,7 +92,6 @@
             {% else %}{# READY_FOR_ACCOUNTING #}
             <li><span class="yes">Comptabilité validée pour le sous-groupe {{sg.name}}</span>
                 (<a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.READY_FOR_DELIVERY %}?next=/">annuler</a>✘)
->>>>>>> stash
             </li>
             {% endfor %}{# dv #}
         </ul>
