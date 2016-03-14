@@ -80,6 +80,7 @@ USE_I18N = True
 USE_L10N = False
 USE_TZ = True
 
+LOGIN_URL = "/accounts/login"
 LOGIN_REDIRECT_URL = "/"
 
 # Static files (CSS, JavaScript, Images)
