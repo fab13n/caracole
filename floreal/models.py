@@ -156,7 +156,7 @@ class Subgroup(models.Model):
 class Candidacy(models.Model):
     user = models.ForeignKey(User)
     subgroup = models.ForeignKey(Subgroup)
-    message = models.TextField(null=True, blank=True)
+    message = models.TextField(null=True, blank=True)  # Currently unused, might be used to communicate with admins
 
 
 class Delivery(models.Model):
