@@ -8,7 +8,7 @@ from django.views.generic import TemplateView
 from . import views
 
 urlpatterns = patterns('',
-    url(r'^$', views.active_deliveries, name='index'),
+    url(r'^$', views.index, name='index'),
     url(r'^edit/dv-(?P<delivery>[^/]+)$', views.edit_delivery, name='edit_delivery'),
     url(r'^network-admin/nw-(?P<network>[^/]+)$', views.network_admin, name='network_admin'),
 
@@ -30,9 +30,11 @@ urlpatterns = patterns('',
     url(r'^edit-purchases/sg-(?P<subgroup>[^/]+)/dv-(?P<delivery>[^/]+)$', views.edit_subgroup_purchases, name='edit_subgroup_purchases'),
     url(r'^edit-purchases/dv-(?P<delivery>[^/]+)$', views.edit_user_purchases, name='edit_user_purchases'),
 
-    url(r'^edit-candidacy/cd-(?P<candidacy>[^/]+)$', views.candidacy, name='candidacy'),
-    url(r'^set-candidacy/cd-(?P<candidacy>[^/]+)/(?P<response>[YN])$', views.apply_candidacy, name='apply_candidacy'),
-    url(r'^validate-candidacy/cd-(?P<candidacy>[^/]+)/(?P<response>[YM])$', views.validate_candidacy, name='validate_candidacy'),
+    url(r'^candidacy$', views.candidacy, name='candidacy'),
+    url(r'^create-candidacy/sg-(?P<subgroup>[^/]+)$', views.create_candidacy, name='create_candidacy'),
+    url(r'^cancel-candidacy/cd-(?P<candidacy>[^/]+)$', views.cancel_candidacy, name='cancel_candidacy'),
+    url(r'^validate-candidacy/cd-(?P<candidacy>[^/]+)/(?P<response>[YN])$', views.validate_candidacy, name='validate_candidacy'),
+    url(r'^leave-network/nw-(?P<network>[^/]+)$', views.leave_network, name='leave_network'),
 
     url(r'^view/dv-(?P<delivery>[^/]+).html$', views.view_purchases_html, name='view_all_purchases_html'),
     url(r'^view/dv-(?P<delivery>[^/]+)/table.pdf$', views.view_purchases_latex, name='view_all_purchases_latex'),

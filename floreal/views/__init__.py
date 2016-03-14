@@ -4,9 +4,8 @@
 from datetime import datetime
 
 from django.shortcuts import render_to_response, redirect
-from django.core.urlresolvers import reverse
-import django.contrib.auth.views as auth_view
 from django.http import HttpResponseForbidden, HttpResponseBadRequest
+from django.contrib.auth.decorators import login_required
 
 from .. import models as m
 from .edit_subgroup_purchases import edit_subgroup_purchases
@@ -34,13 +33,12 @@ def get_delivery(x):
 def get_candidacy(x):
     return m.Candidacy.objects.get(id=int(x))
 
-
-def active_deliveries(request):
+@login_required()
+def index(request):
     """Main page: list deliveries open for ordering as a user, networks for which the user is full admin,
      and orders for which he has subgroup-admin actions to take."""
 
     user = request.user
-    if not user.is_authenticated(): return redirect(reverse(auth_view.login))
 
     SUBGROUP_ADMIN_STATES = [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN,m.Delivery.REGULATING]
 
@@ -55,54 +53,106 @@ def active_deliveries(request):
                        'dv': sg.network.delivery_set.filter(state__in=SUBGROUP_ADMIN_STATES),
                        'cd': sg.candidacy_set.all()}
                        for sg in subgroup_admin]
-    subgroup_admin = [sg_dv_cd for sg_dv_cd in subgroup_admin if sg_dv_cd['dv'].exists() or sg_dv_cd['cd'].exists]
+    subgroup_admin = [sg_dv_cd for sg_dv_cd in subgroup_admin if sg_dv_cd['dv'].exists() or sg_dv_cd['cd'].exists()]
     vars['subgroup_admin'] = subgroup_admin
-    return render_to_response('active_deliveries.html', vars)
+    return render_to_response('index.html', vars)
 
 
+@login_required()
 def candidacy(request):
     """Generate a page to choose and request candidacy among the legal ones."""
     user = request.user
     user_of_subgroups = m.Subgroup.objects.filter(users__in=[user])
-    candidate_to_subgroups = m.Subgroup.objects.filter(candidacy__user__in=[user])
+    candidacies = m.Candidacy.objects.filter(user=user)
     # name, user_of, candidate_to, can_be_candidate_to
     networks = []
     for nw in m.Network.objects.all():
-        us = user_of_subgroups.filter(network=nw)
-        cs = candidate_to_subgroups.filter(network=nw)
+        sg_u = user_of_subgroups.filter(network=nw)
+        cd = candidacies.filter(subgroup__network=nw)
         item = {'name': nw.name,
-                'user_of': us[0] if us.exists() else None,
-                'candidate_to': cs[0] if cs.exists() else None,
+                'user_of': sg_u.first() if sg_u.exists() else None,
+                'candidate_to': cd.first() if cd.exists() else None,
                 'can_be_candidate_to': nw.subgroup_set.all()}
-
-        for non_candidate in (item['user_of'], item['candidate_to']):
-            if non_candidate:
-                item['can_be_candidate_to'] = item['can_be_candidate_to'].exclude(id=non_candidate.id)
+        if item['user_of']:
+            item['can_be_candidate_to'] = item['can_be_candidate_to'].exclude(id=item['user_of'].id)
+        if item['candidate_to']:
+            item['can_be_candidate_to'] = item['can_be_candidate_to'].exclude(id=item['candidate_to'].user.id)
         networks.append(item)
-    return render_to_response('candidacy.html', {'networks': networks})
+    print networks
+    return render_to_response('candidacy.html', {'user': user, 'networks': networks})
 
 
+@login_required()
+def leave_network(request, network):
+    """Leave subgroups of this network, as a user and a subgroup admin (not as a network-admin)."""
+    user = request.user
+    nw = get_network(network)
+    for sg in user.user_of_subgroup.filter(network__id=nw.id):
+        sg.users.remove(user.id)
+    for sg in user.staff_of_subgroup.filter(network__id=nw.id):
+        sg.staff.remove(user.id)
 
-def apply_candidacy(request, subgroup):
-    """Create the candidacy, after checking again its legality."""
+    target = request.REQUEST.get('next', False)
+    return redirect(target) if target else redirect('candidacy')
+
+
+@login_required()
+def create_candidacy(request, subgroup):
+    """Create the candidacy or act immediately if no validation is needed."""
     user = request.user
     sg = get_subgroup(subgroup)
+    if not user.user_of_subgroup.filter(id=sg.id).exists(): # No candidacy for a group you already belong to
+        # Remove any pending candidacy for a subgroup of the same network
+        conflicting_candidacies = m.Candidacy.objects.filter(user__id=user.id, subgroup__network__id=sg.network.id)
+        conflicting_candidacies.delete()
+        cd = m.Candidacy.objects.create(user=user, subgroup=sg)
+        if sg.network.staff.filter(id=user.id).exists():  # user is network-admin => accept directly
+            validate_candidacy(request, cd.id, 'Y')
+
+    target = request.REQUEST.get('next', False)
+    return redirect(target) if target else redirect('candidacy')
 
 
+@login_required()
+def cancel_candidacy(request, candidacy):
+    """Cancel your own, yet-unapproved candidacy."""
+    user = request.user
+    cd = get_candidacy(candidacy)
+    if cd.user == user:
+        cd.delete()
+    target = request.REQUEST.get('next', False)
+    return redirect(target) if target else redirect('candidacy')
+
+
+@login_required()
 def validate_candidacy(request, candidacy, response):
     """A (legal) candidacy has been answered by an admin.
     Check the admin was entitled to accept it, and perform corresponding membership changes."""
-    # Response = 'Y':
-    # If cd.user was in a subgroup of that nw, cancel it + subgroup admin status if applicable.
-    # Exception: if he's nw-admin + sg-admin, transfer sg-admin status.
-    # Delete candidacy and create user membership instead.
-    # Send e-mail confirmation.
-    #
-    # Response = 'N': cancel candidacy, send an e-mail to candidate with rejecting admin's contact.
-    user = request.user
+    admin_user = request.user
     cd = get_candidacy(candidacy)
+    if response=='Y':
+        prev_subgroups = cd.user.user_of_subgroup.filter(network__id=cd.subgroup.network.id)
+        if prev_subgroups.exists():
+            prev_sg = prev_subgroups.first()  # Normally there's only one
+            was_sg_admin = prev_sg.staff.filter(id=cd.user_id).exists()
+            prev_sg.users.remove(cd.user)
+            if was_sg_admin:
+                prev_sg.staff.remove(cd.user)
+        else:
+            was_sg_admin = False
+        cd.subgroup.users.add(cd.user)
+        is_nw_admin = cd.subgroup.network.staff.filter(id=cd.user_id).exists()
+        if was_sg_admin and is_nw_admin:
+            cd.subgroup.staff.add(cd.user)
+
+    cd.delete()
+    # TODO: sent e-mail confirmation to user
+
+    target = request.REQUEST.get('next', False)
+    return redirect(target) if target else redirect('candidacy')
 
 
+@login_required()
 def network_admin(request, network):
     user = request.user
     nw = get_network(network)
@@ -110,6 +160,7 @@ def network_admin(request, network):
     return render_to_response('network_admin.html', vars)
 
 
+@login_required()
 def edit_delivery(request, delivery):
     """Edit a delivery as a full network admin: act upon its lifecycle, control which subgroups have been validated,
     change the products characteristics, change other users' orders."""
@@ -133,6 +184,7 @@ def edit_delivery(request, delivery):
     return render_to_response('edit_delivery.html', vars)
 
 
+@login_required()
 def create_delivery(request, network):
     """Create a new delivery, then redirect to its edition page."""
     network = m.Network.objects.get(id=network)
@@ -153,6 +205,7 @@ def create_delivery(request, network):
     return redirect('edit_delivery_products', delivery=d.id)
 
 
+@login_required()
 def set_delivery_state(request, delivery, state):
     """Change a delivery's state."""
     dv = get_delivery(delivery)
@@ -165,18 +218,17 @@ def set_delivery_state(request, delivery, state):
     return redirect('edit_delivery', delivery=dv.id)
 
 
+@login_required()
 def set_subgroup_state_for_delivery(request, subgroup, delivery, state):
     """Change the state of a subgroup/delivery combo."""
     dv = get_delivery(delivery)
     sg = get_subgroup(subgroup)
     dv.set_stateForSubgroup(sg, state)
     target = request.REQUEST.get('next', False)
-    if target:
-        return redirect(target)
-    else:
-        return redirect('edit_delivery', delivery=dv.id)
+    return redirect(target) if target else redirect('edit_delivery', delivery=dv.id)
 
 
+@login_required()
 def view_emails(request, network=None, subgroup=None):
     # TODO: protect from unwarranted access
     vars = {'user': request.user}
@@ -194,6 +246,7 @@ def view_emails(request, network=None, subgroup=None):
     return render_to_response('emails.html', vars)
 
 
+@login_required()
 def view_history(request):
     orders = [(nw, m.Order(request.user, dv))
               for nw in m.Network.objects.all()

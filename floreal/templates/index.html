@@ -40,9 +40,9 @@
             {% for cd in sg_dv_cd.cd %}
             <li>Candidature de {{cd.user.first_name}} {{cd.user.last_name}}
                 <a href="mailto://{{cd.user.email}}">({{cd.user.email}})</a>:
-                <a href="{% url 'validate_candidacy' candicacy=cd answer='Y' %}"><span class="yes">Accepter</span></a>✔
+                <a href="{% url 'validate_candidacy' candidacy=cd.id response='Y' %}?next=/"><span class="yes">Accepter</span></a>✔
                 /
-                <a href="{% url 'validate_candidacy' candicacy=cd answer='N' %}"><span class="no">Refuser</span></a>✘
+                <a href="{% url 'validate_candidacy' candidacy=cd.id response='N' %}?next=/"><span class="no">Refuser</span></a>✘
             </li>
             {% endfor %}
 
@@ -86,4 +86,8 @@
     {% endfor %}{# subgroup_admin #}
 </ul>
 {% endif %}{# network_admin or subgroup_admin #}
+
+<h2>Gérer ses inscriptions</h2>
+<p><a href="{% url 'candidacy' %}">S'inscrire à d'autres réseau, se désinscrire, changer de sous-groupe...<img src="{% static 'images/edit.png' %}"/></a></p>
+
 {% endblock %}
