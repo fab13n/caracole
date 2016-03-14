@@ -1,9 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+from django.contrib.auth.decorators import login_required
+
 from floreal import models as m
 
 
+@login_required()
 def delivery_description(delivery, subgroups, **kwargs):
     """Generate a description of the purchases performed by users in `subgroups`
     for `delivery`. The resulting dictionary is used to render HTML as well as

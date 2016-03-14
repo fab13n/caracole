@@ -6,9 +6,9 @@ import re
 from django import forms
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
+from django.contrib.auth import authenticate, login
 
 from .. import models as m
-from caracole.settings import SELECT_SUBGROUPS_UPON_REGISTRATION
 
 
 class RegistrationForm(forms.Form):
@@ -17,8 +17,6 @@ class RegistrationForm(forms.Form):
     last_name = forms.CharField(label='Nom de famille')
     password1 = forms.CharField(label='Mot de passe', widget=forms.PasswordInput())
     password2 = forms.CharField(label='Mot de passe (à nouveau)', widget=forms.PasswordInput())
-    if SELECT_SUBGROUPS_UPON_REGISTRATION:
-        subgroup = forms.ModelMultipleChoiceField(m.Subgroup.objects.all(), label='Réseau et sous-groupe')
 
     def clean_subgroup(self):
         """Check that no network is multi-subscribed"""
@@ -29,8 +27,6 @@ class RegistrationForm(forms.Form):
                 raise forms.ValidationError("Ne pas sélectionner plus d'un sous-groupe par réseau.")
             else:
                 seen_networks.add(sg.network)
-        if SELECT_SUBGROUPS_UPON_REGISTRATION and len(seen_networks) == 0:
-            raise forms.ValidationError("Souscrire à au moins un sous-groupe.")
         return subgroups
 
     def clean_email(self):
@@ -83,10 +79,11 @@ def user_register(request):
             )
             user.set_password(d['password1'])
             user.save()
-            if SELECT_SUBGROUPS_UPON_REGISTRATION:
-                sg = m.Subgroup.objects.get(id=d['subgroup'])
-                sg.users.add(user)
-                sg.save()
+
+            # Auto-login
+            new_user = authenticate(username=d['email'], password=d['password1'])
+            login(request, new_user)
+
             return HttpResponseRedirect('registration_post.html')
         else:  # invalid form
             return render(request, 'registration/registration_form.html', {'form': form})

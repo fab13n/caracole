@@ -1,9 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+from decimal import Decimal
+
 from django.shortcuts import redirect, render_to_response
 from django.core.context_processors import csrf
-from decimal import Decimal
+from django.contrib.auth.decorators import login_required
 
 from .. import models as m
 from ..penury import set_limit
@@ -11,6 +13,7 @@ from .delivery_description import delivery_description
 from .view_purchases import get_subgroup
 
 
+@login_required()
 def adjust_subgroup(request, delivery, subgroup=None):
     """Adjust the totals ordered by a subgroup."""
     delivery = m.Delivery.objects.get(id=delivery)

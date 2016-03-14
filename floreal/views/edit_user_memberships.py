@@ -2,14 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import re
-import json
 
 from django.core.context_processors import csrf
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import render_to_response, redirect
+from django.contrib.auth.decorators import login_required
 
 from .. import models as m
 
+@login_required()
 def json_memberships(request, network):
     nw = m.Network.objects.get(id=network)
     # if request.user not in nw.staff.all():
@@ -48,6 +49,7 @@ def json_memberships(request, network):
     }
     return JsonResponse(vars)
 
+@login_required()
 def edit_user_memberships(request, network):
     nw = m.Network.objects.get(id=network)
     if request.user not in nw.staff.all():

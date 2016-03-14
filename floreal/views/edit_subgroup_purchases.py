@@ -5,12 +5,13 @@ import re
 from django.shortcuts import redirect, render_to_response
 from django.core.context_processors import csrf
 from django.http import HttpResponseForbidden
+from django.contrib.auth.decorators import login_required
 
 from .. import models as m
 from ..penury import set_limit
 from .delivery_description import delivery_description
-from .view_purchases import get_subgroup
 
+@login_required()
 def edit_subgroup_purchases(request, delivery, subgroup):
     """Allows to change the purchases of user's subgroup. Subgroup staff only."""
     delivery = m.Delivery.objects.get(id=delivery)
