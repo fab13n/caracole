@@ -9,10 +9,12 @@ from django.shortcuts import render_to_response, redirect
 from django.contrib.auth.decorators import login_required
 
 from .. import models as m
+from ..views import nw_admin_required, get_network
 
-@login_required()
+
+@nw_admin_required()
 def json_memberships(request, network):
-    nw = m.Network.objects.get(id=network)
+    nw = get_network(network)
     # if request.user not in nw.staff.all():
     #    return HttpResponseForbidden('Réservé aux administrateurs du réseau ' + nw.name)
 
@@ -49,9 +51,10 @@ def json_memberships(request, network):
     }
     return JsonResponse(vars)
 
-@login_required()
+
+@nw_admin_required()
 def edit_user_memberships(request, network):
-    nw = m.Network.objects.get(id=network)
+    nw = get_network(network)
     if request.user not in nw.staff.all():
         return HttpResponseForbidden('Réservé aux administrateurs du réseau ' + nw.name)
 

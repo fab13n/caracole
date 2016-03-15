@@ -7,17 +7,17 @@ past products, parse POSTed forms to update a delivery's products list."""
 from django.shortcuts import render_to_response, redirect, get_object_or_404
 from django.core.context_processors import csrf
 from django.http import HttpResponseForbidden
-from django.contrib.auth.decorators import login_required
+from ..views import nw_admin_required, get_delivery
 
 from ..models import Product, Delivery
 from ..penury import set_limit
 
 
-@login_required()
+@nw_admin_required(lambda a: get_delivery(a['delivery']).network)
 def edit_delivery_products(request, delivery):
     """Edit a delivery (name, state, products). Network staff only."""
 
-    delivery = get_object_or_404(Delivery, pk=delivery)
+    delivery = get_delivery(delivery)
 
     if request.user not in delivery.network.staff.all():
         return HttpResponseForbidden('Réservé aux administrateurs du réseau '+delivery.network.name)

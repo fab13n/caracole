@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
+from numbers import Number
 
 from django.shortcuts import render_to_response, redirect
 from django.http import HttpResponseForbidden, HttpResponseBadRequest
@@ -18,20 +19,68 @@ from .view_purchases import \
     view_purchases_html, view_purchases_pdf, view_purchases_latex, view_purchases_xlsx, view_cards_latex
 
 
-def get_network(x):
-    return m.Network.objects.get(id=int(x))
+def model_getter(cls, field_names=None):
+    def f(x):
+        if isinstance(x, basestring) and x.isdigit() or isinstance(x, Number):
+            return cls.objects.get(pk=x)
+        elif isinstance(x, cls):
+            return x
+        elif field_names and isinstance(x, basestring):
+            field_vals = x.split(":")
+            kwargs = { k+"__iexact": v for k, v in zip(field_names, field_vals)}
+            return cls.objects.get(**kwargs)
+        else:
+            return None
+    return f
 
 
-def get_subgroup(x):
-    return m.Subgroup.objects.get(id=int(x))
+get_network = model_getter(m.Network, ['name'])
+get_subgroup = model_getter(m.Subgroup, ['network__name', 'name'])
+get_delivery = model_getter(m.Delivery, ['network__name', 'name'])
+get_candidacy = model_getter(m.Candidacy)
 
 
-def get_delivery(x):
-    return m.Delivery.objects.get(id=int(x))
+def nw_admin_required(admin_getter=lambda a: a.get('network', None)):
+    """Decorate a view function so that it fails unless the user is a network admin.
+    If the function takes a `network` kwarg, then the user must be an admin for that network."""
+    def decorator(f):
+        def g(request, *args, **kwargs):
+            user = request.user
+            if not user.is_authenticated():
+                return HttpResponseForbidden('Réservé aux administrateurs')
+            nw = get_network(admin_getter(kwargs))
+            if nw:
+                if user not in nw.staff.all():
+                    return HttpResponseForbidden('Réservé aux administrateurs du réseau '+nw.name)
+            else:
+                if not m.Network.objects.filter(staff__in=[user]).exists():
+                    return HttpResponseForbidden('Réservé aux administrateurs de réseau')
+            return f(request, *args, **kwargs)
+        return g
+    return decorator
 
 
-def get_candidacy(x):
-    return m.Candidacy.objects.get(id=int(x))
+def sg_admin_required(admin_getter=lambda a: a.get('subgroup', None)):
+    """Decorate a view function so that it fails unless the user is a subgroup or network admin.
+    If the function takes a `subgroup` kwarg, then the user must be an admin for that subgroup
+    or its network."""
+    def decorator(f):
+        def g(request, *args, **kwargs):
+            user = request.user
+            if not user.is_authenticated():
+                return HttpResponseForbidden('Réservé aux administrateurs')
+            sg = get_subgroup(admin_getter(kwargs))
+            if sg:
+                if user not in sg.staff.all() and user not in sg.network.staff.all():
+                    return HttpResponseForbidden('Réservé aux administrateurs du sous-groupe '+sg.network.name+'/'+sg.name)
+            else:
+                if not m.Network.objects.filter(staff__in=[user]).exists() and \
+                   not m.Subgroup.objects.filter(staff__in=[user]).exists():
+                    return HttpResponseForbidden('Réservé aux administrateurs de sous-groupe')
+            return f(request, *args, **kwargs)
+        return g
+    return decorator
+
 
 @login_required()
 def index(request):
@@ -96,7 +145,7 @@ def leave_network(request, network):
     return redirect(target) if target else redirect('candidacy')
 
 
-@login_required()
+@sg_admin_required()
 def create_candidacy(request, subgroup):
     """Create the candidacy or act immediately if no validation is needed."""
     user = request.user
@@ -118,17 +167,17 @@ def cancel_candidacy(request, candidacy):
     """Cancel your own, yet-unapproved candidacy."""
     user = request.user
     cd = get_candidacy(candidacy)
-    if cd.user == user:
-        cd.delete()
+    if user != cd.user:
+        return HttpResponseForbidden("Vous ne pouvez annuler que vos propres candidatures.")
+    cd.delete()
     target = request.REQUEST.get('next', False)
     return redirect(target) if target else redirect('candidacy')
 
 
-@login_required()
+@sg_admin_required(lambda a: get_candidacy(a['candidacy']).subgroup)
 def validate_candidacy(request, candidacy, response):
     """A (legal) candidacy has been answered by an admin.
     Check the admin was entitled to accept it, and perform corresponding membership changes."""
-    admin_user = request.user
     cd = get_candidacy(candidacy)
     if response=='Y':
         prev_subgroups = cd.user.user_of_subgroup.filter(network__id=cd.subgroup.network.id)
@@ -152,7 +201,7 @@ def validate_candidacy(request, candidacy, response):
     return redirect(target) if target else redirect('candidacy')
 
 
-@login_required()
+@nw_admin_required()
 def network_admin(request, network):
     user = request.user
     nw = get_network(network)
@@ -160,7 +209,7 @@ def network_admin(request, network):
     return render_to_response('network_admin.html', vars)
 
 
-@login_required()
+@nw_admin_required(lambda a: get_delivery(a['delivery']).network)
 def edit_delivery(request, delivery):
     """Edit a delivery as a full network admin: act upon its lifecycle, control which subgroups have been validated,
     change the products characteristics, change other users' orders."""
@@ -184,7 +233,7 @@ def edit_delivery(request, delivery):
     return render_to_response('edit_delivery.html', vars)
 
 
-@login_required()
+@nw_admin_required()
 def create_delivery(request, network):
     """Create a new delivery, then redirect to its edition page."""
     network = m.Network.objects.get(id=network)
@@ -202,10 +251,12 @@ def create_delivery(request, network):
         name = fmt % n
     d = m.Delivery.objects.create(network=network, name=name, state=m.Delivery.PREPARATION)
     d.save()
+    # TODO: save probably not necessary
+    # TODO: enable same products as in latest delivery
     return redirect('edit_delivery_products', delivery=d.id)
 
 
-@login_required()
+@nw_admin_required(lambda a: get_delivery(a['delivery']).network)
 def set_delivery_state(request, delivery, state):
     """Change a delivery's state."""
     dv = get_delivery(delivery)
@@ -218,11 +269,13 @@ def set_delivery_state(request, delivery, state):
     return redirect('edit_delivery', delivery=dv.id)
 
 
-@login_required()
+@sg_admin_required()
 def set_subgroup_state_for_delivery(request, subgroup, delivery, state):
     """Change the state of a subgroup/delivery combo."""
     dv = get_delivery(delivery)
     sg = get_subgroup(subgroup)
+    if sg.network != dv.network:
+        return HttpResponseBadRequest("Ce sous-groupe ne participe pas à cette livraison.")
     dv.set_stateForSubgroup(sg, state)
     target = request.REQUEST.get('next', False)
     return redirect(target) if target else redirect('edit_delivery', delivery=dv.id)
@@ -231,14 +284,20 @@ def set_subgroup_state_for_delivery(request, subgroup, delivery, state):
 @login_required()
 def view_emails(request, network=None, subgroup=None):
     # TODO: protect from unwarranted access
-    vars = {'user': request.user}
+    user = request.user
+    vars = {'user': user}
     if network:
-        vars['network'] = m.Network.objects.get(id=int(network))
+        nw = get_network(network)
+        vars['network'] = nw
+        if user not in nw.staff.all():
+            return HttpResponseForbidden("Réservé aux admins réseau")
     if subgroup:
-        sg = m.Subgroup.objects.get(id=subgroup)
+        sg = get_subgroup(subgroup)
         vars['subgroups'] = [sg]
         if not network:
             vars['network'] = sg.network
+        if user not in sg.staff.all() and user not in nw.staff.all():
+            return HttpResponseForbidden("Réservé aux admins réseau")
     elif network:
         vars['subgroups'] = m.Subgroup.objects.filter(network_id=network)
     else:

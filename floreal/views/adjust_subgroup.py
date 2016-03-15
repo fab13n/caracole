@@ -11,9 +11,10 @@ from .. import models as m
 from ..penury import set_limit
 from .delivery_description import delivery_description
 from .view_purchases import get_subgroup
+from ..views import sg_admin_required
 
 
-@login_required()
+@sg_admin_required()
 def adjust_subgroup(request, delivery, subgroup=None):
     """Adjust the totals ordered by a subgroup."""
     delivery = m.Delivery.objects.get(id=delivery)

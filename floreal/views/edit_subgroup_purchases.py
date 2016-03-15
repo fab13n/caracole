@@ -10,13 +10,14 @@ from django.contrib.auth.decorators import login_required
 from .. import models as m
 from ..penury import set_limit
 from .delivery_description import delivery_description
+from ..views import sg_admin_required, get_delivery, get_subgroup
 
-@login_required()
+@sg_admin_required()
 def edit_subgroup_purchases(request, delivery, subgroup):
     """Allows to change the purchases of user's subgroup. Subgroup staff only."""
-    delivery = m.Delivery.objects.get(id=delivery)
+    delivery = get_delivery(delivery)
     user = request.user
-    subgroup = m.Subgroup.objects.get(id=subgroup)
+    subgroup = get_subgroup(subgroup)
 
     if user not in subgroup.staff.all() and user not in delivery.network.staff.all():
         return HttpResponseForbidden('Réservé aux administrateurs du réseau ' + delivery.network.name + \

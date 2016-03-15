@@ -87,3 +87,10 @@ Cycle de vie d'une livraison
    s'assurer qu'ils ont bien finalisé la commande, c'est-à-dire qu'ils
    ont reporté sur le site tous les éventuels changements de dernière
    minute.
+
+TODO:
+* creer et supprimer des sous-groupes
+* creation de comptes: soit permettre de se pre-enregistrer, soit lister les orphelins aux admins sous-groupe.
+  On pourrait laisserles gens qui s'inscrivent renseigner leur sous-groupes et les marquer inactifs, puis laisser
+  les admins decider soit de les activer, soit de les degager (inactifs + dans aucun groupe). Ca demande de verifier
+  l'usage de is_active partout.
