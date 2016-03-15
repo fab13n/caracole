@@ -15,6 +15,7 @@
 
 {% if deliveries %}
 <h2>Commandes en cours</h2>
+Commander pour :
 <ul>
     {% for dv in deliveries %}
     <li><a href="{% url 'edit_user_purchases' delivery=dv.id %}">{{dv.network.name}}: {{dv.name}}</a></li>
@@ -37,6 +38,7 @@
     {% with sg_dv_cd.sg as sg %}
     <li>Réseau {{sg.network.name}}, sous-groupe {{sg.name}}:
         <ul>
+            <li><a href="{% url 'emails_subgroup' subgroup=sg.id %}">e-mails des membres <img src="{% static 'images/email.png' %}"/></a></li>
             {% for cd in sg_dv_cd.cd %}
             <li>Candidature de {{cd.user.first_name}} {{cd.user.last_name}}
                 <a href="mailto://{{cd.user.email}}">({{cd.user.email}})</a>:
@@ -49,6 +51,17 @@
             {% for dv in sg_dv_cd.dv %}
             <li>Commande <em>{{dv.name}}</em> / {{sg.network.name}} / {{sg.name}} ({{dv.state_name}}):
                 <ul class="horizontal">
+                    {% if sg.id|subgroup_has_purchases:dv.id %}
+                    <li>Voir:</li>
+                    <li><a href="{% url 'view_subgroup_purchases_html' delivery=dv.id subgroup=sg.id %}">en ligne <img src="{% static 'images/grid.png' %}"/</a></li>
+                    <li><a href="{% url 'view_subgroup_purchases_xlsx' delivery=dv.id subgroup=sg.id  %}">sous MS-Excel <img src="{% static 'images/excel.png' %}"/></a></li>
+                    <li><a href="{% url 'view_subgroup_purchases_latex' delivery=dv.id subgroup=sg.id  %}">en tableau PDF <img src="{% static 'images/pdf.png' %}"/></a></li>
+                    <li><a href="{% url 'view_subgroup_cards_latex' delivery=dv.id subgroup=sg.id  %}">en cartes PDF <img src="{% static 'images/pdf.png' %}"/></a></li>
+                </ul>
+                <ul class="horizontal">
+                    {% else %}
+                    <li>(Aucun achat)</li>
+                    {% endif %}
                     {% if dv.state == Delivery.ORDERING_ALL %}
                     <li><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id%}">
                         Modifier<img src="{% static 'images/edit.png' %}"/></a></li>
