@@ -16,18 +16,19 @@
     ol.progtrckr li:after { content: "\00a0\00a0"; }
 
     tr.network-row {  border: 1px solid #811305; }
+    .yes { font-weight: bold; color: green !important; }
+    .no  { font-weight: bold; color: red !important; }
+
 </style>
 <script type='text/javascript'>
-  // <![CDATA[
-  function force_subgroup_validation(sg, sg_name, dv, state) {
-    var text = "Forcer la validation pour le sous-groupe SG ?"
-    if( confirm(text.replace('SG', sg_name))) {
-      var url = "{% url 'set_subgroup_state_for_delivery' subgroup="SG" delivery="DV" state="ST" %}";
-      url = url.replace('SG', sg).replace('DV',dv).replace('ST', state);
-      window.location = url;
-    }
-  }
-  // ]]>
+    // <![CDATA[
+    /* Demand confirmation through a dialog before following link. */
+    $(function(){
+        $("a.confirm").on('click', function(x) {
+            return confirm($(this).attr('msg'));
+        })
+    })
+    // ]]>
 </script>
 {% endblock %}
 
@@ -66,6 +67,7 @@
     Vous pouvez :
 </p>
 <ul>
+    <li>Retourner à l'<a href="{% url 'network_admin' network=dv.network.id %}">administration du réseau {{dv.network.name}}</a>.</li>
     {### MOVE TO NEXT STEP ###}
     {% if dv.state == Delivery.PREPARATION %}
     <li>Passer à l'étape suivante :
@@ -150,18 +152,21 @@
             {% if dv.state == Delivery.ORDERING_ADMIN %}
             <td>
                 {% if sg|subgroup_state:dv == SubgroupState.INITIAL %}
-                <a href="" onclick="force_subgroup_validation({{sg.id}}, '{{sg.name}}', {{dv.id}}, '{{SubgroupState.READY_FOR_DELIVERY}}'); return false">✘</a>
+                <a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.READY_FOR_DELIVERY %}"
+                   msg="Forcer la validation pour livraison du sous-groupe {{sg.name}} ?"
+                   class="confirm"><span class="no">✘</span></a>
                 {% else %}
-                ✔
+                <span class="yes">✔</span>
                 {% endif %}
             </td>
             {% elif dv.state == Delivery.REGULATING %}
             <td>
-                {% if sg|subgroup_state:dv != SubgroupState.READY_FOR_ACCONTING %}
-                {{ sg|subgroup_state:dv }}
-                TODO2
+                {% if sg|subgroup_state:dv != SubgroupState.READY_FOR_ACCOUNTING %}
+                <a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.READY_FOR_ACCOUNTING %}"
+                   msg="Forcer la validation de la comptabilité du sous-groupe {{sg.name}} ?"
+                   class="confirm"><span class="no">✘</span></a>
                 {% else %}
-                DONE2
+                <span class="yes">✔</span>
                 {% endif %}
             </td>
             {% endif %}
@@ -175,9 +180,11 @@
             <td><a href="{% url 'view_all_cards_latex' delivery=dv.id %}"><img src="{% static 'images/pdf.png' %}"/></a></td>
             {%if CAN_EDIT_PURCHASES%}<td><!-- pas d'edition pour tout le reseau --> - </td>{%endif%}
             {% if dv.state == Delivery.ORDERING_ADMIN %}
-            <td>{% if dv.subgroupMinState < SubgroupState.READY_FOR_DELIVERY %}✘{% else %}✔{% endif %}</td>
+            <td>{% if dv.subgroupMinState < SubgroupState.READY_FOR_DELIVERY %}<span class="no">✘</span>
+                {% else %}<span class="yes">✔</span>{% endif %}</td>
             {% elif dv.state == Delivery.REGULATING %}
-            <td>{% if dv.subgroupMinState < SubgroupState.READY_FOR_ACCOUNTING %}✘{% else %}✔{% endif %}</td>
+            <td>{% if dv.subgroupMinState < SubgroupState.READY_FOR_ACCOUNTING %}<span class="no">✘</span>
+                {% else %}<span class="yes">✔</span>{% endif %}</td>
             {% endif %}
         </tr>
     </table>
