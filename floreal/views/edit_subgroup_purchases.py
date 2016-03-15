@@ -5,12 +5,13 @@ import re
 from django.shortcuts import redirect, render_to_response
 from django.core.context_processors import csrf
 from django.http import HttpResponseForbidden
-from django.contrib.auth.decorators import login_required
 
 from .. import models as m
 from ..penury import set_limit
 from .delivery_description import delivery_description
-from ..views import sg_admin_required, get_delivery, get_subgroup
+from .getters import get_subgroup, get_delivery
+from .decorators import sg_admin_required
+
 
 @sg_admin_required()
 def edit_subgroup_purchases(request, delivery, subgroup):

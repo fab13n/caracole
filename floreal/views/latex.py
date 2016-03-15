@@ -4,7 +4,7 @@ from tempfile import NamedTemporaryFile
 from django import template
 from django.template.loader import get_template
 
-from floreal.views.delivery_description import delivery_description
+from .delivery_description import delivery_description
 
 
 def _run(descr, template_name):

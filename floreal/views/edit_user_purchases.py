@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 
 from .. import models as m
 from ..penury import set_limit
-from ..views import get_delivery
+from .getters import get_delivery
 
 
 @login_required()

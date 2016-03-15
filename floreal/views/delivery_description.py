@@ -1,9 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from django.contrib.auth.decorators import login_required
-
-from floreal import models as m
+from .. import models as m
 
 
 def delivery_description(delivery, subgroups, **kwargs):

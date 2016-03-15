@@ -6,10 +6,10 @@ import re
 from django.core.context_processors import csrf
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import render_to_response, redirect
-from django.contrib.auth.decorators import login_required
 
 from .. import models as m
-from ..views import nw_admin_required, get_network
+from .getters import get_network
+from .decorators import nw_admin_required
 
 
 @nw_admin_required()

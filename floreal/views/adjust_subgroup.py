@@ -10,8 +10,8 @@ from django.contrib.auth.decorators import login_required
 from .. import models as m
 from ..penury import set_limit
 from .delivery_description import delivery_description
-from .view_purchases import get_subgroup
-from ..views import sg_admin_required
+from .getters import get_subgroup
+from .decorators import sg_admin_required
 
 
 @sg_admin_required()

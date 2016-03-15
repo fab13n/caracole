@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
-from numbers import Number
 
 from django.shortcuts import render_to_response, redirect
 from django.http import HttpResponseForbidden, HttpResponseBadRequest
@@ -17,70 +16,8 @@ from .edit_user_memberships import edit_user_memberships, json_memberships
 from .adjust_subgroup import adjust_subgroup
 from .view_purchases import \
     view_purchases_html, view_purchases_pdf, view_purchases_latex, view_purchases_xlsx, view_cards_latex
-
-
-def model_getter(cls, field_names=None):
-    def f(x):
-        if isinstance(x, basestring) and x.isdigit() or isinstance(x, Number):
-            return cls.objects.get(pk=x)
-        elif isinstance(x, cls):
-            return x
-        elif field_names and isinstance(x, basestring):
-            field_vals = x.split(":")
-            kwargs = { k+"__iexact": v for k, v in zip(field_names, field_vals)}
-            return cls.objects.get(**kwargs)
-        else:
-            return None
-    return f
-
-
-get_network = model_getter(m.Network, ['name'])
-get_subgroup = model_getter(m.Subgroup, ['network__name', 'name'])
-get_delivery = model_getter(m.Delivery, ['network__name', 'name'])
-get_candidacy = model_getter(m.Candidacy)
-
-
-def nw_admin_required(admin_getter=lambda a: a.get('network', None)):
-    """Decorate a view function so that it fails unless the user is a network admin.
-    If the function takes a `network` kwarg, then the user must be an admin for that network."""
-    def decorator(f):
-        def g(request, *args, **kwargs):
-            user = request.user
-            if not user.is_authenticated():
-                return HttpResponseForbidden('Réservé aux administrateurs')
-            nw = get_network(admin_getter(kwargs))
-            if nw:
-                if user not in nw.staff.all():
-                    return HttpResponseForbidden('Réservé aux administrateurs du réseau '+nw.name)
-            else:
-                if not m.Network.objects.filter(staff__in=[user]).exists():
-                    return HttpResponseForbidden('Réservé aux administrateurs de réseau')
-            return f(request, *args, **kwargs)
-        return g
-    return decorator
-
-
-def sg_admin_required(admin_getter=lambda a: a.get('subgroup', None)):
-    """Decorate a view function so that it fails unless the user is a subgroup or network admin.
-    If the function takes a `subgroup` kwarg, then the user must be an admin for that subgroup
-    or its network."""
-    def decorator(f):
-        def g(request, *args, **kwargs):
-            user = request.user
-            if not user.is_authenticated():
-                return HttpResponseForbidden('Réservé aux administrateurs')
-            sg = get_subgroup(admin_getter(kwargs))
-            if sg:
-                if user not in sg.staff.all() and user not in sg.network.staff.all():
-                    return HttpResponseForbidden('Réservé aux administrateurs du sous-groupe '+sg.network.name+'/'+sg.name)
-            else:
-                if not m.Network.objects.filter(staff__in=[user]).exists() and \
-                   not m.Subgroup.objects.filter(staff__in=[user]).exists():
-                    return HttpResponseForbidden('Réservé aux administrateurs de sous-groupe')
-            return f(request, *args, **kwargs)
-        return g
-    return decorator
-
+from .getters import get_network, get_subgroup, get_delivery, get_candidacy
+from .decorators import nw_admin_required, sg_admin_required
 
 @login_required()
 def index(request):
