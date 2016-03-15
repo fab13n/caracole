@@ -36,6 +36,8 @@ MAX_EMAIL_LENGTH = 128
 REQUIRE_UNIQUE_EMAIL = False
 
 # Application definition
+DELIVERY_ARCHIVE_DIR = '/tmp/deliveries'
+
 
 INSTALLED_APPS = (
     'floreal',  # Before auth, so that app's password management templates take precedence

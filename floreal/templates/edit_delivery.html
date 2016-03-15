@@ -100,6 +100,10 @@
         <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.TERMINATED %}">marquer la commande comme terminée</a>✔.
     </li>
     {% elif dv.state == Delivery.TERMINATED %}
+    <li>Télécharger l'archive
+        <a href="{% url 'get_archive' delivery=dv.id suffix='xlsx' %}">MS-Excel <img src="{% static 'images/excel.png' %}"/></a>,
+        <a href="{% url 'get_archive' delivery=dv.id suffix='pdf' %}">PDF <img src="{% static 'images/pdf.png' %}"/></a>,
+    </li>
     <li>(aucune action, commande terminée.
         <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.PREPARATION %}">Réactiver</a>)
     </li>

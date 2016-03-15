@@ -53,9 +53,12 @@ urlpatterns = patterns('',
         views.view_purchases_latex, name='view_subgroup_purchases_latex'),
     url(r'^view/sg-(?P<subgroup>[^/]+)/dv-(?P<delivery>[^/]+)/cards.pdf$',
         views.view_cards_latex, name='view_subgroup_cards_latex'),
+
     url(r'^emails/nw-(?P<network>[^/]+)$', views.view_emails, name='emails_network'),
     url(r'^emails/sg-(?P<subgroup>[^/]+)$', views.view_emails, name='emails_subgroup'),
+
     url(r'^history$', views.view_history, name='view_history'),
+    url(r'^archive/dv-(?P<delivery>[^.]+)\.(?P<suffix>.+)$', views.get_archive, name='get_archive'),
 
     url(r'^charte.html$', TemplateView.as_view(template_name='charte.html'), name='charte'),
 

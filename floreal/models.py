@@ -204,7 +204,7 @@ class Delivery(models.Model):
         return "%s/%s" % (self.network.name, self.name)
 
     def state_name(self):
-        return self.STATE_CHOICES[self.state]
+        return self.STATE_CHOICES.get(self.state, 'Invalid state '+self.state)
 
     def subgroupMinState(self):
         states = self.subgroupstatefordelivery_set

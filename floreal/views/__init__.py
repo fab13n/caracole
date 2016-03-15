@@ -2,12 +2,19 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
+import os
 
 from django.shortcuts import render_to_response, redirect
 from django.http import HttpResponseForbidden, HttpResponseBadRequest
 from django.contrib.auth.decorators import login_required
 
+from caracole import settings
 from .. import models as m
+from .getters import get_network, get_subgroup, get_delivery, get_candidacy
+from .decorators import nw_admin_required, sg_admin_required
+from .latex import delivery_table as latex_delivery_table
+from .spreadsheet import spreadsheet
+
 from .edit_subgroup_purchases import edit_subgroup_purchases
 from .edit_user_purchases import edit_user_purchases
 from .user_registration import user_register, user_register_post
@@ -15,9 +22,8 @@ from .edit_delivery_products import edit_delivery_products
 from .edit_user_memberships import edit_user_memberships, json_memberships
 from .adjust_subgroup import adjust_subgroup
 from .view_purchases import \
-    view_purchases_html, view_purchases_pdf, view_purchases_latex, view_purchases_xlsx, view_cards_latex
-from .getters import get_network, get_subgroup, get_delivery, get_candidacy
-from .decorators import nw_admin_required, sg_admin_required
+    view_purchases_html, view_purchases_pdf, view_purchases_latex, view_purchases_xlsx, view_cards_latex, get_archive
+
 
 @login_required()
 def index(request):
@@ -201,9 +207,22 @@ def set_delivery_state(request, delivery, state):
         return HttpResponseForbidden('Réservé aux administrateurs du réseau '+dv.network.name)
     if state not in m.Delivery.STATE_CHOICES:
         return HttpResponseBadRequest(state+" n'est pas un état valide.")
+    must_save = dv.state <= m.Delivery.REGULATING < state
     dv.state = state
     dv.save()
+    if must_save:
+        save_delivery(dv)
     return redirect('edit_delivery', delivery=dv.id)
+
+
+def save_delivery(dv):
+    """Save an Excel spreadsheet and a PDF table of a delivery that's just been completed."""
+    file_name = os.path.join(settings.DELIVERY_ARCHIVE_DIR, "dv-%d.xlsx" % dv.id)
+    with open(file_name, 'wb') as f:
+        f.write(spreadsheet(dv, dv.network.subgroup_set.all()))
+    file_name = os.path.join(settings.DELIVERY_ARCHIVE_DIR, "dv-%d.pdf" % dv.id)
+    with open(file_name, 'wb') as f:
+        f.write(latex_delivery_table(dv))
 
 
 @sg_admin_required()
@@ -220,21 +239,20 @@ def set_subgroup_state_for_delivery(request, subgroup, delivery, state):
 
 @login_required()
 def view_emails(request, network=None, subgroup=None):
-    # TODO: protect from unwarranted access
     user = request.user
     vars = {'user': user}
     if network:
         nw = get_network(network)
         vars['network'] = nw
         if user not in nw.staff.all():
-            return HttpResponseForbidden("Réservé aux admins réseau")
+            return HttpResponseForbidden("Réservé aux admins")
     if subgroup:
         sg = get_subgroup(subgroup)
         vars['subgroups'] = [sg]
         if not network:
             vars['network'] = sg.network
         if user not in sg.staff.all() and user not in nw.staff.all():
-            return HttpResponseForbidden("Réservé aux admins réseau")
+            return HttpResponseForbidden("Réservé aux admins")
     elif network:
         vars['subgroups'] = m.Subgroup.objects.filter(network_id=network)
     else:
@@ -250,3 +268,4 @@ def view_history(request):
     orders = [(nw, od) for (nw, od) in orders if od.price > 0]  # Filter out empty orders
     vars = {'user': request.user, 'orders': orders}
     return render_to_response("view_history.html", vars)
+
