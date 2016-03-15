@@ -118,6 +118,22 @@
         color:       #811305;
         border:      3px solid #811305 !important;
       }
+      th.rotate {
+        height: 140px;
+        white-space: nowrap;
+        border: 0px;
+      }
+      th.rotate > div {
+        transform: translate(3px, 70px) rotate(315deg);
+        width: 30px;
+      }
+      th.rotate > div > div {
+        border-top: 1px solid #a75a50;
+        padding: 5px 10px 5px 30px;
+        width: 150px;
+        text-align: left;
+      }
+
     </style>
 {% endblock %}
 
@@ -132,7 +148,7 @@
     <tr>
         <td class="blank" colspan="2">{# no product in users' column #}</td>
         {% for pd in products %}
-        <th class="top" id="pd{{pd.id}}-name">{{pd.name}}</th>
+        <th class="rotate" id="pd{{pd.id}}-name"><div><div>{{pd.name}}</div></div></th>
         {% endfor %}
     </tr>
 
