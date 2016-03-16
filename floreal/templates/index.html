@@ -31,12 +31,12 @@ Commander pour :
 <h2>Administrer</h2>
 <ul>
     {% for nw in network_admin %}
-    <li><a href="{% url 'network_admin' network=nw.id %}">Administrer le réseau {{nw.name}}</a></li>
+    <li><a href="{% url 'network_admin' network=nw.id %}">Administrer le réseau <em>{{nw.name}}</em></a></li>
     {% endfor %}{# network_admin #}
 
     {% for sg_dv_cd in subgroup_admin %}
     {% with sg_dv_cd.sg as sg %}
-    <li>Réseau {{sg.network.name}}, sous-groupe {{sg.name}}:
+    <li>Réseau <em>{{sg.network.name}}</em>, sous-groupe <em>{{sg.name}}</em>:
         <ul>
             <li><a href="{% url 'emails_subgroup' subgroup=sg.id %}">e-mails des membres <img src="{% static 'images/email.png' %}"/></a></li>
             {% for cd in sg_dv_cd.cd %}
