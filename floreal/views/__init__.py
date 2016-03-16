@@ -22,7 +22,7 @@ from .edit_delivery_products import edit_delivery_products
 from .edit_user_memberships import edit_user_memberships, json_memberships
 from .adjust_subgroup import adjust_subgroup
 from .view_purchases import \
-    view_purchases_html, view_purchases_pdf, view_purchases_latex, view_purchases_xlsx, view_cards_latex, get_archive
+    view_purchases_html, view_purchases_latex, view_purchases_xlsx, view_cards_latex, get_archive
 
 
 @login_required()
