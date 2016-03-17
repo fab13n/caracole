@@ -23,6 +23,7 @@ urlpatterns = patterns('',
         views.set_delivery_state, name='set_delivery_state'),
     url(r'^subgroup-state/dv-(?P<delivery>[^/]+)/sg-(?P<subgroup>[^/]+)/(?P<state>[^/]+)$',
         views.set_subgroup_state_for_delivery, name='set_subgroup_state_for_delivery'),
+    url(r'^create-subgroup/nw-(?P<network>[^/]+)/(?P<name>.+)$', views.create_subgroup, name='create_subgroup'),
 
     url(r'^adjust/dv-(?P<delivery>[^/]+)$', views.adjust_subgroup, name='adjust_subgroup'),
     url(r'^adjust/sg-(?P<subgroup>[^/]+)/dv-(?P<delivery>[^/]+)$', views.adjust_subgroup, name='adjust_subgroup'),

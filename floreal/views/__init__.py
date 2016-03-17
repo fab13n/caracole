@@ -3,6 +3,7 @@
 
 from datetime import datetime
 import os
+import urllib
 
 from django.shortcuts import render_to_response, redirect
 from django.http import HttpResponseForbidden, HttpResponseBadRequest
@@ -150,6 +151,16 @@ def network_admin(request, network):
     nw = get_network(network)
     vars = {'user': user, 'nw': nw, 'deliveries': m.Delivery.objects.filter(network=nw)}
     return render_to_response('network_admin.html', vars)
+
+
+@nw_admin_required()
+def create_subgroup(request, network, name):
+    # name = urllib.unquote(name)
+    nw = get_network(network)
+    if nw.subgroup_set.filter(name=name).exists():
+        return HttpResponseBadRequest("Il y a déjà un sous-groupe de ce nom dans "+nw.name)
+    m.Subgroup.objects.create(name=name, network=nw)
+    return redirect('edit_user_memberships', network=nw.id)
 
 
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)

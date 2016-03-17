@@ -132,6 +132,7 @@ class Subgroup(models.Model):
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         """If the extra user is missing, create it before saving."""
         if not self.extra_user:
+            missing_extra =True
             extra_username = "extra-%s" % self.name.lower()
             if User.objects.filter(username=extra_username).exists():
                 extra_username = "extra-%s-%s" % (self.network.name.lower(), self.name.lower())
@@ -142,9 +143,12 @@ class Subgroup(models.Model):
                                                   first_name="extra",
                                                   last_name=self.name.capitalize(),
                                                   last_login=datetime.now())
-            self.users.add(self.extra_user)
+        else:
+            missing_extra = False
         super(Subgroup, self).save(force_insert=force_insert, force_update=force_update,
                                    using=using, update_fields=update_fields)
+        if missing_extra:
+            self.users.add(self.extra_user)
 
     @property
     def sorted_users(self):
