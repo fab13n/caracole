@@ -43,3 +43,7 @@ def subgroup_has_purchases(sg, dv):
     return m.Purchase.objects.filter(product__delivery_id=dv,
                                      user__in=m.Subgroup.objects.get(pk=sg).users.all()).exists()
 
+
+@register.filter
+def order(dv, u):
+    return m.Order(u, dv)

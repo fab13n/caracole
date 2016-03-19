@@ -15,7 +15,18 @@
 Commander pour :
 <ul>
     {% for dv in deliveries %}
-    <li><a href="{% url 'edit_user_purchases' delivery=dv.id %}">{{dv.network.name}}: {{dv.name}}</a></li>
+    {% with dv|order:user as order %}
+    {% if order.price == 0 %}
+    <li><a href="{% url 'edit_user_purchases' delivery=dv.id %}">{{dv.network.name}} : {{dv.name}}</a></li>
+    {% else %}
+    <li>Modifier <a href="{% url 'edit_user_purchases' delivery=dv.id %}">{{dv.network.name}} : {{dv.name}}</a>
+        ({{order.price|price}}):
+        <ul>
+            {% for pc in order.purchases %}<li>{{pc}}</li>{% endfor %}
+        </ul>
+    </li>
+    {% endif %}
+    {% endwith %}
     {% endfor %}
 </ul>
 {% else %}
