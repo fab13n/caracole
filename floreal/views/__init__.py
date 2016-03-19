@@ -99,12 +99,23 @@ def create_candidacy(request, subgroup):
         conflicting_candidacies = m.Candidacy.objects.filter(user__id=user.id, subgroup__network__id=sg.network.id)
         conflicting_candidacies.delete()
         cd = m.Candidacy.objects.create(user=user, subgroup=sg)
-        if sg.network.staff.filter(id=user.id).exists():  # user is network-admin => accept directly
+        if auto_validate_candidacy(cd):
             validate_candidacy(request, cd.id, 'Y')
 
     target = request.REQUEST.get('next', False)
     return redirect(target) if target else redirect('candidacy')
 
+
+def auto_validate_candidacy(cd):
+    """Return True if a candidacy should be automatically granted."""
+    if cd.subgroup.network.staff.filter(id=cd.user_id).exists():  # network-admin requests are automatically granted
+        return True
+    if (cd.subgroup.auto_validate or cd.subgroup.network.auto_validate) and\
+            m.Subgroup.objects.filter(users=cd.user).exists():
+        # Even if the subgroup is marked as auto-accepting, users who haven't been ever accepted in any subgroup
+        # Should be manually accepted, to avoid bogus sign-ups.
+        return True
+    return False
 
 @login_required()
 def cancel_candidacy(request, candidacy):

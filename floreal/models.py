@@ -96,6 +96,7 @@ class Network(models.Model):
 
     name = models.CharField(max_length=64, unique=True)
     staff = models.ManyToManyField(User, related_name='staff_of_network')
+    auto_validate = models.BooleanField(default=False)
 
     class Meta:
         ordering = ('name',)
@@ -121,6 +122,7 @@ class Subgroup(models.Model):
     staff = models.ManyToManyField(User, related_name='staff_of_subgroup')
     users = models.ManyToManyField(User, related_name='user_of_subgroup')
     candidates = models.ManyToManyField(User, related_name='candidate_of_subgroup', through='Candidacy')
+    auto_validate = models.BooleanField(default=False)
 
     class Meta:
         unique_together = (('network', 'name'),)
