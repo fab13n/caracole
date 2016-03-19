@@ -321,16 +321,6 @@ class Purchase(models.Model):
         return result
 
 
-class LegacyPassword(models.Model):
-    """Used to authentify legacy users, regeistered with the old web2py version of the app,
-    the first time they log in. At first login, their password is migrated to Django's regular
-    authentication backend, so it normally happens only once par legacy user."""
-    email = models.CharField(max_length=64)
-    password = models.CharField(max_length=200)
-    circle = models.CharField(max_length=32)
-    migrated = models.BooleanField(default=False)
-
-
 class Order(object):
     """Sum-up of what a given user has ordered in a given delivery."""
 
