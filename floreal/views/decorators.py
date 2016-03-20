@@ -14,14 +14,14 @@ def nw_admin_required(admin_getter=lambda a: a.get('network', None)):
         def g(request, *args, **kwargs):
             user = request.user
             if not user.is_authenticated():
-                return HttpResponseForbidden('Réservé aux administrateurs')
+                return HttpResponseForbidden(u'Réservé aux administrateurs')
             nw = get_network(admin_getter(kwargs))
             if nw:
                 if user not in nw.staff.all():
-                    return HttpResponseForbidden('Réservé aux administrateurs du réseau '+nw.name)
+                    return HttpResponseForbidden(u'Réservé aux administrateurs du réseau '+nw.name)
             else:
                 if not m.Network.objects.filter(staff__in=[user]).exists():
-                    return HttpResponseForbidden('Réservé aux administrateurs de réseau')
+                    return HttpResponseForbidden(u'Réservé aux administrateurs de réseau')
             return f(request, *args, **kwargs)
         return g
     return decorator
@@ -35,15 +35,15 @@ def sg_admin_required(admin_getter=lambda a: a.get('subgroup', None)):
         def g(request, *args, **kwargs):
             user = request.user
             if not user.is_authenticated():
-                return HttpResponseForbidden('Réservé aux administrateurs')
+                return HttpResponseForbidden(u'Réservé aux administrateurs')
             sg = get_subgroup(admin_getter(kwargs))
             if sg:
                 if user not in sg.staff.all() and user not in sg.network.staff.all():
-                    return HttpResponseForbidden('Réservé aux administrateurs du sous-groupe '+sg.network.name+'/'+sg.name)
+                    return HttpResponseForbidden(u'Réservé aux administrateurs du sous-groupe '+sg.network.name+'/'+sg.name)
             else:
                 if not m.Network.objects.filter(staff__in=[user]).exists() and \
                    not m.Subgroup.objects.filter(staff__in=[user]).exists():
-                    return HttpResponseForbidden('Réservé aux administrateurs de sous-groupe')
+                    return HttpResponseForbidden(u'Réservé aux administrateurs de sous-groupe')
             return f(request, *args, **kwargs)
         return g
     return decorator
