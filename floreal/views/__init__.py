@@ -89,7 +89,7 @@ def leave_network(request, network):
     return redirect(target) if target else redirect('candidacy')
 
 
-@sg_admin_required()
+@login_required()
 def create_candidacy(request, subgroup):
     """Create the candidacy or act immediately if no validation is needed."""
     user = request.user
