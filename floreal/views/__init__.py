@@ -7,6 +7,7 @@ import os
 from django.shortcuts import render_to_response, redirect
 from django.http import HttpResponseForbidden, HttpResponseBadRequest
 from django.contrib.auth.decorators import login_required
+from django.core.mail import send_mail
 
 from caracole import settings
 from .. import models as m
@@ -120,9 +121,12 @@ def cancel_candidacy(request, candidacy):
 @sg_admin_required(lambda a: get_candidacy(a['candidacy']).subgroup)
 def validate_candidacy(request, candidacy, response):
     """A (legal) candidacy has been answered by an admin.
-    Check the admin was entitled to accept it, and perform corresponding membership changes."""
+    Perform corresponding membership changes and notify user through e-mail."""
     cd = get_candidacy(candidacy)
-    if response=='Y':
+    adm = request.user
+    adm = adm.first_name + " " + adm.last_name + " (" + adm.email + ")"
+    mail = ["Bonjour %s, \n\n" % (cd.user.first_name,)]
+    if response == 'Y':
         prev_subgroups = cd.user.user_of_subgroup.filter(network__id=cd.subgroup.network.id)
         if prev_subgroups.exists():
             prev_sg = prev_subgroups.first()  # Normally there's only one
@@ -130,14 +134,34 @@ def validate_candidacy(request, candidacy, response):
             prev_sg.users.remove(cd.user)
             if was_sg_admin:
                 prev_sg.staff.remove(cd.user)
+            mail += "Votre transfert du sous-groupe %s au sous-groupe %s, " % (prev_sg.name, cd.subgroup.name)
         else:
+            mail += "Votre adhésion au sous-groupe %s, " % (cd.subgroup.name,)
             was_sg_admin = False
+        mail += "au sein du réseau %s, a été acceptée par %s." % (cd.subgroup.network.name, adm)
         cd.subgroup.users.add(cd.user)
         is_nw_admin = cd.subgroup.network.staff.filter(id=cd.user_id).exists()
         if was_sg_admin and is_nw_admin:
             cd.subgroup.staff.add(cd.user)
+            mail += "Vous êtes également nommé co-administrateur du sous-groupe %s." % (cd.subgroup.name,)
+        mail += "\n\n"
+        if cd.subgroup.network.delivery_set.filter(state=m.Delivery.ORDERING_ALL).exists():
+            mail += "Une commande est actuellement en cours, dépêchez vous de vous connecter sur le site pour y participer !"
+        else:
+            mail += "Vos responsables de sous-groupe vous préviendront par mail quand une nouvelle commande sera ouverte."
+    else:  # Negative response
+        mail += "Votre demande d'adhésion au sous-groupe %s du réseau %s a été refusée par %s. " \
+                "Si cette décision vous surprend, ou vous semble injustifiée, veuillez entrer en contact par " \
+                "e-mail avec cette personne pour clarifier la situation." % (
+            cd.subgroup.name, cd.subgroup.network.name, adm)
 
+    mail += "\n\nCordialement, le robot du site de commande des Circuits Courts Caracole."
+    title = "[caracole] Votre demande d'inscription au circuit court "+cd.subgroup.network.name
+    if request.user.id != cd.user.id:  # Don't send the mail for self-validated candidacies.
+        send_mail(title=title, message=''.join(mail), from_email=settings.EMAIL_HOST_USER, recipient_list=[cd.user.email],
+                  fail_silently=True)
     cd.delete()
+
     # TODO: sent e-mail confirmation to user
 
     target = request.REQUEST.get('next', False)
