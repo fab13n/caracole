@@ -96,6 +96,7 @@ class Network(models.Model):
 
     name = models.CharField(max_length=64, unique=True)
     staff = models.ManyToManyField(User, related_name='staff_of_network')
+    auto_validate = models.BooleanField(default=False)
 
     class Meta:
         ordering = ('name',)
@@ -121,6 +122,7 @@ class Subgroup(models.Model):
     staff = models.ManyToManyField(User, related_name='staff_of_subgroup')
     users = models.ManyToManyField(User, related_name='user_of_subgroup')
     candidates = models.ManyToManyField(User, related_name='candidate_of_subgroup', through='Candidacy')
+    auto_validate = models.BooleanField(default=False)
 
     class Meta:
         unique_together = (('network', 'name'),)
@@ -132,6 +134,7 @@ class Subgroup(models.Model):
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         """If the extra user is missing, create it before saving."""
         if not self.extra_user:
+            missing_extra =True
             extra_username = "extra-%s" % self.name.lower()
             if User.objects.filter(username=extra_username).exists():
                 extra_username = "extra-%s-%s" % (self.network.name.lower(), self.name.lower())
@@ -142,9 +145,12 @@ class Subgroup(models.Model):
                                                   first_name="extra",
                                                   last_name=self.name.capitalize(),
                                                   last_login=datetime.now())
-            self.users.add(self.extra_user)
+        else:
+            missing_extra = False
         super(Subgroup, self).save(force_insert=force_insert, force_update=force_update,
                                    using=using, update_fields=update_fields)
+        if missing_extra:
+            self.users.add(self.extra_user)
 
     @property
     def sorted_users(self):
@@ -313,16 +319,6 @@ class Purchase(models.Model):
         if specify_user:
             result += " pour %s %s" % (self.user.first_name, self.user.last_name)
         return result
-
-
-class LegacyPassword(models.Model):
-    """Used to authentify legacy users, regeistered with the old web2py version of the app,
-    the first time they log in. At first login, their password is migrated to Django's regular
-    authentication backend, so it normally happens only once par legacy user."""
-    email = models.CharField(max_length=64)
-    password = models.CharField(max_length=200)
-    circle = models.CharField(max_length=32)
-    migrated = models.BooleanField(default=False)
 
 
 class Order(object):

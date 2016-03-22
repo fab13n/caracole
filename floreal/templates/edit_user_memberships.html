@@ -4,19 +4,6 @@
 {% block head %}
   <style type="text/css">
     td, th { border: none; }
-    th.rotate {
-      height: 140px;
-      white-space: nowrap;
-    }
-    th.rotate > div {
-      transform: translate(10px, 55px) rotate(315deg);
-      width: 30px;
-    }
-    th.rotate > div > span {
-      border-bottom: 1px solid #ccc;
-      padding: 5px 10px;
-      // background-color: white;
-    }
     th.name, th.email {
       text-align: right;
       white-space: nowrap;
@@ -31,7 +18,7 @@
        background-color: #808080;
     }
     td.radio-subgroup:nth-child(3n+2) {
-       border-left: 1px solid #ccc;
+       border-left: 1px solid #A75A50;
     }
   </style>
   <script type='text/javascript'>
@@ -76,10 +63,10 @@
     var rows = [];
     for(var i in subgroups) {
       var sg = subgroups[i];
-      rows.push('<th class="rotate"><div><span>'+sg.name+'</span></div></th>');
+      rows.push('<th class="rotate"><div><div>'+sg.name+'</div></div></th>');
     }
-    rows.push('<th class="rotate"><div><span>Membre d\'autres réseaux</span></div></th>');
-    rows.push('<th class="rotate"><div><span>Non-membre</span></div></th>');
+    rows.push('<th class="rotate"><div><div>Membre d\'autres réseaux</div></div></th>');
+    rows.push('<th class="rotate"><div><div>Non-membre</div></div></th>');
     $("#header-row").append(rows.join('\n'));
 
     rows = [];
@@ -194,8 +181,8 @@
   <table id="users-table">
     <tr id="header-row">
       <td colspan="2"><input id="submit" type="submit" value="Sauvegarder" onclick="disable_unmodified_inputs()" disabled="true"/></td>
-      <th class="rotate"><div><span>Admin réseau</span></div></th>
-      <th class="rotate"><div><span>Admin sous-groupe</span></div></th>
+      <th class="rotate"><div><div>Admin réseau</div></div></th>
+      <th class="rotate"><div><div>Admin sous-groupe</div></div></th>
     </tr>
   </table>
 </form>

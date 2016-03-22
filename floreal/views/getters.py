@@ -14,7 +14,7 @@ def model_getter(cls, field_names=None):
             return x
         elif field_names and isinstance(x, basestring):
             field_vals = x.split(":")
-            kwargs = { k+"__iexact": v for k, v in zip(field_names, field_vals)}
+            kwargs = { k+"__iexact": v.replace('+', ' ') for k, v in zip(field_names, field_vals)}
             return cls.objects.get(**kwargs)
         else:
             return None

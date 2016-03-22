@@ -17,29 +17,12 @@
 
 {% endif %}
     <style type="text/css">
-      .subgroup_row, .subgroup_row th { color: white; background-color: #a75a50; font-weight: bold; }
-      th.left { white-space: nowrap; }
+      tr.subgroup_row, tr.subgroup_row th { color: white; background-color: #a75a50; font-weight: bold; }
       tr.one  { background-color: #d5b1ac; }
       .blank  { text-align: left; }
       table { margin-top: 30px; }
       .unsatisfied_ordered {  color: red; text-decoration: line-through; }
       .unsatisfied_granted {  font-weight: bold; color: red; }
-      th.rotate {
-        height: 140px;
-        white-space: nowrap;
-        border: 0px;
-      }
-      th.rotate > div {
-        transform: translate(3px, 70px) rotate(315deg);
-        width: 30px;
-      }
-      th.rotate > div > div {
-        border-top: 1px solid #a75a50;
-        padding: 5px 10px 5px 30px;
-        width: 150px;
-        text-align: left;
-      }
-
     </style>
 {% endblock %}
 
@@ -47,7 +30,7 @@
 
 <h1>Commandes {{delivery.network.name}} / {{delivery.name}}</h1>
 
-<table>
+<table class="with-border">
 
     {# Product names #}
     <tr>

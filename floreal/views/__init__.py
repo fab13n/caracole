@@ -3,6 +3,7 @@
 
 from datetime import datetime
 import os
+import urllib
 
 from django.shortcuts import render_to_response, redirect
 from django.http import HttpResponseForbidden, HttpResponseBadRequest
@@ -89,7 +90,7 @@ def leave_network(request, network):
     return redirect(target) if target else redirect('candidacy')
 
 
-@sg_admin_required()
+@login_required()
 def create_candidacy(request, subgroup):
     """Create the candidacy or act immediately if no validation is needed."""
     user = request.user
@@ -99,12 +100,23 @@ def create_candidacy(request, subgroup):
         conflicting_candidacies = m.Candidacy.objects.filter(user__id=user.id, subgroup__network__id=sg.network.id)
         conflicting_candidacies.delete()
         cd = m.Candidacy.objects.create(user=user, subgroup=sg)
-        if sg.network.staff.filter(id=user.id).exists():  # user is network-admin => accept directly
+        if auto_validate_candidacy(cd):
             validate_candidacy(request, cd.id, 'Y')
 
     target = request.REQUEST.get('next', False)
     return redirect(target) if target else redirect('candidacy')
 
+
+def auto_validate_candidacy(cd):
+    """Return True if a candidacy should be automatically granted."""
+    if cd.subgroup.network.staff.filter(id=cd.user_id).exists():  # network-admin requests are automatically granted
+        return True
+    if (cd.subgroup.auto_validate or cd.subgroup.network.auto_validate) and\
+            m.Subgroup.objects.filter(users=cd.user).exists():
+        # Even if the subgroup is marked as auto-accepting, users who haven't been ever accepted in any subgroup
+        # Should be manually accepted, to avoid bogus sign-ups.
+        return True
+    return False
 
 @login_required()
 def cancel_candidacy(request, candidacy):
@@ -174,6 +186,16 @@ def network_admin(request, network):
     nw = get_network(network)
     vars = {'user': user, 'nw': nw, 'deliveries': m.Delivery.objects.filter(network=nw)}
     return render_to_response('network_admin.html', vars)
+
+
+@nw_admin_required()
+def create_subgroup(request, network, name):
+    # name = urllib.unquote(name)
+    nw = get_network(network)
+    if nw.subgroup_set.filter(name=name).exists():
+        return HttpResponseBadRequest("Il y a déjà un sous-groupe de ce nom dans "+nw.name)
+    m.Subgroup.objects.create(name=name, network=nw)
+    return redirect('edit_user_memberships', network=nw.id)
 
 
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)
