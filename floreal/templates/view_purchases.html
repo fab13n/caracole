@@ -5,21 +5,16 @@
 {% block head %}
 {% if table|length > 1 %}
     <script type='text/javascript'>
-      var DISPLAYED_SUBGROUPS = [ {%for sgr in table%}{{sgr.subgroup.id}}, {%endfor%}];
+      var DISPLAYED_SUBGROUPS = [ {% for sgr in table %}{{sgr.subgroup.id}}, {% endfor %}];
       function attach_visibility_toggle(sg_id) {
-        $('#subgroup_row_'+sg_id).click(function() {
-          // console.log("Toggle visibility for subgroup "+sg_id);
-          $('.subgroup_'+sg_id+'_user_row').toggle();
-        })
+        $('#subgroup_row_'+sg_id).click(function() { $('.subgroup_'+sg_id+'_user_row').toggle(); })
       }
       $(document).ready(function() {
-        for(var i=0; i!==DISPLAYED_SUBGROUPS.length; i++) {
-          var sg_id = DISPLAYED_SUBGROUPS[i];
-          attach_visibility_toggle(sg_id);
-        }
+        for(var i=0; i!==DISPLAYED_SUBGROUPS.length; i++) { attach_visibility_toggle(DISPLAYED_SUBGROUPS[i]); }
         $('.user_row').toggle()
       })
     </script>
+
 {% endif %}
     <style type="text/css">
       tr.subgroup_row, tr.subgroup_row th { color: white; background-color: #a75a50; font-weight: bold; }
