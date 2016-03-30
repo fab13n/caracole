@@ -194,8 +194,15 @@ def validate_candidacy_without_checking(request, candidacy, response, send_confi
 def network_admin(request, network):
     user = request.user
     nw = get_network(network)
-    vars = {'user': user, 'nw': nw, 'deliveries': m.Delivery.objects.filter(network=nw)}
+    vars = {'user': user, 'nw': nw, 'deliveries': m.Delivery.objects.filter(network=nw).exclude(state=m.Delivery.TERMINATED)}
     return render_to_response('network_admin.html', vars)
+
+@nw_admin_required()
+def archived_deliveries(request, network):
+    user = request.user
+    nw = get_network(network)
+    vars = {'user': user, 'nw': nw, 'deliveries': m.Delivery.objects.filter(network=nw, state=m.Delivery.TERMINATED)}
+    return render_to_response('archived_deliveries.html', vars)
 
 
 @nw_admin_required()

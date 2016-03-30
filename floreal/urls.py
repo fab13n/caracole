@@ -11,6 +11,7 @@ urlpatterns = patterns('',
     url(r'^$', views.index, name='index'),
 
     url(r'^nw-(?P<network>[^/]+)$', views.network_admin, name='network_admin'),
+    url(r'^nw-(?P<network>[^/]+)/archives$', views.archived_deliveries, name='archived_deliveries'),
     url(r'^staff/dv-(?P<delivery>[^/]+)$', views.edit_delivery, name='edit_delivery'),
     url(r'^new-dv/nw-(?P<network>[^/]+)$', views.create_delivery, name='create_delivery'),
     url(r'^set-state/dv-(?P<delivery>[^/]+)/(?P<state>[A-Za-z]+)$', views.set_delivery_state, name='set_delivery_state'),
