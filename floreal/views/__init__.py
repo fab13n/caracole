@@ -184,8 +184,6 @@ def validate_candidacy_without_checking(request, candidacy, response, send_confi
                   fail_silently=True)
     cd.delete()
 
-    # TODO: sent e-mail confirmation to user
-
     target = request.REQUEST.get('next', False)
     return redirect(target) if target else redirect('candidacy')
 
@@ -255,11 +253,15 @@ def create_delivery(request, network):
             fmt = u"%dème de " + name
         n += 1
         name = fmt % n
-    d = m.Delivery.objects.create(network=network, name=name, state=m.Delivery.PREPARATION)
-    d.save()
-    # TODO: save probably not necessary
-    # TODO: enable same products as in latest delivery
-    return redirect('edit_delivery_products', delivery=d.id)
+    prev_dv = m.Delivery.objects.filter(network=network).order_by('-id').first()
+    new_dv = m.Delivery.objects.create(network=network, name=name, state=m.Delivery.PREPARATION)
+    # Start with a copy of each product from the latest command in the network
+    for prev_pd in prev_dv.product_set.all():
+        m.Product.objects.create(delivery=new_dv, name=prev_pd.name, price=prev_pd.price,
+                                 quantity_per_package=prev_pd.quantity_per_package,
+                                 unit=prev_pd.unit, quantity_limit=prev_pd.quantity_limit,
+                                 unit_weight=prev_pd.unit_weight, quantum=prev_pd.quantum)
+    return redirect('edit_delivery_products', delivery=new_dv.id)
 
 
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)
