@@ -60,7 +60,7 @@ def view_purchases_xlsx(request, delivery, subgroup=None):
         if request.user not in dv.network.staff.all():
             return HttpResponseForbidden(u"Réservé aux admins")
         subgroups = dv.network.subgroup_set.all()
-    return non_html_response((dv.network.name, dv.name), "xlsx", spreadsheet(delivery, subgroups))
+    return non_html_response((dv.network.name, dv.name), "xlsx", spreadsheet(dv, subgroups))
 
 
 @login_required()
