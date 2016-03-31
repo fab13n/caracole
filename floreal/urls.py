@@ -62,4 +62,6 @@ urlpatterns = patterns('',
     url(r'^accounts/register$', views.user_register, name="user_register"),
     url(r'^accounts/registration_post.html$', views.user_register_post, name="registration_post"),
     url(r'^accounts/', include('registration.backends.simple.urls')),
+
+    url(r'^add-phone-number/(?P<phone>[^./]+)$', views.phone.add_phone_number, name="add_phone_number"),
 )

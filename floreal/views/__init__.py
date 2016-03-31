@@ -3,7 +3,6 @@
 
 from datetime import datetime
 import os
-import urllib
 
 from django.shortcuts import render_to_response, redirect
 from django.http import HttpResponseForbidden, HttpResponseBadRequest
@@ -26,6 +25,7 @@ from .adjust_subgroup import adjust_subgroup
 from .view_purchases import \
     view_purchases_html, view_purchases_latex, view_purchases_xlsx, view_cards_latex, get_archive
 
+from floreal.views import require_phone_number as phone
 
 @login_required()
 def index(request):
@@ -37,6 +37,7 @@ def index(request):
     SUBGROUP_ADMIN_STATES = [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN,m.Delivery.REGULATING]
 
     vars = {'user': request.user, 'Delivery': m.Delivery, 'SubgroupState': m.SubgroupStateForDelivery}
+    vars['has_phone'] = phone.has_number(request.user)
     user_subgroups = m.Subgroup.objects.filter(users__in=[user])
     user_networks = [sg.network for sg in user_subgroups]
     vars['deliveries'] = m.Delivery.objects.filter(network__in=user_networks, state=m.Delivery.ORDERING_ALL)
