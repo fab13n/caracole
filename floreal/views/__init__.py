@@ -272,11 +272,12 @@ def create_delivery(request, network):
     prev_dv = m.Delivery.objects.filter(network=network).order_by('-id').first()
     new_dv = m.Delivery.objects.create(network=network, name=name, state=m.Delivery.PREPARATION)
     # Start with a copy of each product from the latest command in the network
-    for prev_pd in prev_dv.product_set.all():
-        m.Product.objects.create(delivery=new_dv, name=prev_pd.name, price=prev_pd.price,
-                                 quantity_per_package=prev_pd.quantity_per_package,
-                                 unit=prev_pd.unit, quantity_limit=prev_pd.quantity_limit,
-                                 unit_weight=prev_pd.unit_weight, quantum=prev_pd.quantum)
+    if prev_dv:
+        for prev_pd in prev_dv.product_set.all():
+            m.Product.objects.create(delivery=new_dv, name=prev_pd.name, price=prev_pd.price,
+                                     quantity_per_package=prev_pd.quantity_per_package,
+                                     unit=prev_pd.unit, quantity_limit=prev_pd.quantity_limit,
+                                     unit_weight=prev_pd.unit_weight, quantum=prev_pd.quantum)
     return redirect('edit_delivery_products', delivery=new_dv.id)
 
 
