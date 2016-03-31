@@ -53,6 +53,9 @@ urlpatterns = patterns('',
     url(r'^nw-(?P<network>[^./]+)/emails$', views.view_emails, name='emails_network'),
     url(r'^sg-(?P<subgroup>[^./]+)/emails$', views.view_emails, name='emails_subgroup'),
 
+    url(r'^nw-(?P<network>[^./]+)/phones$', views.view_phones, name='phones_network'),
+    url(r'^sg-(?P<subgroup>[^./]+)/phones$', views.view_phones, name='phones_subgroup'),
+
     url(r'^history$', views.view_history, name='view_history'),
 
     url(r'^charte.html$', TemplateView.as_view(template_name='charte.html'), name='charte'),

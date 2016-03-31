@@ -344,6 +344,37 @@ def view_emails(request, network=None, subgroup=None):
 
 
 @login_required()
+def view_phones(request, network=None, subgroup=None):
+    user = request.user
+    vars = {'user': user, 'subgroups': []}
+    if network:
+        nw = get_network(network)
+        if user not in nw.staff.all():
+            return HttpResponseForbidden(u"Réservé aux admins")
+        subgroups = nw.subgroup_set.order_by('name')
+    if subgroup:
+        sg = get_subgroup(subgroup)
+        nw = sg.network
+        subgroups = [sg]
+        if not network:
+            vars['network'] = sg.network
+        if user not in sg.staff.all() and user not in nw.staff.all():
+            return HttpResponseForbidden(u"Réservé aux admins")
+    vars['nw'] = nw
+    vars['nw_admin'] = nw.staff.order_by('last_name', 'first_name')
+    nw_staff_id = set(u.id for u in vars['nw_admin'])
+    for sg in subgroups:
+        rec = {'sg': sg}
+        rec['sg_admin'] = sg.staff.exclude(id__in=nw_staff_id).order_by('last_name', 'first_name')
+        sg_staff_id = set(u.id for u in rec['sg_admin']) | nw_staff_id
+        rec['sg_user'] = sg.users.exclude(id__in=sg_staff_id).exclude(id=sg.extra_user.id).order_by('last_name', 'first_name')
+        vars['subgroups'].append(rec)
+    vars['subgroups'].sort(key=lambda rec: rec['sg'].name)
+    return render_to_response('phones.html', vars)
+
+
+
+@login_required()
 def view_history(request):
     orders = [(nw, m.Order(request.user, dv))
               for nw in m.Network.objects.all()
