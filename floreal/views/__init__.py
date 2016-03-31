@@ -125,7 +125,7 @@ def cancel_candidacy(request, candidacy):
     user = request.user
     cd = get_candidacy(candidacy)
     if user != cd.user:
-        return HttpResponseForbidden("Vous ne pouvez annuler que vos propres candidatures.")
+        return HttpResponseForbidden(u"Vous ne pouvez annuler que vos propres candidatures.")
     cd.delete()
     target = request.REQUEST.get('next', False)
     return redirect(target) if target else redirect('candidacy')
@@ -208,9 +208,25 @@ def create_subgroup(request, network, name):
     # name = urllib.unquote(name)
     nw = get_network(network)
     if nw.subgroup_set.filter(name=name).exists():
-        return HttpResponseBadRequest("Il y a déjà un sous-groupe de ce nom dans "+nw.name)
+        return HttpResponseBadRequest(u"Il y a déjà un sous-groupe de ce nom dans "+nw.name)
     m.Subgroup.objects.create(name=name, network=nw)
     return redirect('edit_user_memberships', network=nw.id)
+
+
+@login_required()
+def create_network(request, nw_name, sg_name):
+    user = request.user
+    if not user.is_staff:
+        return HttpResponseForbidden(u"Creation de réseaux réservée au staff")
+    if m.Network.objects.filter(name__iexact=nw_name).exists():
+        return HttpResponseBadRequest(u"Il y a déjà un réseau nommé "+nw_name)
+    nw = m.Network.objects.create(name=nw_name)
+    sg = m.Subgroup.objects.create(name=sg_name, network=nw)
+    nw.staff.add(user)
+    sg.staff.add(user)
+    sg.users.add(user)
+    target = request.REQUEST.get('next', False)
+    return redirect(target) if target else redirect('network_admin', network=nw.id)
 
 
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)
@@ -242,7 +258,7 @@ def create_delivery(request, network):
     """Create a new delivery, then redirect to its edition page."""
     network = m.Network.objects.get(id=network)
     if request.user not in network.staff.all():
-        return HttpResponseForbidden('Réservé aux administrateurs du réseau '+network.name)
+        return HttpResponseForbidden(u'Réservé aux administrateurs du réseau '+network.name)
     months = [u'Janvier', u'Février', u'Mars', u'Avril', u'Mai', u'Juin', u'Juillet',
               u'Août', u'Septembre', u'Octobre', u'Novembre', u'Décembre']
     now = datetime.now()
@@ -269,9 +285,9 @@ def set_delivery_state(request, delivery, state):
     """Change a delivery's state."""
     dv = get_delivery(delivery)
     if request.user not in dv.network.staff.all():
-        return HttpResponseForbidden('Réservé aux administrateurs du réseau '+dv.network.name)
+        return HttpResponseForbidden(u'Réservé aux administrateurs du réseau '+dv.network.name)
     if state not in m.Delivery.STATE_CHOICES:
-        return HttpResponseBadRequest(state+" n'est pas un état valide.")
+        return HttpResponseBadRequest(state+u" n'est pas un état valide.")
     must_save = dv.state <= m.Delivery.REGULATING < state
     dv.state = state
     dv.save()
@@ -296,7 +312,7 @@ def set_subgroup_state_for_delivery(request, subgroup, delivery, state):
     dv = get_delivery(delivery)
     sg = get_subgroup(subgroup)
     if sg.network != dv.network:
-        return HttpResponseBadRequest("Ce sous-groupe ne participe pas à cette livraison.")
+        return HttpResponseBadRequest(u"Ce sous-groupe ne participe pas à cette livraison.")
     dv.set_stateForSubgroup(sg, state)
     target = request.REQUEST.get('next', False)
     return redirect(target) if target else redirect('edit_delivery', delivery=dv.id)
@@ -310,18 +326,18 @@ def view_emails(request, network=None, subgroup=None):
         nw = get_network(network)
         vars['network'] = nw
         if user not in nw.staff.all():
-            return HttpResponseForbidden("Réservé aux admins")
+            return HttpResponseForbidden(u"Réservé aux admins")
     if subgroup:
         sg = get_subgroup(subgroup)
         vars['subgroups'] = [sg]
         if not network:
             vars['network'] = sg.network
         if user not in sg.staff.all() and user not in nw.staff.all():
-            return HttpResponseForbidden("Réservé aux admins")
+            return HttpResponseForbidden(u"Réservé aux admins")
     elif network:
         vars['subgroups'] = m.Subgroup.objects.filter(network_id=network)
     else:
-        raise Exception("Need network or subgroup")
+        return HttpResponseForbidden(u"Préciser un réseau ou un sous-groupe")
     return render_to_response('emails.html', vars)
 
 
