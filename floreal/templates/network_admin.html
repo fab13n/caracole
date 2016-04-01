@@ -28,7 +28,7 @@
   <li><a href="{% url 'create_delivery' network=nw.id %}">Créer une nouvelle commande {{nw.name}} <img src="{% static 'images/plus.png' %}"/></a></li>
   <li><a href="{% url 'edit_user_memberships' network=nw.id %}">Répartir les membres en sous-groupes {{nw.name}} <img src="{% static 'images/edit.png' %}"/></a></li>
   <li><a href="{% url 'emails_network' network=nw.id %}">e-mails du réseau {{nw.name}} <img src="{% static 'images/email.png' %}"/></a></li>
-  <li><a href="#" id='create-subgroup'>Créer un nouveau sous-groupe de {{nw.name}} <img src="{% static 'images/plus.png' %}"/></a></li>
+  <li><a href="#" id='create-subgroup'>Créer un nouveau sous-groupe de {{nw.name}}</a></li>
   <li>Voir ou éditer une commande existante :
       <ul>
           {% for dv in deliveries %}
@@ -38,5 +38,6 @@
           {% endfor %}
       </ul>
   </li>
+  <li><a href="{% url 'archived_deliveries' network=nw.id %}">Voir les commandes archivées</a></li>
 </ul>
 {% endblock content %}

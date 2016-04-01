@@ -79,8 +79,8 @@
     $("#hide-subgroups").append(rows.join('\n'));
 
     rows = [];
-    for(var uid in sorted_users) {
-      if(! users.hasOwnProperty(uid)) { continue; }
+    for(var i in sorted_users) {
+      var uid = sorted_users[i];
       rows.push(make_user_line(uid));
     }
     $('#users-table').append(rows.join('\n'));

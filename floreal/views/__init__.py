@@ -3,7 +3,6 @@
 
 from datetime import datetime
 import os
-import urllib
 
 from django.shortcuts import render_to_response, redirect
 from django.http import HttpResponseForbidden, HttpResponseBadRequest
@@ -26,6 +25,7 @@ from .adjust_subgroup import adjust_subgroup
 from .view_purchases import \
     view_purchases_html, view_purchases_latex, view_purchases_xlsx, view_cards_latex, get_archive
 
+from floreal.views import require_phone_number as phone
 
 @login_required()
 def index(request):
@@ -37,6 +37,7 @@ def index(request):
     SUBGROUP_ADMIN_STATES = [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN,m.Delivery.REGULATING]
 
     vars = {'user': request.user, 'Delivery': m.Delivery, 'SubgroupState': m.SubgroupStateForDelivery}
+    vars['has_phone'] = phone.has_number(request.user)
     user_subgroups = m.Subgroup.objects.filter(users__in=[user])
     user_networks = [sg.network for sg in user_subgroups]
     vars['deliveries'] = m.Delivery.objects.filter(network__in=user_networks, state=m.Delivery.ORDERING_ALL)
@@ -125,7 +126,7 @@ def cancel_candidacy(request, candidacy):
     user = request.user
     cd = get_candidacy(candidacy)
     if user != cd.user:
-        return HttpResponseForbidden("Vous ne pouvez annuler que vos propres candidatures.")
+        return HttpResponseForbidden(u"Vous ne pouvez annuler que vos propres candidatures.")
     cd.delete()
     target = request.REQUEST.get('next', False)
     return redirect(target) if target else redirect('candidacy')
@@ -184,8 +185,6 @@ def validate_candidacy_without_checking(request, candidacy, response, send_confi
                   fail_silently=True)
     cd.delete()
 
-    # TODO: sent e-mail confirmation to user
-
     target = request.REQUEST.get('next', False)
     return redirect(target) if target else redirect('candidacy')
 
@@ -194,8 +193,15 @@ def validate_candidacy_without_checking(request, candidacy, response, send_confi
 def network_admin(request, network):
     user = request.user
     nw = get_network(network)
-    vars = {'user': user, 'nw': nw, 'deliveries': m.Delivery.objects.filter(network=nw)}
+    vars = {'user': user, 'nw': nw, 'deliveries': m.Delivery.objects.filter(network=nw).exclude(state=m.Delivery.TERMINATED)}
     return render_to_response('network_admin.html', vars)
+
+@nw_admin_required()
+def archived_deliveries(request, network):
+    user = request.user
+    nw = get_network(network)
+    vars = {'user': user, 'nw': nw, 'deliveries': m.Delivery.objects.filter(network=nw, state=m.Delivery.TERMINATED)}
+    return render_to_response('archived_deliveries.html', vars)
 
 
 @nw_admin_required()
@@ -203,9 +209,25 @@ def create_subgroup(request, network, name):
     # name = urllib.unquote(name)
     nw = get_network(network)
     if nw.subgroup_set.filter(name=name).exists():
-        return HttpResponseBadRequest("Il y a déjà un sous-groupe de ce nom dans "+nw.name)
+        return HttpResponseBadRequest(u"Il y a déjà un sous-groupe de ce nom dans "+nw.name)
     m.Subgroup.objects.create(name=name, network=nw)
     return redirect('edit_user_memberships', network=nw.id)
+
+
+@login_required()
+def create_network(request, nw_name, sg_name):
+    user = request.user
+    if not user.is_staff:
+        return HttpResponseForbidden(u"Creation de réseaux réservée au staff")
+    if m.Network.objects.filter(name__iexact=nw_name).exists():
+        return HttpResponseBadRequest(u"Il y a déjà un réseau nommé "+nw_name)
+    nw = m.Network.objects.create(name=nw_name)
+    sg = m.Subgroup.objects.create(name=sg_name, network=nw)
+    nw.staff.add(user)
+    sg.staff.add(user)
+    sg.users.add(user)
+    target = request.REQUEST.get('next', False)
+    return redirect(target) if target else redirect('network_admin', network=nw.id)
 
 
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)
@@ -237,7 +259,7 @@ def create_delivery(request, network):
     """Create a new delivery, then redirect to its edition page."""
     network = m.Network.objects.get(id=network)
     if request.user not in network.staff.all():
-        return HttpResponseForbidden('Réservé aux administrateurs du réseau '+network.name)
+        return HttpResponseForbidden(u'Réservé aux administrateurs du réseau '+network.name)
     months = [u'Janvier', u'Février', u'Mars', u'Avril', u'Mai', u'Juin', u'Juillet',
               u'Août', u'Septembre', u'Octobre', u'Novembre', u'Décembre']
     now = datetime.now()
@@ -248,11 +270,16 @@ def create_delivery(request, network):
             fmt = u"%dème de " + name
         n += 1
         name = fmt % n
-    d = m.Delivery.objects.create(network=network, name=name, state=m.Delivery.PREPARATION)
-    d.save()
-    # TODO: save probably not necessary
-    # TODO: enable same products as in latest delivery
-    return redirect('edit_delivery_products', delivery=d.id)
+    prev_dv = m.Delivery.objects.filter(network=network).order_by('-id').first()
+    new_dv = m.Delivery.objects.create(network=network, name=name, state=m.Delivery.PREPARATION)
+    # Start with a copy of each product from the latest command in the network
+    if prev_dv:
+        for prev_pd in prev_dv.product_set.all():
+            m.Product.objects.create(delivery=new_dv, name=prev_pd.name, price=prev_pd.price,
+                                     quantity_per_package=prev_pd.quantity_per_package,
+                                     unit=prev_pd.unit, quantity_limit=prev_pd.quantity_limit,
+                                     unit_weight=prev_pd.unit_weight, quantum=prev_pd.quantum)
+    return redirect('edit_delivery_products', delivery=new_dv.id)
 
 
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)
@@ -260,9 +287,9 @@ def set_delivery_state(request, delivery, state):
     """Change a delivery's state."""
     dv = get_delivery(delivery)
     if request.user not in dv.network.staff.all():
-        return HttpResponseForbidden('Réservé aux administrateurs du réseau '+dv.network.name)
+        return HttpResponseForbidden(u'Réservé aux administrateurs du réseau '+dv.network.name)
     if state not in m.Delivery.STATE_CHOICES:
-        return HttpResponseBadRequest(state+" n'est pas un état valide.")
+        return HttpResponseBadRequest(state+u" n'est pas un état valide.")
     must_save = dv.state <= m.Delivery.REGULATING < state
     dv.state = state
     dv.save()
@@ -287,7 +314,7 @@ def set_subgroup_state_for_delivery(request, subgroup, delivery, state):
     dv = get_delivery(delivery)
     sg = get_subgroup(subgroup)
     if sg.network != dv.network:
-        return HttpResponseBadRequest("Ce sous-groupe ne participe pas à cette livraison.")
+        return HttpResponseBadRequest(u"Ce sous-groupe ne participe pas à cette livraison.")
     dv.set_stateForSubgroup(sg, state)
     target = request.REQUEST.get('next', False)
     return redirect(target) if target else redirect('edit_delivery', delivery=dv.id)
@@ -301,19 +328,50 @@ def view_emails(request, network=None, subgroup=None):
         nw = get_network(network)
         vars['network'] = nw
         if user not in nw.staff.all():
-            return HttpResponseForbidden("Réservé aux admins")
+            return HttpResponseForbidden(u"Réservé aux admins")
     if subgroup:
         sg = get_subgroup(subgroup)
         vars['subgroups'] = [sg]
         if not network:
             vars['network'] = sg.network
         if user not in sg.staff.all() and user not in nw.staff.all():
-            return HttpResponseForbidden("Réservé aux admins")
+            return HttpResponseForbidden(u"Réservé aux admins")
     elif network:
         vars['subgroups'] = m.Subgroup.objects.filter(network_id=network)
     else:
-        raise Exception("Need network or subgroup")
+        return HttpResponseForbidden(u"Préciser un réseau ou un sous-groupe")
     return render_to_response('emails.html', vars)
+
+
+@login_required()
+def view_phones(request, network=None, subgroup=None):
+    user = request.user
+    vars = {'user': user, 'subgroups': []}
+    if network:
+        nw = get_network(network)
+        if user not in nw.staff.all():
+            return HttpResponseForbidden(u"Réservé aux admins")
+        subgroups = nw.subgroup_set.order_by('name')
+    if subgroup:
+        sg = get_subgroup(subgroup)
+        nw = sg.network
+        subgroups = [sg]
+        if not network:
+            vars['network'] = sg.network
+        if user not in sg.staff.all() and user not in nw.staff.all():
+            return HttpResponseForbidden(u"Réservé aux admins")
+    vars['nw'] = nw
+    vars['nw_admin'] = nw.staff.order_by('last_name', 'first_name')
+    nw_staff_id = set(u.id for u in vars['nw_admin'])
+    for sg in subgroups:
+        rec = {'sg': sg}
+        rec['sg_admin'] = sg.staff.exclude(id__in=nw_staff_id).order_by('last_name', 'first_name')
+        sg_staff_id = set(u.id for u in rec['sg_admin']) | nw_staff_id
+        rec['sg_user'] = sg.users.exclude(id__in=sg_staff_id).exclude(id=sg.extra_user.id).order_by('last_name', 'first_name')
+        vars['subgroups'].append(rec)
+    vars['subgroups'].sort(key=lambda rec: rec['sg'].name)
+    return render_to_response('phones.html', vars)
+
 
 
 @login_required()

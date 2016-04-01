@@ -1,0 +1,40 @@
+{% extends 'layout.html' %}
+{% load floreal_filters %}
+
+{% block head %}
+  <style type="text/css">
+    .mail-list { font-family: monospace; line-height:1; }
+  </style>
+{% endblock %}
+
+
+{% block content %}
+<h1>Contacts des membres</h1>
+
+<table class="with-border">
+  <tr><th>Nom</th><th>e-mail</th><th>téléphone</th></tr>
+  <tr><th colspan="3">Responsables du réseau {{nw.name}}</th></tr>
+  {% for u in nw_admin %}
+  <tr>
+    <td>{{u.first_name}} {{u.last_name}}</td><td>{{u.email}}</td>
+    <td>{% with u.userphones_set.first as p %}{% if p %}{{p.phone}}{% endif %}{% endwith %}</td>
+  </tr>
+  {% endfor %}
+  {% for subgroup in subgroups %}
+  <tr><th colspan="3">Responsables du sous-groupe {{subgroup.sg.name}}</th></tr>
+  {% for u in subgroup.sg_admin %}
+  <tr>
+    <td>{{u.first_name}} {{u.last_name}}</td><td>{{u.email}}</td>
+    <td>{% with u.userphones_set.first as p %}{% if p %}{{p.phone}}{% endif %}{% endwith %}</td>
+  </tr>
+  {% endfor %}
+  <tr><th colspan="3">Membres du sous-groupe {{subgroup.sg.name}}</th></tr>
+  {% for u in subgroup.sg_user %}
+  <tr>
+    <td>{{u.first_name}} {{u.last_name}}</td><td>{{u.email}}</td>
+    <td>{% with u.userphones_set.first as p %}{% if p %}{{p.phone}}{% endif %}{% endwith %}</td>
+  </tr>
+  {% endfor %}
+  {% endfor %}
+</table>
+{% endblock %}

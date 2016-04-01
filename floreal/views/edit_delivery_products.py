@@ -4,7 +4,7 @@
 """Helpers to edit products list: generate suggestions based on current and
 past products, parse POSTed forms to update a delivery's products list."""
 
-from django.shortcuts import render_to_response, redirect, get_object_or_404
+from django.shortcuts import render_to_response, redirect
 from django.core.context_processors import csrf
 from django.http import HttpResponseForbidden
 
@@ -25,11 +25,12 @@ def edit_delivery_products(request, delivery):
 
     if request.method == 'POST':  # Handle submitted data
         _parse_form(request)
-        return redirect('index')
+        return redirect('network_admin', delivery.network.id)
 
     else:  # Create and populate forms to render
         vars = _make_form(delivery)
         vars['user'] = request.user
+        vars['Delivery'] = Delivery
         vars.update(csrf(request))
         return render_to_response('edit_delivery_products.html', vars)
 
@@ -142,6 +143,7 @@ def _parse_form(request):
                                         quantity_per_package=fields['quantity_per_package'],
                                         quantity_limit=fields['quantity_limit'],
                                         unit=fields['unit'],
+                                        unit_weight=fields['unit_weight'],
                                         delivery=dv)
             pd.save()
 

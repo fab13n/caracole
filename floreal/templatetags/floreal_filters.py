@@ -18,6 +18,10 @@ def price(f):
 def price_nocurrency(f):
     return u"%.02f" % f
 
+@register.filter
+def weight(w):
+    if w>=1: return u"%.2gkg" % w
+    else: return u"%dg" % (w*1000)
 
 @register.filter
 def email(u):
