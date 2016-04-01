@@ -125,7 +125,7 @@ Commander pour :
                         (<a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.INITIAL %}?next=/">annuler</a>✘)
                     </li>
                     {% endif %}{# subgroup_state #}
-                    {% else %}{# dv.state == REGULATING #}
+                    {% elif dv.state == Delivery.REGULATING %}
                     {% if sg|subgroup_state:dv < SubgroupState.READY_FOR_ACCOUNTING %}
                     <!--<li><a href="% url 'adjust_subgroup' delivery=dv.id subgroup=sg.id%">
                         Régulariser les comptes<img src="{% static 'images/edit.png' %}"/></a></li>-->
