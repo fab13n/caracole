@@ -84,6 +84,8 @@
     .unit-price { padding-left: 10px; }
     tr.quantum-error td { font-weight: bold; background-color: red; color: white; }
     input[type=submit]:disabled { background-color: gray; border: 5px outset lightgray; }
+    #delivery-table th { text-align: right; }
+    #delivery-table td { text-align: left; }
   </style>
 {% endblock %}
 
@@ -99,7 +101,7 @@
         <td>{{subgroup.name}}</td>
       </tr>
       <tr>
-        <th>Member :</th>
+        <th>Membre :</th>
         <td>{{user.first_name}} {{user.last_name}}</td>
       </tr>
     </table>
@@ -138,7 +140,7 @@
         <td colspan="2"></td>
         </tr>
     </table>
-    <input type="submit" value="Sauvegarder" />
+    <input type="submit" value="Sauvegarder" /> <a href="{% url 'index' %}">Annuler les modifications</a>
     <input type='hidden' name='dv-id' value='{{delivery.id}}' />
     {% csrf_token %}
 </form>
