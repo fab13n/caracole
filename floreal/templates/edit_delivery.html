@@ -65,7 +65,8 @@
     Vous pouvez :
 </p>
 <ul>
-    <li>Retourner à l'<a href="{% url 'network_admin' network=dv.network.id %}">administration du réseau {{dv.network.name}}</a>.</li>
+    <li>Retourner à <a href="{% url 'network_admin' network=dv.network.id %}">l'administration du réseau {{dv.network.name}}</a> ↩</li>
+    <li>Retourner à <a href="{% url 'index' %}">la page principale</a> ↩</li>
     {### MOVE TO NEXT STEP ###}
     {% if dv.state == Delivery.PREPARATION %}
     <li>Passer à l'étape suivante :
