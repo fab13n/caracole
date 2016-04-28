@@ -39,6 +39,20 @@
           {% endfor %}
       </ul>
   </li>
+  {% if candidacies %}
+  <li>Candidatures :
+    <ul>
+      {% for cd in candidacies %}
+      <li>{{cd.user.first_name}} {{cd.user.last_name}}
+        <a href="mailto://{{cd.user.email}}">({{cd.user.email}})</a> pour le sous-groupe <b>{{cd.subgroup.name}}</b>:
+        <a href="{% url 'validate_candidacy' candidacy=cd.id response='Y' %}?next=/"><span class="yes">Accepter</span></a>✔
+        /
+        <a href="{% url 'validate_candidacy' candidacy=cd.id response='N' %}?next=/"><span class="no">Refuser</span></a>✘
+      </li>
+      {% endfor %}
+    </ul>
+  </li>
+  {% endif %}
   <li><a href="{% url 'archived_deliveries' network=nw.id %}">Voir les commandes archivées</a></li>
 </ul>
 {% endblock content %}
