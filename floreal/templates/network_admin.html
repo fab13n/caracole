@@ -1,0 +1,44 @@
+{% extends 'layout.html' %}
+{% load floreal_filters %}
+{% load static %}
+
+{% block head %}
+<script type='text/javascript'>
+    // <![CDATA[
+    /* Demand confirmation through a dialog before following link. */
+    $(function(){
+        $("#create-subgroup").on('click', function(x) {
+            var name = window.prompt("Créer un nouveau sous-groupe nommé :")
+            var url_scheme = "{% url 'create_subgroup' network=nw.id name='NAME' %}";
+            if(name) {
+                window.location = url_scheme.replace('NAME', encodeURI(name));
+            }
+            return false;
+        })
+    })
+    // ]]>
+</script>
+{% endblock head %}
+
+{% block content %}
+
+<h2>Administration du réseau {{nw.name}}</h2>
+<ul>
+  <li><a href="{% url 'index' %}">Retour à la page principale</a> ↩</li>
+  <li><a href="{% url 'create_delivery' network=nw.id %}">Créer une nouvelle commande {{nw.name}} <img src="{% static 'images/plus.png' %}"/></a></li>
+  <li><a href="{% url 'edit_user_memberships' network=nw.id %}">Répartir les membres en sous-groupes {{nw.name}} <img src="{% static 'images/edit.png' %}"/></a></li>
+  <li><a href="{% url 'emails_network' network=nw.id %}">e-mails <img src="{% static 'images/email.png' %}"/></a> et
+      <a href="{% url 'phones_network' network=nw.id %}">téléphones</a> ☎ du réseau {{nw.name}}.</li>
+  <li><a href="#" id='create-subgroup'>Créer un nouveau sous-groupe de {{nw.name}}</a></li>
+  <li>Voir ou éditer une commande existante :
+      <ul>
+          {% for dv in deliveries %}
+          <li><a href="{% url 'edit_delivery' delivery=dv.id %}">{{dv.name}}</a> ({{dv.state_name}})</li>
+          {% empty %}
+          <li>(aucune commande)</li>
+          {% endfor %}
+      </ul>
+  </li>
+  <li><a href="{% url 'archived_deliveries' network=nw.id %}">Voir les commandes archivées</a></li>
+</ul>
+{% endblock content %}

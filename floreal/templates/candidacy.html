@@ -1,0 +1,54 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load floreal_filters %}
+
+{% block head %}
+<script type='text/javascript'>
+    // <![CDATA[
+    /* Demand confirmation through a dialog before following link. */
+    $(function(){
+        $("a.confirm").on('click', function(x) {
+            return confirm($(this).attr('msg'));
+        })
+    })
+    // ]]>
+</script>
+{% endblock %}
+
+{% block content %}
+<h1>Inscriptions aux réseaux</h1>
+
+<p>Demandez à rejoindre de nouveaux réseaux ou sous-groupes de circuits courts Caracole !
+Chaque demande sera transmise aux responsables de sous-groupes correspondants, qui pourront accepter ou refuser
+votre inscription parmi leurs membres.</p>
+
+{% for nw in networks %}
+<h2>Réseau {{nw.name}} :</h2>
+<ul>
+    {% if nw.user_of %}<li>Vous êtes membre du sous-groupe {{nw.user_of.name}}</li>{% endif %}
+    {% if nw.candidate_to %}
+    <li>Candidat au sous-groupe {{nw.candidate_to.subgroup.name}}
+    (<a href="{% url 'cancel_candidacy' candidacy=nw.candidate_to.id %}">annuler</a>✘)</li>{% endif %}
+    {% if not nw.candidate_to and not nw.user_of %}<li>Non inscrit.</li>{% endif %}
+    {% if nw.can_be_candidate_to %}
+    <li>Demander à rejoindre le sous-groupe
+        {% for sg in nw.can_be_candidate_to %}
+        {% if nw.user_of %}
+        <a class="confirm"
+           msg="Êtes vous sûr de vouloir demander à passer du sous-groupe {{nw.user_of.name}} au sous-groupe {{sg.name}} du réseau {{nw.name}} ?",
+           href="{% url 'create_candidacy' subgroup=sg.id %}">{{sg.name}}</a>
+        {% else %}{# non-member #}
+        <a class="confirm"
+           msg="Êtes vous sûr de vouloir demander à rejoindre le sous-groupe {{sg.name}} du réseau {{nw.name}} ?"
+           href="{% url 'create_candidacy' subgroup=sg.id %}">{{sg.name}}</a>
+        {% endif %}
+        {% endfor %}{# can_be_candidate_to #}
+    </li>
+    {% endif %}{# can_be_candidate_to #}
+    {% if nw.user_of %}<li><a class="confirm"
+                              msg="Êtes vous sûr de vouloir quitter le réseau {{nw.name}} ?"
+                              href="{% url 'leave_network' network=nw.user_of.network.id %}">Quitter le réseau {{nw.name}}
+    </a></li>{% endif %}
+</ul>
+{% endfor %}{# nw #}
+{% endblock %}

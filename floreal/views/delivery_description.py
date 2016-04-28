@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from floreal import models as m
+from .. import models as m
 
 
 def delivery_description(delivery, subgroups, **kwargs):
@@ -38,7 +38,7 @@ def delivery_description(delivery, subgroups, **kwargs):
     # List of products, ordered by name
     products = delivery.product_set.all()
     # Iterable of all users in subgroups
-    users = m.User.objects.filter(user_of_subgroup__in=subgroups)
+    users = m.User.objects.filter(user_of_subgroup__in=subgroups, is_active=True)
     # Dictionary user -> list of ordered, indexed as products
     orders = m.Order.by_user_and_product(delivery, users, products)
 

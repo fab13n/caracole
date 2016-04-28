@@ -1,87 +1,22 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import re
 from datetime import datetime
 
 from django.db import models
 from django.contrib.auth.models import User
-from django.conf import settings
 
+from floreal.francais import articulate, plural, Plural
 from caracole import settings
 
-# A user belongs can belong to several networks, through one subgroup per network.
-# They might also be staff of several subgroups,
-# and staff of several networks.
-# Symmetrically, subgroups and networks can each have several staff.
 
-
-class Plural(models.Model):
-    """Remember the plural of product and unit names.
-    Django supports plurals for words occurring verbatim in templates,
-    but not for words coming from the DB."""
-    singular = models.CharField(max_length=64, unique=True)
-    plural = models.CharField(max_length=64, null=True, blank=True, default=None)
+class UserPhones(models.Model):
+    """Associate one or several phone numbers to each user."""
+    user = models.ForeignKey(User)
+    phone = models.CharField(max_length=20)
 
     def __unicode__(self):
-        return "%s/%s" % (self.singular, self.plural)
-
-
-# Cache for plurals, to avoid many DB lookups when a pluralized word appears many times in a page.
-_plural_cache = {}
-
-# TODO: implement a cache?
-def plural(noun, n=None):
-    """Tries to retrieve of guess the plural of a singular French word.
-    It would be great to hook this up to a (possibly online) dictionary.
-
-    :param noun: the French noun to try and pluralize
-    :param n: number of stuff (optional): don't pluralize if |n| < 2.
-    :return: pluralized noun."""
-
-    if n is not None and -2 < n < 2:
-        return noun  # No need to pluralize
-
-    try:
-        return _plural_cache[noun]  # Found in cache
-    except KeyError:
-        pass
-
-    try:
-        r = Plural.objects.get(singular=noun).plural
-        if r is not None:
-            _plural_cache[noun] = r
-            return r
-    except Plural.DoesNotExist:
-        # Put the singular alone in DB, so that we know it needs to be filled
-        Plural.objects.create(singular=noun, plural=None)
-
-    # Not found in DB, or found to be None: try to guess it
-    if noun[-1] == 's' or noun[-1] == 'x':
-        r = noun  # Probably invariant
-    elif noun[-2:] == 'al':
-        r = noun[:-2] + 'aux'
-    elif noun[-3:] == 'eau':
-        r = noun + 'x'
-    else:
-        r = noun + 's'  # probably a regular plural
-
-    _plural_cache[noun] = r
-    return r
-
-
-def articulate(noun, n=1):
-    """Prepend an appropriate French article to a word.
-    Caveat: doesn't handle 'y' nor 'h' correctly.
-
-    :param noun: the noun in need of an article
-    :param n: quantity of the noun, to determine whether it needs to be pluralized
-    :return: the noun with an indefinite article, possibly in the plural form."""
-
-    if 'aeiou'.count(noun[0].lower()):
-        return "d'" + plural(noun, n)
-    else:
-        return "de " + plural(noun, n)
+        return "%s %s: %s" % (self.user.first_name, self.user.last_name, self.phone)
 
 
 class Network(models.Model):
@@ -96,6 +31,7 @@ class Network(models.Model):
 
     name = models.CharField(max_length=64, unique=True)
     staff = models.ManyToManyField(User, related_name='staff_of_network')
+    auto_validate = models.BooleanField(default=False)
 
     class Meta:
         ordering = ('name',)
@@ -120,6 +56,8 @@ class Subgroup(models.Model):
     # Users might only be staff of one subgroup per network
     staff = models.ManyToManyField(User, related_name='staff_of_subgroup')
     users = models.ManyToManyField(User, related_name='user_of_subgroup')
+    candidates = models.ManyToManyField(User, related_name='candidate_of_subgroup', through='Candidacy')
+    auto_validate = models.BooleanField(default=False)
 
     class Meta:
         unique_together = (('network', 'name'),)
@@ -130,9 +68,8 @@ class Subgroup(models.Model):
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         """If the extra user is missing, create it before saving."""
-        super(Subgroup, self).save(force_insert=force_insert, force_update=force_update,
-                                   using=using, update_fields=update_fields)
         if not self.extra_user:
+            missing_extra =True
             extra_username = "extra-%s" % self.name.lower()
             if User.objects.filter(username=extra_username).exists():
                 extra_username = "extra-%s-%s" % (self.network.name.lower(), self.name.lower())
@@ -143,13 +80,26 @@ class Subgroup(models.Model):
                                                   first_name="extra",
                                                   last_name=self.name.capitalize(),
                                                   last_login=datetime.now())
+        else:
+            missing_extra = False
+        super(Subgroup, self).save(force_insert=force_insert, force_update=force_update,
+                                   using=using, update_fields=update_fields)
+        if missing_extra:
             self.users.add(self.extra_user)
 
     @property
     def sorted_users(self):
+        if not self.extra_user:
+            raise ValueError("Subgroup "+self.network.name+"/"+self.name+" has no extra user")
         normal_users = [u for u in self.users.all() if u != self.extra_user]
         normal_users.sort(key=lambda u: (u.last_name.lower(), u.first_name.lower()))
         return [self.extra_user] + normal_users
+
+
+class Candidacy(models.Model):
+    user = models.ForeignKey(User)
+    subgroup = models.ForeignKey(Subgroup)
+    message = models.TextField(null=True, blank=True)  # Currently unused, might be used to communicate with admins
 
 
 class Delivery(models.Model):
@@ -160,41 +110,49 @@ class Delivery(models.Model):
     closed (only subgroup staff members can modify purchases), or
     delivered (nobody can modify it)."""
 
-    PREPARATION = 'P'  # In preparation: network admins haven't set all products and prices yet.
-    OPEN = 'O'         # Open for orders by regular users.
-    CLOSED = 'C'       # Closed fro regular users; subgroup admin can still correct the orders.
-    FINALIZED = 'F'    # Finalized: even subgroup admins can't access the delivery anymore.
-    ARCHIVED = 'A'     # Don't even display it anymore.
-    STATE_CHOICES = {PREPARATION: "Preparation",
-                     OPEN: "Open",
-                     CLOSED: "Closed",
-                     FINALIZED: "Finalized",
-                     ARCHIVED: "Archived"}
+    PREPARATION    = 'A'
+    ORDERING_ALL   = 'B'
+    ORDERING_ADMIN = 'C'
+    FROZEN         = 'D'
+    REGULATING     = 'E'
+    TERMINATED     = 'F'
+    STATE_CHOICES = {
+        PREPARATION:    u"En préparation",
+        ORDERING_ALL:   u"Ouverte",
+        ORDERING_ADMIN: u"Admins",
+        FROZEN:         u"Gelée",
+        REGULATING:     u"Régularisation",
+        TERMINATED:     u"Terminée" }
     name = models.CharField(max_length=64)
     network = models.ForeignKey(Network)
     state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=PREPARATION)
-    finalizedFor = models.ManyToManyField(Subgroup)  # Which groups have completed bookkeeping update after delivery
+
+    def get_stateForSubgroup(self, sg):
+        try:
+            return self.subgroupstatefordelivery_set.get(delivery=self, subgroup=sg).state
+        except models.ObjectDoesNotExist:
+            return SubgroupStateForDelivery.DEFAULT
+
+    def set_stateForSubgroup(self, sg, state):
+        try:
+            x = self.subgroupstatefordelivery_set.get(delivery=self, subgroup=sg)
+            x.state = state
+            x.save()
+        except models.ObjectDoesNotExist:
+            SubgroupStateForDelivery.objects.create(delivery=self, subgroup=sg, state=state)
 
     def __unicode__(self):
         return "%s/%s" % (self.network.name, self.name)
 
-    def is_admin_open(self):
-        """Admins can pass & modify orders."""
-        return self.state in (self.OPEN, self.CLOSED, self.PREPARATION)
-
     def state_name(self):
-        return self.STATE_CHOICES[self.state]
+        return self.STATE_CHOICES.get(self.state, 'Invalid state '+self.state)
 
-    def getFinalizationStatus(self):
-        """Retrieve every subgroup of the network which hasn't finalized this delivery yet."""
-        if self.state == self.ARCHIVED:
-            return True
-        if self.state != self.CLOSED:
-            return False
-        subgroups = self.network.subgroup_set.all()
-        finalized = self.finalizedFor.all()
-        unfinalized = subgroups.exclude(id__in=set(sg.id for sg in finalized))
-        return {'finalized': finalized, 'unfinalized': unfinalized}
+    def subgroupMinState(self):
+        states = self.subgroupstatefordelivery_set
+        if states.count() < self.network.subgroup_set.count():
+            return SubgroupStateForDelivery.DEFAULT  # Some unset subgroups
+        else:
+            return min(s.state for s in states.all())
 
     class Meta:
         verbose_name_plural = "Deliveries"
@@ -202,13 +160,18 @@ class Delivery(models.Model):
         ordering = ('-id',)
 
 
-#class Section(models.Model):
-#    """Products are optionally sorted into sections, so that their display to customers can be organized.
-#    The list of available sections is specific to a network. Sections can be nested."""
-#    name = models.CharField(max_length=64)
-#    network = models.ForeignKey(Network)
-#    parent = models.ForeignKey('Section', null=True, blank=True, default=None)
-#    is_active = models.BooleanField(default=True)  # Use this instead of deleting unused sections
+class SubgroupStateForDelivery(models.Model):
+    INITIAL              = 'X'
+    READY_FOR_DELIVERY   = 'Y'
+    READY_FOR_ACCOUNTING = 'Z'
+    DEFAULT = INITIAL
+    STATE_CHOICES = {
+        INITIAL:              u"Non validé",
+        READY_FOR_DELIVERY:   u"Commande validée",
+        READY_FOR_ACCOUNTING: u"Compta validée"}
+    state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=DEFAULT)
+    delivery = models.ForeignKey(Delivery)
+    subgroup = models.ForeignKey(Subgroup)
 
 
 class Product(models.Model):
@@ -218,7 +181,6 @@ class Product(models.Model):
     """
 
     name = models.CharField(max_length=64)
-    # section = models.ForeignKey(Section, null=True, blank=True, default=None)
     delivery = models.ForeignKey(Delivery)
     price = models.DecimalField(decimal_places=2, max_digits=6)
     quantity_per_package = models.IntegerField(null=True, blank=True)
@@ -282,16 +244,6 @@ class Purchase(models.Model):
         if specify_user:
             result += " pour %s %s" % (self.user.first_name, self.user.last_name)
         return result
-
-
-class LegacyPassword(models.Model):
-    """Used to authentify legacy users, regeistered with the old web2py version of the app,
-    the first time they log in. At first login, their password is migrated to Django's regular
-    authentication backend, so it normally happens only once par legacy user."""
-    email = models.CharField(max_length=64)
-    password = models.CharField(max_length=200)
-    circle = models.CharField(max_length=32)
-    migrated = models.BooleanField(default=False)
 
 
 class Order(object):

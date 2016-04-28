@@ -1,99 +1,110 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from django.http import HttpResponse
-from django.shortcuts import render_to_response
+import os
 
-from ..models import Delivery, Subgroup
+from django.http import HttpResponse, HttpResponseForbidden
+from django.shortcuts import render_to_response
+from django.contrib.auth.decorators import login_required
+
+from caracole import settings
+from .decorators import nw_admin_required
+from .getters import get_delivery, get_subgroup
 from . import latex
 from .spreadsheet import spreadsheet
 from .delivery_description import delivery_description
 
 
-def get_subgroup(request, network):
-    if 'subgroup' in request.GET:
-        return Subgroup.objects.get(network=network, name__iexact=request.GET['subgroup'])
-    else:
-        return network.subgroup_set.get(staff__in=[request.user])
+MIME_TYPE = {
+    'pdf': "application/pdf",
+    'xlsx': "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
 
-def _non_html_response(name_bits, name_extension, mime_type, content):
+
+def non_html_response(name_bits, name_extension, content):
     """Common helper to serve PDF and Excel content."""
     filename = ("_".join(name_bits) + "." + name_extension).replace(" ", "_")
+    mime_type = MIME_TYPE[name_extension]
     response = HttpResponse(content_type=mime_type)
     response['Content-Disposition'] = 'attachment; filename="%s"' % filename
     response.write(content)
     return response
 
 
-def view_delivery_purchases_html(request, delivery):
-    """View all purchases for a given delivery. Network staff only."""
-    delivery = Delivery.objects.get(id=delivery)
-    subgroups = delivery.network.subgroup_set.all()
-    return render_to_response('view_purchases.html', delivery_description(delivery, subgroups))
+@login_required()
+def view_purchases_html(request, delivery, subgroup=None):
+    """View purchases for a given delivery, possibly restricted to a subgroup. (subgroup) staff only."""
+    dv = get_delivery(delivery)
+    if subgroup:
+        sg = get_subgroup(subgroup)
+        if request.user not in sg.staff.all() and request.user not in sg.network.staff.all():
+            return HttpResponseForbidden(u"Réservé aux admins")
+        subgroups = [sg]
+    else:
+        if request.user not in dv.network.staff.all():
+            return HttpResponseForbidden(u"Réservé aux admins")
+        subgroups = dv.network.subgroup_set.all()
+    return render_to_response('view_purchases.html', delivery_description(dv, subgroups))
 
 
-def view_delivery_purchases_xlsx(request, delivery):
-    """View all purchases for a given delivery in an MS-Excel spreadsheet. Network staff only."""
-    delivery = Delivery.objects.get(id=delivery)
-    subgroups = delivery.network.subgroup_set.all()
-    return _non_html_response((delivery.network.name, delivery.name), "xlsx",
-                              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                              spreadsheet(delivery, subgroups))
+@login_required()
+def view_purchases_xlsx(request, delivery, subgroup=None):
+    """View purchases for a given delivery as an MS-Excel spreadsheet, possibly restricted to a subgroup.
+    (subgroup) staff only."""
+    dv = get_delivery(delivery)
+    if subgroup:
+        sg = get_subgroup(subgroup)
+        if request.user not in sg.staff.all() and request.user not in sg.network.staff.all():
+            return HttpResponseForbidden(u"Réservé aux admins")
+        subgroups = [sg]
+    else:
+        if request.user not in dv.network.staff.all():
+            return HttpResponseForbidden(u"Réservé aux admins")
+        subgroups = dv.network.subgroup_set.all()
+    return non_html_response((dv.network.name, dv.name), "xlsx", spreadsheet(dv, subgroups))
 
 
-def view_delivery_purchases_pdf(request, delivery):
-    """View the purchases of each subgroup as an Adobe PDF file. Network staff only."""
-    delivery = Delivery.objects.get(id=delivery)
-    return _non_html_response((delivery.network.name, delivery.name), "pdf",
-                              "application/pdf",
-                              pdf.all(delivery))
-
-def view_delivery_purchases_latex(request, delivery):
-    """View the purchases of each subgroup as an Adobe PDF file. Network staff only."""
-    delivery = Delivery.objects.get(id=delivery)
-    return _non_html_response((delivery.network.name, delivery.name), "pdf",
-                              "application/pdf",
-                              latex.delivery(delivery))
-
-
-def view_subgroup_purchases_html(request, delivery):
-    """View the purchases of a subgroup. Subgroup staff only."""
-    delivery = Delivery.objects.get(id=delivery)
-    subgroup = get_subgroup(request, delivery.network)
-    return render_to_response('view_purchases.html',
-                              delivery_description(delivery, [subgroup]))
+@login_required()
+def view_purchases_latex(request, delivery, subgroup=None):
+    """View purchases for a given delivery as a PDF table, generated through LaTeX, possibly restricted to a subgroup.
+    (subgroup) staff only."""
+    dv = get_delivery(delivery)
+    if subgroup:
+        sg = get_subgroup(subgroup)
+        if request.user not in sg.staff.all() and request.user not in sg.network.staff.all():
+            return HttpResponseForbidden(u"Réservé aux admins")
+        content = latex.subgroup(dv, sg)
+        name_bits = (dv.network.name, dv.name, sg.name)
+    else:
+        if request.user not in dv.network.staff.all():
+            return HttpResponseForbidden(u"Réservé aux admins")
+        content = latex.delivery_table(dv)
+        name_bits = (dv.network.name, dv.name)
+    return non_html_response(name_bits, "pdf", content)
 
 
-def view_subgroup_purchases_xlsx(request, delivery):
-    """View the purchases of a subgroup as an MS-Excel file. Subgroup staff only."""
-    delivery = Delivery.objects.get(id=delivery)
-    subgroup = get_subgroup(request, delivery.network)
-    return _non_html_response((delivery.network.name, delivery.name, subgroup.name), "xlsx",
-                              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                              spreadsheet(delivery, [subgroup]))
+@login_required()
+def view_cards_latex(request, delivery, subgroup=None):
+    """View purchases for a given delivery as a PDF table, generated through LaTeX, possibly restricted to a subgroup.
+    Subgroups are presented as ready-to-cut tables, whole deliveries as list per subgroup. (subgroup) staff only."""
+    dv = get_delivery(delivery)
+    if subgroup:
+        sg = get_subgroup(subgroup)
+        if request.user not in sg.staff.all() and request.user not in sg.network.staff.all():
+            return HttpResponseForbidden(u"Réservé aux admins")
+        content = latex.cards(dv, sg)
+        name_bits = (dv.network.name, dv.name, sg.name)
+    else:
+        content = latex.delivery_cards(dv)
+        name_bits = (dv.network.name, dv.name)
+    return non_html_response(name_bits, "pdf", content)
 
 
-def view_subgroup_purchases_pdf(request, delivery):
-    """View the purchases of a subgroup as an Adobe PDF file. Subgroup staff only."""
-    delivery = Delivery.objects.get(id=delivery)
-    subgroup = get_subgroup(request, delivery.network)
-    return _non_html_response((delivery.network.name, delivery.name, subgroup.name), "pdf",
-                              "application/pdf",
-                              pdf.subgroup(delivery, subgroup))
-
-
-def view_subgroup_purchases_latex(request, delivery):
-    """View the purchases of a subgroup as an Adobe PDF file. Subgroup staff only."""
-    delivery = Delivery.objects.get(id=delivery)
-    subgroup = get_subgroup(request, delivery.network)
-    f = latex.subgroup(delivery, subgroup)
-    return _non_html_response((delivery.network.name, delivery.name, subgroup.name), "pdf",
-                              "application/pdf", f)
-
-def view_subgroup_cards_latex(request, delivery):
-    """View the purchases of a subgroup as an Adobe PDF file. Subgroup staff only."""
-    delivery = Delivery.objects.get(id=delivery)
-    subgroup = get_subgroup(request, delivery.network)
-    f = latex.cards(delivery, subgroup)
-    return _non_html_response((delivery.network.name, delivery.name, subgroup.name), "pdf",
-                              "application/pdf", f)
+@nw_admin_required(lambda a: get_delivery(a['delivery']).network)
+def get_archive(request, delivery, suffix):
+    """Retrieve the PDF/MS-Excel file versions of a terminated delivery which have been saved upontermination."""
+    dv = get_delivery(delivery)
+    file_name = os.path.join(settings.DELIVERY_ARCHIVE_DIR, "dv-%d.%s" % (dv.id, suffix))
+    with open(file_name) as f:
+        content = f.read()
+    name_bits = (dv.network.name, dv.name)
+    return non_html_response(name_bits, suffix, content)

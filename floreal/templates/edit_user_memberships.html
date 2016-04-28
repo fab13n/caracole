@@ -4,19 +4,6 @@
 {% block head %}
   <style type="text/css">
     td, th { border: none; }
-    th.rotate {
-      height: 140px;
-      white-space: nowrap;
-    }
-    th.rotate > div {
-      transform: translate(10px, 55px) rotate(315deg);
-      width: 30px;
-    }
-    th.rotate > div > span {
-      border-bottom: 1px solid #ccc;
-      padding: 5px 10px;
-      // background-color: white;
-    }
     th.name, th.email {
       text-align: right;
       white-space: nowrap;
@@ -31,24 +18,83 @@
        background-color: #808080;
     }
     td.radio-subgroup:nth-child(3n+2) {
-       border-left: 1px solid #ccc;
+       border-left: 1px solid #A75A50;
     }
   </style>
   <script type='text/javascript'>
   // <![CDATA[
-  var initial_state = {{% for u in users %}
-    {{u.id}}: { subgroup: {{u.subgroup}}, is_subgroup_admin: {{u.is_subgroup_admin|lower}}, is_network_admin: {{u.is_network_admin|lower}}, name: "{{u.name}}" },{% endfor %}
-  };
+  var users = null; // to be filled with XHR
+  var subgroups = null; // to be filled with XHR
+  var sorted_users = null; // to be filled with XHR
 
-  function init_boxes() {
-    for(var uid in initial_state) {
-      if(! initial_state.hasOwnProperty(uid)) { continue; }
-      var r = initial_state[uid];
-      $("#u"+uid+"-sg"+r.subgroup).prop("checked", true);
-      if( r.is_subgroup_admin) { $("[name=u"+uid+"-subgroup-admin]").prop("checked", true); }
-      if( r.is_network_admin) { $("[name=u"+uid+"-network-admin]").prop("checked", true); }
-      if(r.subgroup < 0) {
-        var invalid_choice = r.subgroup == -1 ? -2 : -1;
+  /* Generate a line of radioboxes and checkboxes allowing to change a user's memberships.
+   * This is performed dynamically because user settings are retrieved after page loading through an XHR. */
+  function make_user_line(id) {
+    var record = users[id];
+    var TEMPLATE =
+    '<tr id="u{id}" class="user-starts-with-{initial} user-of-subgroup-{subgroup} user">\n\
+      <th class="email">{email}</th>\n\
+      <th class="name">{first_name} {last_name}</th>\n\
+      <td><input type="checkbox" name="u{id}-network-admin" onclick="mark_user_modified({id});"/></td>\n\
+      <td><input type="checkbox" name="u{id}-subgroup-admin" onclick="mark_user_modified({id});"/></td>";\n\
+      {subgroupradios}\n\
+      <td><input type="radio" id="u{id}-sg-1" name="u{id}-sg" value="-1" onclick="update_user_group({id}, -1);"/></td>\n\
+      <td><input type="radio" id="u{id}-sg-2" name="u{id}-sg" value="-2" onclick="update_user_group({id}, -2);"/></td>\n\
+    </tr>';
+    var SUBGROUP_RADIO_TEMPLATE =
+      '<td class="radio-subgroup"><input type="radio" id="u{id}-sg{sgid}" name="u{id}-sg" value="{sgid}" onclick="update_user_group({id}, {sgid});"/></td>';
+    var subgroupradios = [];
+    for(var i=0; i<subgroups.length; i++) {
+      var sg = subgroups[i];
+      subgroupradios.push(SUBGROUP_RADIO_TEMPLATE.replace(new RegExp('{sgid}', 'g'), sg.id));
+    }
+    subgroupradios = subgroupradios.join('\n');
+    var line = TEMPLATE.replace('{subgroupradios}', subgroupradios);
+    for(var field in record) {
+      var re = new RegExp('{'+field+'}', 'g');
+      line = line.replace(re, record[field]);
+    }
+    return line;
+  }
+
+  /* Generate the page parts which need the XHR-provided data: lists of subgroups and of users. */
+  function fill_page() {
+
+    var rows = [];
+    for(var i in subgroups) {
+      var sg = subgroups[i];
+      rows.push('<th class="rotate"><div><div>'+sg.name+'</div></div></th>');
+    }
+    rows.push('<th class="rotate"><div><div>Membre d\'autres réseaux</div></div></th>');
+    rows.push('<th class="rotate"><div><div>Non-membre</div></div></th>');
+    $("#header-row").append(rows.join('\n'));
+
+    rows = [];
+    for(var i in subgroups) {
+      var sg = subgroups[i];
+      rows.push('<a href="#" onclick="hide_all_but_subgroup(\''+sg.id+'\');">'+sg.name+'</a>');
+    }
+    rows.push('<a href="#" onclick="hide_all_but_subgroup(-1);">Membre d\'autres réseaux</a>');
+    rows.push('<a href="#" onclick="hide_all_but_subgroup(-2);">Non-membres</a>');
+    $("#hide-subgroups").append(rows.join('\n'));
+
+    rows = [];
+    for(var i in sorted_users) {
+      var uid = sorted_users[i];
+      rows.push(make_user_line(uid));
+    }
+    $('#users-table').append(rows.join('\n'));
+  }
+
+  function init_form_inputs() {
+    for(var uid in users) {
+      if(! users.hasOwnProperty(uid)) { continue; }
+      var user = users[uid];
+      $("#u"+uid+"-sg"+user.subgroup).prop("checked", true);
+      if( user.is_subgroup_admin) { $("[name=u"+uid+"-subgroup-admin]").prop("checked", true); }
+      if( user.is_network_admin) { $("[name=u"+uid+"-network-admin]").prop("checked", true); }
+      if(user.subgroup < 0) {
+        var invalid_choice = user.subgroup == -1 ? -2 : -1;
         $("#u"+uid+"-sg"+invalid_choice).attr("disabled", "disabled");
       }
     }
@@ -95,7 +141,15 @@
 
   };
 
-  $(document).ready(init_boxes);
+  $(document).ready(function(){
+    $.getJSON("{% url 'json_memberships' network=nw.id %}", function(data) {
+      users = data.users;
+      sorted_users = data.sorted_users;
+      subgroups = data.subgroups;
+      fill_page();
+      init_form_inputs();
+     });
+   });
   // ]]>
   </script>
 
@@ -103,9 +157,9 @@
 
 
 {% block content %}
-<h1>Gestion des sous-groupes du réseau {{network.name}}.</h1>
+<h1>Gestion des sous-groupes du réseau {{nw.name}}.</h1>
 <p>
-  Cette page permet aux administrateurs du réseau {{network.name}} de
+  Cette page permet aux administrateurs du réseau {{nw.name}} de
   répartir les membres entre les sous-groupes, et de désigner les
   administrateurs de sous-groupes.
 </p>
@@ -116,40 +170,20 @@
   {% for X in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
   <a href="#" onclick="hide_all_but_letter('{{X}}');">{{X}}</a>{% endfor %}
 </p>
-<p>
+<p id="hide-subgroups">
   Montrer seulement les utilisateurs du sous-groupe:<br/>
   <a href="#" onclick="show_all();">Tous</a>
-  {% for sg in subgroups %}
-  <a href="#" onclick="hide_all_but_subgroup('{{sg.id}}');">{{sg.name}}</a>{% endfor %}
-  <a href="#" onclick="hide_all_but_subgroup(-1);">Membre d'autres réseaux</a>
-  <a href="#" onclick="hide_all_but_subgroup(-2);">Non-membres</a>
 </p>
 
 <form method="post" action="#">
   {% csrf_token %}
   <input type="hidden" id="modified-users" name="modified" value=""/>
-  <table>
-    <tr>
+  <table id="users-table">
+    <tr id="header-row">
       <td colspan="2"><input id="submit" type="submit" value="Sauvegarder" onclick="disable_unmodified_inputs()" disabled="true"/></td>
-      <th class="rotate"><div><span>Admin réseau</span></div></th>
-      <th class="rotate"><div><span>Admin sous-groupe</span></div></th>
-      {% for sg in subgroups %}
-      <th class="rotate"><div><span>{{sg.name}}</span></div></th>{% endfor %}
-      <th class="rotate"><div><span>Membre d'autres réseaux</span></div></th>
-      <th class="rotate"><div><span>Non-membre</span></div></th>
+      <th class="rotate"><div><div>Admin réseau</div></div></th>
+      <th class="rotate"><div><div>Admin sous-groupe</div></div></th>
     </tr>
-    {% for u in users %}
-    <tr id="u{{u.id}}" class="user-starts-with-{{u.initial}} user-of-subgroup-{{u.subgroup}} user">
-      <th class="email">{{u.email}}</th>
-      <th class="name">{{u.name}}</th>
-      <td><input type="checkbox" name="u{{u.id}}-network-admin" onclick="mark_user_modified({{u.id}});"/></td>
-      <td><input type="checkbox" name="u{{u.id}}-subgroup-admin" onclick="mark_user_modified({{u.id}});"/></td>
-      {% for sg in subgroups %}
-      <td class="radio-subgroup"><input type="radio" id="u{{u.id}}-sg{{sg.id}}" name="u{{u.id}}-sg" value="{{sg.id}}" onclick="update_user_group({{u.id}}, {{sg.id}});"/></td>{% endfor %}
-      <td><input type="radio" id="u{{u.id}}-sg-1" name="u{{u.id}}-sg" value="-1" onclick="update_user_group({{u.id}}, -1);"/></td>
-      <td><input type="radio" id="u{{u.id}}-sg-2" name="u{{u.id}}-sg" value="-2" onclick="update_user_group({{u.id}}, -2);"/></td>
-    </tr>
-    {% endfor %}
   </table>
 </form>
 {% endblock %}

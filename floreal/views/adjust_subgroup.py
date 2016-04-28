@@ -1,17 +1,21 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+from decimal import Decimal
+
 from django.shortcuts import redirect, render_to_response
 from django.core.context_processors import csrf
-from decimal import Decimal
+from django.contrib.auth.decorators import login_required
 
 from .. import models as m
 from ..penury import set_limit
 from .delivery_description import delivery_description
-from .view_purchases import get_subgroup
+from .getters import get_subgroup
+from .decorators import sg_admin_required
 
 
-def adjust_subgroup(request, delivery):
+@sg_admin_required()
+def adjust_subgroup(request, delivery, subgroup=None):
     """Adjust the totals ordered by a subgroup."""
     delivery = m.Delivery.objects.get(id=delivery)
     if request.method == 'POST':
@@ -21,7 +25,7 @@ def adjust_subgroup(request, delivery):
             # TODO: display errors in template
             return redirect("adjust_subgroup", delivery=delivery.id)
     else:
-        subgroup = get_subgroup(request, delivery.network)
+        if not subgroup: subgroup = get_subgroup(request, delivery.network)
         vars = delivery_description(delivery, [subgroup])
         vars.update(csrf(request), user=request.user)
         return render_to_response('adjust_subgroup.html', vars)

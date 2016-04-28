@@ -4,7 +4,7 @@ from tempfile import NamedTemporaryFile
 from django import template
 from django.template.loader import get_template
 
-from floreal.views.delivery_description import delivery_description
+from .delivery_description import delivery_description
 
 
 def _run(descr, template_name):
@@ -26,6 +26,7 @@ def _run(descr, template_name):
             pdf_string = g.read()
     return pdf_string
 
+
 def cards(dv, sg):
     descr = delivery_description(dv, [sg])
     # Maximum number of purchase lines in the delivery description
@@ -33,11 +34,19 @@ def cards(dv, sg):
     descr['max_order_size'] = max(len(filter(lambda pc: pc, ur['orders'].purchases)) for ur in descr['table'][0]['users'])
     return _run(descr, "subgroup-cards.tex")
 
+
 def subgroup(dv, sg):
     descr = delivery_description(dv, [sg])
     return _run(descr, "subgroup-table.tex")
 
-def delivery(dv):
+
+def delivery_cards(dv):
     descr = delivery_description(dv, dv.network.subgroup_set.all())
     # return _run(descr, "delivery-table.tex")
-    return _run(descr, "delivery-list.tex")
+    return _run(descr, "delivery-cards.tex")
+
+
+def delivery_table(dv):
+    descr = delivery_description(dv, dv.network.subgroup_set.all())
+    # return _run(descr, "delivery-table.tex")
+    return _run(descr, "delivery-table.tex")

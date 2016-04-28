@@ -1,0 +1,21 @@
+{% extends 'layout.html' %}
+{% load floreal_filters %}
+{% load static %}
+
+{% block head %}
+{% endblock head %}
+
+{% block content %}
+
+<h2>Livraisons archivées du réseau {{nw.name}}</h2>
+<ul>
+    <li><a href="{% url 'index' %}">Retour à l'administration du réseau {{nw.name}}</a></li>
+    <li><a href="{% url 'index' %}">Retour à la page principale</a><br/></li>
+</ul><ul>
+    {% for dv in deliveries %}
+    <li><a href="{% url 'edit_delivery' delivery=dv.id %}">{{dv.name}}</a> ({{dv.state_name}})</li>
+    {% empty %}
+    <li>(aucune commande)</li>
+    {% endfor %}
+</ul>
+{% endblock content %}

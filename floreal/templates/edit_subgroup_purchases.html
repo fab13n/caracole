@@ -106,8 +106,6 @@
       .out_of_packages { font-weight:bold; color: #811305; }
       .unsatisfied_granted { text-decoration: line-through; }
       input.quantity { text-align: right; height: 100%; width: calc(100% - 3px); padding:0px;}
-      th.top { word-break: break-all; word-wrap: break-word;}
-      th.left { white-space: nowrap; }
       td.quantity { border: none; width: 50px; }
       table { table-layout: fixed; }
       input[type=number] { border: 1px solid #c08982; }
@@ -126,13 +124,13 @@
 <h1>Commandes {{delivery.network.name}} / {{delivery.name}} pour {{table.0.subgroup.name}}</h1>
 
 <form method="post" action="">
-  <table>
+  <table class="with-border">
 
     {# Product names #}
     <tr>
         <td class="blank" colspan="2">{# no product in users' column #}</td>
         {% for pd in products %}
-        <th class="top" id="pd{{pd.id}}-name">{{pd.name}}</th>
+        <th class="rotate" id="pd{{pd.id}}-name"><div><div>{{pd.name}}</div></div></th>
         {% endfor %}
     </tr>
 
@@ -203,14 +201,17 @@
         <td class="quantity">
             {% if not pc %}
             <input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="0"
+                   step="{{pc.product.quantum|default_if_none:1}}" {%if ur.user.first_name != 'extra'%}min="0"{%endif%}
                    class="quantity"
                    onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/>
             {% elif pc.is_satisfied %}
             <input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="{{pc.ordered|floatformat}}"
+                   step="{{pc.product.quantum|default_if_none:1}}" {%if ur.user.first_name != 'extra'%}min="0"{%endif%}
                    class="quantity"
                    onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/>
             {% else %}{# unsatisfied order #}
             <input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="{{pc.ordered|floatformat}}"
+                   step="{{pc.product.quantum|default_if_none:1}}" {%if ur.user.first_name != 'extra'%}min="0"{%endif%}
                    class="unsatisfied_ordered quantity"
                    onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/>
             {# TODO adapt dynamically when user changes request and order <= unsatisfied. #}

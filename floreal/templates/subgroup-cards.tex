@@ -54,7 +54,7 @@
 {% elif d.max_order_size > 10 %}
 {% cycle "\hrule" "" %} {# Two orders per column #}
 {% else %}
-{% cycle "\hrule" "hrule" "" %} {# Three orders per column #}
+{% cycle "\hrule" "\hrule" "" %} {# Three orders per column #}
 {% endif %}
 {% endif %}
 {% endfor %}

@@ -3,13 +3,17 @@
 
 from django.shortcuts import redirect, render_to_response
 from django.core.context_processors import csrf
+from django.contrib.auth.decorators import login_required
 
 from .. import models as m
 from ..penury import set_limit
+from .getters import get_delivery
 
+
+@login_required()
 def edit_user_purchases(request, delivery):
     """Let user order for himself, or modified an order on an open delivery."""
-    delivery = m.Delivery.objects.get(id=delivery)
+    delivery = get_delivery(delivery)
     user = request.user
     order = m.Order(user, delivery)
     if request.method == 'POST':

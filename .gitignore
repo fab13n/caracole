@@ -2,3 +2,5 @@
 .idea
 db.sqlite3
 /floreal.json
+floreal/migrations
+database.sqlite3

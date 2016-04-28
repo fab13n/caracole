@@ -5,46 +5,24 @@
 {% block head %}
 {% if table|length > 1 %}
     <script type='text/javascript'>
-      var DISPLAYED_SUBGROUPS = [ {%for sgr in table%}{{sgr.subgroup.id}}, {%endfor%}];
+      var DISPLAYED_SUBGROUPS = [ {% for sgr in table %}{{sgr.subgroup.id}}, {% endfor %}];
       function attach_visibility_toggle(sg_id) {
-        $('#subgroup_row_'+sg_id).click(function() {
-          // console.log("Toggle visibility for subgroup "+sg_id);
-          $('.subgroup_'+sg_id+'_user_row').toggle();
-        })
+        $('#subgroup_row_'+sg_id).click(function() { $('.subgroup_'+sg_id+'_user_row').toggle(); })
       }
       $(document).ready(function() {
-        for(var i=0; i!==DISPLAYED_SUBGROUPS.length; i++) {
-          var sg_id = DISPLAYED_SUBGROUPS[i];
-          attach_visibility_toggle(sg_id);
-        }
+        for(var i=0; i!==DISPLAYED_SUBGROUPS.length; i++) { attach_visibility_toggle(DISPLAYED_SUBGROUPS[i]); }
         $('.user_row').toggle()
       })
     </script>
+
 {% endif %}
     <style type="text/css">
-      .subgroup_row, .subgroup_row th { color: white; background-color: #a75a50; font-weight: bold; }
-      th.left { white-space: nowrap; }
+      tr.subgroup_row, tr.subgroup_row th { color: white; background-color: #a75a50; font-weight: bold; }
       tr.one  { background-color: #d5b1ac; }
       .blank  { text-align: left; }
       table { margin-top: 30px; }
       .unsatisfied_ordered {  color: red; text-decoration: line-through; }
       .unsatisfied_granted {  font-weight: bold; color: red; }
-      th.rotate {
-        height: 140px;
-        white-space: nowrap;
-        border: 0px;
-      }
-      th.rotate > div {
-        transform: translate(3px, 70px) rotate(315deg);
-        width: 30px;
-      }
-      th.rotate > div > div {
-        border-top: 1px solid #a75a50;
-        padding: 5px 10px 5px 30px;
-        width: 150px;
-        text-align: left;
-      }
-
     </style>
 {% endblock %}
 
@@ -52,7 +30,7 @@
 
 <h1>Commandes {{delivery.network.name}} / {{delivery.name}}</h1>
 
-<table>
+<table class="with-border">
 
     {# Product names #}
     <tr>
@@ -61,13 +39,13 @@
           Télécharger:
           {% if table|length > 1 %}
             <ul>
-              <li><a href="{% url 'view_delivery_purchases_xlsx' delivery=delivery.id %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
-              <li><a href="{% url 'view_delivery_purchases_latex' delivery=delivery.id %}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
+              <li><a href="{% url 'view_all_purchases_xlsx' delivery=delivery.id %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
+              <li><a href="{% url 'view_all_purchases_latex' delivery=delivery.id %}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
             </ul>
           {% else %}
             <ul>
-              <li><a href="{% url 'view_subgroup_purchases_xlsx' delivery=delivery.id %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
-              <li><a href="{% url 'view_subgroup_purchases_latex' delivery=delivery.id %}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
+              <li><a href="{% url 'view_subgroup_purchases_xlsx' delivery=delivery.id subgroup=xxx %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
+              <li><a href="{% url 'view_subgroup_purchases_latex' delivery=delivery.id subgroup=xxx%}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
             </ul>
           {% endif %}
         </td>
@@ -129,7 +107,7 @@
         <th class="left">{{sgr.subgroup.name}}</th>
         <td>{{sgr.price|price}}</td>
         {% for t in sgr.totals %}
-        <td>{{t.quantity|floatformat}}</td>
+        <td>{% if t.quantity %}{{t.quantity|floatformat}}{% else %}-{% endif %}</td>
         {% endfor %}
     </tr>
     {% endif %}
@@ -155,9 +133,9 @@
     </tr>
     {% endif %}{# price == 0, no purchase by this user #}
     {% endfor %}{# users within subgroup #}
-    {% else %}{# nopurchase for this subgroup #}
+    {% else %}{# no purchase for this subgroup #}
     <tr class="user_row subgroup_{{sgr.subgroup.id}}_user_row">
-      <th></th><td>-</td><td colspan="{{sgr.totals|length}}">aucun achat pour {{sgr.subgroup.name}}</td>
+      <th></th><td>-</td><td colspan="{{sgr.totals|length}}">aucun achat pour le sous-groupe {{sgr.subgroup.name}}</td>
     </tr>
     {% endif %}
     {% endfor %}{# subgroup #}

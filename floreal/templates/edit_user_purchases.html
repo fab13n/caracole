@@ -84,6 +84,8 @@
     .unit-price { padding-left: 10px; }
     tr.quantum-error td { font-weight: bold; background-color: red; color: white; }
     input[type=submit]:disabled { background-color: gray; border: 5px outset lightgray; }
+    #delivery-table th { text-align: right; }
+    #delivery-table td { text-align: left; }
   </style>
 {% endblock %}
 
@@ -99,7 +101,7 @@
         <td>{{subgroup.name}}</td>
       </tr>
       <tr>
-        <th>Member :</th>
+        <th>Membre :</th>
         <td>{{user.first_name}} {{user.last_name}}</td>
       </tr>
     </table>
@@ -118,7 +120,9 @@
         <tr id="row-{{pd.id}}">
           <td class="product-name">{{pd.name}}</td>
           <td><input class="quantity" id="pd{{pd.id}}-ordered_quantity" maxlength="64" name="pd{{pd.id}}" type="number" step="{{pd.quantum|default_if_none:1}}" min="0" value="0" /></td>
-          <td class="product-unit">{{pd.unit}}</td>
+          <td class="product-unit">
+              {{pd.unit}}{% if pd.unit != 'kg' and pd.unit_weight %} ({{pd.unit_weight|weight}}){% endif %}
+          </td>
           <td class="unit-price"><span id="pd{{pd.id}}-unit_price">{{pd.price|price_nocurrency}}</span> €/{{pd.unit}}</td>
           <td><span id="pd{{pd.id}}-ordered_price">-</span> €</td>
           <td>{% if pd.quantity_per_package %}{{pd.quantity_per_package}} {{pd.unit}}/carton{% else %} - {% endif %}</td>
@@ -136,7 +140,7 @@
         <td colspan="2"></td>
         </tr>
     </table>
-    <input type="submit" value="Sauvegarder" />
+    <input type="submit" value="Sauvegarder" /> <a href="{% url 'index' %}">Annuler les modifications</a>
     <input type='hidden' name='dv-id' value='{{delivery.id}}' />
     {% csrf_token %}
 </form>
