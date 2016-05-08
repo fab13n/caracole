@@ -72,7 +72,7 @@ def _get_pd_fields(d, prefix, id):
     return {'name': raw['name'],
             'price': float(raw['price']),
             'quantity_per_package': int(qpp) if qpp else None,
-            'unit': raw['unit'],
+            'unit': raw['unit'] or u'pièce',
             'quantity_limit': int(quota) if quota else None,
             'quantum': float(quantum) if quantum else None,
             'unit_weight': float(weight) if weight else None,

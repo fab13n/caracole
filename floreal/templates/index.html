@@ -89,8 +89,8 @@ Commander pour :
             <li><a href="{% url 'emails_subgroup' subgroup=sg.id %}">e-mails <img src="{% static 'images/email.png' %}"/></a> et
                 <a href="{% url 'phones_subgroup' subgroup=sg.id %}">téléphones</a> ☎ des membres.</li>
             {% for cd in sg_dv_cd.cd %}
-            <li>Candidature de {{cd.user.first_name}} {{cd.user.last_name}}
-                <a href="mailto://{{cd.user.email}}">({{cd.user.email}})</a>:
+            <li>{{cd.user.first_name}} {{cd.user.last_name}} (<a href="mailto://{{cd.user.email}}">{{cd.user.email}}</a>)
+                souhaite rejoindre le sous-groupe {{cd.subgroup.name}} :
                 <a href="{% url 'validate_candidacy' candidacy=cd.id response='Y' %}?next=/"><span class="yes">Accepter</span></a>✔
                 /
                 <a href="{% url 'validate_candidacy' candidacy=cd.id response='N' %}?next=/"><span class="no">Refuser</span></a>✘
@@ -125,7 +125,7 @@ Commander pour :
                         (<a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.INITIAL %}?next=/">annuler</a>✘)
                     </li>
                     {% endif %}{# subgroup_state #}
-                    {% else %}{# dv.state == REGULATING #}
+                    {% elif dv.state == Delivery.REGULATING %}
                     {% if sg|subgroup_state:dv < SubgroupState.READY_FOR_ACCOUNTING %}
                     <!--<li><a href="% url 'adjust_subgroup' delivery=dv.id subgroup=sg.id%">
                         Régulariser les comptes<img src="{% static 'images/edit.png' %}"/></a></li>-->
