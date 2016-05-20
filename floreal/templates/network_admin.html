@@ -8,10 +8,12 @@
     /* Demand confirmation through a dialog before following link. */
     $(function(){
         $("#create-subgroup").on('click', function(x) {
-            var name = window.prompt("Créer un nouveau sous-groupe nommé :")
-            var url_scheme = "{% url 'create_subgroup' network=nw.id name='NAME' %}";
-            if(name) {
-                window.location = url_scheme.replace('NAME', encodeURI(name));
+            if( confirm("Êtes-vous sûr de vouloir créer un nouveau sous-groupe d'utilisateurs dans le réseau {{nw.name}} ?")) {
+                var name = window.prompt("Créer un nouveau sous-groupe nommé :")
+                var url_scheme = "{% url 'create_subgroup' network=nw.id name='NAME' %}";
+                if (name) {
+                    window.location = url_scheme.replace('NAME', encodeURI(name));
+                }
             }
             return false;
         })
