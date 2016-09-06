@@ -17,7 +17,7 @@
         'quantity_per_package': "{{pd.quantity_per_package|escapejs}}",
         'quantum': "{{pd.quantum|default_if_none:""|escapejs}}",
         'unit_weight': "{{pd.unit_weight|escapejs}}",
-        'deleted': false,
+        'deleted': {% if pd.delivery.id == delivery.id %} false  {% else %} true {% endif %},
         'delivery': {{pd.delivery.id}} },
     {% endfor %}];
 
@@ -65,7 +65,7 @@
             <td class="unit-label">&nbsp;<span class="%-unit-mirror"></span></td>\n\
             <td class="weight"><input id="%-unit_weight" name="%-unit_weight" min="0" step="0.1" type="number"/></td><td>kg</td>\n\
             <td class="deleted">\n\
-              <input id="%-deleted" name="%-deleted" onchange="reflect_deletion(\'%\')" type="checkbox" value="off">\n\
+              <input id="%-deleted" name="%-deleted" value="%-deleted" onchange="reflect_deletion(\'%\')" type="checkbox">\n\
             </td>\n\
         </tr>'.replace(/%/g, prefix));
     }
@@ -76,8 +76,7 @@
         console.log("set #"+prefix+"-"+k+" to "+v);
         $('#'+prefix+'-'+k).attr('value', v);
       });
-      if( record['delivery'] != DELIVERY) {
-        console.log("delivery "+record['delivery']+" != "+DELIVERY);
+      if( record['deleted']) {
         $("#"+prefix+"-deleted")[0].checked=true;
         reflect_deletion(prefix);
       }

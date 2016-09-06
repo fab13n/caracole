@@ -25,7 +25,7 @@ def edit_delivery_products(request, delivery):
 
     if request.method == 'POST':  # Handle submitted data
         _parse_form(request)
-        return redirect('network_admin', delivery.network.id)
+        return redirect('edit_delivery', delivery.id)
 
     else:  # Create and populate forms to render
         vars = _make_form(delivery)
@@ -43,15 +43,22 @@ def _get_products_list(delivery):
     current_products = delivery.product_set.all()
     current_names_set = {pd.name for pd in current_products}
     all_names = Product.objects.filter(delivery__network=delivery.network).values('name')
-    if all_names.exists():
+    # .distinct() is tricky to use in QuerySet. Given the moderate size of the list, let's do it in plain Python
+    all_names = set(x['name'] for x in all_names)
+    if all_names:
+        for x in sorted(list(all_names)):
+            print x
         past_products = [Product.objects
-                         .filter(name=x['name'], delivery__network=delivery.network)
+                         .filter(name=name, delivery__network=delivery.network)
                          .order_by('-id')[0]
-                         for x in all_names.distinct()]
+                         for name in all_names]
     else:
         past_products = []
     non_overridden_past_products = [pd for pd in past_products if pd.name not in current_names_set]
-    return list(current_products) + non_overridden_past_products
+    current_products=list(current_products)
+    current_products.sort(key=lambda x: x.name)
+    non_overridden_past_products.sort(key=lambda x: x.name)
+    return current_products + non_overridden_past_products
 
 
 def _make_form(delivery):
