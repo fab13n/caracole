@@ -26,7 +26,7 @@ def edit_subgroup_purchases(request, delivery, subgroup):
 
     if request.method == 'POST':
         _parse_form(request)
-        return redirect("edit_subgroup_purchases", delivery=delivery.id)
+        return redirect("view_subgroup_purchases_html", delivery=delivery.id, subgroup=subgroup.id)
     else:
         vars = delivery_description(delivery, [subgroup], user=user)
         vars.update(csrf(request))
