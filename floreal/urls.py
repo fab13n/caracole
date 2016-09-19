@@ -49,6 +49,9 @@ urlpatterns = patterns('',
     url(r'^dv-(?P<delivery>[^./]+)/sg-(?P<subgroup>[^./]+)/cards.pdf$',
         views.view_cards_latex, name='view_subgroup_cards_latex'),
 
+    url(r'^dv-(?P<delivery>[^./]+)/delete$', views.delete_archived_delivery, name='delete_archived_delivery'),
+    url(r'^nw-(?P<network>[^./]+)/delete-empty-archives$', views.delete_all_archived_deliveries, name='delete_all_archived_deliveries'),
+
     url(r'^nw-(?P<network>[^./]+)/emails$', views.view_emails, name='emails_network'),
     url(r'^sg-(?P<subgroup>[^./]+)/emails$', views.view_emails, name='emails_subgroup'),
 

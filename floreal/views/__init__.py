@@ -198,13 +198,40 @@ def network_admin(request, network):
             'candidacies': m.Candidacy.objects.filter(subgroup__network=nw)}
     return render_to_response('network_admin.html', vars)
 
+
+def _dv_has_not_purchase(dv):
+    purchased_products = dv.product_set.exclude(purchase__isnull=False)
+    return not purchased_products.exists()
+
+
 @nw_admin_required()
 def archived_deliveries(request, network):
     user = request.user
     nw = get_network(network)
-    vars = {'user': user, 'nw': nw,
-            'deliveries':  m.Delivery.objects.filter(network=nw, state=m.Delivery.TERMINATED)}
+    vars = {'user': user, 'nw': nw}
+    vars['deliveries'] = m.Delivery.objects.filter(network=nw, state=m.Delivery.TERMINATED)
+    vars['empty_deliveries'] = [dv for dv in vars['deliveries'] if _dv_has_not_purchase(dv)]
     return render_to_response('archived_deliveries.html', vars)
+
+
+@nw_admin_required()
+def delete_archived_delivery(request, delivery):
+    dv = get_delivery(delivery)
+    if not _dv_has_not_purchase(dv):
+        return HttpResponseForbidden(u'Cette commande n\'est pas vide, passer par l\'admin DB')
+    nw = dv.network
+    dv.delete()
+    return redirect('archived_deliveries', nw.id)
+
+
+@nw_admin_required()
+def delete_all_archived_deliveries(request, network):
+    nw = get_network(network)
+    deliveries = m.Delivery.objects.filter(network=nw, state=m.Delivery.TERMINATED)
+    for dv in deliveries:
+        if _dv_has_not_purchase(dv):
+            dv.delete()
+    return redirect('archived_deliveries', network)
 
 
 @nw_admin_required()
