@@ -285,7 +285,7 @@ def edit_delivery(request, delivery):
 
 
 @nw_admin_required()
-def create_delivery(request, network):
+def create_delivery(request, network, prev_dv=None):
     """Create a new delivery, then redirect to its edition page."""
     network = m.Network.objects.get(id=network)
     if request.user not in network.staff.all():
@@ -300,7 +300,8 @@ def create_delivery(request, network):
             fmt = u"%dème de " + name
         n += 1
         name = fmt % n
-    prev_dv = m.Delivery.objects.filter(network=network).order_by('-id').first()
+    if not prev_dv:
+        prev_dv = m.Delivery.objects.filter(network=network).order_by('-id').first()
     new_dv = m.Delivery.objects.create(network=network, name=name, state=m.Delivery.PREPARATION)
     # Start with a copy of each product from the latest command in the network
     if prev_dv:
