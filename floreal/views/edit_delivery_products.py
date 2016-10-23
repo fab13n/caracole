@@ -28,42 +28,10 @@ def edit_delivery_products(request, delivery):
         return redirect('edit_delivery', delivery.id)
 
     else:  # Create and populate forms to render
-        vars = _make_form(delivery)
-        vars['user'] = request.user
-        vars['Delivery'] = Delivery
+        vars = { 'user': request.user,
+                 'delivery': delivery}
         vars.update(csrf(request))
         return render_to_response('edit_delivery_products.html', vars)
-
-
-def _get_products_list(delivery):
-    """All products in the current delivery, plus products of past deliveries
-    in this network whose name doesn't occur in current delivery. When several
-    products with the same name exist in the past, the most recent one is kept."""
-
-    current_products = delivery.product_set.all()
-    current_names_set = {pd.name for pd in current_products}
-    all_names = Product.objects.filter(delivery__network=delivery.network).values('name')
-    # .distinct() is tricky to use in QuerySet. Given the moderate size of the list, let's do it in plain Python
-    all_names = set(x['name'] for x in all_names)
-    if all_names:
-        for x in sorted(list(all_names)):
-            print x
-        past_products = [Product.objects
-                         .filter(name=name, delivery__network=delivery.network)
-                         .order_by('-id')[0]
-                         for name in all_names]
-    else:
-        past_products = []
-    non_overridden_past_products = [pd for pd in past_products if pd.name not in current_names_set]
-    current_products=list(current_products)
-    current_products.sort(key=lambda x: x.name)
-    non_overridden_past_products.sort(key=lambda x: x.name)
-    return current_products + non_overridden_past_products
-
-
-def _make_form(delivery):
-    return {'delivery': delivery,
-            'products': _get_products_list(delivery)}
 
 
 def _get_pd_fields(d, prefix, id):

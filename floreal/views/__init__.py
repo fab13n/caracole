@@ -199,10 +199,11 @@ def network_admin(request, network):
     return render_to_response('network_admin.html', vars)
 
 
-def _dv_has_not_purchase(dv):
-    purchased_products = dv.product_set.exclude(purchase__isnull=False)
-    return not purchased_products.exists()
-
+def _dv_has_no_purchase(dv):
+    for pd  in dv.product_set.all():
+        if pd.purchase_set.exists():
+            return False
+    return True
 
 @nw_admin_required()
 def archived_deliveries(request, network):
@@ -210,14 +211,14 @@ def archived_deliveries(request, network):
     nw = get_network(network)
     vars = {'user': user, 'nw': nw}
     vars['deliveries'] = m.Delivery.objects.filter(network=nw, state=m.Delivery.TERMINATED)
-    vars['empty_deliveries'] = [dv for dv in vars['deliveries'] if _dv_has_not_purchase(dv)]
+    vars['empty_deliveries'] = [dv for dv in vars['deliveries'] if _dv_has_no_purchase(dv)]
     return render_to_response('archived_deliveries.html', vars)
 
 
 @nw_admin_required()
 def delete_archived_delivery(request, delivery):
     dv = get_delivery(delivery)
-    if not _dv_has_not_purchase(dv):
+    if not _dv_has_no_purchase(dv):
         return HttpResponseForbidden(u'Cette commande n\'est pas vide, passer par l\'admin DB')
     nw = dv.network
     dv.delete()
@@ -229,7 +230,7 @@ def delete_all_archived_deliveries(request, network):
     nw = get_network(network)
     deliveries = m.Delivery.objects.filter(network=nw, state=m.Delivery.TERMINATED)
     for dv in deliveries:
-        if _dv_has_not_purchase(dv):
+        if _dv_has_no_purchase(dv):
             dv.delete()
     return redirect('archived_deliveries', network)
 
@@ -283,29 +284,43 @@ def edit_delivery(request, delivery):
     }
     return render_to_response('edit_delivery.html', vars)
 
+def list_delivery_models(request, network):
+    """Propose to create a delivery based on a previous delivery."""
+    nw = m.Network.objects.get(id=network)
+    vars = {
+        'user': request.user,
+        'nw': nw,
+        'deliveries': m.Delivery.objects.filter(network=nw).order_by("-id")
+    }
+    return render_to_response('list_delivery_models.html', vars)
+
 
 @nw_admin_required()
-def create_delivery(request, network, prev_dv=None):
+def create_delivery(request, network=None, dv_model=None):
+
     """Create a new delivery, then redirect to its edition page."""
-    network = m.Network.objects.get(id=network)
-    if request.user not in network.staff.all():
-        return HttpResponseForbidden(u'Réservé aux administrateurs du réseau '+network.name)
+    if network:
+        nw = m.Network.objects.get(id=network)
+    elif dv_model:
+        dv_model = m.Delivery.objects.get(id=dv_model)
+        nw = dv_model.network
+
+    if request.user not in nw.staff.all():
+        # Vérifier qu'on est bien admin du bon réseau
+        return HttpResponseForbidden(u'Réservé aux administrateurs du réseau ' + nw.name)
     months = [u'Janvier', u'Février', u'Mars', u'Avril', u'Mai', u'Juin', u'Juillet',
               u'Août', u'Septembre', u'Octobre', u'Novembre', u'Décembre']
     now = datetime.now()
     name = '%s %d' % (months[now.month-1], now.year)
     n = 1
-    while m.Delivery.objects.filter(network=network, name=name).exists():
+    while m.Delivery.objects.filter(network=nw, name=name).exists():
         if n == 1:
             fmt = u"%dème de " + name
         n += 1
         name = fmt % n
-    if not prev_dv:
-        prev_dv = m.Delivery.objects.filter(network=network).order_by('-id').first()
-    new_dv = m.Delivery.objects.create(network=network, name=name, state=m.Delivery.PREPARATION)
-    # Start with a copy of each product from the latest command in the network
-    if prev_dv:
-        for prev_pd in prev_dv.product_set.all():
+    new_dv = m.Delivery.objects.create(name=name, network=nw, state=m.Delivery.PREPARATION)
+    if dv_model:
+        for prev_pd in dv_model.product_set.all():
             m.Product.objects.create(delivery=new_dv, name=prev_pd.name, price=prev_pd.price,
                                      quantity_per_package=prev_pd.quantity_per_package,
                                      unit=prev_pd.unit, quantity_limit=prev_pd.quantity_limit,

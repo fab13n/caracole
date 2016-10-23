@@ -11,7 +11,9 @@ urlpatterns = patterns('',
     url(r'^$', views.index, name='index'),
 
     url(r'^new-nw/(?P<nw_name>[^./]+)/(?P<sg_name>[^./]+)$', views.create_network, name='create_network'),
-    url(r'^new-dv/nw-(?P<network>[^./]+)$', views.create_delivery, name='create_delivery'),
+    url(r'^new-dv/nw-(?P<network>[^./]+)/list$', views.list_delivery_models, name='list_delivery_models'),
+    url(r'^new-dv/dv-(?P<dv_model>[^./]+)$', views.create_delivery, name='create_delivery_copy'),
+    url(r'^new-dv/nw-(?P<network>[^./]+)$', views.create_delivery, kwargs={'dv_model': None}, name='create_empty_delivery'),
     url(r'^new-sg/nw-(?P<network>[^./]+)/(?P<name>.+)$', views.create_subgroup, name='create_subgroup'),
 
     url(r'^nw-(?P<network>[^./]+)$', views.network_admin, name='network_admin'),

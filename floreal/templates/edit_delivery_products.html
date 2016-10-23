@@ -8,14 +8,14 @@
 
     var DELIVERY = {{delivery.id}};
 
-    var PRODUCTS = [{% for pd in products %}
+    var PRODUCTS = [{% for pd in delivery.product_set.all %}
       { 'id': "{{pd.id|escapejs}}",
         'name': "{{pd.name|escapejs}}",
         'price': "{{pd.price|escapejs}}",
         'unit': "{{pd.unit|escapejs}}",
         'quantity_limit': "{{pd.quantity_limit|escapejs}}",
         'quantity_per_package': "{{pd.quantity_per_package|escapejs}}",
-        'quantum': "{{pd.quantum|default_if_none:""|escapejs}}",
+        'quantum': "{{pd.quantum|default_if_none:''|escapejs}}",
         'unit_weight': "{{pd.unit_weight|escapejs}}",
         'deleted': {% if pd.delivery.id == delivery.id %} false  {% else %} true {% endif %},
         'delivery': {{pd.delivery.id}} },
@@ -73,7 +73,7 @@
     /* Fill a product row with data from a JSON record */
     function fill_row(prefix, record) {
       $.each(record, function(k, v) {
-        console.log("set #"+prefix+"-"+k+" to "+v);
+        // console.log("set #"+prefix+"-"+k+" to "+v);
         $('#'+prefix+'-'+k).attr('value', v);
       });
       if( record['deleted']) {
@@ -106,8 +106,8 @@
         attach_closure(prefix);
         product_ids.push(record['id'])
       }
+      add_blank_products();
       $("#product_ids").attr("value", product_ids.toString());
-
     })
     // ]]>
   </script>
@@ -136,7 +136,7 @@
       <tr>
         <th><label for="dv-state">Commandes autorisées :</label></th>
         <td><select id="dv-state" name="dv-state">
-          {% for key, name in Delivery.STATE_CHOICES.items %}
+          {% for key, name in delivery.STATE_CHOICES.items %}
           <option value="{{key}}" {% if delivery.state == key %}selected="selected"{% endif %}>{{name}}</option>
           {% endfor %}
         </select></td>
