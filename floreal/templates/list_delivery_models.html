@@ -1,0 +1,26 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load floreal_filters %}
+
+{% block head %}
+<script type='text/javascript'>
+    // <![CDATA[
+    // ]]>
+</script>
+{% endblock %}
+
+{% block content %}
+<h1>Créer une nouvelle commande dans le réseau {{nw.name}}</h1>
+
+<p>Créer une nouvelle commande :</p>
+
+<ul>
+    <li><a href="{% url 'create_empty_delivery' network=nw.id%}">vide</a></li>
+    {% for dv in deliveries %}
+    <li>basée sur <a href="{% url 'create_delivery_copy' dv_model=dv.id %}">"{{dv.name}}"</a></li>
+    {% endfor %}
+</ul>
+
+<p>Retourner à l'<a href="{% url 'network_admin' network=nw.id %}">administration du réseau {{nw.name}}</a>.</p>
+
+{% endblock %}

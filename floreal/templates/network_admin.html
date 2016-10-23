@@ -27,7 +27,7 @@
 <h2>Administration du réseau {{nw.name}}</h2>
 <ul>
   <li><a href="{% url 'index' %}">Retour à la page principale</a> ↩</li>
-  <li><a href="{% url 'create_delivery' network=nw.id %}">Créer une nouvelle commande {{nw.name}} <img src="{% static 'images/plus.png' %}"/></a></li>
+  <li><a href="{% url 'list_delivery_models' network=nw.id %}">Créer une nouvelle commande {{nw.name}} <img src="{% static 'images/plus.png' %}"/></a></li>
   <li><a href="{% url 'edit_user_memberships' network=nw.id %}">Répartir les membres en sous-groupes {{nw.name}} <img src="{% static 'images/edit.png' %}"/></a></li>
   <li><a href="{% url 'emails_network' network=nw.id %}">e-mails <img src="{% static 'images/email.png' %}"/></a> et
       <a href="{% url 'phones_network' network=nw.id %}">téléphones</a> ☎ du réseau {{nw.name}}.</li>
