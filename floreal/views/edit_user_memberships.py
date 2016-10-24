@@ -69,34 +69,47 @@ def edit_user_memberships(request, network):
     return render_to_response('edit_user_memberships.html', vars)
 
 
-def _parse_form(request, network):
+def _parse_form(request, nw):
     d = request.POST
     for uid in re.findall(r'[^u,]+', d['modified']):
         u = m.User.objects.get(pk=int(uid))
         is_network_admin = 'u'+uid+'-network-admin' in d
-        was_network_admin = u.staff_of_network.filter(id=network.id).exists()
+        was_network_admin = u.staff_of_network.filter(id=nw.id).exists()
         is_subgroup_admin = 'u'+uid+'-subgroup-admin' in d
-        was_subgroup_admin = u.staff_of_subgroup.filter(network=network).exists()
+        was_subgroup_admin = u.staff_of_subgroup.filter(network=nw).exists()
         sgid = int(d['u'+uid+'-sg'])
-        old_sg = u.user_of_subgroup.filter(network=network)
-        if not old_sg or old_sg[0] != sgid:
-            # Subgroup has changed
+        old_sg = u.user_of_subgroup.filter(network=nw)
+        if not old_sg or old_sg[0] != sgid:  # Subgroup has changed
             for sg in old_sg:
                 u.user_of_subgroup.remove(sg)
                 u.staff_of_subgroup.remove(sg)
             if sgid >= 0:
                 new_sg = m.Subgroup.objects.get(pk=sgid)
                 u.user_of_subgroup.add(new_sg)
+            else:
+                new_sg = None
             if is_subgroup_admin:
                 u.staff_of_subgroup.add(new_sg)
+            m.JournalEntry.log(request.user, "Moved %s from %s/%s to %s",
+                               u.username, nw.name, ('+'.join(sg.name for sg in old_sg) or 'non-member'),
+                               (new_sg.name if new_sg else "non-member"))
         else:  # Subgroup hasn't changed
             sg = old_sg[0]
             if was_subgroup_admin and not is_subgroup_admin:
                 u.staff_of_subgroup.remove(sg)
             elif not was_subgroup_admin and is_subgroup_admin:
                 u.staff_of_subgroup.add(sg)
+
         if was_network_admin and not is_network_admin:
-            u.staff_of_network.remove(network)
-        if not was_network_admin and is_network_admin:
-            u.staff_of_network.add(network)
+            m.JournalEntry.log(request.user, "Removed network admin rights for %s in %s", u.username, nw.name)
+            u.staff_of_network.remove(nw)
+        elif not was_network_admin and is_network_admin:
+            m.JournalEntry.log(request.user, "Granted network admin rights for %s in %s", u.username, nw.name)
+            u.staff_of_network.add(nw)
+
+        if was_subgroup_admin and not is_subgroup_admin:
+            m.JournalEntry.log(request.user, "Removed subgroup admin rights for %s in %s", u.username, nw.name)
+        elif not was_subgroup_admin and is_subgroup_admin:
+            m.JournalEntry.log(request.user, "Granted subgroup admin rights for %s in %s", u.username, nw.name)
+
     return True

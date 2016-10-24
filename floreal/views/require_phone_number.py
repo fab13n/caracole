@@ -10,4 +10,5 @@ def has_number(u):
 def add_phone_number(request, phone):
     user = request.user
     m.UserPhones.objects.create(user=user, phone=phone)
+    m.JournalEntry.log(request.user, "Filled their phone number")
     return redirect('index')

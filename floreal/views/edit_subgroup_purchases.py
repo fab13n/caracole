@@ -41,26 +41,30 @@ def _parse_form(request):
     """
 
     d = request.POST
-    for pd, u in re.findall(r'pd(\d+)u(\d+)', d['modified']):
+    pd_u_mods = re.findall(r'pd(\d+)u(\d+)', d['modified'])
+    for pd, u in pd_u_mods:
         ordered = float(d['pd%su%s' % (pd, u)])
         try:
             pc = m.Purchase.objects.get(product_id=pd, user_id=u)
             if ordered != 0:
-                print "Updating purchase %d" % pc.id
+                # print "Updating purchase %d" % pc.id
                 pc.ordered = ordered
                 pc.granted = ordered
                 pc.save(force_update=True)
             else:
-                print "Cancelling purchase %d" % pc.id
+                # print "Cancelling purchase %d" % pc.id
                 pc.delete()
         except m.Purchase.DoesNotExist:
             if ordered != 0:
-                print "Creating purchase for pd=%s, u=%s, q=%f" % (pd, u, ordered)
+                # print "Creating purchase for pd=%s, u=%s, q=%f" % (pd, u, ordered)
                 pc = m.Purchase.objects.create(product_id=pd, user_id=u, ordered=ordered, granted=ordered)
             else:
                 pc = None
         # Update ordered / granted mismatches in case of product penury, for every purchase
         if pc:
             set_limit(pc.product)
+        dv = m.Delivery.objects.get(id=d['dv-id'])
+        m.JournalEntry.log(request.user, "Modified %d user purchases in %s/%s",
+                           len(pd_u_mods), dv.network.name, dv.name)
 
     return True  # true == no error

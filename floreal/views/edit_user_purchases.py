@@ -60,4 +60,6 @@ def _parse_form(request):
             pc.save()
         set_limit(pd)  # In case of penury
 
+    m.JournalEntry.log(request.user, "Modified their purchases for %s/%s", dv.network.name, dv.name)
+
     return True  # true == no error

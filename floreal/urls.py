@@ -61,6 +61,7 @@ urlpatterns = patterns('',
     url(r'^sg-(?P<subgroup>[^./]+)/phones$', views.view_phones, name='phones_subgroup'),
 
     url(r'^history$', views.view_history, name='view_history'),
+    url(r'^journal$', views.journal, name='view_journal'),
     url(r'^charte.html$', TemplateView.as_view(template_name='charte.html'), name='charte'),
 
     url(r'^admin/', include(admin.site.urls), name='admin'),

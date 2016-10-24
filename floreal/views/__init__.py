@@ -82,6 +82,7 @@ def leave_network(request, network):
     """Leave subgroups of this network, as a user and a subgroup admin (not as a network-admin)."""
     user = request.user
     nw = get_network(network)
+    m.JournalEntry.log(user, "Left network %s", nw.name)
     for sg in user.user_of_subgroup.filter(network__id=nw.id):
         sg.users.remove(user.id)
     for sg in user.staff_of_subgroup.filter(network__id=nw.id):
@@ -103,7 +104,12 @@ def create_candidacy(request, subgroup):
         cd = m.Candidacy.objects.create(user=user, subgroup=sg)
         if auto_validate_candidacy(cd):
             # TODO when should confirmation e-mails be avoided? shouldn't it be up to auto_validate_candidacy to decide?
+            m.JournalEntry.log(user, "Applied for %s/%s, automatically granted", sg.network.name, sg.name)
             validate_candidacy_without_checking(request, candidacy=cd.id, response='Y', send_confirmation_mail=True)
+        else:
+            m.JournalEntry.log(user, "Applied for %s/%s, candidacy pending", sg.network.name, sg.name)
+    else:
+        m.JournalEntry.log(user, "Applied for %s/%s, but was already a member", sg.network.name, sg.name)
 
     target = request.REQUEST.get('next', False)
     return redirect(target) if target else redirect('candidacy')
@@ -120,6 +126,7 @@ def auto_validate_candidacy(cd):
         return True
     return False
 
+
 @login_required()
 def cancel_candidacy(request, candidacy):
     """Cancel your own, yet-unapproved candidacy."""
@@ -127,6 +134,7 @@ def cancel_candidacy(request, candidacy):
     cd = get_candidacy(candidacy)
     if user != cd.user:
         return HttpResponseForbidden(u"Vous ne pouvez annuler que vos propres candidatures.")
+    m.JournalEntry.log(user, "Cancelled own application for %s/%s", cd.subgroup.network.name, cd.subgroup.name)
     cd.delete()
     target = request.REQUEST.get('next', False)
     return redirect(target) if target else redirect('candidacy')
@@ -134,6 +142,10 @@ def cancel_candidacy(request, candidacy):
 
 @sg_admin_required(lambda a: get_candidacy(a['candidacy']).subgroup)
 def validate_candidacy(request, candidacy, response):
+    cd = get_candidacy(candidacy)
+    m.JournalEntry.log(request.user, "%s candidacy from %s to %s/%s",
+                       ("Granted" if response == 'Y' else 'Rejected'), cd.user.username,
+                       cd.subgroup.network.name, cd.subgroup.name)
     return validate_candidacy_without_checking(request, candidacy=candidacy, response=response, send_confirmation_mail=True)
 
 
@@ -222,6 +234,7 @@ def delete_archived_delivery(request, delivery):
         return HttpResponseForbidden(u'Cette commande n\'est pas vide, passer par l\'admin DB')
     nw = dv.network
     dv.delete()
+    m.JournalEntry.log(request.user, "Deleted archived delivery %d (%s) from %s", dv.id, dv.name, nw.name)
     return redirect('archived_deliveries', nw.id)
 
 
@@ -229,9 +242,12 @@ def delete_archived_delivery(request, delivery):
 def delete_all_archived_deliveries(request, network):
     nw = get_network(network)
     deliveries = m.Delivery.objects.filter(network=nw, state=m.Delivery.TERMINATED)
+    ids = []  # For loggin purposes
     for dv in deliveries:
         if _dv_has_no_purchase(dv):
+            ids.append(dv.id)
             dv.delete()
+    m.JournalEntry.log(request.user, "Deleted archived empty deliveries [%s] from %s", ', '.join(str(i) for i in ids), nw.name)
     return redirect('archived_deliveries', network)
 
 
@@ -242,6 +258,7 @@ def create_subgroup(request, network, name):
     if nw.subgroup_set.filter(name=name).exists():
         return HttpResponseBadRequest(u"Il y a déjà un sous-groupe de ce nom dans "+nw.name)
     m.Subgroup.objects.create(name=name, network=nw)
+    m.JournalEntry.log(request.user, "Created subgroup %s in %s", name, nw.name)
     return redirect('edit_user_memberships', network=nw.id)
 
 
@@ -258,6 +275,7 @@ def create_network(request, nw_name, sg_name):
     sg.staff.add(user)
     sg.users.add(user)
     target = request.REQUEST.get('next', False)
+    m.JournalEntry.log(user, "Created network %s with subgroup %s", nw_name, sg_name)
     return redirect(target) if target else redirect('network_admin', network=nw.id)
 
 
@@ -283,6 +301,7 @@ def edit_delivery(request, delivery):
         'CAN_EDIT_PRODUCTS': dv.state != m.Delivery.TERMINATED
     }
     return render_to_response('edit_delivery.html', vars)
+
 
 def list_delivery_models(request, network):
     """Propose to create a delivery based on a previous delivery."""
@@ -325,6 +344,7 @@ def create_delivery(request, network=None, dv_model=None):
                                      quantity_per_package=prev_pd.quantity_per_package,
                                      unit=prev_pd.unit, quantity_limit=prev_pd.quantity_limit,
                                      unit_weight=prev_pd.unit_weight, quantum=prev_pd.quantum)
+    m.JournalEntry.log(request.user, "Created new delivery %s in %s", name, nw.name)
     return redirect('edit_delivery_products', delivery=new_dv.id)
 
 
@@ -341,16 +361,18 @@ def set_delivery_state(request, delivery, state):
     dv.save()
     if must_save:
         save_delivery(dv)
+    m.JournalEntry.log(request.user, "Set delivery %s/%s in state %s",
+                       dv.network.name, dv.name, m.Delivery.STATE_CHOICES[state])
     return redirect('edit_delivery', delivery=dv.id)
 
 
 def save_delivery(dv):
     """Save an Excel spreadsheet and a PDF table of a delivery that's just been completed."""
-    file_name = os.path.join(settings.DELIVERY_ARCHIVE_DIR, "dv-%d.xlsx" % dv.id)
-    with open(file_name, 'wb') as f:
+    file_name_xlsx = os.path.join(settings.DELIVERY_ARCHIVE_DIR, "dv-%d.xlsx" % dv.id)
+    with open(file_name_xlsx, 'wb') as f:
         f.write(spreadsheet(dv, dv.network.subgroup_set.all()))
-    file_name = os.path.join(settings.DELIVERY_ARCHIVE_DIR, "dv-%d.pdf" % dv.id)
-    with open(file_name, 'wb') as f:
+    file_name_pdf = os.path.join(settings.DELIVERY_ARCHIVE_DIR, "dv-%d.pdf" % dv.id)
+    with open(file_name_pdf, 'wb') as f:
         f.write(latex_delivery_table(dv))
 
 
@@ -363,6 +385,8 @@ def set_subgroup_state_for_delivery(request, subgroup, delivery, state):
         return HttpResponseBadRequest(u"Ce sous-groupe ne participe pas à cette livraison.")
     dv.set_stateForSubgroup(sg, state)
     target = request.REQUEST.get('next', False)
+    m.JournalEntry.log(request.user, "In %s, set subgroup %s in state %s for delivery %s",
+                       dv.network.name, sg.name, state, dv.name)
     return redirect(target) if target else redirect('edit_delivery', delivery=dv.id)
 
 
@@ -419,7 +443,6 @@ def view_phones(request, network=None, subgroup=None):
     return render_to_response('phones.html', vars)
 
 
-
 @login_required()
 def view_history(request):
     orders = [(nw, m.Order(request.user, dv))
@@ -429,3 +452,17 @@ def view_history(request):
     vars = {'user': request.user, 'orders': orders}
     return render_to_response("view_history.html", vars)
 
+
+@nw_admin_required()
+def journal(request):
+    days = []
+    current_day = None
+    for entry in m.JournalEntry.objects.all().order_by("-date")[:1024]:
+        today = entry.date.strftime("%x")
+        record = {'user': entry.user, 'hour': entry.date.strftime("%X"), 'action': entry.action}
+        if not current_day or current_day['day'] != today:
+            current_day = {'day': today, 'entries': [record]}
+            days.append(current_day)
+        else:
+            current_day['entries'].append(record)
+    return render_to_response("journal.html", {'user': request.user, 'days': days})

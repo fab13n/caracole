@@ -36,6 +36,7 @@
             <li><a href="{% url 'auth_logout' %}?next={% url 'index' %}">Deconnection</a></li>
             <li><a href="{% url 'auth_password_change' %}">Changer de mot de passe</a></li>
             {% if user.is_staff %}
+            <li><a href="{% url 'view_journal' %}">Journal des événements</a></li>
             <li><a href="{% url 'admin:index' %}">Administrer DB</a></li>
             {% endif %}
             {% endif %}

@@ -80,12 +80,15 @@ def user_register(request):
             user.set_password(d['password1'])
             user.save()
 
+            m.JournalEntry.log(user, "Created an account")
+
             # Auto-login
             new_user = authenticate(username=d['email'], password=d['password1'])
             login(request, new_user)
 
             return HttpResponseRedirect('registration_post.html')
         else:  # invalid form
+            m.JournalEntry(None, "Failed account creation for %s %s (%s)", d['first_name'], d['last_name'], d['email'])
             return render(request, 'registration/registration_form.html', {'form': form})
     else:
         return render(request, 'registration/registration_form.html', {'form': RegistrationForm()})

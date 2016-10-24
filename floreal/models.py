@@ -69,7 +69,7 @@ class Subgroup(models.Model):
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         """If the extra user is missing, create it before saving."""
         if not self.extra_user:
-            missing_extra =True
+            missing_extra = True
             extra_username = "extra-%s" % self.name.lower()
             if User.objects.filter(username=extra_username).exists():
                 extra_username = "extra-%s-%s" % (self.network.name.lower(), self.name.lower())
@@ -309,3 +309,14 @@ class Order(object):
             orders[u].price = prices[u]
         return orders
 
+
+class JournalEntry(models.Model):
+    """Record of a noteworthy action by an admin, for social debugging purposes: changing delivery statuses,
+    moving users around."""
+    user = models.ForeignKey(User, null=True)
+    date = models.DateTimeField(default=datetime.now)
+    action = models.CharField(max_length=256)
+
+    @classmethod
+    def log(cls, u, fmt, *args, **kwargs):
+        cls.objects.create(user=u, date=datetime.now(), action=fmt % (args or kwargs))
