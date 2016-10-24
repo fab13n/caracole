@@ -24,6 +24,7 @@ from .edit_user_memberships import edit_user_memberships, json_memberships
 from .adjust_subgroup import adjust_subgroup
 from .view_purchases import \
     view_purchases_html, view_purchases_latex, view_purchases_xlsx, view_cards_latex, get_archive
+from .password_reset import password_reset
 
 from floreal.views import require_phone_number as phone
 
