@@ -47,9 +47,8 @@ def _parse_form(request):
         try:
             pc = m.Purchase.objects.get(product_id=pd, user_id=u)
             if ordered != 0:
-                # print "Updating purchase %d" % pc.id
-                pc.ordered = ordered
-                pc.granted = ordered
+                print "Updating purchase %d" % pc.id
+                pc.quantity = ordered
                 pc.save(force_update=True)
             else:
                 # print "Cancelling purchase %d" % pc.id
@@ -57,7 +56,7 @@ def _parse_form(request):
         except m.Purchase.DoesNotExist:
             if ordered != 0:
                 # print "Creating purchase for pd=%s, u=%s, q=%f" % (pd, u, ordered)
-                pc = m.Purchase.objects.create(product_id=pd, user_id=u, ordered=ordered, granted=ordered)
+                pc = m.Purchase.objects.create(product_id=pd, user_id=u, quantity=ordered)
             else:
                 pc = None
         # Update ordered / granted mismatches in case of product penury, for every purchase

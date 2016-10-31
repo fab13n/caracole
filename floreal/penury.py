@@ -71,8 +71,8 @@ def set_limit(pd):
     """
     # TODO: in case of limitation, first cancel extra users' orders
     purchases = m.Purchase.objects.filter(product=pd)
-    wishes = {pc.user_id: int(pc.ordered) for pc in purchases}
-    formerly_granted = {pc.user_id: int(pc.granted) for pc in purchases}
+    wishes = {pc.user_id: int(pc.quantity) for pc in purchases}
+    formerly_granted = {pc.user_id: int(pc.quantity) for pc in purchases}
     if pd.quantity_limit is None:  # No limit, granted==ordered for everyone
         granted = wishes
     else:  # Apply limitations
@@ -81,8 +81,8 @@ def set_limit(pd):
     for pc in purchases:
         uid = pc.user_id
         if formerly_granted[uid] != granted[uid]:  # Save some DB accesses
-            pc.granted = granted[uid]
+            pc.quantity = granted[uid]
             print "%s %s had their purchase of %s modified: ordered %s, formerly granted %s, now granted %s" % (
-                pc.user.first_name, pc.user.last_name, pc.product.name, pc.ordered, formerly_granted[uid], pc.granted
+                pc.user.first_name, pc.user.last_name, pc.product.name, pc.quantity, formerly_granted[uid], pc.quantity
             )
             pc.save(force_update=True)

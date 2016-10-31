@@ -50,10 +50,10 @@ def _parse_form(request):
         if not delta:
             continue
         elif pc:
-            pc.ordered += delta
+            pc.quantity += delta
             pc.save()
         else:  # Adjustment required, no previous extra purchase: create it
-            pc = m.Purchase.objects.create(user=subgroup.extra_user, product=pd, ordered=delta, granted=delta)
+            pc = m.Purchase.objects.create(user=subgroup.extra_user, product=pd, quantity=delta)
     set_limit(pd)  # In case of penury
 
     return True  # true == no error

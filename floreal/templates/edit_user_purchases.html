@@ -10,7 +10,7 @@
     var PRODUCT_QUANTA={ {% for pd in products %}{{pd.id}}: {{pd.quantum|default_if_none:0}},{% endfor %} };
     var PRODUCT_WEIGHTS=[{% for pd in products %}{{pd.unit_weight}},{% endfor %}];
     var PRODUCT_UNITS={ {% for pd in products %}{{pd.id}}: "{{pd.unit|escapejs}}",{% endfor %} };
-    var PURCHASES={ {% for pc in purchases %}{{pc.product.id}}: {{pc.ordered}}, {% endfor %} };
+    var PURCHASES={ {% for pc in purchases %}{{pc.product.id}}: {{pc.quantity}}, {% endfor %} };
 
     /* update per-line totals as well as delivery total */
     function update_weight_prices_and_errors() {

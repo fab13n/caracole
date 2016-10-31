@@ -33,10 +33,10 @@
 \multicolumn{3}{c|}{Commandés}&
 \multicolumn{2}{c|}{Livrés}\\
 \hline
-{% for pc in ur.orders.purchases %}{% if pc.ordered %}
+{% for pc in ur.orders.purchases %}{% if pc.quantity %}
 {{pc.product.name|tex_safe}} &
 {{pc.product.price|price}}/{{pc.product.unit|tex_safe}} &
-{{pc.ordered|qty}} &
+{{pc.quantity|qty}} &
 {{pc.product.unit|unit}} &
 {{pc.price|price}} & & \\
 {% endif %}{%endfor %}

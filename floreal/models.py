@@ -209,37 +209,28 @@ class Purchase(models.Model):
 
     user = models.ForeignKey(User, null=True)
     product = models.ForeignKey(Product)
-    ordered = models.DecimalField(decimal_places=3, max_digits=6)
-    granted = models.DecimalField(decimal_places=3, max_digits=6)
+    quantity = models.DecimalField(decimal_places=3, max_digits=6)
 
     class Meta:
         unique_together = (('product', 'user'), )
 
     @property
-    def is_satisfied(self):
-        return self.granted == self.ordered
-
-    @property
     def price(self):
-        return self.granted * self.product.price
+        return self.quantity * self.product.price
 
     @property
     def weight(self):
-        return self.granted * self.product.unit_weight
+        return self.quantity * self.product.unit_weight
 
     def __unicode__(self, specify_user=False):
-        if self.ordered == self.granted:
-            fmt = u"%(granted)g%(mult)s%(unit)s %(prod_name)s à %(price).2f€"
-        else:
-            fmt = u"%(granted)g%(mult)s%(unit)s (au lieu de %(ordered)g) %(prod_name)s à %(price).2f€"
+        fmt = u"%(quantity)g%(mult)s%(unit)s %(prod_name)s à %(price).2f€"
         unit = self.product.unit
         result = fmt % {
             'mult': u'×'if len(unit)>0 and unit[0].isdigit() else u' ',
-            'granted': self.granted,
-            'ordered': self.ordered,
-            'unit': plural(self.product.unit, self.granted),
-            'prod_name': articulate(self.product.name, self.granted),
-            'price': self.granted * self.product.price,
+            'quantity': self.quantity,
+            'unit': plural(self.product.unit, self.quantity),
+            'prod_name': articulate(self.product.name, self.quantity),
+            'price': self.quantity * self.product.price,
             'user_name': self.user.__unicode__()
         }
         if specify_user:
@@ -287,8 +278,7 @@ class Order(object):
                 self.product = product
                 self.user = user
                 self.price = 0
-                self.ordered = 0
-                self.granted = 0
+                self.quantity = 0
 
             def __nonzero__(self):
                 return False

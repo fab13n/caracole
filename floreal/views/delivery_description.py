@@ -64,7 +64,7 @@ def delivery_description(delivery, subgroups, **kwargs):
         sg = user_to_subgroup[od.user]
         for pc in od.purchases:
             if pc:
-                sg_pd_totals[sg][pc.product]['quantity'] += pc.granted
+                sg_pd_totals[sg][pc.product]['quantity'] += pc.quantity
 
     # Break up quantities in packages + loose items, compute price
     for pd_totals in sg_pd_totals.itervalues():

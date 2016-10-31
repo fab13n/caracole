@@ -51,12 +51,11 @@ def _parse_form(request):
         if pd in prev_purchases:
             pc = prev_purchases[pd]
         else:
-            pc = m.Purchase.objects.create(user=request.user, product=pd, ordered=0, granted=0)
+            pc = m.Purchase.objects.create(user=request.user, product=pd, quantity=0)
         if ordered <= 0:
             pc.delete()
         else:
-            pc.ordered = ordered
-            pc.granted = ordered
+            pc.quantity = ordered
             pc.save()
         set_limit(pd)  # In case of penury
 

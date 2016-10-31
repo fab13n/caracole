@@ -121,13 +121,8 @@
         {% for pc in ur.orders.purchases %}
         {% if not pc %}
         <td>-</td>
-        {% elif pc.is_satisfied %}
-        <td>{{pc.granted|floatformat}}</td>
         {% else %}
-        <td>
-            <span class="unsatisfied_ordered">{{pc.ordered|floatformat}}</span>
-            <span class="unsatisfied_granted">{{pc.granted|floatformat}}</span>
-        </td>
+        <td>{{pc.quantity|floatformat}}</td>
         {% endif %}{# unsatisfied #}
         {% endfor %}{# purchase #}
     </tr>
