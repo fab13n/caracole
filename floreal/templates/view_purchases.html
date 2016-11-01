@@ -44,8 +44,8 @@
             </ul>
           {% else %}
             <ul>
-              <li><a href="{% url 'view_subgroup_purchases_xlsx' delivery=delivery.id subgroup=xxx %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
-              <li><a href="{% url 'view_subgroup_purchases_latex' delivery=delivery.id subgroup=xxx%}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
+              <li><a href="{% url 'view_subgroup_purchases_xlsx' delivery=delivery.id subgroup=table.0.subgroup.id %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
+              <li><a href="{% url 'view_subgroup_purchases_latex' delivery=delivery.id subgroup=table.0.subgroup.id %}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
             </ul>
           {% endif %}
         </td>
