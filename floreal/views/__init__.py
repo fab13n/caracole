@@ -36,13 +36,15 @@ def index(request):
     user = request.user
 
     SUBGROUP_ADMIN_STATES = [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN, m.Delivery.FROZEN, m.Delivery.REGULATING]
+    DISPLAYED_STATES = [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN, m.Delivery.FROZEN]
 
     vars = {'user': request.user, 'Delivery': m.Delivery, 'SubgroupState': m.SubgroupStateForDelivery}
     vars['has_phone'] = phone.has_number(request.user)
     user_subgroups = m.Subgroup.objects.filter(users__in=[user])
     user_networks = [sg.network for sg in user_subgroups]
-    vars['deliveries'] = m.Delivery.objects.filter(network__in=user_networks, state=m.Delivery.ORDERING_ALL)
-
+    vars['deliveries'] = m.Delivery.objects \
+        .filter(network__in=user_networks, state__in=DISPLAYED_STATES) \
+        .order_by('network', '-id')
     vars['network_admin'] = m.Network.objects.filter(staff__in=[user])
     subgroup_admin = m.Subgroup.objects.filter(staff__in=[user])
     subgroup_admin = [{'sg': sg,
