@@ -55,7 +55,7 @@
 {% endblock %}
 
 {% block content %}
-<h1>Ajuster la commande</h1>
+<h1>Régulariser la commande</h1>
 <p></p>
 <form method="POST">
     <table id="delivery-table">
@@ -70,33 +70,37 @@
     </table>
     <div style="height: 20px;"></div>
     <table id="products-table">
-        {# columns: product-name | editable-quantity | unit | number-of-packages | price | reset-to-zero #}
+        {# columns: product-name | ordered-quantity | unit | delivered_quantity | reason #}
         <tr>
             <th>Produit</th>
             <th colspan="3">Quantité</th>
-            <th>Prix</th>
-            <th>Supprimer</th>
+            <th>Commandés</th>
+            <th>Reçus</th>
+            <th>Raison de l'écart</th>
         </tr>
         {% for pt in product_totals %}
         <tr>
             <th class="product-name">{{pt.product.name}}</th>
+
+            <td id="pd{{pt.product.id}}-ordered"></td>
+            <td>{{pt.product.unit|unit_multiple}}</td>
+
             <td><input class="quantity"
-                       id="pd{{pt.product.id}}-total"
+                       id="pd{{pt.product.id}}-delivered"
                        maxlength="64"
-                       name="pd{{pt.product.id}}"
+                       name="pd{{pt.product.id}}-quantity"
                        type="number"
                        min="0" value="{{pt.quantity|floatformat}}"/></td>
             <td>{{pt.product.unit|unit_multiple}}</td>
+
             <td>
-                {% if pt.product.quantity_per_package %}
-                = <span id="pd{{pt.product.id}}-packages">XXX</span> ct <span id="pd{{pt.product.id}}-loose"> + XXX</span>
-                {% endif %}
+                <select name="pd{{pt.product.id}}-reason" multiple>
+                    <option value="P">Pesée</option>
+                    <option value="L">Non livré</option>
+                    <option value="E">Erreur de paiement</option>
+                    <option value="A">Avoir</option>
+                </select>
             </td>
-            <td><span id="pd{{pt.product.id}}-price">XXX</span>€</td>
-            <td><input type="image"
-                       src={% static 'images/minus.png' %}
-                       onclick="reset_order({{pt.product.id}}); return false"
-                       value="Remettre à 0"></td>
         </tr>
         {% endfor %}{# totals by product #}
         <tr><th>Total:</th><td colspan="3"></td><th><span id="total_price">XXX</span>€</th></tr>

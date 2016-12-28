@@ -28,7 +28,7 @@ def adjust_subgroup(request, delivery, subgroup=None):
         if not subgroup: subgroup = get_subgroup(request, delivery.network)
         vars = delivery_description(delivery, [subgroup])
         vars.update(csrf(request), user=request.user)
-        return render_to_response('adjust_subgroup.html', vars)
+        return render_to_response('regulation.html', vars)
 
 
 def _parse_form(request):

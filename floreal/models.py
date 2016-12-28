@@ -310,3 +310,13 @@ class JournalEntry(models.Model):
     @classmethod
     def log(cls, u, fmt, *args, **kwargs):
         cls.objects.create(user=u, date=datetime.now(), action=fmt % (args or kwargs))
+
+
+class Discrepancy(models.Model):
+    """Log of a discrepancy between what's been ordered and what's actually been paid for in a given subgroup.
+    """
+    product = models.ForeignKey(Product)
+    amount = models.DecimalField(decimal_places=3, max_digits=9)
+    subgroup = models.ForeignKey(Subgroup)
+    reason = models.CharField(max_length=256)
+
