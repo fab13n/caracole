@@ -57,6 +57,7 @@ class RegistrationForm(forms.Form):
         cleaned = re.sub(r"\bD(['e])\b", r"d\1", capitalized)  # Particules are lowercased in French
         return cleaned
 
+
 def user_register(request):
     """
     Register a new user: username is defined to be the same as email,
@@ -80,7 +81,7 @@ def user_register(request):
             user.set_password(d['password1'])
             user.save()
 
-            m.JournalEntry.log(user, "Created an account")
+            m.JournalEntry.log(user, "Created an account: %s %s, %s", user.first_name, user.last_name, user.username)
 
             # Auto-login
             new_user = authenticate(username=d['email'], password=d['password1'])
@@ -93,6 +94,7 @@ def user_register(request):
             return render(request, 'registration/registration_form.html', {'form': form})
     else:
         return render(request, 'registration/registration_form.html', {'form': RegistrationForm()})
+
 
 def user_register_post(request):
     return render(request, 'registration/registration_post.html', {})
