@@ -30,7 +30,7 @@ urlpatterns = patterns('',
     url(r'^dv-(?P<delivery>[^./]+)/sg-(?P<subgroup>[^./]+)/set-state/(?P<state>[A-Za-z]+)$',
         views.set_subgroup_state_for_delivery, name='set_subgroup_state_for_delivery'),
     url(r'^dv-(?P<delivery>[^./]+)/archive\.(?P<suffix>[^./]+)$', views.get_archive, name='get_archive'),
-    # url(r'^dv-(?P<delivery>[^./]+)/sg-(?P<subgroup>[^./]+)/adjust$', views.adjust_subgroup, name='adjust_subgroup'),
+    url(r'^dv-(?P<delivery>[^./]+)/sg-(?P<subgroup>[^./]+)/regulation$', views.adjust_subgroup, name='subgroup_regulation'),
 
     url(r'^candidacy$', views.candidacy, name='candidacy'),
     url(r'^cd-(?P<candidacy>[^./]+)/cancel$', views.cancel_candidacy, name='cancel_candidacy'),

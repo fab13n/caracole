@@ -1,56 +1,116 @@
-{% extends 'layout.html' %}
+{% extends 'layout_semi_wide.html' %}
 {% load floreal_filters %}
 {% load static %}
 
 {% block head %}
   <script type='text/javascript'>
   // <![CDATA[
-    {# TODO: refactor in objects #}
-    var PRODUCT_IDS=[{% for pd in products %}{{pd.id}},{% endfor %}];
-    var QUANTITY_PER_PACKAGE={ {% for pd in products %}{{pd.id}}: {{pd.quantity_per_package|default_if_none:"false"}},{% endfor %} };
-    var PRODUCT_UNITS={ {% for pd in products %}{{pd.id}}: "{{pd.unit|unit_multiple}}",{% endfor %} };
-    var PRODUCT_PRICES={ {% for pd in products %}{{pd.id}}: "{{pd.price}}",{% endfor %} };
+    var PRODUCTS = [ {% for pt in products %}
+      {id: {{pt.pd.id}}, qpp: {{pt.pd.quantity_per_package|default_if_none:"false"}}, unit: "{{pt.pd.unit|unit_multiple}}", price: {{pt.pd.price}}, ordered: {{pt.ordered}}, delivered: {{pt.delivered}}{% if pt.reason %}, reason: "{{pt.reason}}"{% endif %}},{% endfor %}
+    ];
 
-    /* update per-line totals as well as delivery total */
-    function update_packaged_quantities() {
-      var total_price = 0;
-      for(var i=0; i<PRODUCT_IDS.length; i++) {
-        var pd_id = PRODUCT_IDS[i];
-        var qpp = QUANTITY_PER_PACKAGE[pd_id];
-        var quantity = parseFloat($("#pd"+pd_id+"-total").attr("value"));
-        if(qpp) {
-          var packages = Math.floor(quantity/qpp);
-          var loose = quantity % qpp;
-          $("#pd"+pd_id+"-packages").text(packages)
-          if(loose) {
-            $("#pd"+pd_id+"-loose").text(" + "+loose+PRODUCT_UNITS[pd_id]);
-          } else {
-            $("#pd"+pd_id+"-loose").text("");
-          }
+    function confirm_regulation() {
+        if(confirm("Avez-vous fini de régulariser la commande {{delivery.name}} pour le sous-groupe {{subgroup.name}} ?")) {
+            return true;
+        } else {
+            return false;
         }
-        var price = PRODUCT_PRICES[pd_id] * quantity;
-        $("#pd"+pd_id+"-price").text(price.toFixed(2));
-        total_price += price;
-      }
-      $("#total_price").text(total_price.toFixed(2));
     }
 
-    function reset_order(id) {
-      $("#pd"+id+"-total").attr("value", "0");
-      update_packaged_quantities();
+    function reprint_quantity(pd, kind) {
+        var prefix = "#pd" + pd.id + " ."+ kind;
+        function set(suffix, v) {
+            var q = $(prefix+suffix);
+            var t = q[0] && q[0].tagName;
+            if(t == 'INPUT') { q.val(v); } else { q.text(v); }
+        }
+        if(pd.qpp) {
+            var packages = Math.floor(pd[kind]/pd.qpp);
+            var loose = pd[kind] % pd.qpp;
+            set('.packages', packages);
+            if(loose) { set('.loose', loose); $(prefix+'.loose-decoration').show(); }
+            else { set('.loose', ''); $(prefix+'.loose-decoration').hide(); }
+        }
+        set('.total', pd[kind]);
+        set('.price', (pd[kind] * pd.price).toFixed(2));
+        if(pd.ordered == pd.delivered) { $("#pd" + pd.id).removeClass('mismatch'); }
+        else { $("#pd" + pd.id).addClass('mismatch'); }
+    }
+
+    function update_delivered_quantity(target) {
+        var x = $(target.currentTarget);
+        var pd_id = x[0].getAttribute('name').split('-')[0].substr(2)
+        var pd = null;
+        for (var i = 0; i < PRODUCTS.length; i++) {
+            if (PRODUCTS[i].id == pd_id) {
+                pd = PRODUCTS[i];
+                break;
+            }
+        }
+        var prefix = "#pd" + pd_id + " ";
+        if (x.hasClass('total')) {
+            var total = parseFloat($(prefix + " .delivered.total").attr("value"));
+            pd.delivered = total;
+        } else if (x.hasClass('packages') || x.hasClass('loose')) {
+            var packages = parseFloat($(prefix + " .delivered.packages").attr("value"));
+            var loose = parseFloat($(prefix + " .delivered.loose").attr("value")) || 0;
+            pd.delivered = packages * pd.qpp + loose;
+        } else {
+            console.log("Input class not handled", target)
+        }
+        reprint_quantity(pd, "delivered");
+        reprint_total_prices();
+    }
+
+    function print_quantities(kind) {
+      for(var i=0; i<PRODUCTS.length; i++) {
+          var pd = PRODUCTS[i];
+          reprint_quantity(pd, kind);
+      }
+    }
+
+    /* update per-line totals as well as delivery total */
+    function reprint_total_prices() {
+        var total_ordered_price = 0, total_delivered_price = 0;
+        for(var i=0; i<PRODUCTS.length; i++) {
+            var pd = PRODUCTS[i];
+            total_ordered_price += pd.price * pd.ordered;
+            total_delivered_price += pd.price * pd.delivered;
+        }
+        $("#total-ordered-price").text(total_ordered_price.toFixed(2));
+        $("#total-delivered-price").text(total_delivered_price.toFixed(2));
     }
 
     $(document).ready(function() {
-      $(":input").bind('keyup mouseup', update_packaged_quantities);
-      update_packaged_quantities();
+      $("input[type=number]").bind('keyup mouseup', update_delivered_quantity);
+      print_quantities('ordered');
+      print_quantities('delivered');
+      for(var i=0; i<PRODUCTS.length; i++) {
+          var pd = PRODUCTS[i];
+          if(pd.reason) {
+              $("#pd" + pd.id + " select").val(pd.reason);
+          }
+      }
+      reprint_total_prices();
     })
   // ]]>
   </script>
   <style type="text/css">
-    input.quantity { text-align: right; }
-	.total_cell { font-weight: bold; }
-    .product-name { text-align: right; }
-    td,th { text-align: left; padding-left: 10px; padding-right: 10px; }
+      input[type=number] { text-align: right; }
+      th.left { text-align: right; }
+      .top { text-align: center; }
+      td,th { text-align: left; padding-left: 10px; padding-right: 10px; }
+      input.packages,input.loose {width: 48px;}
+      input.total { width: 130px;}
+      tr.compare td { background-color: #ccffcc; }
+      tr.compare.mismatch td { background-color: #ffaaaa; }
+      tr.compare td.gap { width: 0px; padding: 0px; background-color: inherit; }
+      tr.compare.mismatch .reason { display: inline-block; }
+      tr.compare .reason { display: none; }
+      td.ordered { width: 150px; }
+      td.delivered { width: 230px; }
+      td.reason, th.reason { width: 140px; }
+      td.price, th.price { text-align: right; }
   </style>
 {% endblock %}
 
@@ -65,48 +125,87 @@
       </tr>
       <tr>
         <th>Sous-groupe :</th>
-        <td>{{table.0.subgroup.name}}</td>
+        <td>{{subgroup.name}}</td>
       </tr>
     </table>
-    <div style="height: 20px;"></div>
+    <p>Veuillez renseigner les éventuelles différences entre les produits commandés, et les produits livrés et payés.<br/>
+    "ct" est l'abbréviation de "carton(s)".</p>
     <table id="products-table">
         {# columns: product-name | ordered-quantity | unit | delivered_quantity | reason #}
         <tr>
-            <th>Produit</th>
-            <th colspan="3">Quantité</th>
-            <th>Commandés</th>
-            <th>Reçus</th>
-            <th>Raison de l'écart</th>
+            <td></td>
+            <th class="top" colspan="2">Commandés</th>
+            <td class="gap"></td>
+            <th class="top" colspan="2">Reçus</th>
+            <td class="gap"></td>
+            <th class="top reason">Raison de l'écart</th>
         </tr>
-        {% for pt in product_totals %}
-        <tr>
-            <th class="product-name">{{pt.product.name}}</th>
+        {% for pt in products %}
+        <tr class="compare" id="pd{{pt.pd.id}}">
+            <th class="left">
+                {{pt.pd.name}}
+                {% if pt.pd.quantity_per_package %}
+                <br/> (ct de {{pt.pd.quantity_per_package}} {{pt.pd.unit|unit_multiple}})
+                {% endif %}
+            </th>
 
-            <td id="pd{{pt.product.id}}-ordered"></td>
-            <td>{{pt.product.unit|unit_multiple}}</td>
-
-            <td><input class="quantity"
-                       id="pd{{pt.product.id}}-delivered"
-                       maxlength="64"
-                       name="pd{{pt.product.id}}-quantity"
+            <td class="ordered">
+                <span class="ordered total">?</span>{{pt.pd.unit|unit_multiple}}
+                {% if pt.pd.quantity_per_package %}
+                =<br/>
+                <span class="ordered packages">?</span> ct
+                <span class="ordered loose-decoration"> +
+                    <span class="ordered loose">?</span> {{pt.pd.unit|unit_multiple}}
+                </span>
+                {% endif %}
+            </td>
+            <td class="price"><span class="ordered price">?</span>€</td>
+            <td class="gap"></td>
+            <td class="delivered">
+                <input class="delivered total"
+                       name="pd{{pt.pd.id}}-delivered-total"
                        type="number"
-                       min="0" value="{{pt.quantity|floatformat}}"/></td>
-            <td>{{pt.product.unit|unit_multiple}}</td>
-
-            <td>
-                <select name="pd{{pt.product.id}}-reason" multiple>
-                    <option value="P">Pesée</option>
-                    <option value="L">Non livré</option>
-                    <option value="E">Erreur de paiement</option>
-                    <option value="A">Avoir</option>
+                       min="0"
+                       step="{{pt.pd.quantum}}"
+                       value=""/>
+                {{pt.pd.unit|unit_multiple}}
+                {% if pt.pd.quantity_per_package %}
+                =<br/>
+                <input class="delivered packages"
+                       name="pd{{pt.pd.id}}-delivered-packages"
+                       type="number"
+                       min="0"/>
+                ct +
+                <input class="delivered loose"
+                       name="pd{{pt.pd.id}}-delivered-loose"
+                       type="number"
+                       min="0"/>
+                {{pt.pd.unit|unit_multiple}}
+                {% endif %}
+            </td>
+            <td class="price"><span class="delivered price"></span>€</td>
+            <td class="gap"></td>
+            <td class="reason">
+                <select name="pd{{pt.pd.id}}-reason" class="reason">
+                    <option value="Pesée">Pesée</option>
+                    <option value="Non livré">Non livré</option>
+                    <option value="Erreur de paiement">Erreur de paiement</option>
+                    <option value="Avoir">Avoir</option>
                 </select>
             </td>
         </tr>
         {% endfor %}{# totals by product #}
-        <tr><th>Total:</th><td colspan="3"></td><th><span id="total_price">XXX</span>€</th></tr>
+        <tr>
+            <th class="left">Total</th>
+            <td colspan="1"></td>
+            <th class="price"><span id="total-ordered-price">?</span>€</th>
+            <td colspan="2"></td>
+            <th class="price"><span id="total-delivered-price">?</span>€</th>
+        </tr>
     </table>
-    <input type="submit" value="Valider" />
+    <input type="submit" value="Valider" onclick="confirm_regulation()"/>
     <input type='hidden' name='dv-id' value='{{delivery.id}}' />
+    <input type='hidden' name='sg-id' value='{{subgroup.id}}' />
     {% csrf_token %}
 </form>
 {% endblock %}
