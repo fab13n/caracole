@@ -159,7 +159,6 @@ class Delivery(models.Model):
         unique_together = (('network', 'name'),)
         ordering = ('-id',)
 
-
 class SubgroupStateForDelivery(models.Model):
     INITIAL              = 'X'
     READY_FOR_DELIVERY   = 'Y'
@@ -319,4 +318,18 @@ class Discrepancy(models.Model):
     amount = models.DecimalField(decimal_places=3, max_digits=9)
     subgroup = models.ForeignKey(Subgroup)
     reason = models.CharField(max_length=256)
+
+    def __unicode__(self):
+        return "%s/%s: %+g %s of %s for %s: %s" % (
+            self.product.delivery.network.name,
+            self.product.delivery.name,
+            self.amount,
+            self.product.unit,
+            self.product.name,
+            self.subgroup.name,
+            self.reason
+        )
+
+    class Meta:
+        verbose_name_plural = "Discrepancies"
 
