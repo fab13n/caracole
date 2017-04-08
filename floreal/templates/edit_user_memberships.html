@@ -4,27 +4,53 @@
 {% block head %}
   <style type="text/css">
     td, th { border: none; }
-    th.name, th.email {
-      text-align: right;
-      white-space: nowrap;
+    th.name, th.email { text-align: right; white-space: nowrap; }
+    tr.modified th.name,tr.modified th.email { font-style: italic; }
+    tr.user-of-subgroup--1 { background-color: #c0c0c0; }
+    tr.user-of-subgroup--2 { background-color: #808080; }
+    td.radio-subgroup:nth-child(3n+2) { border-left: 1px solid #A75A50; }
+    td.highlight,th.highlight { background-color: #ffaaaa; }
+
+    .tooltip {
+        position: relative;
     }
-    tr.modified th.name,tr.modified th.email {
-       font-style: italic;
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 120px;
+        background-color: #555;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px 0;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -60px;
+        opacity: 0;
+        transition: opacity 1s;
     }
-    tr.user-of-subgroup--1 {
-       background-color: #c0c0c0;
+    .tooltip .tooltiptext::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #555 transparent transparent transparent;
     }
-    tr.user-of-subgroup--2 {
-       background-color: #808080;
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
     }
-    td.radio-subgroup:nth-child(3n+2) {
-       border-left: 1px solid #A75A50;
-    }
+
   </style>
   <script type='text/javascript'>
   // <![CDATA[
   var users = null; // to be filled with XHR
-  var subgroups = null; // to be filled with XHR
+  var sorted_subgroups = null; // to be filled with XHR
+  var subgroups = {}; // to be filled from sorted_subgroups
   var sorted_users = null; // to be filled with XHR
 
   /* Generate a line of radioboxes and checkboxes allowing to change a user's memberships.
@@ -33,20 +59,41 @@
     var record = users[id];
     var TEMPLATE =
     '<tr id="u{id}" class="user-starts-with-{initial} user-of-subgroup-{subgroup} user">\n\
-      <th class="email">{email}</th>\n\
-      <th class="name">{first_name} {last_name}</th>\n\
-      <td><input type="checkbox" name="u{id}-network-admin" onclick="mark_user_modified({id});"/></td>\n\
-      <td><input type="checkbox" name="u{id}-subgroup-admin" onclick="mark_user_modified({id});"/></td>";\n\
+      <th class="email u{id}">{email}</th>\n\
+      <th class="name u{id}">{first_name} {last_name}</th>\n\
+      <td class="highlightable tooltip adm-nw u{id}">\n\
+        <input type="checkbox" name="u{id}-network-admin" onclick="mark_user_modified({id});"/>\n\
+        <span class="tooltiptext">{first_name} {last_name} @ admin réseau</span>\n\
+      </td>\n\
+      <td class="highlightable tooltip adm-sg u{id}">\n\
+        <input type="checkbox" name="u{id}-subgroup-admin" onclick="mark_user_modified({id});"/>\n\
+        <span class="tooltiptext">{first_name} {last_name} @ admin sous-groupe</span>\n\
+      </td>";\n\
       {subgroupradios}\n\
-      <td><input type="radio" id="u{id}-sg-1" name="u{id}-sg" value="-1" onclick="update_user_group({id}, -1);"/></td>\n\
-      <td><input type="radio" id="u{id}-sg-2" name="u{id}-sg" value="-2" onclick="update_user_group({id}, -2);"/></td>\n\
+      <td class="highlightable tooltip u{id}">\n\
+        <input type="radio" id="u{id}-sg-1" name="u{id}-sg" value="-1" onclick="update_user_group({id}, -1);"/>\n\
+        <span class="tooltiptext">{first_name} {last_name} @ non-membre</span>\n\
+      </td>\n\
+      <td class="highlightable tooltip u{id}">\n\
+        <input type="radio" id="u{id}-sg-2" name="u{id}-sg" value="-2" onclick="update_user_group({id}, -2);"/>\n\
+        <span class="tooltiptext">{first_name} {last_name} @ non-membre</span>\n\
+      </td>\n\
     </tr>';
     var SUBGROUP_RADIO_TEMPLATE =
-      '<td class="radio-subgroup"><input type="radio" id="u{id}-sg{sgid}" name="u{id}-sg" value="{sgid}" onclick="update_user_group({id}, {sgid});"/></td>';
+      '<td class="radio-subgroup highlightable tooltip sg{sgid} u{id}">\n\
+        <input type="radio" id="u{id}-sg{sgid}" name="u{id}-sg" value="{sgid}" onclick="update_user_group({id}, {sgid});"/>\n\
+        <span class="tooltiptext">{first_name} {last_name} @ {sgname}</span>\n\
+      </td>';
     var subgroupradios = [];
-    for(var i=0; i<subgroups.length; i++) {
-      var sg = subgroups[i];
-      subgroupradios.push(SUBGROUP_RADIO_TEMPLATE.replace(new RegExp('{sgid}', 'g'), sg.id));
+    for(var i=0; i<sorted_subgroups.length; i++) {
+      var line = SUBGROUP_RADIO_TEMPLATE;
+      var sg = sorted_subgroups[i];
+      var sg_record = {sgid: sg.id, sgname: sg.name};
+      for(var field in sg_record) {
+        var re = new RegExp('{'+field+'}', 'g');
+        line = line.replace(re, sg_record[field]);
+      }
+      subgroupradios.push(line);
     }
     subgroupradios = subgroupradios.join('\n');
     var line = TEMPLATE.replace('{subgroupradios}', subgroupradios);
@@ -61,8 +108,8 @@
   function fill_page() {
 
     var rows = [];
-    for(var i in subgroups) {
-      var sg = subgroups[i];
+    for(var i in sorted_subgroups) {
+      var sg = sorted_subgroups[i];
       rows.push('<th class="rotate"><div><div>'+sg.name+'</div></div></th>');
     }
     rows.push('<th class="rotate"><div><div>Membre d\'autres réseaux</div></div></th>');
@@ -70,8 +117,8 @@
     $("#header-row").append(rows.join('\n'));
 
     rows = [];
-    for(var i in subgroups) {
-      var sg = subgroups[i];
+    for(var i in sorted_subgroups) {
+      var sg = sorted_subgroups[i];
       rows.push('<a href="#" onclick="hide_all_but_subgroup(\''+sg.id+'\');">'+sg.name+'</a>');
     }
     rows.push('<a href="#" onclick="hide_all_but_subgroup(-1);">Membre d\'autres réseaux</a>');
@@ -141,15 +188,37 @@
 
   };
 
+  function handle_highlight(event) {
+      var el = event.currentTarget;
+      var classes = el.classList
+      var u, sg;
+
+      for(var i=0; i<classes.length; i++) {
+          var c = classes[i];
+          if(c.startsWith('u')) { u = users[c.substr(1)]; }
+          else if(c.startsWith('sg')) { sg = subgroups[c.substr(2)]; }
+          else if(c.startsWith('adm')) { sg = {name: c}; }
+          else { continue; /* irrelevant class */ }
+
+          if(event.type=='mouseenter') { $("."+c).addClass('highlight'); }
+          else if(event.type=='mouseleave') { $("."+c).removeClass('highlight'); }
+      }
+  }
+
   $(document).ready(function(){
     $.getJSON("{% url 'json_memberships' network=nw.id %}", function(data) {
-      users = data.users;
-      sorted_users = data.sorted_users;
-      subgroups = data.subgroups;
-      fill_page();
-      init_form_inputs();
-     });
-   });
+        users = data.users;
+        sorted_users = data.sorted_users;
+        sorted_subgroups = data.subgroups;
+        for(var i in sorted_subgroups) {
+            var sg = sorted_subgroups[i];
+            subgroups[sg.id] = sg;
+        }
+        fill_page();
+        init_form_inputs();
+        $('#users-table').delegate('td.highlightable', 'hover', handle_highlight);
+    });
+  });
   // ]]>
   </script>
 
