@@ -8,6 +8,9 @@ from floreal import models as m
 
 register = template.Library()
 
+@register.filter
+def forced_sign(f):
+    return u"%+g" % f
 
 @register.filter
 def price(f):

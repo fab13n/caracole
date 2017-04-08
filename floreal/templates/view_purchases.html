@@ -6,23 +6,22 @@
 {% if table|length > 1 %}
     <script type='text/javascript'>
       var DISPLAYED_SUBGROUPS = [ {% for sgr in table %}{{sgr.subgroup.id}}, {% endfor %}];
-      function attach_visibility_toggle(sg_id) {
-        $('#subgroup_row_'+sg_id).click(function() { $('.subgroup_'+sg_id+'_user_row').toggle(); })
+      function attach_visibility_toggle(id) {
+        $('#group_header_'+id).click(function() { $('.group_content_'+id).toggle(); })
       }
       $(document).ready(function() {
-        for(var i=0; i!==DISPLAYED_SUBGROUPS.length; i++) { attach_visibility_toggle(DISPLAYED_SUBGROUPS[i]); }
-        $('.user_row').toggle()
+        for(var i=0; i<DISPLAYED_SUBGROUPS.length; i++) { attach_visibility_toggle(DISPLAYED_SUBGROUPS[i]); }
+        attach_visibility_toggle('discrepancies');
+        $('.content_row').toggle()
       })
     </script>
 
 {% endif %}
     <style type="text/css">
-      tr.subgroup_row, tr.subgroup_row th { color: white; background-color: #a75a50; font-weight: bold; }
+      tr.group_header, tr.group_header th { color: white; background-color: #a75a50; font-weight: bold; }
       tr.one  { background-color: #d5b1ac; }
       .blank  { text-align: left; }
       table { margin-top: 30px; }
-      .unsatisfied_ordered {  color: red; text-decoration: line-through; }
-      .unsatisfied_granted {  font-weight: bold; color: red; }
     </style>
 {% endblock %}
 
@@ -94,7 +93,9 @@
      #                          "totals": product_idx -> { "product": product,
      #                                                     "quantity": number,
      #                                                     "full_packages": number,
-     #                                                     "out_of_packages": number }.
+     #                                                     "out_of_packages": number,
+     #                                                     "discrepancy": number,
+     #                                                     "discrepancy_reason": string}.
      #                          "users": user_idx -> { "user": user,
      #                                                 "orders": product_idx -> order.
      #                                                 "price": number,
@@ -103,7 +104,7 @@
     {% endcomment %}
     {% for sgr in table %}
     {% if table|length > 1 %}
-    <tr class="subgroup_row" id="subgroup_row_{{sgr.subgroup.id}}">
+    <tr class="group_header" id="group_header_{{sgr.subgroup.id}}">
         <th class="left">{{sgr.subgroup.name}}</th>
         <td>{{sgr.price|price}}</td>
         {% for t in sgr.totals %}
@@ -115,7 +116,7 @@
     {% if sgr.price > 0 %}{# if there is at least one purchase for that subgroup #}
     {% for ur in sgr.users %}{# each subgroup user's row #}
     {% if ur.price > 0 %}{# this user made some purchases #}
-    <tr class="user_row subgroup_{{sgr.subgroup.id}}_user_row {% cycle 'one' 'two' 'three' 'four' %}">
+    <tr class="content_row group_content_{{sgr.subgroup.id}} {% cycle 'one' 'two' 'three' 'four' %}">
         <th class="left">{{ur.user.first_name}} {{ur.user.last_name}}</th>
         <td class="price">{{ur.price|price}}</td>
         {% for pc in ur.orders.purchases %}
@@ -129,11 +130,38 @@
     {% endif %}{# price == 0, no purchase by this user #}
     {% endfor %}{# users within subgroup #}
     {% else %}{# no purchase for this subgroup #}
-    <tr class="user_row subgroup_{{sgr.subgroup.id}}_user_row">
+    <tr class="content_row group_content_{{sgr.subgroup.id}}">
       <th></th><td>-</td><td colspan="{{sgr.totals|length}}">aucun achat pour le sous-groupe {{sgr.subgroup.name}}</td>
     </tr>
     {% endif %}
     {% endfor %}{# subgroup #}
+
+    {% if delivery.state >= delivery.REGULATING %}
+    <tr class="group_header" id="group_header_discrepancies">
+        <th class="left">Écarts livraison</th>
+        <td>?.??€</td>
+        {% for t in product_totals %}
+        {% if t.discrepancy %}
+        <td>{{t.discrepancy|forced_sign}}</td>
+        {% else %}
+        <td>-</td>
+        {% endif %}
+        {% endfor %}
+    </tr>
+    {% for sgr in table %}
+    <tr class="content_row group_content_discrepancies">
+        <th class="left">{{sgr.subgroup.name}}</th>
+        <td>?.??€</td>
+        {% for t in sgr.totals %}
+        {% if t.discrepancy %}
+        <td class="tooltip">{{t.discrepancy|forced_sign}}<span class="tooltiptext">{{t.discrepancy_reason}}</span></td>
+        {% else %}
+        <td>-</td>
+        {% endif %}
+        {% endfor %}
+    </tr>
+    {% endfor %}
+    {% endif %}
 
 </table>
 {% endblock %}
