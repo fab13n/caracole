@@ -104,7 +104,6 @@
 
     <style type="text/css">
       .out_of_packages { font-weight:bold; color: #811305; }
-      .unsatisfied_granted { text-decoration: line-through; }
       input.quantity { text-align: right; height: 100%; width: calc(100% - 3px); padding:0px;}
       td.quantity { border: none; width: 50px; }
       table { table-layout: fixed; }
@@ -204,19 +203,12 @@
                    step="{{pc.product.quantum|default_if_none:1}}" {%if ur.user.first_name != 'extra'%}min="0"{%endif%}
                    class="quantity"
                    onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/>
-            {% elif pc.is_satisfied %}
+            {% else %}
             <input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="{{pc.quantity|floatformat}}"
                    step="{{pc.product.quantum|default_if_none:1}}" {%if ur.user.first_name != 'extra'%}min="0"{%endif%}
                    class="quantity"
                    onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/>
-            {% else %}{# unsatisfied order #}
-            <input type="number" name="pd{{pc.product.id}}u{{pc.user.id}}" value="{{pc.quantity|floatformat}}"
-                   step="{{pc.product.quantum|default_if_none:1}}" {%if ur.user.first_name != 'extra'%}min="0"{%endif%}
-                   class="unsatisfied_ordered quantity"
-                   onchange="update_totals({{pc.product.id}},{{pc.user.id}})"/>
-            {# TODO adapt dynamically when user changes request and order <= unsatisfied. #}
-            <span class="unsatisfied_granted">{{pc.quantity}}</span>
-        {% endif %}{# unsatisfied #}
+            {% endif %}
         </td>
         {% endfor %}{# purchase #}
         <td><input type="image" src={% static 'images/minus.png' %} onclick="cancel_u({{ur.user.id}}); return false"/></td>
