@@ -22,7 +22,8 @@ def delivery_description(delivery, subgroups, **kwargs):
                                                                 "full_packages": number,
                                                                 "out_of_packages": number,
                                                                 "weight": number,
-                                                                 "price": number},
+                                                                "price": number,
+                                                                "discrepancy": number? },
                                      "users": user_idx -> { "user": user,
                                                             "orders": product_idx -> order,
                                                             "price": number,
@@ -39,11 +40,11 @@ def delivery_description(delivery, subgroups, **kwargs):
     products = delivery.product_set.all()
     # Iterable of all users in subgroups
     users = m.User.objects.filter(user_of_subgroup__in=subgroups, is_active=True)
-    # Dictionary user -> list of ordered, indexed as products
+    # Dictionary user -> list of orders, indexed as products
     orders = m.Order.by_user_and_product(delivery, users, products)
 
     # Compute totals per product per subgroup 1: initialize
-    # Dictionary subgroup -> product -> { product, granted_quantity }
+    # Dictionary subgroup -> product -> { product, quantity }
     sg_pd_totals = {
         sg: {
             pd: {
@@ -66,7 +67,7 @@ def delivery_description(delivery, subgroups, **kwargs):
             if pc:
                 sg_pd_totals[sg][pc.product]['quantity'] += pc.quantity
 
-    # Break up quantities in packages + loose items, compute price
+    # Break up quantities in packages + loose items, compute price, gather discrepancies
     for pd_totals in sg_pd_totals.itervalues():
         for pd, totals in pd_totals.iteritems():
             qty = totals['quantity']
@@ -76,9 +77,17 @@ def delivery_description(delivery, subgroups, **kwargs):
             if qpp:
                 totals['full_packages'] = qty // qpp
                 totals['out_of_packages'] = qty % qpp
+            if delivery.state >= delivery.REGULATING:
+                q = m.Discrepancy.objects.filter(product=pd, subgroup=sg)
+                if q.exists():
+                    totals['discrepancy'] = q[0].amount
+                    totals['discrepancy_reason'] = q[0].reason
+                else:
+                    totals['discrepancy'] = 0
 
     # Sum up grand total (all subgroups together) per product
     product_totals = []
+    product_discrepancies = []
     for i, pd in enumerate(products):
         qty = sum(sg_pd_totals[sg][pd]['quantity'] for sg in subgroups)
         qpp = pd.quantity_per_package
@@ -87,6 +96,7 @@ def delivery_description(delivery, subgroups, **kwargs):
             total['full_packages'] = qty // qpp
             total['out_of_packages'] = qty % qpp
         product_totals.append(total)
+        product_discrepancies.append(sum(sg_pd_totals[sg][pd]['discrepancy'] for sg in subgroups))
 
     # Convert dictionaries into ordered lists in `table`:
     # subgroup_idx -> { "subgroup": subgroup,

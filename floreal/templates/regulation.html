@@ -6,7 +6,7 @@
   <script type='text/javascript'>
   // <![CDATA[
     var PRODUCTS = [ {% for pt in products %}
-      {id: {{pt.pd.id}}, qpp: {{pt.pd.quantity_per_package|default_if_none:"false"}}, unit: "{{pt.pd.unit|unit_multiple}}", price: {{pt.pd.price}}, ordered: {{pt.ordered}}, delivered: {{pt.delivered}}{% if pt.reason %}, reason: "{{pt.reason}}"{% endif %}},{% endfor %}
+      {id: {{pt.product.id}}, qpp: {{pt.product.quantity_per_package|default_if_none:"false"}}, unit: "{{pt.product.unit|unit_multiple}}", price: {{pt.product.price}}, ordered: {{pt.quantity}}, delivered: {{pt.quantity|add:pt.discrepancy}}{% if pt.discrepancy_reason %}, reason: "{{pt.discrepancy_reason}}"{% endif %}},{% endfor %}
     ];
 
     function confirm_regulation() {
@@ -141,21 +141,21 @@
             <th class="top reason">Raison de l'écart</th>
         </tr>
         {% for pt in products %}
-        <tr class="compare" id="pd{{pt.pd.id}}">
+        <tr class="compare" id="pd{{pt.product.id}}">
             <th class="left">
-                {{pt.pd.name}}
-                {% if pt.pd.quantity_per_package %}
-                <br/> (ct de {{pt.pd.quantity_per_package}} {{pt.pd.unit|unit_multiple}})
+                {{pt.product.name}}
+                {% if pt.product.quantity_per_package %}
+                <br/> (ct de {{pt.product.quantity_per_package}} {{pt.product.unit|unit_multiple}})
                 {% endif %}
             </th>
 
             <td class="ordered">
-                <span class="ordered total">?</span>{{pt.pd.unit|unit_multiple}}
-                {% if pt.pd.quantity_per_package %}
+                <span class="ordered total">?</span>{{pt.product.unit|unit_multiple}}
+                {% if pt.product.quantity_per_package %}
                 =<br/>
                 <span class="ordered packages">?</span> ct
                 <span class="ordered loose-decoration"> +
-                    <span class="ordered loose">?</span> {{pt.pd.unit|unit_multiple}}
+                    <span class="ordered loose">?</span> {{pt.product.unit|unit_multiple}}
                 </span>
                 {% endif %}
             </td>
@@ -163,30 +163,30 @@
             <td class="gap"></td>
             <td class="delivered">
                 <input class="delivered total"
-                       name="pd{{pt.pd.id}}-delivered-total"
+                       name="pd{{pt.product.id}}-delivered-total"
                        type="number"
                        min="0"
-                       step="{{pt.pd.quantum}}"
+                       step="{{pt.product.quantum}}"
                        value=""/>
-                {{pt.pd.unit|unit_multiple}}
-                {% if pt.pd.quantity_per_package %}
+                {{pt.product.unit|unit_multiple}}
+                {% if pt.product.quantity_per_package %}
                 =<br/>
                 <input class="delivered packages"
-                       name="pd{{pt.pd.id}}-delivered-packages"
+                       name="pd{{pt.product.id}}-delivered-packages"
                        type="number"
                        min="0"/>
                 ct +
                 <input class="delivered loose"
-                       name="pd{{pt.pd.id}}-delivered-loose"
+                       name="pd{{pt.product.id}}-delivered-loose"
                        type="number"
                        min="0"/>
-                {{pt.pd.unit|unit_multiple}}
+                {{pt.product.unit|unit_multiple}}
                 {% endif %}
             </td>
             <td class="price"><span class="delivered price"></span>€</td>
             <td class="gap"></td>
             <td class="reason">
-                <select name="pd{{pt.pd.id}}-reason" class="reason">
+                <select name="pd{{pt.product.id}}-reason" class="reason">
                     <option value="Pesée">Pesée</option>
                     <option value="Non livré">Non livré</option>
                     <option value="Erreur de paiement">Erreur de paiement</option>

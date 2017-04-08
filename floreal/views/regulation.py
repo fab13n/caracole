@@ -26,19 +26,12 @@ def adjust_subgroup(request, delivery, subgroup=None):
             return redirect("subgroup_regulation", delivery=dv.id)
     else:
         sg = get_subgroup(subgroup)
-        dd = delivery_description(dv, [sg])
+        product_totals = delivery_description(dv, [sg])['table'][0]['totals']
         vars = {
             'delivery': dv,
             'subgroup': sg,
-            'products': [{'pd': pt['product'], 'ordered': pt['quantity']} for pt in dd['product_totals']],
+            'products': product_totals
         }
-        for pt in vars['products']:
-            try:
-                ds = m.Discrepancy.objects.get(product=pt['pd'], subgroup=sg)
-                pt['delivered'] = pt['ordered'] + ds.amount
-                pt['reason'] = ds.reason
-            except m.Discrepancy.DoesNotExist:
-                pt['delivered'] = pt['ordered']
         vars.update(csrf(request), user=request.user)
         return render_to_response('regulation.html', vars)
 
