@@ -84,6 +84,8 @@ def delivery_description(delivery, subgroups, **kwargs):
                     totals['discrepancy_reason'] = q[0].reason
                 else:
                     totals['discrepancy'] = 0
+            else:
+                totals['discrepancy'] = 0
 
     # Sum up grand total (all subgroups together) per product
     product_totals = []
