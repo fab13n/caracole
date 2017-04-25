@@ -45,13 +45,15 @@ def _get_pd_fields(d, prefix, id):
     quota = raw['quantity_limit']
     quantum = raw['quantum']
     weight = raw['unit_weight']
+    if not weight: # 0 or None
+        weight = 1 if raw['unit'] == 'kg' else 0
     return {'name': raw['name'],
             'price': float(raw['price']),
             'quantity_per_package': int(qpp) if qpp else None,
             'unit': raw['unit'] or u'pièce',
             'quantity_limit': int(quota) if quota else None,
             'quantum': float(quantum) if quantum else None,
-            'unit_weight': float(weight) if weight else None,
+            'unit_weight': float(weight) if weight is not None else None,
             'deleted': "%s%d-deleted" % (prefix, id) in d}
 
 
