@@ -34,13 +34,15 @@ COL_OFFSET = 6
 V_CYCLE_LENGTH = 5
 H_CYCLE_LENGTH = 5
 
-def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=None, group_recap=False, one_group=False):
+def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=None,
+                group_recap=False, one_group=False, extra_line=0, extra_fmls=None):
     """
     :param buyers: ordered list of buyers
     :param products: ordered list of products
     :param purchases: function (buyer_idx, product_idx) -> quantity
     :return:
     """
+    extra_line = 1 if extra_line else 0  # Force int value for easy additions
     sheet = book.add_worksheet(title)
     if PROTECT_FORMULA_CELLS:
         sheet.protect()
@@ -48,7 +50,7 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
     sheet.set_column(1, 1, 12)
     sheet.set_row(0, 75)
     sheet.set_row(2, 50)
-    sheet.merge_range('A1:J1', u"Achats du réseau %s: \n commande %s pour %s" % (
+    sheet.merge_range('A1:J1', u"Achats du réseau %s:\n%s pour %s" % (
         products[0].delivery.network.name, title, products[0].delivery.name), fmt['title'])
     for row, title in enumerate([u"Prix unitaire", u"Poids unitaire", u"Nombre par carton",
                                  u"Nombre de pièces", u"Nombre de cartons", u"Nombre en complément",
@@ -83,8 +85,7 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
     else:
         # In subgroup sheets, recopy product descriptions from 1st page
         for c, pd in enumerate(products):
-            fml = "=%(nw)s!%(col)s%%s" % {'nw': products[0].delivery.network.name,
-                                          'col': _col_name(c+COL_OFFSET)}
+            fml = "=Commande!%(col)s%%s" % {'col': _col_name(c+COL_OFFSET)}
             sheet.write(2, c+COL_OFFSET, fml % 3, fmt['pd_name'], _u8(pd.name))
             sheet.write(3, c+COL_OFFSET, fml % 4, fmt['hdr_price'], pd.price)
             sheet.write(4, c+COL_OFFSET, fml % 5, fmt['hdr_weight'], pd.unit_weight)
@@ -92,23 +93,25 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
 
     n_products = len(products)
     n_buyers = len(buyers)
-    price_buyer = [0 for _ in buyers]
-    weight_buyer = [0 for _ in buyers]
-    qty_buyer = [0 for _ in buyers]
-    qty_product = [0 for _ in products]
-    weight_product = [0 for _ in products]
+    price_buyer = [0] * (n_buyers+extra_line)
+    weight_buyer = [0] * (n_buyers+extra_line)
+    qty_buyer = [0] * (n_buyers+extra_line)
+    qty_product = [0] * n_products
+    weight_product = [0] * n_products
 
     # Generate buyer names column.
     for r, name in enumerate(buyers):
         fmt_u = fmt['user_name_cycle'] if r % V_CYCLE_LENGTH == V_CYCLE_LENGTH-1 else fmt['user_name']
         sheet.write(r+ROW_OFFSET, 0, _u8(name), fmt_u)
+    if extra_line:
+        sheet.write(n_buyers + ROW_OFFSET, 0, "Extra", fmt['user_name_cycle'])
 
     # Fill purchases, count totals
     for c, pd in enumerate(products):
+        h_cycle = c % H_CYCLE_LENGTH == H_CYCLE_LENGTH - 1
         for r in range(n_buyers):
             qty = purchases(r, c)
             v_cycle = r % V_CYCLE_LENGTH == V_CYCLE_LENGTH-1
-            h_cycle = c % H_CYCLE_LENGTH == H_CYCLE_LENGTH-1
             if h_cycle and v_cycle:
                 fmt_name = 'qty_vh_cycle'
             elif h_cycle:
@@ -130,16 +133,23 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
                 w = qty * pd.unit_weight
                 weight_buyer[r] += w
                 weight_product[c] += w
+        if extra_line:
+            fmt_x = fmt['qty_vh_cycle' if h_cycle else 'qty_v_cycle']
+            if extra_fmls:
+                fml = extra_fmls(n_buyers, c)
+                sheet.write(n_buyers+ROW_OFFSET, c+COL_OFFSET, fml, fmt_x, 0)
+            else:
+                sheet.write(n_buyers+ROW_OFFSET, c+COL_OFFSET, 0, fmt_x)
 
     # Total price per buyer, plus accounting columns cheque / especes / avoir / du
     for r in range(n_buyers):
         fml = "=SUMPRODUCT(" \
-              "%(firstcol)s$%(firstrow)s:%(lastcol)s$%(firstrow)s," \
-              "%(firstcol)s%(lastrow)s:%(lastcol)s%(lastrow)s)" % \
+              "%(firstcol)s$%(u_price_row)s:%(lastcol)s$%(u_price_row)s," \
+              "%(firstcol)s%(qty_row)s:%(lastcol)s%(qty_row)s)" % \
               {'firstcol': _col_name(COL_OFFSET),
                'lastcol': _col_name(n_products+COL_OFFSET-1),
-               'firstrow': 4,  # unit price
-               'lastrow': r+ROW_OFFSET+1}
+               'u_price_row': 4,  # unit price
+               'qty_row': r+ROW_OFFSET+1}
         fmt_p = fmt['hdr_user_price_cycle'] if r % V_CYCLE_LENGTH == V_CYCLE_LENGTH-1 else fmt['hdr_user_price']
         sheet.write(r+ROW_OFFSET, COL_OFFSET-1, fml, fmt_p, price_buyer[r])
         fmt_p = fmt['price_h_cycle'] if r % V_CYCLE_LENGTH == V_CYCLE_LENGTH-1 else fmt['price']
@@ -158,9 +168,25 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
             fml = "=F%(r)s-B%(r)s-C%(r)s-D%(r)s" % {'r': r+ROW_OFFSET+1}
             sheet.write(r+ROW_OFFSET, 4, fml, fmt_p, price_buyer[r])
 
+    if extra_line:
+        fml = "=SUMPRODUCT(" \
+              "%(firstcol)s$%(u_price_row)s:%(lastcol)s$%(u_price_row)s," \
+              "%(firstcol)s%(qty_row)s:%(lastcol)s%(qty_row)s)" % \
+              {'firstcol': _col_name(COL_OFFSET),
+               'lastcol': _col_name(n_products+COL_OFFSET-1),
+               'u_price_row': 4,  # unit price
+               'qty_row': n_buyers+ROW_OFFSET+1}
+        fmt_p = fmt['hdr_user_price_cycle']
+        sheet.write(n_buyers + ROW_OFFSET, COL_OFFSET-1, fml, fmt_p, 0)
+        sheet.write(n_buyers + ROW_OFFSET, 1, 0, fmt_p)
+        sheet.write(n_buyers + ROW_OFFSET, 2, 0, fmt_p)
+        sheet.write(n_buyers + ROW_OFFSET, 3, 0, fmt_p)
+        fml = "=F%(r)s-B%(r)s-C%(r)s-D%(r)s" % {'r': n_buyers+ROW_OFFSET+1}
+        sheet.write(n_buyers + ROW_OFFSET, 4, fml, fmt_p, 0)
+
     # Total price for all users
     fml = "=SUM(%%(sumcol)s%(firstrow)s:%%(sumcol)s%(lastrow)s)" % \
-          {'sumcol': _col_name(COL_OFFSET-1), 'firstrow':ROW_OFFSET+1, 'lastrow':n_buyers+ROW_OFFSET}
+          {'sumcol': _col_name(COL_OFFSET-1), 'firstrow':ROW_OFFSET+1, 'lastrow': n_buyers+ROW_OFFSET+extra_line}
     sheet.write(11, 1, fml % {'sumcol': 'B'}, fmt['hdr_price'], 0)
     sheet.write(11, 2, fml % {'sumcol': 'C'}, fmt['hdr_price'], 0)
     sheet.write(11, 3, fml % {'sumcol': 'D'}, fmt['hdr_price'], 0)
@@ -171,7 +197,7 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
     # Total quantities and weights per product
     total_packages = 0
     for c, pd in enumerate(products):
-        vars = {'colname': _col_name(c+COL_OFFSET), 'firstrow':ROW_OFFSET+1, 'lastrow': n_buyers+ROW_OFFSET}
+        vars = {'colname': _col_name(c+COL_OFFSET), 'firstrow':ROW_OFFSET+1, 'lastrow': n_buyers+ROW_OFFSET+extra_line}
         qty = qty_product[c]
 
         # Quantity
@@ -251,7 +277,6 @@ def spreadsheet(delivery, subgroups):
 
     one_group = len(subgroups) == 1
     if not one_group:
-        title = _u8(delivery.network.name)
         buyers = [sg['subgroup'].name for sg in x['table']]
         def purchases(sg_idx, pd_idx):
             return x['table'][sg_idx]['totals'][pd_idx]['quantity']
@@ -260,7 +285,27 @@ def spreadsheet(delivery, subgroups):
                 'subgroup':x['table'][sg_idx]['subgroup'].name,
                 'colname':_col_name(pd_idx+COL_OFFSET)}
 
-        _make_sheet(book, title, fmt, buyers, x['products'], purchases, purchase_fmls, group_recap=True)
+        _make_sheet(book, "Commande", fmt, buyers, x['products'], purchases, purchase_fmls,
+                    group_recap=True, extra_line=1, extra_fmls=None)
+
+        if delivery.state >= delivery.REGULATING:
+
+            # 1 - Add discrepancies sheet
+            def purchases(sg_idx, pd_idx):
+                return x['table'][sg_idx]['totals'][pd_idx]['discrepancy']
+            _make_sheet(book, "Ecarts", fmt, buyers, x['products'], purchases, group_recap=False,
+                        one_group=one_group, extra_line=1)
+
+            # 2 - Add final count sheet
+            def purchases(sg_idx, pd_idx):
+                t = x['table'][sg_idx]['totals'][pd_idx]
+                return t['quantity'] + t['discrepancy']
+            def purchase_fmls(sg_idx, pd_idx):
+                return "=Commande!%(colname)s%(rowname)s+Ecarts!%(colname)s%(rowname)s" % {
+                    'rowname': sg_idx + ROW_OFFSET + 1,
+                    'colname': _col_name(pd_idx+COL_OFFSET)}
+            _make_sheet(book, "Livraison", fmt, buyers, x['products'], purchases, purchase_fmls,
+                        group_recap=False, one_group=one_group, extra_line=1, extra_fmls=purchase_fmls)
 
     # subgroups
     for sg in x['table']:
@@ -268,7 +313,10 @@ def spreadsheet(delivery, subgroups):
         buyers = [u['user'].first_name + " " + u['user'].last_name for u in sg['users']]
         def purchases(u_idx, pd_idx):
             return sg['users'][u_idx]['orders'].purchases[pd_idx].quantity
-        _make_sheet(book, title, fmt, buyers, x['products'], purchases, group_recap=False, one_group=one_group)
+        _make_sheet(book, title, fmt, buyers, x['products'], purchases, group_recap=False,
+                    one_group=one_group, extra_line=one_group)
+
+
 
     book.close()
     return string_buffer.getvalue()
