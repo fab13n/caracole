@@ -120,9 +120,12 @@ Commander pour :
                     {% else %}
                     <li>(Aucun achat)</li>
                     {% endif %}
+                    {% if user|is_admin_of:dv.network %}
+                    <li><a href="{% url 'edit_delivery' delivery=dv.id %}">Gérer la commande</a></li>
+                    {% endif %}
                     {% if dv.state == Delivery.ORDERING_ALL %}
                     <li><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id%}">
-                        Modifier<img src="{% static 'images/edit.png' %}"/></a></li>
+                        Modifier les achats <img src="{% static 'images/edit.png' %}"/></a></li>
                     {% elif dv.state == Delivery.ORDERING_ADMIN %}
                     {% if sg|subgroup_state:dv < SubgroupState.READY_FOR_DELIVERY %}
                     <li><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id%}">
