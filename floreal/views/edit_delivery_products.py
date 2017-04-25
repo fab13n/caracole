@@ -29,8 +29,9 @@ def edit_delivery_products(request, delivery):
         return redirect('edit_delivery', delivery.id)
 
     else:  # Create and populate forms to render
-        vars = { 'user': request.user,
-                 'delivery': delivery}
+        vars = {'QUOTAS_ENABLED': False,
+                'user': request.user,
+                'delivery': delivery}
         vars.update(csrf(request))
         return render_to_response('edit_delivery_products.html', vars)
 
@@ -45,7 +46,7 @@ def _get_pd_fields(d, prefix, id):
     quota = raw['quantity_limit']
     quantum = raw['quantum']
     weight = raw['unit_weight']
-    if not weight: # 0 or None
+    if not weight:  # 0 or None
         weight = 1 if raw['unit'] == 'kg' else 0
     return {'name': raw['name'],
             'price': float(raw['price']),
