@@ -9,14 +9,6 @@
       {id: {{pt.product.id}}, qpp: {{pt.product.quantity_per_package|default_if_none:"false"}}, unit: "{{pt.product.unit|unit_multiple}}", price: {{pt.product.price}}, ordered: {{pt.quantity}}, delivered: {{pt.quantity|add:pt.discrepancy}}{% if pt.discrepancy_reason %}, reason: "{{pt.discrepancy_reason}}"{% endif %}},{% endfor %}
     ];
 
-    function confirm_regulation() {
-        if(confirm("Avez-vous fini de régulariser la commande {{delivery.name}} pour le sous-groupe {{subgroup.name}} ?")) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     function reprint_quantity(pd, kind) {
         var prefix = "#pd" + pd.id + " ."+ kind;
         function set(suffix, v) {
@@ -117,7 +109,8 @@
 {% block content %}
 <h1>Régulariser la commande</h1>
 <p></p>
-<form method="POST">
+<form method="POST"
+      onsubmit="return confirm('Avez-vous fini de régulariser la commande {{delivery.name}} pour le sous-groupe {{subgroup.name}} ?');")>
     <table id="delivery-table">
       <tr>
         <th>Livraison :</th>
@@ -203,7 +196,7 @@
             <th class="price"><span id="total-delivered-price">?</span>€</th>
         </tr>
     </table>
-    <input type="submit" value="Valider" onclick="confirm_regulation()"/>
+    <input type="submit" value="Valider"/>
     <input type='hidden' name='dv-id' value='{{delivery.id}}' />
     <input type='hidden' name='sg-id' value='{{subgroup.id}}' />
     {% csrf_token %}
