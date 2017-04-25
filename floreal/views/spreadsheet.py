@@ -52,6 +52,7 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
     sheet.set_row(2, 50)
     sheet.merge_range('A1:J1', u"Achats du réseau %s:\n%s pour %s" % (
         products[0].delivery.network.name, title, products[0].delivery.name), fmt['title'])
+    sheet.freeze_panes(ROW_OFFSET, COL_OFFSET)
     for row, title in enumerate([u"Prix unitaire", u"Poids unitaire", u"Nombre par carton",
                                  u"Nombre de pièces", u"Nombre de cartons", u"Nombre en complément",
                                  u"Poids total"]):
