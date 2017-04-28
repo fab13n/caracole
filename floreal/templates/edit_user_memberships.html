@@ -31,10 +31,12 @@
         <input type="checkbox" name="u{id}-network-admin" onclick="mark_user_modified({id});"/>\n\
         <span class="tooltiptext">{first_name} {last_name} @ admin réseau</span>\n\
       </td>\n\
+      {% if multi_sg %}\
       <td class="highlightable tooltip adm-sg u{id}">\n\
         <input type="checkbox" name="u{id}-subgroup-admin" onclick="mark_user_modified({id});"/>\n\
         <span class="tooltiptext">{first_name} {last_name} @ admin sous-groupe</span>\n\
       </td>";\n\
+      {% endif %}\
       {subgroupradios}\n\
       <td class="highlightable tooltip u{id}">\n\
         <input type="radio" id="u{id}-sg-1" name="u{id}-sg" value="-1" onclick="update_user_group({id}, -1);"/>\n\
@@ -74,20 +76,28 @@
   function fill_page() {
 
     var rows = [];
+    {% if multi_sg %}
     for(var i in sorted_subgroups) {
       var sg = sorted_subgroups[i];
       rows.push('<th class="rotate"><div><div>'+sg.name+'</div></div></th>');
     }
+    {% else %}
+    rows.push('<th class="rotate"><div><div>Membre du réseau</div></div></th>');
+    {% endif %}
     rows.push('<th class="rotate"><div><div>Membre d\'autres réseaux</div></div></th>');
     rows.push('<th class="rotate"><div><div>Non-membre</div></div></th>');
     $("#header-row").append(rows.join('\n'));
 
     rows = [];
+    {% if multi_sg %}
     for(var i in sorted_subgroups) {
       var sg = sorted_subgroups[i];
       rows.push('<a href="#" onclick="hide_all_but_subgroup(\''+sg.id+'\');">'+sg.name+'</a>');
     }
-    rows.push('<a href="#" onclick="hide_all_but_subgroup(-1);">Membre d\'autres réseaux</a>');
+    {% else %}
+    rows.push('<a href="#" onclick="hide_all_but_subgroup(\''+sorted_subgroups[0].id+'\');">Membres du réseau</a>');
+    {% endif %}
+    rows.push('<a href="#" onclick="hide_all_but_subgroup(-1);">Membres d\'autres réseaux</a>');
     rows.push('<a href="#" onclick="hide_all_but_subgroup(-2);">Non-membres</a>');
     $("#hide-subgroups").append(rows.join('\n'));
 
@@ -104,7 +114,9 @@
       if(! users.hasOwnProperty(uid)) { continue; }
       var user = users[uid];
       $("#u"+uid+"-sg"+user.subgroup).prop("checked", true);
+      {% if multi_sg %}
       if( user.is_subgroup_admin) { $("[name=u"+uid+"-subgroup-admin]").prop("checked", true); }
+      {% endif %}
       if( user.is_network_admin) { $("[name=u"+uid+"-network-admin]").prop("checked", true); }
       if(user.subgroup < 0) {
         var invalid_choice = user.subgroup == -1 ? -2 : -1;
@@ -192,7 +204,7 @@
 
 
 {% block content %}
-<h1>Gestion des sous-groupes du réseau {{nw.name}}.</h1>
+<h1>Gestion des membres {% if multi_sg %} et sous-groupes {% endif %} du réseau {{nw.name}}.</h1>
 <p>
   Cette page permet aux administrateurs du réseau {{nw.name}} de
   répartir les membres entre les sous-groupes, et de désigner les
@@ -206,7 +218,7 @@
   <a href="#" onclick="hide_all_but_letter('{{X}}');">{{X}}</a>{% endfor %}
 </p>
 <p id="hide-subgroups">
-  Montrer seulement les utilisateurs du sous-groupe:<br/>
+  Montrer seulement les utilisateurs {% if multi_sg %} du sous-groupe {% endif %}:<br/>
   <a href="#" onclick="show_all();">Tous</a>
 </p>
 
@@ -216,8 +228,12 @@
   <table id="users-table">
     <tr id="header-row">
       <td colspan="2"><input id="submit" type="submit" value="Sauvegarder" onclick="disable_unmodified_inputs()" disabled="true"/></td>
+      {% if multi_sg %}
       <th class="rotate"><div><div>Admin réseau</div></div></th>
       <th class="rotate"><div><div>Admin sous-groupe</div></div></th>
+      {% else %}
+      <th class="rotate"><div><div>Administrateur</div></div></th>
+      {% endif %}
     </tr>
   </table>
 </form>

@@ -3,20 +3,49 @@
 {% load static %}
 
 {% block head %}
+<style type="text/css">
+tr input[type=button] {visibility: hidden;}
+tr:hover input[type=button] {visibility: visible;}
+</style>
+
 <script type='text/javascript'>
     // <![CDATA[
+
+    var STATE_NAMES = { {% for it in Delivery.STATE_CHOICES.items %}{{it.0}}: "{{it.1}}", {% endfor %}"pending": "⌛" };
+
+    function set_delivery_state(dv_id, state) {
+        var url = "{% url 'set_delivery_state' delivery='DVID' state='STATE' %}".replace('DVID', dv_id).replace('STATE', state);
+        function display_state(state){
+            $("#dv-"+dv_id+"-state-display").text(STATE_NAMES[state]);
+        }
+        display_state("pending");
+        $.ajax(url, {success: function() {
+            display_state(state);
+        } });
+    }
+
+    function create_subgroup() {
+        if( confirm("Êtes-vous sûr de vouloir créer un nouveau sous-groupe d'utilisateurs dans le réseau {{nw.name}} ?")) {
+            var name = window.prompt("Créer un nouveau sous-groupe nommé :")
+            var url_scheme = "{% url 'create_subgroup' network=nw.id name='NAME' %}";
+            if (name) {
+                window.location = url_scheme.replace('NAME', encodeURI(name));
+            }
+        }
+        return false;
+    }
+
+    function rename_delivery(dv_id, dv_name) {
+        var new_name = window.prompt("Renommer la commande "+dv_name+" :");
+        var url = "{% url 'set_delivery_name' delivery='DVID' name='NAME' %}".replace('DVID', dv_id).replace('NAME', new_name);
+        if (new_name) {
+            $.ajax(url, {success: function() { window.location.reload(); }});
+        }
+    }
+
     /* Demand confirmation through a dialog before following link. */
     $(function(){
-        $("#create-subgroup").on('click', function(x) {
-            if( confirm("Êtes-vous sûr de vouloir créer un nouveau sous-groupe d'utilisateurs dans le réseau {{nw.name}} ?")) {
-                var name = window.prompt("Créer un nouveau sous-groupe nommé :")
-                var url_scheme = "{% url 'create_subgroup' network=nw.id name='NAME' %}";
-                if (name) {
-                    window.location = url_scheme.replace('NAME', encodeURI(name));
-                }
-            }
-            return false;
-        })
+        $("#create-subgroup").on('click', create_subgroup);
     })
     // ]]>
 </script>
@@ -32,17 +61,37 @@
   <li><a href="{% url 'emails_network' network=nw.id %}">e-mails <img src="{% static 'images/email.png' %}"/></a> et
       <a href="{% url 'phones_network' network=nw.id %}">téléphones</a> ☎ du réseau {{nw.name}}.</li>
   <li><a href="#" id='create-subgroup'>Créer un nouveau sous-groupe de {{nw.name}}</a></li>
-  <li>Voir ou éditer une commande existante :
-      <ul>
-          {% for dv in deliveries %}
-          <li><a href="{% url 'edit_delivery' delivery=dv.id %}">{{dv.name}}</a> ({{dv.state_name}})</li>
-          {% empty %}
-          <li>(aucune commande)</li>
+  <li><a href="{% url 'archived_deliveries' network=nw.id %}">Voir les commandes archivées</a></li>
+</ul>
+<h2>Voir ou éditer une commande active</h2>
+  <table>
+      <tr>
+          <th class="left top">Commande</th>
+          <th class="left top">État</th>
+          <th class="rotate"><div><div>Préparation</div></div></th>
+          <th class="rotate"><div><div>Ouverte</div></div></th>
+          <th class="rotate"><div><div>Admins</div></div></th>
+          <th class="rotate"><div><div>Gelée</div></div></th>
+          <th class="rotate"><div><div>Régularisation</div></div></th>
+          <th class="rotate"><div><div>Terminée</div></div></th>
+      </tr>
+      <tr><td>&nbsp;</td></tr>
+      {% for dv in deliveries %}
+      <tr>
+          <td class="left"><a href="{% url 'edit_delivery' delivery=dv.id %}">{{dv.name}} <img src="{% static 'images/edit.png' %}"/></a></td>
+          <td id="dv-{{dv.id}}-state-display">{{dv.state_name}}</td>
+          {% for S in dv.STATE_CHOICES.keys|sort %}
+          <td><input type="radio" name="dv-{{dv.id}}-state" value="dv-{{dv.id}}-state-{{S}}"
+                     onclick="set_delivery_state({{dv.id}}, '{{S}}');"
+                     {% if dv.state == S %}checked="checked"{% endif %}/></td>
           {% endfor %}
-      </ul>
-  </li>
+          <td><input type="button" value="renommer" onclick="return rename_delivery({{dv.id}}, '{{dv.name}}');"/></td>
+      </tr>
+      {% endfor %}
+  </table>
   {% if candidacies %}
-  <li>Candidatures :
+  <h2>Candidatures</h2>
+  <li>
     <ul>
       {% for cd in candidacies %}
       <li>{{cd.user.first_name}} {{cd.user.last_name}}
@@ -55,6 +104,4 @@
     </ul>
   </li>
   {% endif %}
-  <li><a href="{% url 'archived_deliveries' network=nw.id %}">Voir les commandes archivées</a></li>
-</ul>
 {% endblock content %}

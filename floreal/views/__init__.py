@@ -5,7 +5,7 @@ from datetime import datetime
 import os
 
 from django.shortcuts import render_to_response, redirect
-from django.http import HttpResponseForbidden, HttpResponseBadRequest
+from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpResponse
 from django.contrib.auth.decorators import login_required
 
 from caracole import settings
@@ -63,7 +63,8 @@ def network_admin(request, network):
     nw = get_network(network)
     vars = {'user': user, 'nw': nw,
             'deliveries': m.Delivery.objects.filter(network=nw).exclude(state=m.Delivery.TERMINATED),
-            'candidacies': m.Candidacy.objects.filter(subgroup__network=nw)}
+            'candidacies': m.Candidacy.objects.filter(subgroup__network=nw),
+            'Delivery': m.Delivery}
     return render_to_response('network_admin.html', vars)
 
 
@@ -154,7 +155,8 @@ def edit_delivery(request, delivery):
         'SubgroupState': m.SubgroupStateForDelivery,
         'steps': [{'s': s, 'text': m.Delivery.STATE_CHOICES[s], 'is_done': dv.state>=s, 'is_current': dv.state==s} for s in 'ABCDEF'],
         'CAN_EDIT_PURCHASES': dv.state in [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN, m.Delivery.REGULATING],
-        'CAN_EDIT_PRODUCTS': dv.state != m.Delivery.TERMINATED
+        'CAN_EDIT_PRODUCTS': dv.state != m.Delivery.TERMINATED,
+        'multi_sg': dv.network.subgroup_set.count() > 1
     }
     return render_to_response('edit_delivery.html', vars)
 
@@ -221,6 +223,16 @@ def set_delivery_state(request, delivery, state):
                        dv.network.name, dv.name, m.Delivery.STATE_CHOICES[state])
     return redirect('edit_delivery', delivery=dv.id)
 
+@nw_admin_required(lambda a: get_delivery(a['delivery']).network)
+def set_delivery_name(request, delivery, name):
+    """Change a delivery's name."""
+    dv = get_delivery(delivery)
+    prev_name = dv.name
+    dv.name = name
+    dv.save()
+    m.JournalEntry.log(request.user, "Change delivery name in %s: %s->%s",
+                       dv.network.name, prev_name, name)
+    return HttpResponse("")
 
 def save_delivery(dv):
     """Save an Excel spreadsheet and a PDF table of a delivery that's just been completed."""

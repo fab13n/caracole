@@ -11,8 +11,9 @@
         $("#create-network").on('click', function(x) {
             var nw_name = window.prompt("Créer un nouveau réseau nommé :")
             if( ! nw_name) return false;
-            var sg_name = window.prompt("Le réseau "+nw_name+" a un sous-groupe nommé :")
-            if( ! sg_name) return false;
+            var sg_name = window.prompt("Créer un premier sous-groupe du réseau " + nw_name +
+                " ? Pour un réseau sans sous-groupe, cliquez sur «Annuler».");
+            if( ! sg_name) { sg_name = nw_name; }
             var url_scheme = "{% url 'create_network' nw_name='NW_NAME' sg_name='SG_NAME' %}";
             window.location = url_scheme
                     .replace('NW_NAME', encodeURI(nw_name))

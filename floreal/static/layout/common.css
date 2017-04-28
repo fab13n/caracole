@@ -124,10 +124,9 @@ table.with-border td, table.with-border th { border: 1px solid #811305; }
 td.blank { border: none !important; }
 th { color: #811305; padding-left: 10px; padding-right: 10px; }
 td { text-align: center; }
-th.left { text-align: right; padding-right: 5px; white-space: nowrap; }
-th.top { padding-bottom: 3px; padding-left: 3px; padding-right: 3px; text-align: center }
-th.left { text-align: right; }
-th.top  { vertical-align: bottom; }
+th.left,td.left { text-align: right; padding-right: 5px; white-space: nowrap; }
+th.top,td.top { padding-bottom: 3px; padding-left: 3px; padding-right: 3px; text-align: center; vertical-align: bottom; }
+th.left.top,td.left.top { text-align: right; }
 
 th.rotate {
     height: 140px;

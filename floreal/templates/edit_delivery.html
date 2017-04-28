@@ -32,8 +32,28 @@
 
 {% block content %}
 
-<h2>Gérer la commande "{{dv.name}}" de {{dv.network.name}}</h2>
+<h2>Commande "{{dv.name}}" du réseau {{dv.network.name}}</h2>
 
+<p> {### DESCRIPTION ###}
+    Vous êtes administrateur pour le réseau {{dv.network.name}}. La commande {{dv.name}} est
+    {% if dv.state == Delivery.PREPARATION %}
+    <em>en préparation</em> : les membres n'ont pas encore été autorisés à commander.
+    {% elif dv.state == Delivery.ORDERING_ALL %}
+    <em>en cours</em> : tous les membres peuvent passer commande.
+    {% elif dv.state == Delivery.ORDERING_ADMIN %}
+    <em>réservée aux admins</em> : ils peuvent modifier les commandes des membres{% if multi_sg %} de leurs sous groupes{% endif %},
+    mais les membres normaux ne peuvent plus commander ou modifier eux-mêmes.
+    {% elif dv.state == Delivery.FROZEN %}
+    <em>envoyée et gelée</em> : la commande a été envoyée au producteur, plus personne ne peut la modifier
+    {% elif dv.state == Delivery.REGULATING %}
+    <em>livrée, à régulariser</em> : les admins corrigent les différences entre ce qui a été commandé et ce qui a
+    effectivement été livré.
+    {% elif dv.state == Delivery.TERMINATED %}
+    <em>terminée</em>.
+    {% endif %}
+</p>
+
+<h2>Changer l'état de la commande</h2>
 <ol class="progtrckr" data-progtrckr-steps="6">
     {% for x in steps %}
     <li id="progtrckr-{{x.s}}" class="progtrckr-{{x.is_done}}">
@@ -45,70 +65,13 @@
     </li>
     {% endfor %}
 </ol>
-<p> {### DESCRIPTION ###}
-    Vous êtes administrateur pour le réseau {{dv.network.name}}. La commande {{dv.name}} est
-    {% if dv.state == Delivery.PREPARATION %}
-    <em>en préparation</em> : les membres n'ont pas encore été autorisés à commander.
-    {% elif dv.state == Delivery.ORDERING_ALL %}
-    <em>en cours</em> : tous les membres peuvent passer commande.
-    {% elif dv.state == Delivery.ORDERING_ADMIN %}
-    <em>réservée aux admins</em> : ils peuvent modifier les commandes des membres de leurs sous groupes, mais les
-    membres normaux ne peuvent plus commander ou modifier eux-mêmes.
-    {% elif dv.state == Delivery.FROZEN %}
-    <em>envoyée et gelée</em> : la commande a été envoyée au producteur, plus personne ne peut la modifier
-    {% elif dv.state == Delivery.REGULATING %}
-    <em>livrée, à régulariser</em> : les admins corrigent les différences entre ce qui a été commandé et ce qui a
-    effectivement été livré.
-    {% elif dv.state == Delivery.TERMINATED %}
-    <em>terminée</em>.
-    {% endif %}
-    Vous pouvez :
-</p>
+
+<p>&nbsp;</p>
+
+<h2>Autres actions</h2>
 <ul>
     <li>Retourner à <a href="{% url 'network_admin' network=dv.network.id %}">l'administration du réseau {{dv.network.name}}</a> ↩</li>
     <li>Retourner à <a href="{% url 'index' %}">la page principale</a> ↩</li>
-    {### MOVE TO NEXT STEP ###}
-    {% if dv.state == Delivery.PREPARATION %}
-    <li>Passer à l'étape suivante :
-        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.ORDERING_ALL %}">ouvrir la commande à tous</a>✔.
-    </li>
-    {% elif dv.state == Delivery.ORDERING_ALL %}
-    <li>Passer à l'étape suivante :
-        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.ORDERING_ADMIN %}">réserver la commande aux admins</a>✔.
-    </li>
-    <li>Vous pouvez aussi revenir en arrière et
-        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.ORDERING_ALL %}">rouvrir la commande à tous</a>✘.
-    </li>
-    <li>Directement
-        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.FROZEN %}">geler la commande pour l'envoyer</a>✔.
-    </li>
-    {% elif dv.state == Delivery.ORDERING_ADMIN %}
-    <li>Passer à l'étape suivante :
-        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.FROZEN %}">geler la commande pour l'envoyer</a>✔.
-    </li>
-    <li>Vous pouvez aussi revenir en arrière et
-        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.ORDERING_ALL %}">rouvrir la commande à tous</a>✘.
-    </li>
-    {% elif dv.state == Delivery.FROZEN %}
-    <li>Passer à l'étape suivante :
-        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.REGULATING %}">rouvrir aux admins pour régulariser la compta</a>✔, ou
-        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.TERMINATED %}">marquer la commande comme terminée</a>✔.
-    </li>
-    {% elif dv.state == Delivery.REGULATING %}
-    <li>Passer à l'étape suivante :
-        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.TERMINATED %}">marquer la commande comme terminée</a>✔.
-    </li>
-    {% elif dv.state == Delivery.TERMINATED %}
-    <li>Télécharger l'archive
-        <a href="{% url 'get_archive' delivery=dv.id suffix='xlsx' %}">MS-Excel <img src="{% static 'images/excel.png' %}"/></a>,
-        <a href="{% url 'get_archive' delivery=dv.id suffix='pdf' %}">PDF <img src="{% static 'images/pdf.png' %}"/></a>,
-    </li>
-    <li>(aucune action, commande terminée.
-        <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.PREPARATION %}">Réactiver</a>)
-    </li>
-    {% else %}
-    <li><em>Erreur interne:commande en état invalide "{{dv.state}}" !</em></li>
-    {% endif %}
 
     {% if CAN_EDIT_PRODUCTS %}
     <li><a href="{% url 'edit_delivery_products' delivery=dv.id %}">
@@ -122,15 +85,15 @@
     <!-- Aucun sous-groupe visualisable -->
     {% elif subgroups|length == 1 %}
     {% with subgroups.0 as sg %}
-    <li>Voir les commandes du sous-groupe {{sg.name}} :<br/>
+    <li>Voir les commandes
         <a href="{% url 'view_subgroup_purchases_html' delivery=dv.id subgroup=sg.id %}">en ligne <img src="{% static 'images/grid.png' %}"/></a>,
-        <a href="{% url 'view_subgroup_purchases_xlsx' delivery=dv.id subgroup=sg.id %}">dans un tableau Excel <img src="{% static 'images/excel.png' %}"/></a>,
-        <a href="{% url 'view_subgroup_purchases_latex' delivery=dv.id subgroup=sg.id %}">en PDF <img src="{% static 'images/pdf.png' %}"/></a>,
+        <a href="{% url 'view_subgroup_purchases_xlsx' delivery=dv.id subgroup=sg.id %}">en tableau Excel <img src="{% static 'images/excel.png' %}"/></a>,
+        <a href="{% url 'view_subgroup_purchases_latex' delivery=dv.id subgroup=sg.id %}">en table PDF <img src="{% static 'images/pdf.png' %}"/></a>,
         <a href="{% url 'view_subgroup_cards_latex' delivery=dv.id subgroup=sg.id %}">en fiches individuelles <img src="{% static 'images/pdf.png' %}"/></a>
     </li>
     {% if CAN_EDIT_PURCHASES %}
     <li><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id %}">
-        Modifier les commandes du sous-groupe {{sg.name}} <img src="{% static 'images/edit.png' %}"/>
+        Modifier les commandes <img src="{% static 'images/edit.png' %}"/>
     </a></li>
     {% endif %}
     {% endwith %}

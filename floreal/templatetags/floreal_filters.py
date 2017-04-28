@@ -57,3 +57,7 @@ def is_admin_of(u, nw_or_sg):
 @register.filter
 def order(dv, u):
     return m.Order(u, dv)
+
+@register.filter
+def sort(collection):
+    return sorted(collection)
