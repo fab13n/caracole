@@ -1,3 +1,4 @@
+import re
 from django.db import models
 
 class Plural(models.Model):
@@ -13,6 +14,7 @@ class Plural(models.Model):
 
 # Cache for plurals, to avoid many DB lookups when a pluralized word appears many times in a page.
 _plural_cache = {}
+_unit_re = re.compile('^[0-9]+[a-z]+$')
 
 def plural(noun, n=None):
     """Tries to retrieve of guess the plural of a singular French word.
@@ -40,14 +42,18 @@ def plural(noun, n=None):
         Plural.objects.create(singular=noun, plural=None)
 
     # Not found in DB, or found to be None: try to guess it
+    if " " in noun:
+        r = noun  # Don't try to guess whole expressions
     if noun[-1] == 's' or noun[-1] == 'x':
         r = noun  # Probably invariant
     elif noun[-2:] == 'al':
         r = noun[:-2] + 'aux'
     elif noun[-3:] == 'eau':
         r = noun + 'x'
+    elif _unit_re.match(noun):
+        r = noun
     else:
-        r = noun + 's'  # probably a regular plural
+        r = noun + 's'  # bet on a regular plural
 
     _plural_cache[noun] = r
     return r
