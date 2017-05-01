@@ -4,7 +4,7 @@
 from django import template
 
 from floreal import models as m
-
+from floreal import francais
 
 register = template.Library()
 
@@ -61,3 +61,7 @@ def order(dv, u):
 @register.filter
 def sort(collection):
     return sorted(collection)
+
+@register.filter
+def plural(singular):
+    return francais.plural(singular, 2)

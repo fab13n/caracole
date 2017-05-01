@@ -14,7 +14,6 @@ class Plural(models.Model):
 # Cache for plurals, to avoid many DB lookups when a pluralized word appears many times in a page.
 _plural_cache = {}
 
-# TODO: implement a cache?
 def plural(noun, n=None):
     """Tries to retrieve of guess the plural of a singular French word.
     It would be great to hook this up to a (possibly online) dictionary.

@@ -1,4 +1,4 @@
-{% extends 'layout.html' %}
+{% extends 'layout_semi_wide.html' %}
 {% load floreal_filters %}
 {% load static %}
 
@@ -6,26 +6,25 @@
   <script type='text/javascript'>
   // <![CDATA[
     {# TODO: refactor in objects #}
-    var PRODUCT_IDS=[{% for pd in products %}{{pd.id}},{% endfor %}];
-    var PRODUCT_QUANTA={ {% for pd in products %}{{pd.id}}: {{pd.quantum|default_if_none:0}},{% endfor %} };
-    var PRODUCT_WEIGHTS=[{% for pd in products %}{{pd.unit_weight}},{% endfor %}];
-    var PRODUCT_UNITS={ {% for pd in products %}{{pd.id}}: "{{pd.unit|escapejs}}",{% endfor %} };
-    var PURCHASES={ {% for pc in purchases %}{{pc.product.id}}: {{pc.quantity}}, {% endfor %} };
+    var PRODUCTS = [{% for pd in products %}
+      {id: {{pd.id}}, quantum: {{pd.quantum|default_if_none:0}}, weight: {{pd.unit_weight}}, unit: "{{pd.unit|escapejs}}"}, {% endfor %}
+    ];
+    var PURCHASES = { {% for pc in purchases %}{{pc.product.id}}: {{pc.quantity}}, {% endfor %} };
 
     /* update per-line totals as well as delivery total */
     function update_weight_prices_and_errors() {
       var total_price = 0;
       var total_weight = 0;
-      for(var i=0; i<PRODUCT_IDS.length; i++) {
-        var pd_id = PRODUCT_IDS[i];
-        var ordered = parseFloat($("#pd"+pd_id+"-ordered_quantity").attr("value"));
-        var unit_price = parseFloat($("#pd"+pd_id+"-unit_price").text().replace(',','.'));
-        var price = ordered * unit_price
-        $("#pd"+pd_id+"-ordered_price").text(price.toFixed(2))
-        total_price += price
-        total_weight += ordered * PRODUCT_WEIGHTS[i];
-        console.log(pd_id + " -> " + ordered + " * " + unit_price + " = " + price + " -> Σ=" + total_price);
-        check_quantum(pd_id);
+      for(var i=0; i<PRODUCTS.length; i++) {
+        var pd = PRODUCTS[i];
+        var ordered = parseFloat($("#pd"+pd.id+"-ordered_quantity").attr("value"));
+        var unit_price = parseFloat($("#pd"+pd.id+"-unit_price").text().replace(',','.'));
+        var price = ordered * unit_price;
+        $("#pd"+pd.id+"-ordered_price").text(price.toFixed(2));
+        total_price  += price;
+        total_weight += ordered * pd.weight;
+        console.log(pd.id + " -> " + ordered + " * " + unit_price + " = " + price + " -> Σ=" + total_price);
+        check_quantum(pd);
       }
       $("#total_price").text(total_price.toFixed(2));
       $("#total_weight").text(total_weight.toFixed(0));
@@ -40,21 +39,20 @@
 
     /* If there is an ordering quantum, and the order isn't a multiple thereof, display a warning and
      * disable submission. Otherwise, remove any existing quantum error message. */
-    function check_quantum(id) {
-      var quantum = PRODUCT_QUANTA[id];
-      var msgid = "pd"+id+"-quantum-error";
-      if(quantum) {
-        var ordered = Number($("#pd"+id+"-ordered_quantity").val());
-        var reminder = Math.abs(ordered % quantum)
+    function check_quantum(pd) {
+      var msgid = "pd"+pd.id+"-quantum-error";
+      if(pd.quantum) {
+        var ordered = Number($("#pd"+pd.id+"-ordered_quantity").val());
+        var reminder = Math.abs(ordered % pd.quantum)
         var EPSILON = 1e-9;
-        if(reminder <= EPSILON || reminder >= quantum-EPSILON ) {
+        if(reminder <= EPSILON || reminder >= pd.quantum-EPSILON ) {
           // Test allows an EPSILON error, because of double rounding errors wrt powers of 5
           // If they're multiple, remove the message (nothing happens if there weren't one)
           $("#"+msgid).remove();
           return true; // no error
         } else if($("#"+msgid).length == 0) { // A message is needed and there is none
-          $("#row-"+id).after("<tr id='"+msgid+"' class='quantum-error'><td colspan=7>"+
-            "Ce produit doit être commandé par multiples de "+quantum+" "+PRODUCT_UNITS[id]);
+          $("#row-"+pd.id).after("<tr id='"+msgid+"' class='quantum-error'><td colspan=7>"+
+            "Ce produit doit être commandé par multiples de "+pd.quantum+" "+pd.unit);
           return false; // error
         } else { // message needed, but already there
           return false; // error
@@ -77,15 +75,22 @@
   // ]]>
   </script>
   <style type="text/css">
-    input.quantity { text-align: right; }
 	.total_cell { font-weight: bold; }
     .product-name { text-align: right; }
     .product-unit { text-align: left; }
     .unit-price { padding-left: 10px; }
-    tr.quantum-error td { font-weight: bold; background-color: red; color: white; }
+    #products-table { white-space: nowrap; font-size: medium; border: 1px solid #811305; margin-left: auto; margin-right: auto;}
+    #products-table th { text-align: center; border: 1px solid #811305;}
+    #products-table tr.total  { font-size: larger; background-color: white !important; }
+    #products-table tr.total th { text-align: right; border: none; }
+    #products-table td { text-align: left; }
+    #products-table td.product-name { text-align: right; }
+    #products-table td.reset { text-align: center; }
+    #products-table tr:nth-child(even) {background-color: #fff0e0; }
+    #products-table tr.quantum-error td { font-weight: bold; background-color: red; color: white; }
+    input[type=number] { width: 50px; font-size: large; }
+    input.quantity { text-align: right; }
     input[type=submit]:disabled { background-color: gray; border: 5px outset lightgray; }
-    #delivery-table th { text-align: right; }
-    #delivery-table td { text-align: left; }
   </style>
 {% endblock %}
 
@@ -109,35 +114,34 @@
     <table id="products-table">
         <tr>
             <th>Produit</th>
-            <th>Quantité</th>
-            <th></th>
+            <th colspan="2">Quantité</th>
             <th>Prix unitaire</th>
             <th>Prix</th>
-            <th>Conditionnement</th>
+            <th>Cartons</th>
             <th>Effacer ?</th>
         </tr>
         {% for pd in products %}
         <tr id="row-{{pd.id}}">
           <td class="product-name">{{pd.name}}</td>
-          <td><input class="quantity" id="pd{{pd.id}}-ordered_quantity" maxlength="64" name="pd{{pd.id}}" type="number" step="{{pd.quantum|default_if_none:1}}" min="0" value="0" /></td>
+          <td class="quantity"><input class="quantity" id="pd{{pd.id}}-ordered_quantity" maxlength="64" name="pd{{pd.id}}" type="number" step="{{pd.quantum|default_if_none:1}}" min="0" value="0" /></td>
           <td class="product-unit">
-              {{pd.unit}}{% if pd.unit != 'kg' and pd.unit_weight %} ({{pd.unit_weight|weight}}){% endif %}
+              {{pd.unit|plural}}{% if pd.unit != 'kg' and pd.unit_weight %} ({{pd.unit_weight|weight}}){% endif %}
           </td>
           <td class="unit-price"><span id="pd{{pd.id}}-unit_price">{{pd.price|price_nocurrency}}</span> €/{{pd.unit}}</td>
-          <td><span id="pd{{pd.id}}-ordered_price">-</span> €</td>
-          <td>{% if pd.quantity_per_package %}{{pd.quantity_per_package}} {{pd.unit}}/carton{% else %} - {% endif %}</td>
-          <td><input type="image" src={% static 'images/minus.png' %} onclick="reset_order({{pd.id}}); return false" value="Remettre à 0"></td>
+          <td class="price"><span id="pd{{pd.id}}-ordered_price">-</span> €</td>
+          <td class="qpp">{% if pd.quantity_per_package %}{{pd.quantity_per_package}}{{pd.unit|unit_multiple}}/carton{% else %} - {% endif %}</td>
+          <td class="reset"><input type="image" src={% static 'images/minus.png' %} onclick="reset_order({{pd.id}}); return false" value="Remettre à 0"></td>
         </tr>
         {% endfor %}
-        <tr>
-        <td colspan="3"></td>
-        <th>Prix total:</th><td class="total_cell"><span id="total_price">-</span>&nbsp;€</td>
-        <td colspan="2"></td>
+        <tr class="total">
+          <td colspan="3"></td>
+          <th>Prix total:</th><td class="total_cell"><span id="total_price">-</span>&nbsp;€</td>
+          <td colspan="2"></td>
         </tr>
-        <tr>
-        <td colspan="3"></td>
-        <th>Poids total:</th><td class="total_cell"><span id="total_weight">-</span>&nbsp;kg</td>
-        <td colspan="2"></td>
+        <tr class="total">
+          <td colspan="3"></td>
+          <th>Poids total:</th><td class="total_cell"><span id="total_weight">-</span>&nbsp;kg</td>
+          <td colspan="2"></td>
         </tr>
     </table>
     <input type="submit" value="Sauvegarder" /> <a href="{% url 'index' %}">Annuler les modifications</a>
