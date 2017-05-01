@@ -35,6 +35,10 @@ tr:hover input[type=button] {visibility: visible;}
         return false;
     }
 
+    function goto_delivery(dv_id) {
+        window.location = "{% url 'edit_delivery' delivery='DV_ID' %}".replace('DV_ID', dv_id);
+    }
+
     function rename_delivery(dv_id, dv_name) {
         var new_name = window.prompt("Renommer la commande "+dv_name+" :");
         var url = "{% url 'set_delivery_name' delivery='DVID' name='NAME' %}".replace('DVID', dv_id).replace('NAME', new_name);
@@ -63,6 +67,7 @@ tr:hover input[type=button] {visibility: visible;}
   <li><a href="#" id='create-subgroup'>Créer un nouveau sous-groupe de {{nw.name}}</a></li>
   <li><a href="{% url 'archived_deliveries' network=nw.id %}">Voir les commandes archivées</a></li>
 </ul>
+
 <h2>Voir ou éditer une commande active</h2>
   <table>
       <tr>
@@ -86,13 +91,14 @@ tr:hover input[type=button] {visibility: visible;}
                      {% if dv.state == S %}checked="checked"{% endif %}/></td>
           {% endfor %}
           <td><input type="button" value="renommer" onclick="return rename_delivery({{dv.id}}, '{{dv.name}}');"/></td>
+          <td><input type="button" value="voir/éditer" onclick="return goto_delivery({{dv.id}});"/></td>
       </tr>
       {% endfor %}
   </table>
   {% if candidacies %}
+  <p></p>
   <h2>Candidatures</h2>
-  <li>
-    <ul>
+  <ul>
       {% for cd in candidacies %}
       <li>{{cd.user.first_name}} {{cd.user.last_name}}
         <a href="mailto://{{cd.user.email}}">({{cd.user.email}})</a> pour le sous-groupe <b>{{cd.subgroup.name}}</b>:
@@ -101,7 +107,6 @@ tr:hover input[type=button] {visibility: visible;}
         <a href="{% url 'validate_candidacy' candidacy=cd.id response='N' %}?next=/"><span class="no">Refuser</span></a>✘
       </li>
       {% endfor %}
-    </ul>
-  </li>
+  </ul>
   {% endif %}
 {% endblock content %}
