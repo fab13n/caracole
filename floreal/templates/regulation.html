@@ -6,7 +6,7 @@
   <script type='text/javascript'>
   // <![CDATA[
     var PRODUCTS = [ {% for pt in products %}
-      {id: {{pt.product.id}}, qpp: {{pt.product.quantity_per_package|default_if_none:"false"}}, unit: "{{pt.product.unit|unit_multiple}}", price: {{pt.product.price}}, ordered: {{pt.quantity}}, delivered: {{pt.quantity|add:pt.discrepancy}}{% if pt.discrepancy_reason %}, reason: "{{pt.discrepancy_reason}}"{% endif %}},{% endfor %}
+      {id: {{pt.product.id}}, qpp: {{pt.product.quantity_per_package|default_if_none:"false"}}, unit: "{{pt.product.unit|unit_multiple}}", price: {{pt.product.price}}, ordered: {{pt.quantity}}, delivered: {{pt.quantity}}+{{pt.discrepancy}}{% if pt.discrepancy_reason %}, reason: "{{pt.discrepancy_reason}}"{% endif %}},{% endfor %}
     ];
 
     function reprint_quantity(pd, kind) {
@@ -159,7 +159,7 @@
                        name="pd{{pt.product.id}}-delivered-total"
                        type="number"
                        min="0"
-                       step="{{pt.product.quantum}}"
+                       step="0.001"
                        value=""/>
                 {{pt.product.unit|unit_multiple}}
                 {% if pt.product.quantity_per_package %}
@@ -167,11 +167,13 @@
                 <input class="delivered packages"
                        name="pd{{pt.product.id}}-delivered-packages"
                        type="number"
+                       step="1"
                        min="0"/>
                 ct +
                 <input class="delivered loose"
                        name="pd{{pt.product.id}}-delivered-loose"
                        type="number"
+                       step="0.001"
                        min="0"/>
                 {{pt.product.unit|unit_multiple}}
                 {% endif %}

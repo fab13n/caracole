@@ -20,7 +20,7 @@ def adjust_subgroup(request, delivery, subgroup=None):
     dv = m.Delivery.objects.get(id=delivery)
     if request.method == 'POST':  # Parse response
         if _parse_form(request):
-            return redirect("index")
+            return redirect(request.GET.get("next", "index"))
         else:  # Generate page
             # TODO: display errors in template
             return redirect("subgroup_regulation", delivery=dv.id)

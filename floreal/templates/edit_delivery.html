@@ -128,9 +128,9 @@
             {% elif dv.state == Delivery.REGULATING %}
             <td>
                 {% if sg|subgroup_state:dv != SubgroupState.READY_FOR_ACCOUNTING %}
-                <a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.READY_FOR_ACCOUNTING %}"
-                   msg="Forcer la validation de la comptabilité du sous-groupe {{sg.name}} ?"
-                   class="confirm"><span class="no">✘</span></a>
+                <a href="{% url 'subgroup_regulation' subgroup=sg.id delivery=dv.id %}?next={% url 'edit_delivery' delivery=dv.id %}">
+                    <span class="no">✘</span>
+                </a>
                 {% else %}
                 <span class="yes">✔</span>
                 {% endif %}
