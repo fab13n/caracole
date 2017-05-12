@@ -238,7 +238,12 @@ class Purchase(models.Model):
 
 
 class Order(object):
-    """Sum-up of what a given user has ordered in a given delivery."""
+    """Sum-up of what a given user has ordered in a given delivery. Fields:
+     * `purchases`: iterable on `Purchase` objects, possibly dummy purchase objects when total is 0.
+     * `user`
+     * `price`
+     * `weight`
+    """
 
     def __init__(self, user, delivery, purchases=None):
         """Create the order sum-up.
@@ -254,6 +259,7 @@ class Order(object):
         if purchases:
             self.purchases = purchases
             self.price = None
+            self.weight = None
         else:
             self.purchases = Purchase.objects.filter(product__delivery=delivery, user=user)
             self.price = sum(p.price for p in self.purchases)
@@ -277,6 +283,7 @@ class Order(object):
                 self.product = product
                 self.user = user
                 self.price = 0
+                self.weight = 0
                 self.quantity = 0
 
             def __nonzero__(self):
@@ -286,9 +293,11 @@ class Order(object):
             products = delivery.product_set.all()
         purchases_by_user = {u: {} for u in users}
         prices = {u: 0 for u in users}
+        weights = {u: 0 for u in users}
         for pc in Purchase.objects.filter(product__delivery=delivery, user__in=users):
             purchases_by_user[pc.user][pc.product] = pc
             prices[pc.user] += pc.price
+            weights[pc.user] += pc.weight
 
         def purchase_line(u):
             return [purchases_by_user[u].get(pd, None) or DummyPurchase(pd, u) for pd in products]
@@ -296,6 +305,7 @@ class Order(object):
         orders = {u: Order(u, delivery, purchases=purchase_line(u)) for u in users}
         for u in users:
             orders[u].price = prices[u]
+            orders[u].weight = weights[u]
         return orders
 
 
