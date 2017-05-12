@@ -9,24 +9,34 @@
       {id: {{pt.product.id}}, qpp: {{pt.product.quantity_per_package|default_if_none:"false"}}, unit: "{{pt.product.unit|unit_multiple}}", price: {{pt.product.price}}, ordered: {{pt.quantity}}, delivered: {{pt.quantity}}+{{pt.discrepancy}}{% if pt.discrepancy_reason %}, reason: "{{pt.discrepancy_reason}}"{% endif %}},{% endfor %}
     ];
 
+    function pk_and_loose(pd, kind) {
+        var q = pd[kind];
+        var packages = Math.floor(q/pd.qpp);
+        var loose = Number((q % pd.qpp).toFixed(3));
+        return [packages, loose]
+    }
+
+    function update_mismatches(pd) {
+        if(pd.ordered == pd.delivered) { $("#pd" + pd.id).removeClass('mismatch'); }
+        else { $("#pd" + pd.id).addClass('mismatch'); }
+    }
+
     function reprint_quantity(pd, kind) {
         var prefix = "#pd" + pd.id + " ."+ kind;
         function set(suffix, v) {
             var q = $(prefix+suffix);
-            var t = q[0] && q[0].tagName;
-            if(t == 'INPUT') { q.val(v); } else { q.text(v); }
+            var method = q[0] && q[0].tagName == 'INPUT' && 'val' || 'text';
+            q[method](v.toString());
         }
         if(pd.qpp) {
-            var packages = Math.floor(pd[kind]/pd.qpp);
-            var loose = pd[kind] % pd.qpp;
+            var pl = pk_and_loose(pd, kind), packages = pl[0], loose = pl[1];
             set('.packages', packages);
             if(loose) { set('.loose', loose); $(prefix+'.loose-decoration').show(); }
             else { set('.loose', ''); $(prefix+'.loose-decoration').hide(); }
         }
         set('.total', pd[kind]);
         set('.price', (pd[kind] * pd.price).toFixed(2));
-        if(pd.ordered == pd.delivered) { $("#pd" + pd.id).removeClass('mismatch'); }
-        else { $("#pd" + pd.id).addClass('mismatch'); }
+        update_mismatches(pd);
     }
 
     function update_delivered_quantity(target) {
@@ -43,14 +53,21 @@
         if (x.hasClass('total')) {
             var total = parseFloat($(prefix + " .delivered.total").attr("value"));
             pd.delivered = total;
+            if(pd.qpp) {
+                var pl = pk_and_loose(pd, 'delivered')
+                var packages = pl[0], loose = pl[1];
+                $("#pd" + pd_id + " input.packages").val(packages);
+                $("#pd" + pd_id + " input.loose").val(loose);
+            }
         } else if (x.hasClass('packages') || x.hasClass('loose')) {
             var packages = parseFloat($(prefix + " .delivered.packages").attr("value"));
             var loose = parseFloat($(prefix + " .delivered.loose").attr("value")) || 0;
             pd.delivered = packages * pd.qpp + loose;
+            $("#pd" + pd_id + " input.total").val(pd.delivered);
         } else {
             console.log("Input class not handled", target)
         }
-        reprint_quantity(pd, "delivered");
+        update_mismatches(pd);
         reprint_total_prices();
     }
 
