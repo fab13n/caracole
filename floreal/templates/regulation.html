@@ -67,6 +67,8 @@
         } else {
             console.log("Input class not handled", target)
         }
+        var price = (pd.delivered*pd.price).toFixed(2)
+        $("#pd"+pd_id+" .delivered.price").text(price)
         update_mismatches(pd);
         reprint_total_prices();
     }
