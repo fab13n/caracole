@@ -18,19 +18,34 @@
         'quantum': "{{pd.quantum|default_if_none:''|escapejs}}",
         'unit_weight': "{{pd.unit_weight|escapejs}}",
         'deleted': {% if pd.delivery.id == delivery.id %} false  {% else %} true {% endif %},
+        'described': false,
         'delivery': {{pd.delivery.id}} },
     {% endfor %}];
 
     /* If the "deleted" checkbox is checked, strike theline and disable product edition. */
     function reflect_deletion(prefix) {
       var deleted = $('#'+prefix+'-deleted').is(':checked');
-      var inputs = $("#"+prefix+"-row input[type=number], #"+prefix+"-row input[type=text]")
+      var inputs = $("#"+prefix+"-row input[type=number], #"+prefix+"-row input[type=text]");
+      inputs = $.merge(inputs, $("#"+prefix+"-description textarea"));
       if( deleted) {
         $("#"+prefix+"-row").addClass('deleted');
         inputs.attr('disabled', 'disabled');
       } else {
         $("#"+prefix+"-row").removeClass('deleted');
         inputs.removeAttr('disabled');
+      }
+    }
+
+    /* Enable/disable description editor */
+    function reflect_description(prefix) {
+      var described = $('#'+prefix+'-described').is(':checked');
+      console.log("Change description of", prefix, "to", described);
+      if( described) {
+          $("#"+prefix+"-description").show();
+          $("#"+prefix+"-description textarea").removeAttr("disabled");
+      } else {
+          $("#"+prefix+"-description").hide();
+          $("#"+prefix+"-description textarea").attr("disabled", "disabled");
       }
     }
 
@@ -67,7 +82,13 @@
             <td class="deleted">\n\
               <input id="%-deleted" name="%-deleted" value="%-deleted" onchange="reflect_deletion(\'%\')" type="checkbox">\n\
             </td>\n\
-        </tr>'.replace(/%/g, prefix));
+            <td class="described">\n\
+              <input id="%-described" name="%-described" value="%-described" onchange="reflect_description(\'%\')" type="checkbox">\n\
+            </td>\n\
+        </tr>\n\
+        <tr id="%-description"><td colspan="{%if QUOTAS_ENABLED%}14{%else%}12{%endif%}">\n\
+        <textarea name="%-description" cols="5">TOTO</textarea>\n\
+        </td></tr>'.replace(/%/g, prefix));
     }
 
     /* Fill a product row with data from a JSON record */
@@ -80,6 +101,11 @@
         $("#"+prefix+"-deleted")[0].checked=true;
         reflect_deletion(prefix);
       }
+      if( record['described']) {
+        $("#"+prefix+"-described")[0].checked=true;
+      } else {
+        reflect_description(prefix);
+      }
     }
 
     /* Add rows of blank products at the end of the table */
@@ -90,6 +116,7 @@
         var prefix = "blank"+i;
         add_row(prefix);
         attach_closure(prefix);
+        reflect_description(prefix);
       }
       N_BLANKS += N_ADDED_ROWS;
       $("#n_blanks").attr("value", N_BLANKS);
@@ -123,6 +150,8 @@
       td.weight input { width: 40px; text-align: right; }
       tr.deleted { text-decoration: line-through; }
       tr.deleted input { text-decoration: line-through; }
+      #products-table th.non-rotate { vertical-align: bottom; }
+      #products-table textarea { width: 100%; }
   </style>
 {% endblock %}
 
@@ -145,16 +174,18 @@
     <div style="height: 20px;"></div>
     <table id="products-table">
         <tr>
-            <th>Produit</th>
-            <th>Prix</th>
-            <th></th>
-            <th>Unité</th>
-            <th colspan="2" class="qpp">Par carton</th>
+            <th class="non-rotate">Produit</th>
+            <th class="non-rotate">Prix</th>
+            <th class="non-rotate"></th>
+            <th class="non-rotate">Unité</th>
+            <th colspan="2" class="qpp non-rotate">Par carton</th>
             {% if QUOTAS_ENABLED %}<th colspan="2" class="quota">Quota</th>{% endif %}
-            <th colspan="2">Quantum</th>
-            <th colspan="2">Poids</th>
-            <th>Effacer ?</th>
+            <th colspan="2" class="non-rotate">Quantum</th>
+            <th colspan="2" class="non-rotate">Poids</th>
+            <th class="rotate"><div><div>Effacer ?</div></div></th>
+            <th class="rotate"><div><div>Description ?</div></div></th>
         </tr>
+        <tr><td>&nbsp;</td></tr>
     </table>
     <p>
       <button type='button' onclick="add_blank_products();">Ajouter des produits</button>
