@@ -5,7 +5,8 @@
 past products, parse POSTed forms to update a delivery's products list."""
 
 from django.shortcuts import render_to_response, redirect
-from django.core.context_processors import csrf
+#from django.core.context_processors import csrf
+from django.template.context_processors import csrf
 from django.http import HttpResponseForbidden
 
 from .getters import get_delivery

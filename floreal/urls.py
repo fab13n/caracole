@@ -1,13 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, url
 from django.contrib import admin
 from django.views.generic import TemplateView
 
 from . import views
 
-urlpatterns = patterns('',
+urlpatterns = [
     url(r'^$', views.index, name='index'),
 
     url(r'^new-nw/(?P<nw_name>[^./]+)/(?P<sg_name>[^./]+)$', views.create_network, name='create_network'),
@@ -73,4 +73,4 @@ urlpatterns = patterns('',
     url(r'^accounts/', include('registration.backends.simple.urls')),
 
     url(r'^add-phone-number/(?P<phone>[^./]+)$', views.phone.add_phone_number, name="add_phone_number"),
-)
+]

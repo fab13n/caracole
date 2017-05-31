@@ -3,7 +3,8 @@
 
 import re
 from django.shortcuts import redirect, render_to_response
-from django.core.context_processors import csrf
+#from django.core.context_processors import csrf
+from django.template.context_processors import csrf
 from django.http import HttpResponseForbidden
 
 from .. import models as m
