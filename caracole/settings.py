@@ -18,8 +18,8 @@ SECRET_KEY = 'w$o71h9mt#ju3xk5m1kn*69)+%w)%9e*-)p@_*addg%xcdc677'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-TEMPLATE_DEBUG = True
-TEMPLATE_STRING_IF_INVALID = "[[[Invalid template variable %s]]]"
+# TEMPLATE_DEBUG = True
+# TEMPLATE_STRING_IF_INVALID = "[[[Invalid template variable %s]]]"
 ALLOWED_HOSTS = []
 
 EMAIL_USE_TLS = True
@@ -48,7 +48,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'registration',  # WARNING that's django-registration-redux, not django-registration!
-    'longerusernameandemail', # sudo pip install django-longerusernameandemail
+    # 'longerusernameandemail', # sudo pip install django-longerusernameandemail
 )
 
 MIDDLEWARE_CLASSES = (
@@ -72,7 +72,9 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages'
-            ]
+            ],
+            'debug': True,
+            'string_if_invalid': "[[[Invalid template variable %s]]]"
         }
     }
 ]
