@@ -37,37 +37,45 @@ def edit_delivery_products(request, delivery):
         return render_to_response('edit_delivery_products.html', vars)
 
 
-def _get_pd_fields(d, prefix, id):
+def _get_pd_fields(d, r_prefix):
     """Retrieve form fields representing a product."""
-    fields = ['name', 'price', 'quantity_per_package', 'unit', 'quantity_limit', 'quantum', 'unit_weight']
-    raw = {f: d.get("%s%d-%s" % (prefix, id, f), None) for f in fields}
-    if not any(f for f in raw.values()):
-        return {'deleted': True}  # All fields empty means deleted
+    fields = ['id', 'name', 'price', 'quantity_per_package', 'unit', 'quantity_limit', 'quantum', 'unit_weight',
+              'place', 'described', 'description']
+    raw = {f: d.get("%s-%s" % (r_prefix, f), None) for f in fields}
+    id = raw['id']
+    id = int(id) if id and id.isdigit() else None
+    if not raw['name']:
+        return {'id': id, 'deleted': True}  # All fields empty means deleted
     qpp = raw['quantity_per_package']
     quota = raw['quantity_limit']
     quantum = raw['quantum']
     weight = raw['unit_weight']
     if not weight:  # 0 or None
         weight = 1 if raw['unit'] == 'kg' else 0
-    return {'name': raw['name'],
+    return {'id': id,
+            'name': raw['name'],
+            'place': int(raw['place']),
             'price': float(raw['price']),
             'quantity_per_package': int(qpp) if qpp else None,
             'unit': raw['unit'] or u'pièce',
             'quantity_limit': int(quota) if quota else None,
             'quantum': float(quantum) if quantum else None,
             'unit_weight': float(weight) if weight is not None else None,
-            'deleted': "%s%d-deleted" % (prefix, id) in d}
+            'description': raw['description'] if raw['described'] else None,
+            'deleted': "%s-deleted" % (r_prefix) in d}
 
 
 def _pd_update(pd, fields):
     """Update a model object according to form fields."""
     pd.name = fields['name']
+    pd.place = fields['place']
     pd.price = fields['price']
     pd.quantity_per_package = fields['quantity_per_package']
     pd.unit = fields['unit']
     pd.quantity_limit = fields['quantity_limit']
     pd.unit_weight = fields['unit_weight']
     pd.quantum = fields['quantum']
+    pd.description = fields['description']
 
 
 def _parse_form(request):
@@ -81,43 +89,36 @@ def _parse_form(request):
     dv.state = d['dv-state']
     dv.save()
 
-    # Parse preexisting products
-    product_ids_string = str(d['product_ids'])
-    if product_ids_string:
-        for pd_id in product_ids_string.split(','):
-            pd = Product.objects.get(pk=pd_id)
-            fields = _get_pd_fields(d, 'pd', int(pd_id))
+    for r in range(int(d['n_rows'])):
+        fields = _get_pd_fields(d, 'r%d' % r)
+        if fields.get('id', False):
+            pd = Product.objects.get(pk=fields['id'])
             if pd.delivery == dv:
                 if fields['deleted']:  # Delete previously existing product
-                    print "Deleting product %s" % pd_id
+                    print "Deleting product",  pd
                     pd.delete()
                     # Since purchases have foreign keys to purchased products,
                     # they will be automatically deleted.
                     # No need to update penury management either, as there's
                     # no purchase of this product left to adjust.
                 else:  # Update product
-                    print "Updating product %s" % pd_id
+                    print "Updating product", pd
                     _pd_update(pd, fields)
                     pd.save(force_update=True)
             else:  # From another delivery
                 if fields['deleted']:  # Don't import product
-                    print "Ignoring past product %s" % pd_id
+                    print "Ignoring past product", pd
                     pass
                 else:  # Import product copy from other delivery
-                    print "Importing past product %s" % pd_id
+                    print "Importing past product",  pd
                     _pd_update(pd, fields)
                     pd.delivery = dv
                     pd.id = None
                     pd.save(force_insert=True)
-
-    # Parse products created from blank lines
-    for i in range(int(d['n_blanks'])):
-        # Create new product
-        fields = _get_pd_fields(d, 'blank', i)
-        if fields['deleted']:
-            print "Blank field #%d deleted/empty" % i
-        else:
-            print "Adding product from blank line #%d" % i
+        elif fields['deleted']:
+                print "New product in r%d deleted/empty: ignoring" % r
+        else:  # Parse products created from blank lines
+            print "Adding new product from line #%d" % r
             pd = Product.objects.create(name=fields['name'],
                                         price=fields['price'],
                                         quantity_per_package=fields['quantity_per_package'],
@@ -128,5 +129,5 @@ def _parse_form(request):
             pd.save()
 
     # In case of change in quantity limitations, adjust granted quantities for purchases
-    for pd in dv.product_set.all():
-        set_limit(pd)
+    #for pd in dv.product_set.all():
+    #    set_limit(pd)

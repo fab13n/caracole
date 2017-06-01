@@ -187,10 +187,12 @@ class Product(models.Model):
     quantity_limit = models.IntegerField(null=True, blank=True)
     unit_weight = models.DecimalField(decimal_places=3, max_digits=6, default=0.0, blank=True)
     quantum = models.DecimalField(decimal_places=2, max_digits=3, default=1, blank=True)
+    description = models.TextField(null=True, blank=True, default=None)
+    place = models.PositiveSmallIntegerField(null=True, blank=True, default=True)
 
     class Meta:
         unique_together = (('delivery', 'name'),)
-        ordering = ('-quantity_per_package', 'name',)
+        ordering = ('place', '-quantity_per_package', 'name',)
 
     def __unicode__(self):
         return self.name

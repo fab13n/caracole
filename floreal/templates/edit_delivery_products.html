@@ -4,137 +4,189 @@
   <script type='text/javascript'>
     // <![CDATA[
 
-    var N_BLANKS = 0;
+    var N_ROWS = 1;
 
     var DELIVERY = {{delivery.id}};
 
     var PRODUCTS = [{% for pd in delivery.product_set.all %}
-      { 'id': "{{pd.id|escapejs}}",
+      { 'id': {{pd.id}},
         'name': "{{pd.name|escapejs}}",
         'price': "{{pd.price|escapejs}}",
         'unit': "{{pd.unit|escapejs}}",
-        'quantity_limit': "{{pd.quantity_limit|escapejs}}",
-        'quantity_per_package': "{{pd.quantity_per_package|escapejs}}",
-        'quantum': "{{pd.quantum|default_if_none:''|escapejs}}",
-        'unit_weight': "{{pd.unit_weight|escapejs}}",
-        'deleted': {% if pd.delivery.id == delivery.id %} false  {% else %} true {% endif %},
-        'described': false,
+        'quantity_limit': {%if pd.quantity_limit%}"{{pd.quantity_limit|escapejs}}"{%else%}null{%endif%},
+        'quantity_per_package': {%if pd.quantity_per_package%}"{{pd.quantity_per_package|escapejs}}"{%else%}null{%endif%},
+        'quantum': {{pd.quantum}},
+        'unit_weight': {{pd.unit_weight}},
+        'deleted': {%if pd.delivery.id == delivery.id%}false{%else%}true{%endif%},
+        {%if pd.description%}'described': true,
+        'description': "{{pd.description|escapejs}}",{%else%}'described': false,{%endif%}
         'delivery': {{pd.delivery.id}} },
     {% endfor %}];
 
     /* If the "deleted" checkbox is checked, strike theline and disable product edition. */
-    function reflect_deletion(prefix) {
-      var deleted = $('#'+prefix+'-deleted').is(':checked');
-      var inputs = $("#"+prefix+"-row input[type=number], #"+prefix+"-row input[type=text]");
-      inputs = $.merge(inputs, $("#"+prefix+"-description textarea"));
+    function reflect_deletion(r_prefix) {
+      /* TODO: also reflect place renumbering. */
+      var deleted = $("#"+r_prefix+" .deleted input").is(':checked');
+      var inputs  = $("#"+r_prefix+" input[type=number],"+
+                      "#"+ r_prefix+" input[type=text],"+
+                      "#"+ r_prefix+" .described input[type=chechbox],"+
+                      "#"+r_prefix+"-description textarea");
+      var rows = $("#"+r_prefix+",#"+r_prefix+"-description");
       if( deleted) {
-        $("#"+prefix+"-row").addClass('deleted');
+        rows.addClass('deleted');
         inputs.attr('disabled', 'disabled');
       } else {
-        $("#"+prefix+"-row").removeClass('deleted');
+        rows.removeClass('deleted');
         inputs.removeAttr('disabled');
       }
     }
 
     /* Enable/disable description editor */
-    function reflect_description(prefix) {
-      var described = $('#'+prefix+'-described').is(':checked');
-      console.log("Change description of", prefix, "to", described);
+    function reflect_description(r_prefix) {
+      var described = $("#"+r_prefix+' .described input').is(':checked');
+      console.log("Change description of", r_prefix, "to", described);
       if( described) {
-          $("#"+prefix+"-description").show();
-          $("#"+prefix+"-description textarea").removeAttr("disabled");
+          $("#"+r_prefix+"-description").show();
+          $("#"+r_prefix+"-description textarea").removeAttr("disabled");
       } else {
-          $("#"+prefix+"-description").hide();
-          $("#"+prefix+"-description textarea").attr("disabled", "disabled");
+          $("#"+r_prefix+"-description").hide();
+          $("#"+r_prefix+"-description textarea").attr("disabled", "disabled");
       }
     }
 
-    /* Keep unit names in sync between the input field and the text spans where it occurs. */
-    function attach_closure(prefix) {
-      var closure = function() {
-        var content = $("#"+prefix+"-unit").attr('value');
-        $("."+prefix+"-unit-mirror").text(content)
-        if(content) {
-          $("."+prefix+"-if-unit-mirror").show();
-        } else {
-          $("."+prefix+"-if-unit-mirror").hide();
+    function reflect_unit_change(r_prefix) {
+        var content = $("#"+r_prefix+" .unit input").attr('value');
+        if(RegExp("^\\d.*").test(content)) { content = "×"+content; }
+        $("#"+r_prefix+" .unit-mirror").text(content);
+        $("#"+r_prefix+" .if-unit-mirror")[content ? 'show' : 'hide']();
+    }
+
+    /* Exchange the contents of row r0 and r0+1 */
+    function swap_rows(r0) {
+        var r1 = r0+1;
+        console.log("Swapping rows "+r0+" and "+r1);
+        var input_fields = ['id', 'name', 'price', 'unit', 'quantity_per_package',
+                            'quantum', 'unit_weight'];
+        for(var i=0; i<input_fields.length; i++) {
+            var field = input_fields[i];
+            var v0 = $("#r"+r0+" ."+field+" input").val();
+            var v1 = $("#r"+r1+" ."+field+" input").val();
+            $("#r"+r0+" ."+field+" input").val(v1);
+            $("#r"+r1+" ."+field+" input").val(v0);
         }
-      }
-      $("#"+prefix+"-unit").keyup(closure);
-      closure();
+        var checkboxes =['described', 'deleted'];
+        for(i=0; i<checkboxes.length; i++) {
+            var field = checkboxes[i];
+            var b0 = $("#r"+r0+" ."+field+" input").is(":checked");
+            var b1 = $("#r"+r1+" ."+field+" input").is(":checked");
+            $("#r"+r0+" ."+field+" input").attr("checked", b1);
+            $("#r"+r1+" ."+field+" input").attr("checked", b0);
+        }
+
+        var t0 = $("#r"+r0+"-description textarea").val();
+        var t1 = $("#r"+r1+"-description textarea").val();
+        $("#r"+r0+"-description textarea").val(t1);
+        $("#r"+r1+"-description textarea").val(t0);
+
+
+        reflect_deletion("r"+r0);
+        reflect_description("r"+r0);
+        reflect_unit_change("r"+r0);
+        reflect_deletion("r"+r1);
+        reflect_description("r"+r1);
+        reflect_unit_change("r"+r1);
     }
 
     /* Add rows of blank products at the end of the table */
-    function add_row(prefix) {
-      $("#products-table").append('\n\
-        <tr id="%-row">\n\
-            <td class="name"><input id="%-id" name="%-id" type="hidden" /><input id="%-name" maxlength="64" name="%-name" type="text" /></td>\n\
-            <td class="price"><input id="%-price" name="%-price" step="0.01" min="0" type="number" /></td>\n\
+    function add_row() {
+      var r_num = N_ROWS;
+      N_ROWS += 1;
+      $("#n_rows").attr("value", N_ROWS);
+      $("#products-table tbody").append('\n\
+        <tr id="r%">\n\
+            <td class="hidden id"><input name="r%-id" type="hidden" /></td>\n\
+            <td class="place">\n\
+              <button type="button" class="up">▲</button> % <button class="down" type="button">▼</button>\n\
+              <input name="r%-place" type="hidden" value="%"/>\n\
+            </td>\n\
+            <td class="name"><input maxlength="64" name="r%-name" type="text" /></td>\n\
+            <td class="price"><input name="r%-price" step="0.01" min="0" type="number" /></td>\n\
             <td>€/</td>\n\
-            <td class="unit"><input id="%-unit" maxlength="64" name="%-unit" type="text" /></td>\n\
-            <td class="qpp"><input id="%-quantity_per_package" name="%-quantity_per_package" type="number" /></td>\n\
-            <td class="unit-label">&nbsp;<span class="%-unit-mirror"></span><span class="%-if-unit-mirror">/ct</span></td>\n\
-            {% if 0 %}<td class="quota"><input id="%-quantity_limit" name="%-quantity_limit" min="0" type="number"/></td>\n\
-            <td class="unit-label">&nbsp;<span class="%-unit-mirror"></span></td>{% endif %}\n\
-            <td class="quantum"><input id="%-quantum" name="%-quantum" min="0" type="number" step="0.001"/></td>\n\
-            <td class="unit-label">&nbsp;<span class="%-unit-mirror"></span></td>\n\
-            <td class="weight"><input id="%-unit_weight" name="%-unit_weight" min="0" step="0.1" type="number"/></td><td>kg</td>\n\
+            <td class="unit"><input maxlength="64" name="r%-unit" type="text" /></td>\n\
+            <td class="quantity_per_package"><input name="r%-quantity_per_package" type="number" /></td>\n\
+            <td class="unit-label">&nbsp;<span class="unit-mirror"></span><span class="if-unit-mirror">/ct</span></td>\n\
+            {%if QUOTAS_ENABLED%}<td class="quantity_limit"><input name="r%-quantity_limit" min="0" type="number"/></td>\n\
+            <td class="unit-label">&nbsp;<span class="r%-unit-mirror"></span></td>{%endif%}\n\
+            <td class="quantum"><input name="r%-quantum" min="0" type="number" step="0.001"/></td>\n\
+            <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>\n\
+            <td class="unit_weight"><input name="r%-unit_weight" min="0" step="0.1" type="number"/></td><td>kg</td>\n\
             <td class="deleted">\n\
-              <input id="%-deleted" name="%-deleted" value="%-deleted" onchange="reflect_deletion(\'%\')" type="checkbox">\n\
+              <input name="r%-deleted" value="r%-deleted" onchange="reflect_deletion(\'r%\')" type="checkbox">\n\
             </td>\n\
             <td class="described">\n\
-              <input id="%-described" name="%-described" value="%-described" onchange="reflect_description(\'%\')" type="checkbox">\n\
+              <input name="r%-described" value="r%-described" onchange="reflect_description(\'r%\')" type="checkbox">\n\
             </td>\n\
         </tr>\n\
-        <tr id="%-description"><td colspan="{%if QUOTAS_ENABLED%}14{%else%}12{%endif%}">\n\
-        <textarea name="%-description" cols="5">TOTO</textarea>\n\
-        </td></tr>'.replace(/%/g, prefix));
+        <tr id="r%-description">\n\
+          <td></td>\n\
+          <td colspan="{%if QUOTAS_ENABLED%}14{%else%}12{%endif%}">\n\
+            <textarea name="r%-description" rows="5"></textarea>\n\
+          </td>\n\
+        </tr>'.replace(/%/g, r_num));
+
+      // disable last "down" button, re-enable before-last "down" button, which was previously last
+      $("#r"+r_num+" td.place button.down").attr("disabled", "disabled");
+      $("#r"+(r_num-1)+" td.place button.down").removeAttr("disabled");
+
+      // wire buttons
+      $("#r"+r_num+" td.place button.up").click(function() { swap_rows(r_num-1); })
+      $("#r"+r_num+" td.place button.down").click(function() { swap_rows(r_num); })
+
+      // wire unit change reflections upon keystrokes
+      $("#r"+r_num+" .unit input").keyup(function() { reflect_unit_change("r"+r_num); });
+      reflect_unit_change("r"+r_num);
+
+      return "r"+r_num;
     }
 
     /* Fill a product row with data from a JSON record */
-    function fill_row(prefix, record) {
+    function fill_row(r_prefix, record) {
       $.each(record, function(k, v) {
         // console.log("set #"+prefix+"-"+k+" to "+v);
-        $('#'+prefix+'-'+k).attr('value', v);
+        $('#'+r_prefix+' .'+k+" input").attr('value', v);
       });
+      reflect_unit_change(r_prefix);
       if( record['deleted']) {
-        $("#"+prefix+"-deleted")[0].checked=true;
-        reflect_deletion(prefix);
+        $("#"+r_prefix+" .deleted input")[0].checked=true;
+        reflect_deletion(r_prefix);
       }
       if( record['described']) {
-        $("#"+prefix+"-described")[0].checked=true;
+        $("#"+r_prefix+" .described input")[0].checked=true;
+        $("#"+r_prefix+"-description textarea").val(record.description);
       } else {
-        reflect_description(prefix);
+        reflect_description(r_prefix);
       }
     }
 
     /* Add rows of blank products at the end of the table */
     function add_blank_products() {
       var N_ADDED_ROWS = 3;
-      var i;
-      for(i=N_BLANKS; i<N_BLANKS+N_ADDED_ROWS; i++) {
-        var prefix = "blank"+i;
-        add_row(prefix);
-        attach_closure(prefix);
-        reflect_description(prefix);
+      for(var i=0; i<N_ADDED_ROWS; i++) {
+        var r_prefix = add_row();
+        reflect_description(r_prefix); // hide description textarea
+        // No need to reflect deletion, they aren't deleted by default
       }
-      N_BLANKS += N_ADDED_ROWS;
-      $("#n_blanks").attr("value", N_BLANKS);
     }
 
     $(document).ready(function() {
       /* Generate and fill product rows */
-      var product_ids = [];
-      for(i=0; i<PRODUCTS.length; i++) {
+      for(var i=0; i<PRODUCTS.length; i++) {
         var record = PRODUCTS[i];
-        var prefix = "pd"+record['id'];
-        add_row(prefix);
-        fill_row(prefix, record);
-        attach_closure(prefix);
-        product_ids.push(record['id'])
+        var r_prefix = add_row();
+        fill_row(r_prefix, record);
       }
       add_blank_products();
-      $("#product_ids").attr("value", product_ids.toString());
+      $("#r1 td.place button.up").attr("disabled", "disabled");
     })
     // ]]>
   </script>
@@ -143,15 +195,18 @@
       td.unit input { width: 40px; }
       td.unit-label { text-align: left; }
       td.price input { width: 40px; text-align: right; }
-      td.qpp input { width: 40px; text-align: right; }
-      .quota, .qpp { padding-left: 20px; }
+      td.quantity_per_package input { width: 40px; text-align: right; }
+      .quota, .quantity_per_package { padding-left: 20px; }
       td.quota input { width: 40px; }
       td.quantum input { width: 40px; }
-      td.weight input { width: 40px; text-align: right; }
+      td.unit_weight input { width: 40px; text-align: right; }
       tr.deleted { text-decoration: line-through; }
       tr.deleted input { text-decoration: line-through; }
+      tr.deleted textarea { text-decoration: line-through; }
       #products-table th.non-rotate { vertical-align: bottom; }
       #products-table textarea { width: 100%; }
+      table .hidden { display: none; }
+      td.place button { padding: 1px; }
   </style>
 {% endblock %}
 
@@ -173,26 +228,30 @@
     </table>
     <div style="height: 20px;"></div>
     <table id="products-table">
-        <tr>
-            <th class="non-rotate">Produit</th>
-            <th class="non-rotate">Prix</th>
-            <th class="non-rotate"></th>
-            <th class="non-rotate">Unité</th>
-            <th colspan="2" class="qpp non-rotate">Par carton</th>
-            {% if QUOTAS_ENABLED %}<th colspan="2" class="quota">Quota</th>{% endif %}
-            <th colspan="2" class="non-rotate">Quantum</th>
-            <th colspan="2" class="non-rotate">Poids</th>
-            <th class="rotate"><div><div>Effacer ?</div></div></th>
-            <th class="rotate"><div><div>Description ?</div></div></th>
-        </tr>
-        <tr><td>&nbsp;</td></tr>
+        <thead>
+            <tr>
+                <th class="hidden non-rotate"></th>
+                <th class="non-rotate">#</th>
+                <th class="non-rotate">Produit</th>
+                <th class="non-rotate">Prix</th>
+                <th class="non-rotate"></th>
+                <th class="non-rotate">Unité</th>
+                <th colspan="2" class="qpp non-rotate">Par carton</th>
+                {% if QUOTAS_ENABLED %}<th colspan="2" class="quota">Quota</th>{% endif %}
+                <th colspan="2" class="non-rotate">Quantum</th>
+                <th colspan="2" class="non-rotate">Poids</th>
+                <th class="rotate"><div><div>Effacer ?</div></div></th>
+                <th class="rotate"><div><div>Description ?</div></div></th>
+            </tr>
+            <tr><td>&nbsp;</td></tr>
+        </thead>
+        <tbody></tbody>
     </table>
     <p>
       <button type='button' onclick="add_blank_products();">Ajouter des produits</button>
       <input type='submit' value="Sauvegarder" />
       <input type='hidden' name='dv-id' value='{{delivery.id}}' />
-      <input type='hidden' name='n_blanks' id="n_blanks" value='0' />
-      <input type='hidden' name='product_ids' id="product_ids" value='' />
+      <input type='hidden' name='n_rows' id="n_rows" value='0' />
       {% csrf_token %}
 	</p>
 </form>
