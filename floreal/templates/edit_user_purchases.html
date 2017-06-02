@@ -98,6 +98,7 @@
     input[type=submit]:disabled { background-color: gray; border: 5px outset lightgray; }
     #products-table td.description { text-align: center; }
     #products-table td.description div { text-align: left; display: inline-block; font-style: italic; font-size: small; white-space: pre-wrap; }
+    #dv-description {white-space: pre-wrap; }
   </style>
 {% endblock %}
 
@@ -117,7 +118,13 @@
         <td>{{user.first_name}} {{user.last_name}}</td>
       </tr>
     </table>
+    {% if delivery.description %}
     <div style="height: 20px;"></div>
+    <p id="dv-description">{{delivery.description}}</p>
+    <div style="height: 20px;"></div>
+    {% else %}
+    <div style="height: 20px;"></div>
+    {% endif %}
     <table id="products-table">
         <tr>
             <th>#</th>

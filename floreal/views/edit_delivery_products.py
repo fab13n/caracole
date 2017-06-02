@@ -90,6 +90,8 @@ def _parse_form(request):
     # Edit delivery name and state
     dv.name = d['dv-name']
     dv.state = d['dv-state']
+    descr = d['dv-description'].strip()
+    dv.description = descr or None
     dv.save()
 
     for r in range(int(d['n_rows'])):

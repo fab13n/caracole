@@ -126,6 +126,7 @@ class Delivery(models.Model):
     name = models.CharField(max_length=64)
     network = models.ForeignKey(Network)
     state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=PREPARATION)
+    description = models.TextField(null=True, blank=True, default=None)
 
     def get_stateForSubgroup(self, sg):
         try:
