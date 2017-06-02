@@ -7,6 +7,10 @@ Django settings for floreal project.
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+
+import django
+
+
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
@@ -46,8 +50,11 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'registration',  # WARNING that's django-registration-redux, not django-registration!
-    # 'longerusernameandemail', # sudo pip install django-longerusernameandemail
+    'django_markdown'
 )
+
+if django.VERSION < (1, 8):
+    INSTALLED_APPS += ('longerusernameandemail',)
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -59,7 +66,6 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
-import django
 if django.VERSION < (1, 8):
     TEMPLATE_DEBUG = True
     TEMPLATE_STRING_IF_INVALID = "[[[Invalid template variable %s]]]"

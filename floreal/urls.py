@@ -5,6 +5,8 @@ from django.conf.urls import include, url
 from django.contrib import admin
 from django.views.generic import TemplateView
 
+#from django_markdown import urls as django_markdown_urls
+
 from . import views
 
 urlpatterns = [
@@ -73,4 +75,6 @@ urlpatterns = [
     url(r'^accounts/', include('registration.backends.simple.urls')),
 
     url(r'^add-phone-number/(?P<phone>[^./]+)$', views.phone.add_phone_number, name="add_phone_number"),
+
+    url('^markdown/', include("django_markdown.urls")),
 ]
