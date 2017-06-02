@@ -2,9 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import re
+
+import django
+if django.VERSION < (1, 8):
+    from django.core.context_processors import csrf
+else:
+    from django.template.context_processors import csrf
 from django.shortcuts import redirect, render_to_response
-#from django.core.context_processors import csrf
-from django.template.context_processors import csrf
 from django.http import HttpResponseForbidden
 
 from .. import models as m

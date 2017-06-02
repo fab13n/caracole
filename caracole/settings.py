@@ -18,8 +18,6 @@ SECRET_KEY = 'w$o71h9mt#ju3xk5m1kn*69)+%w)%9e*-)p@_*addg%xcdc677'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-# TEMPLATE_DEBUG = True
-# TEMPLATE_STRING_IF_INVALID = "[[[Invalid template variable %s]]]"
 ALLOWED_HOSTS = []
 
 EMAIL_USE_TLS = True
@@ -61,23 +59,27 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
-# Valid from Django 1.8
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages'
-            ],
-            'debug': True,
-            'string_if_invalid': "[[[Invalid template variable %s]]]"
+import django
+if django.VERSION < (1, 8):
+    TEMPLATE_DEBUG = True
+    TEMPLATE_STRING_IF_INVALID = "[[[Invalid template variable %s]]]"
+else:
+    TEMPLATES = [
+        {
+            'BACKEND': 'django.template.backends.django.DjangoTemplates',
+            'DIRS': [os.path.join(BASE_DIR, 'templates')],
+            'APP_DIRS': True,
+            'OPTIONS': {
+                'context_processors': [
+                    'django.template.context_processors.request',
+                    'django.contrib.auth.context_processors.auth',
+                    'django.contrib.messages.context_processors.messages'
+                ],
+                'debug': True,
+                'string_if_invalid': "[[[Invalid template variable %s]]]"
+            }
         }
-    }
-]
+    ]
 
 ROOT_URLCONF = 'floreal.urls'
 

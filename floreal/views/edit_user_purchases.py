@@ -1,9 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import django
+if django.VERSION < (1, 8):
+    from django.core.context_processors import csrf
+else:
+    from django.template.context_processors import csrf
 from django.shortcuts import redirect, render_to_response
-#from django.core.context_processors import csrf
-from django.template.context_processors import csrf
 from django.contrib.auth.decorators import login_required
 
 from .. import models as m

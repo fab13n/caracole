@@ -4,9 +4,12 @@
 """Helpers to edit products list: generate suggestions based on current and
 past products, parse POSTed forms to update a delivery's products list."""
 
+import django
 from django.shortcuts import render_to_response, redirect
-#from django.core.context_processors import csrf
-from django.template.context_processors import csrf
+if django.VERSION < (1, 8):
+    from django.core.context_processors import csrf
+else:
+    from django.template.context_processors import csrf
 from django.http import HttpResponseForbidden
 
 from .getters import get_delivery
