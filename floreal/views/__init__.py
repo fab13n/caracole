@@ -334,3 +334,19 @@ def journal(request):
         else:
             current_day['entries'].append(record)
     return render_to_response("journal.html", {'user': request.user, 'days': days})
+
+
+@nw_admin_required()
+def all_deliveries(request, network, states):
+    nw = get_network(network)
+    deliveries = m.Delivery.objects.filter(network=nw, state__in=states)
+    users = m.User.objects.filter(user_of_subgroup__network=nw)
+
+    def has_purchased(u, dv):
+        return m.Purchase.objects.filter(product__delivery=dv, user=u).exists()
+
+    t = [(u, [(dv, has_purchased(u, dv)) for dv in deliveries]) for u in users]
+    # Filter out users without purchases
+    t = [(u, dv_pc) for (u, dv_pc) in t if any(pc for (dv, pc) in dv_pc)]
+
+    return render_to_response("all_deliveries.html", {'states': states, 'network': nw, 'table': t})

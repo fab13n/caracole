@@ -1,0 +1,51 @@
+{% extends "layout_wide.html" %}
+
+{% block head %}
+<style type="text/css">
+td.yes { background-color: #ccffcc; color: green; font-size: larger; }
+.highlight { background-color: #ffaaaa; }
+</style>
+<script type="application/javascript">
+
+    function highlight_enter(event) {
+        var classes = event.currentTarget.classList;
+        $(".highlight").removeClass("highlight");
+        for(var i=0; i<classes.length; i++) {
+            var c = classes[i];
+            if (c.startsWith('u-') || c.startsWith('dv-')) { $("." + c).addClass('highlight'); }
+        }
+    }
+
+    function highlight_leave() { $(".highlight").removeClass("highlight"); }
+
+    $(document).ready(function() {
+        $('.highlightable').hover(highlight_enter, highlight_leave);
+    })
+</script>
+{% endblock %}
+
+{% block content %}
+<h1>Commandes en cours pour le réseau {{network.name}}</h1>
+<table>
+    <tr>
+        <td></td>
+        {% for dv, has_purchased in table.0.1 %}
+        <th class="rotate"><div><div class="dv-{{dv.id}} highlightable">{{dv.name}}</div></div></th>
+        {% endfor %}
+    </tr>
+    <tr><td>&nbsp;</td></tr>
+    {% for u, x in table %}
+    <tr>
+        <th class="u-{{u.id}} highlightable left">{{u.first_name}} {{u.last_name}}</th>
+        {% for dv, has_purchased in x %}
+        {% if has_purchased %}
+        <td class="yes u-{{u.id}} dv-{{dv.id}} highlightable">
+            <a href="{% url 'view_all_purchases_html' delivery=dv.id %}">✔</a>
+        </td>
+        {% else %}
+        <td class="u-{{u.id}} dv-{{dv.id}} highlightable">-</td>{% endif %}
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}
