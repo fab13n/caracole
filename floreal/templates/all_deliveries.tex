@@ -1,0 +1,19 @@
+{% extends 'common.tex' %}
+{% load latex %}
+{% block documentclassparams %}a4paper,french,10pt{% endblock %}
+{% block preamble %}
+\newcommand{\checked}{\ensuremath{\bullet}}
+{% endblock %}
+{% block content %}
+\begin{longtable}{|r|{% for dv, has_purchased in table.0.1 %}{% cycle 'c|' 'c|' '>{\columncolor{lightgray}}c|' %}{% endfor %}}
+\hline
+{% for dv, has_purchased in table.0.1 %} & \rb{ {{dv.name|tex_safe}} }{% endfor %}\\
+\hline
+\endhead
+{% for u, x in table %}
+{% cycle '' '' '\rowcolor{lightgray}' %}
+{{u.first_name|tex_safe}} {{u.last_name|tex_safe}} {% for dv, has_purchased in x  %} & {% if has_purchased %} \checked {% else %}  {% endif %}{% endfor %} \\
+{% endfor %}
+\hline
+\end{longtable}
+{% endblock %}

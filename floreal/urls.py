@@ -22,7 +22,8 @@ urlpatterns = [
     url(r'^nw-(?P<network>[^./]+)/archives$', views.archived_deliveries, name='archived_deliveries'),
     url(r'^nw-(?P<network>[^./]+)/edit-users$', views.edit_user_memberships, name='edit_user_memberships'),
     url(r'^nw-(?P<network>[^./]+)/edit-users.json$', views.json_memberships, name='json_memberships'),
-    url(r'^nw-(?P<network>[^./]+)/all-deliveries/(?P<states>[A-Z]+)$', views.all_deliveries, name='all_deliveries'),
+    url(r'^nw-(?P<network>[^./]+)/all-deliveries/(?P<states>[A-Z]+)$', views.all_deliveries_html, name='all_deliveries_html'),
+    url(r'^nw-(?P<network>[^./]+)/all-deliveries/(?P<states>[A-Z]+).pdf$', views.all_deliveries_latex, name='all_deliveries_latex'),
 
     url(r'^dv-(?P<delivery>[^./]+)$', views.edit_user_purchases, name='edit_user_purchases'),
     url(r'^dv-(?P<delivery>[^./]+)/staff$', views.edit_delivery, name='edit_delivery'),

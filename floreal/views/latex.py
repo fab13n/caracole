@@ -7,9 +7,9 @@ from django.template.loader import get_template
 from .delivery_description import delivery_description
 
 
-def _run(descr, template_name):
+def render_latex(template_name, ctx):
     t = get_template(template_name)
-    tex_unicode = t.render(template.Context({'d': descr}))
+    tex_unicode = t.render(ctx)
     tex_string = tex_unicode.encode('utf8')
     with NamedTemporaryFile(suffix='.tex', delete=False) as f:
         f.write(tex_string)
@@ -32,21 +32,19 @@ def cards(dv, sg):
     # Maximum number of purchase lines in the delivery description
     # TODO: won't work with multiple subgroups (multiple elements in ['table'])
     descr['max_order_size'] = max(len(filter(lambda pc: pc, ur['orders'].purchases)) for ur in descr['table'][0]['users'])
-    return _run(descr, "subgroup-cards.tex")
+    return render_latex("subgroup-cards.tex", {'d': descr})
 
 
 def subgroup(dv, sg):
     descr = delivery_description(dv, [sg])
-    return _run(descr, "subgroup-table.tex")
+    return render_latex("subgroup-table.tex", {'d': descr})
 
 
 def delivery_cards(dv):
     descr = delivery_description(dv, dv.network.subgroup_set.all())
-    # return _run(descr, "delivery-table.tex")
-    return _run(descr, "delivery-cards.tex")
+    return render_latex("delivery-cards.tex", {'d': descr})
 
 
 def delivery_table(dv):
     descr = delivery_description(dv, dv.network.subgroup_set.all())
-    # return _run(descr, "delivery-table.tex")
-    return _run(descr, "delivery-table.tex")
+    return render_latex("delivery-table.tex", {'d': descr})

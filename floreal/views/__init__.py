@@ -12,7 +12,7 @@ from caracole import settings
 from .. import models as m
 from .getters import get_network, get_subgroup, get_delivery, get_candidacy
 from .decorators import nw_admin_required, sg_admin_required
-from .latex import delivery_table as latex_delivery_table
+from .latex import delivery_table as latex_delivery_table, render_latex
 from .spreadsheet import spreadsheet
 
 from .edit_subgroup_purchases import edit_subgroup_purchases
@@ -22,7 +22,7 @@ from .edit_delivery_products import edit_delivery_products
 from .edit_user_memberships import edit_user_memberships, json_memberships
 from .regulation import adjust_subgroup
 from .view_purchases import \
-    view_purchases_html, view_purchases_latex, view_purchases_xlsx, view_cards_latex, get_archive
+    view_purchases_html, view_purchases_latex, view_purchases_xlsx, view_cards_latex, get_archive, non_html_response
 from .password_reset import password_reset
 from .candidacies import candidacy, cancel_candidacy, validate_candidacy, leave_network, create_candidacy
 
@@ -348,5 +348,18 @@ def all_deliveries(request, network, states):
     t = [(u, [(dv, has_purchased(u, dv)) for dv in deliveries]) for u in users]
     # Filter out users without purchases
     t = [(u, dv_pc) for (u, dv_pc) in t if any(pc for (dv, pc) in dv_pc)]
+    t.sort(key=lambda x: (x[0].last_name, x[0].first_name))
 
-    return render_to_response("all_deliveries.html", {'states': states, 'network': nw, 'table': t})
+    return {'states': states, 'network': nw, 'table': t}
+
+
+def all_deliveries_html(request, network, states):
+    ctx = all_deliveries(request, network, states)
+    return render_to_response("all_deliveries.html", ctx)
+
+
+def all_deliveries_latex(request, network, states):
+    ctx = all_deliveries(request, network, states)
+    content = render_latex("all_deliveries.tex", ctx)
+    name_bits = [get_network(network).name, "active_deliveries", datetime.now().strftime("%Y-%m-%d")]
+    return non_html_response(name_bits, "pdf", content)
