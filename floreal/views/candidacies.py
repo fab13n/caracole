@@ -157,6 +157,6 @@ def validate_candidacy_without_checking(request, candidacy, response, send_confi
                   fail_silently=True)
     cd.delete()
 
-    target = request.REQUEST.get('next', False)
+    target = request.GET.get('next', False)
     return redirect(target) if target else redirect('candidacy')
 
