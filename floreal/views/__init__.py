@@ -131,7 +131,7 @@ def create_network(request, nw_name, sg_name):
     nw.staff.add(user)
     sg.staff.add(user)
     sg.users.add(user)
-    target = request.REQUEST.get('next', False)
+    target = request.GET.get('next', False)
     m.JournalEntry.log(user, "Created network %s with subgroup %s", nw_name, sg_name)
     return redirect(target) if target else redirect('network_admin', network=nw.id)
 
@@ -252,7 +252,7 @@ def set_subgroup_state_for_delivery(request, subgroup, delivery, state):
     if sg.network != dv.network:
         return HttpResponseBadRequest(u"Ce sous-groupe ne participe pas à cette livraison.")
     dv.set_stateForSubgroup(sg, state)
-    target = request.REQUEST.get('next', False)
+    target = request.GET.get('next', False)
     m.JournalEntry.log(request.user, "In %s, set subgroup %s in state %s for delivery %s",
                        dv.network.name, sg.name, state, dv.name)
     return redirect(target) if target else redirect('edit_delivery', delivery=dv.id)

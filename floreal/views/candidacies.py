@@ -47,7 +47,7 @@ def leave_network(request, network):
     for sg in user.staff_of_subgroup.filter(network__id=nw.id):
         sg.staff.remove(user.id)
 
-    target = request.REQUEST.get('next', False)
+    target = request.GET.get('next', False)
     return redirect(target) if target else redirect('candidacy')
 
 
@@ -70,7 +70,7 @@ def create_candidacy(request, subgroup):
     else:
         m.JournalEntry.log(user, "Applied for %s/%s, but was already a member", sg.network.name, sg.name)
 
-    target = request.REQUEST.get('next', False)
+    target = request.GET.get('next', False)
     return redirect(target) if target else redirect('candidacy')
 
 
@@ -95,7 +95,7 @@ def cancel_candidacy(request, candidacy):
         return HttpResponseForbidden(u"Vous ne pouvez annuler que vos propres candidatures.")
     m.JournalEntry.log(user, "Cancelled own application for %s/%s", cd.subgroup.network.name, cd.subgroup.name)
     cd.delete()
-    target = request.REQUEST.get('next', False)
+    target = request.GET.get('next', False)
     return redirect(target) if target else redirect('candidacy')
 
 
