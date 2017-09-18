@@ -29,11 +29,12 @@ def adjust_subgroup(request, delivery, subgroup=None):
             return redirect("subgroup_regulation", delivery=dv.id)
     else:
         sg = get_subgroup(subgroup)
-        product_totals = delivery_description(dv, [sg])['table'][0]['totals']
+        dd = delivery_description(dv, [sg])
         vars = {
             'delivery': dv,
             'subgroup': sg,
-            'products': product_totals
+            'products': dd['table'][0]['totals'],
+            'ordered_price': dd['table'][0]['price']
         }
         vars.update(csrf(request), user=request.user)
         return render_to_response('regulation.html', vars)

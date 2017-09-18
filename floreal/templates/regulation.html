@@ -9,39 +9,14 @@
       {id: {{pt.product.id}}, qpp: {{pt.product.quantity_per_package|default_if_none:"false"}}, unit: "{{pt.product.unit|unit_multiple}}", price: {{pt.product.price}}, ordered: {{pt.quantity}}, delivered: {{pt.quantity}}+{{pt.discrepancy}}{% if pt.discrepancy_reason %}, reason: "{{pt.discrepancy_reason}}"{% endif %}},{% endfor %}
     ];
 
-    function pk_and_loose(pd, kind) {
-        var q = pd[kind];
-        var packages = Math.floor(q/pd.qpp);
-        var loose = Number((q % pd.qpp).toFixed(3));
-        return [packages, loose]
-    }
-
     function update_mismatches(pd) {
         if(pd.ordered == pd.delivered) { $("#pd" + pd.id).removeClass('mismatch'); }
         else { $("#pd" + pd.id).addClass('mismatch'); }
     }
 
-    function reprint_quantity(pd, kind) {
-        var prefix = "#pd" + pd.id + " ."+ kind;
-        function set(suffix, v) {
-            var q = $(prefix+suffix);
-            var method = q[0] && q[0].tagName == 'INPUT' && 'val' || 'text';
-            q[method](v.toString());
-        }
-        if(pd.qpp) {
-            var pl = pk_and_loose(pd, kind), packages = pl[0], loose = pl[1];
-            set('.packages', packages);
-            if(loose) { set('.loose', loose); $(prefix+'.loose-decoration').show(); }
-            else { set('.loose', ''); $(prefix+'.loose-decoration').hide(); }
-        }
-        set('.total', pd[kind]);
-        set('.price', (pd[kind] * pd.price).toFixed(2));
-        update_mismatches(pd);
-    }
-
     function update_delivered_quantity(target) {
-        var x = $(target.currentTarget);
-        var pd_id = x[0].getAttribute('name').split('-')[0].substr(2)
+        var element = $(target.currentTarget);
+        var pd_id = element[0].getAttribute('name').split('-')[0].substr(2)
         var pd = null;
         for (var i = 0; i < PRODUCTS.length; i++) {
             if (PRODUCTS[i].id == pd_id) {
@@ -49,78 +24,54 @@
                 break;
             }
         }
-        var prefix = "#pd" + pd_id + " ";
-        if (x.hasClass('total')) {
-            var total = parseFloat($(prefix + " .delivered.total").attr("value"));
-            pd.delivered = total;
-            if(pd.qpp) {
-                var pl = pk_and_loose(pd, 'delivered')
-                var packages = pl[0], loose = pl[1];
-                $("#pd" + pd_id + " input.packages").val(packages);
-                $("#pd" + pd_id + " input.loose").val(loose);
-            }
-        } else if (x.hasClass('packages') || x.hasClass('loose')) {
-            var packages = parseFloat($(prefix + " .delivered.packages").attr("value"));
-            var loose = parseFloat($(prefix + " .delivered.loose").attr("value")) || 0;
-            pd.delivered = packages * pd.qpp + loose;
-            $("#pd" + pd_id + " input.total").val(pd.delivered);
-        } else {
-            console.log("Input class not handled", target)
-        }
-        var price = (pd.delivered*pd.price).toFixed(2)
-        $("#pd"+pd_id+" .delivered.price").text(price)
+        pd.delivered = Number(element.val())
+        var price = (pd.delivered*pd.price).toFixed(2);
+        $("#pd"+pd_id+" .delivered.price").text(price);
         update_mismatches(pd);
-        reprint_total_prices();
-    }
-
-    function print_quantities(kind) {
-      for(var i=0; i<PRODUCTS.length; i++) {
-          var pd = PRODUCTS[i];
-          reprint_quantity(pd, kind);
-      }
+        update_total_price();
     }
 
     /* update per-line totals as well as delivery total */
-    function reprint_total_prices() {
-        var total_ordered_price = 0, total_delivered_price = 0;
+    function update_total_price() {
+        var total_delivered_price = 0;
         for(var i=0; i<PRODUCTS.length; i++) {
             var pd = PRODUCTS[i];
-            total_ordered_price += pd.price * pd.ordered;
             total_delivered_price += pd.price * pd.delivered;
         }
-        $("#total-ordered-price").text(total_ordered_price.toFixed(2));
         $("#total-delivered-price").text(total_delivered_price.toFixed(2));
     }
 
     $(document).ready(function() {
       $("input[type=number]").bind('keyup mouseup', update_delivered_quantity);
-      print_quantities('ordered');
-      print_quantities('delivered');
       for(var i=0; i<PRODUCTS.length; i++) {
           var pd = PRODUCTS[i];
-          if(pd.reason) {
-              $("#pd" + pd.id + " select").val(pd.reason);
-          }
+          var price = (pd.delivered*pd.price).toFixed(2);
+          $("#pd" + pd.id + " input.delivered").val(pd.delivered);
+          $("#pd" + pd.id + " .price.delivered").text(price);
+          if(pd.reason) { $("#pd" + pd.id + " select").val(pd.reason); }
+          update_mismatches(pd);
       }
-      reprint_total_prices();
+      update_total_price();
     })
   // ]]>
   </script>
   <style type="text/css">
-      input[type=number] { text-align: right; }
-      th.left { text-align: right; }
+      input[type=number] { text-align: right; width: 70px; }
+      tr { height: 40px; }
+      th.left,th.price-tag { text-align: right; }
+      tr:nth-child(odd) th.left { background-color: #ffe0e0; }
       .top { text-align: center; }
       td,th { text-align: left; padding-left: 10px; padding-right: 10px; }
-      input.packages,input.loose {width: 48px;}
-      input.total { width: 130px;}
-      tr.compare td { background-color: #ccffcc; }
-      tr.compare.mismatch td { background-color: #ffaaaa; }
+      tr.compare:nth-child(odd) td { background-color: #aaffaa; }
+      tr.compare.mismatch:nth-child(odd) td { background-color: #ff8888; }
+      tr.compare:nth-child(even) td { background-color: #ccffcc; }
+      tr.compare.mismatch:nth-child(even) td { background-color: #ffaaaa; }
       tr.compare td.gap { width: 0px; padding: 0px; background-color: inherit; }
       tr.compare.mismatch .reason { display: inline-block; }
       tr.compare .reason { display: none; }
-      td.ordered { width: 150px; }
-      td.delivered { width: 230px; }
-      td.reason, th.reason { width: 140px; }
+      td.ordered { width: 180px; }
+      td.delivered { width: 150px; }
+      td.reason, th.reason { width: 140px; height: inherit; }
       td.price, th.price { text-align: right; }
   </style>
 {% endblock %}
@@ -140,8 +91,7 @@
         <td>{{subgroup.name}}</td>
       </tr>
     </table>
-    <p>Veuillez renseigner les éventuelles différences entre les produits commandés, et les produits livrés et payés.<br/>
-    "ct" est l'abbréviation de "carton(s)".</p>
+    <p>Veuillez renseigner les éventuelles différences entre les produits commandés, et les produits livrés et payés.</p>
     <table id="products-table">
         {# columns: product-name | ordered-quantity | unit | delivered_quantity | reason #}
         <tr>
@@ -160,42 +110,27 @@
                 <br/> (ct de {{pt.product.quantity_per_package}} {{pt.product.unit|unit_multiple}})
                 {% endif %}
             </th>
-
             <td class="ordered">
-                <span class="ordered total">?</span>{{pt.product.unit|unit_multiple}}
+                <span class="ordered total">{{pt.quantity|floatformat}}</span>{{pt.product.unit|unit_multiple}}
                 {% if pt.product.quantity_per_package %}
-                =<br/>
-                <span class="ordered packages">?</span> ct
-                <span class="ordered loose-decoration"> +
-                    <span class="ordered loose">?</span> {{pt.product.unit|unit_multiple}}
-                </span>
+                =<br/>{{pt.full_packages}} cartons de {{pt.product.quantity_per_package}}
+                {% if pt.out_of_packages %}
+                + {{pt.out_of_packages|floatformat}}{{pt.product.unit|unit_multiple}}
+                {% else %}
+                {{pt.product.unit|unit_multiple}}
+                {% endif %}
                 {% endif %}
             </td>
-            <td class="price"><span class="ordered price">?</span>€</td>
+            <td class="price"><span class="ordered price">{{pt.price|price}}</span></td>
             <td class="gap"></td>
             <td class="delivered">
-                <input class="delivered total"
+                <input class="delivered"
                        name="pd{{pt.product.id}}-delivered-total"
                        type="number"
                        min="0"
                        step="0.001"
                        value=""/>
                 {{pt.product.unit|unit_multiple}}
-                {% if pt.product.quantity_per_package %}
-                =<br/>
-                <input class="delivered packages"
-                       name="pd{{pt.product.id}}-delivered-packages"
-                       type="number"
-                       step="1"
-                       min="0"/>
-                ct +
-                <input class="delivered loose"
-                       name="pd{{pt.product.id}}-delivered-loose"
-                       type="number"
-                       step="0.001"
-                       min="0"/>
-                {{pt.product.unit|unit_multiple}}
-                {% endif %}
             </td>
             <td class="price"><span class="delivered price"></span>€</td>
             <td class="gap"></td>
@@ -211,9 +146,10 @@
         {% endfor %}{# totals by product #}
         <tr>
             <th class="left">Total</th>
-            <td colspan="1"></td>
-            <th class="price"><span id="total-ordered-price">?</span>€</th>
-            <td colspan="2"></td>
+            <th class="price-tag">Commandé :</th>
+            <th class="price"><span id="total-ordered-price">{{ordered_price|price}}</span></th>
+            <td></td>
+            <th class="price-tag">Livré et payé :</th>
             <th class="price"><span id="total-delivered-price">?</span>€</th>
         </tr>
     </table>
