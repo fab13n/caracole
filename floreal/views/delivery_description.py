@@ -23,17 +23,22 @@ def delivery_description(delivery, subgroups, **kwargs):
                                                                 "out_of_packages": number,
                                                                 "weight": number,
                                                                 "price": number,
-                                                                "discrepancy": number? },
+                                                                "discrepancy": number?,
+                                                                "discrepancy_reason": string?},
                                      "users": user_idx -> { "user": user,
                                                             "orders": product_idx -> order,
                                                             "price": number,
-                                                            "weight": number },
+                                                            "weight": number},
+                                     "price_discrepancy": number?,
                                      "price": number,
                                      "weight": number},
           "product_totals": product_idx -> { "product": product,
                                              "quantity": number,
                                              "full_packages": number,
-                                             "out_of_packages": number },
+                                             "out_of_packages": number,
+                                             "discrepancy": number?
+                                             "price_discrepancy": number?},
+          "price_discrepancy": number?,
           "price": number }
     """
     # List of products, ordered by name
@@ -94,6 +99,7 @@ def delivery_description(delivery, subgroups, **kwargs):
         qpp = pd.quantity_per_package
         total = {'product': pd, 'quantity': qty}
         total['discrepancy'] = sum(sg_pd_totals[sg][pd]['discrepancy'] for sg in subgroups)
+        total['price_discrepancy'] = total['discrepancy'] * total['product'].price
         if qpp:
             total['full_packages'] = qty // qpp
             total['out_of_packages'] = qty % qpp
@@ -131,6 +137,7 @@ def delivery_description(delivery, subgroups, **kwargs):
                 'weight': sum(pc.weight for pc in order.purchases if pc)})
         sg_item['price'] = sum(uo['price'] for uo in user_records)
         sg_item['weight'] = sum(uo['weight'] for uo in user_records)
+        sg_item['price_discrepancy'] = sum(pt['product'].price * pt['discrepancy'] for pt in pd_totals_list)
 
     price = sum(x['price'] for x in table)
 
@@ -139,7 +146,8 @@ def delivery_description(delivery, subgroups, **kwargs):
         'products': products,
         'product_totals': product_totals,
         'table': table,
-        'price': price
+        'price': price,
+        'price_discrepancy': sum(pt['price_discrepancy'] for pt in product_totals)
     }
     result.update(kwargs)
     return result

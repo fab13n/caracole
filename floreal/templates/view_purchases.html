@@ -139,7 +139,7 @@
     {% if delivery.state >= delivery.REGULATING %}
     <tr class="group_header" id="group_header_discrepancies">
         <th class="left">Écarts livraison</th>
-        <td>?.??€</td>
+        <td>{{price_discrepancy|price}}</td>
         {% for t in product_totals %}
         {% if t.discrepancy %}
         <td>{{t.discrepancy|forced_sign}}</td>
@@ -151,7 +151,7 @@
     {% for sgr in table %}
     <tr class="content_row group_content_discrepancies">
         <th class="left">{{sgr.subgroup.name}}</th>
-        <td>?.??€</td>
+        <td>{{sgr.price_discrepancy|price}}</td>
         {% for t in sgr.totals %}
         {% if t.discrepancy %}
         <td class="tooltip">{{t.discrepancy|forced_sign}}<span class="tooltiptext">{{t.discrepancy_reason}}</span></td>
