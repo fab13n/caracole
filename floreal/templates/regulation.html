@@ -127,7 +127,6 @@
                 <input class="delivered"
                        name="pd{{pt.product.id}}-delivered-total"
                        type="number"
-                       min="0"
                        step="0.001"
                        value=""/>
                 {{pt.product.unit|unit_multiple}}
@@ -140,6 +139,7 @@
                     <option value="Non livré">Non livré</option>
                     <option value="Erreur de paiement">Erreur de paiement</option>
                     <option value="Avoir">Avoir</option>
+                    <option value="Rab">Rab</option>
                 </select>
             </td>
         </tr>
