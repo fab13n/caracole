@@ -7,28 +7,19 @@
 
 % product | price / unit | qty | price | weight
 \begin{longtable}{|r|r@{/}l| l |r|r|}
-\multicolumn{6}{c}{\em Circuit court {{d.delivery.network.name}}, commande {{d.delivery.name}}}\\
-\multicolumn{6}{c}{}\\
 {% for table in d.table %}{# for each subgroup summary #}
   {% if table.price %}{# some orders in this subgroup #}
+    \multicolumn{6}{c}{\large\bf Circuit court {{d.delivery.network.name}}, commande {{d.delivery.name}}}\\
+    \multicolumn{6}{c}{\large\bf Sous-groupe {{table.subgroup.name}}}\\
+    \noalign{\vspace{7mm}}
     \cline{4-6}
-    \multicolumn{3}{c|}{\bf Sous-groupe {{table.subgroup.name}}}
-    &
-    {Quantité}
-    &
-    {Prix}
-    &
-    {Poids}
-    \\
+    \multicolumn{3}{c|}{ } & {Quantité} & {Prix} & {Poids} \\
     \hline
     {% for totals in table.totals %}{# for each product #}
       {% if totals.quantity %}{# some order of this product in this subgroup #}
-        {{totals.product.name}}
-        &
-        {{totals.product.price|price}}
-        &
-        {{totals.product.unit}}
-        &
+        {{totals.product.name}} &
+        {{totals.product.price|price}} &
+        {{totals.product.unit}} &
         {% if totals.full_packages == None %}
           {{totals.quantity|qty}}{{totals.product.unit|short_unit}}
         {% else %}
@@ -36,16 +27,14 @@
           {% if totals.out_of_packages %} + {{totals.out_of_packages|qty}}{{totals.product.unit|short_unit}}{% endif %}
         {% endif %}{# packaged #}
         &
-        {{totals.price |price}}
-        &
-        {{totals.weight|qty}}{{"kg"|short_unit}}
-        \\
+        {{totals.price |price}} &
+        {{totals.weight|qty}}{{"kg"|short_unit}} \\
       {% endif %}{# some order of this product in this subgroup #}
     {% endfor %}{# for each product #}
     \hline
-    {# for each subgroup summary #}\multicolumn{4}{|c|}{\bf Total} & {{table.price|price}} & {{table.weight}}{{"kg"|short_unit}} \\
+    {# Subgroup summary #}\multicolumn{4}{|c|}{\bf Total} & {{table.price|price}} & {{table.weight|qty}}{{"kg"|short_unit}} \\
     \hline
-    \multicolumn{6}{c}{ }\\  % space between subgroups
+    \pagebreak
   {% endif %}{# some orders in this subgroup #}
 {% endfor %}{# for each subgroup summary #}
 \end{longtable}
