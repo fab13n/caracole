@@ -183,6 +183,15 @@
       }
     }
 
+    function submit_if_valid() {
+        if($("#dv-name").val().trim() == "") {
+            alert("Avant de pouvoir sauvegarder, il faut donner un nom à la livraison, en haut du formulaire !");
+            return;
+        }
+        /* All sanity checks passed: submit the form */
+        $("#form").submit()
+    }
+
     $(document).ready(function() {
       /* Generate and fill product rows */
       for(var i=0; i<PRODUCTS.length; i++) {
@@ -190,8 +199,21 @@
         var r_prefix = add_row();
         fill_row(r_prefix, record);
       }
+
+      /* Add a couple of empty rows. */
       add_blank_products();
+
+      /* Disable the "move up" button of the first product.
+       * "move down" of the last button has been handled through blank line insertions. */
       $("#r1 td.place button.up").attr("disabled", "disabled");
+
+      /* If the delivery has just been created, clear up the name so that it has to be filled
+       * explicitly. */
+      var url_params = new URLSearchParams(window.location.search);
+      if(url_params.get('new')) {
+          $("#dv-name").val("");
+      }
+
     })
     // ]]>
   </script>
@@ -220,7 +242,7 @@
 {% endblock %}
 
 {% block content %}
-<form method="post" action="">
+<form method="post" action="" id="form">
     <table id="dv-table">
         <tr>
           <th><label for="dv-name">Nom de la livraison :</label></th>
@@ -265,11 +287,11 @@
         <tbody></tbody>
     </table>
     <p>
-      <button type='button' onclick="add_blank_products();">Ajouter des produits</button>
-      <input type='submit' value="Sauvegarder" />
-      <input type='hidden' name='dv-id' value='{{delivery.id}}' />
-      <input type='hidden' name='n_rows' id="n_rows" value='0' />
-      {% csrf_token %}
+        <button type='button' onclick="add_blank_products();">Ajouter des produits</button>
+        <button type='button' class='submit' onclick="submit_if_valid();">Sauvegarder</button>
+        <input type='hidden' name='dv-id' value='{{delivery.id}}' />
+        <input type='hidden' name='n_rows' id="n_rows" value='0' />
+        {% csrf_token %}
 	</p>
 </form>
 {% endblock %}

@@ -4,7 +4,7 @@
 from datetime import datetime
 import os
 
-from django.shortcuts import render_to_response, redirect
+from django.shortcuts import render_to_response, redirect, reverse
 from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpResponse
 from django.contrib.auth.decorators import login_required
 
@@ -198,12 +198,15 @@ def create_delivery(request, network=None, dv_model=None):
     new_dv = m.Delivery.objects.create(name=name, network=nw, state=m.Delivery.PREPARATION)
     if dv_model:
         for prev_pd in dv_model.product_set.all():
+            new_dv.description = dv_model.description
+            new_dv.save()
             m.Product.objects.create(delivery=new_dv, name=prev_pd.name, price=prev_pd.price,
                                      quantity_per_package=prev_pd.quantity_per_package,
                                      unit=prev_pd.unit, quantity_limit=prev_pd.quantity_limit,
-                                     unit_weight=prev_pd.unit_weight, quantum=prev_pd.quantum)
+                                     unit_weight=prev_pd.unit_weight, quantum=prev_pd.quantum,
+                                     description=prev_pd.description)
     m.JournalEntry.log(request.user, "Created new delivery %s in %s", name, nw.name)
-    return redirect('edit_delivery_products', delivery=new_dv.id)
+    return redirect(reverse('edit_delivery_products', kwargs={'delivery': new_dv.id})+"?new=true")
 
 
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)

@@ -104,7 +104,7 @@ input, textarea, select {
 
 em { font-style: normal; color: #811305; font-weight: bold; }
 
-[type=submit] {
+[type=submit], button.submit {
     color:            white;
     background-color: #811305;
     font-weight:      bold;
@@ -112,7 +112,7 @@ em { font-style: normal; color: #811305; font-weight: bold; }
     margin:           10px;
 }
 
-[type=submit]:disabled {
+[type=submit]:disabled, button.submit:disabled {
     color:            white;
     background-color: #818181;
     border-color: #818181;
