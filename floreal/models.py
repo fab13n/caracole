@@ -324,8 +324,8 @@ class JournalEntry(models.Model):
         cls.objects.create(user=u, date=datetime.now(), action=fmt % (args or kwargs))
 
 
-class Discrepancy(models.Model):
-    """Log of a discrepancy between what's been ordered and what's actually been paid for in a given subgroup.
+class ProductDiscrepancy(models.Model):
+    """Log of an accounting discrepancy between what's been ordered and what's actually been paid for in a given subgroup.
     """
     product = models.ForeignKey(Product)
     amount = models.DecimalField(decimal_places=3, max_digits=9)
@@ -344,5 +344,23 @@ class Discrepancy(models.Model):
         )
 
     class Meta:
-        verbose_name_plural = "Discrepancies"
+        verbose_name_plural = "Product Discrepancies"
 
+class DeliveryDiscrepancy(models.Model):
+    """Lof of an accounting discrepancy that cannot be attributed to a specific product."""
+    delivery = models.ForeignKey(Delivery)
+    amount = models.DecimalField(decimal_places=2, max_digits=9)
+    subgroup = models.ForeignKey(Subgroup)
+    reason = models.CharField(max_length=256)
+
+    def __unicode__(self):
+        return u"%s/%s: %+g€ for %s: %s" % (
+            self.delivery.network.name,
+            self.delivery.name,
+            self.amount,
+            self.subgroup.name,
+            self.reason
+        )
+
+    class Meta:
+        verbose_name_plural = "Delivery Discrepancies"
