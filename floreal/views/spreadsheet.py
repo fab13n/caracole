@@ -26,10 +26,12 @@ def _col_name(c):
     else:
         raise Exception("Too many products")
 
+# Extra columns "Espèces", "Chèque", "Avoir", "Dû"
+PAYMENT_COLUMNS = False
 
 # By how much the first element of the 2D user/product quantity matrix is shifted
-ROW_OFFSET = 12
-COL_OFFSET = 6
+ROW_OFFSET = 12 if PAYMENT_COLUMNS else 11
+COL_OFFSET = 6 if PAYMENT_COLUMNS else 2
 
 V_CYCLE_LENGTH = 5
 H_CYCLE_LENGTH = 5
@@ -56,14 +58,18 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
     for row, title in enumerate([u"Prix unitaire", u"Poids unitaire", u"Nombre par carton",
                                  u"Nombre de pièces", u"Nombre de cartons", u"Nombre en complément",
                                  u"Poids total"]):
-        sheet.merge_range('B%d:E%d'%(row+4, row+4), title, fmt['hdr_title_right'])
+        if PAYMENT_COLUMNS:
+            sheet.merge_range('B%d:E%d'%(row+4, row+4), title, fmt['hdr_title_right'])
+        else:
+            sheet.write('A%d'%(row+4), title, fmt['hdr_title_right'])
     for r in range(3, 12):
         sheet.write_blank(r, COL_OFFSET-1, None, fmt['hdr_blank'])
     sheet.write(2, COL_OFFSET-1, u"Prix\n&\nTotaux", fmt['hdr_title'])
-    sheet.write(10, 1, u"Espèces", fmt['hdr_title'])
-    sheet.write(10, 2, u"Chèque", fmt['hdr_title'])
-    sheet.write(10, 3, u"Avoir", fmt['hdr_title'])
-    sheet.write(10, 4, u"Dû", fmt['hdr_title'])
+    if PAYMENT_COLUMNS:
+        sheet.write(10, 1, u"Espèces", fmt['hdr_title'])
+        sheet.write(10, 2, u"Chèque", fmt['hdr_title'])
+        sheet.write(10, 3, u"Avoir", fmt['hdr_title'])
+        sheet.write(10, 4, u"Dû", fmt['hdr_title'])
 
     # Generate product names and prices rows
     if group_recap or one_group:
@@ -76,7 +82,7 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
             # 5/6: per package
             # 6/7: # units
             # 7/8: # full ackages
-            # 8/9: # lose units
+            # 8/9: # loose units
             # 9/10: total weight
             # 10/11: total price (1 cell)
             sheet.write(2, c+COL_OFFSET, _u8(pd.name), fmt['pd_name'])
@@ -105,7 +111,8 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
         fmt_u = fmt['user_name_cycle'] if r % V_CYCLE_LENGTH == V_CYCLE_LENGTH-1 else fmt['user_name']
         sheet.write(r+ROW_OFFSET, 0, _u8(name), fmt_u)
     if extra_line:
-        sheet.write(n_buyers + ROW_OFFSET, 0, "Extra", fmt['user_name_cycle'])
+        fmt_u = fmt['user_name_cycle'] if n_buyers % V_CYCLE_LENGTH == V_CYCLE_LENGTH-1 else fmt['user_name']
+        sheet.write(n_buyers + ROW_OFFSET, 0, "Extra", fmt_u)
 
     # Fill purchases, count totals
     for c, pd in enumerate(products):
@@ -113,14 +120,10 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
         for r in range(n_buyers):
             qty = purchases(r, c)
             v_cycle = r % V_CYCLE_LENGTH == V_CYCLE_LENGTH-1
-            if h_cycle and v_cycle:
-                fmt_name = 'qty_vh_cycle'
-            elif h_cycle:
-                fmt_name = 'qty_h_cycle'
-            elif v_cycle:
-                fmt_name = 'qty_v_cycle'
-            else:
-                fmt_name = 'qty'
+            if h_cycle and v_cycle:  fmt_name = 'qty_vh_cycle'
+            elif h_cycle:            fmt_name = 'qty_h_cycle'
+            elif v_cycle:            fmt_name = 'qty_v_cycle'
+            else:                    fmt_name = 'qty'
 
             if purchase_fmls:
                 fml = purchase_fmls(r, c)
@@ -135,12 +138,16 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
                 weight_buyer[r] += w
                 weight_product[c] += w
         if extra_line:
-            fmt_x = fmt['qty_vh_cycle' if h_cycle else 'qty_v_cycle']
+            v_cycle = n_buyers % H_CYCLE_LENGTH == H_CYCLE_LENGTH - 1
+            if h_cycle and v_cycle:  fmt_name = 'qty_vh_cycle'
+            elif h_cycle:            fmt_name = 'qty_h_cycle'
+            elif v_cycle:            fmt_name = 'qty_v_cycle'
+            else:                    fmt_name = 'qty'
             if extra_fmls:
                 fml = extra_fmls(n_buyers, c)
-                sheet.write(n_buyers+ROW_OFFSET, c+COL_OFFSET, fml, fmt_x, 0)
+                sheet.write(n_buyers+ROW_OFFSET, c+COL_OFFSET, fml, fmt[fmt_name], 0)
             else:
-                sheet.write(n_buyers+ROW_OFFSET, c+COL_OFFSET, 0, fmt_x)
+                sheet.write(n_buyers+ROW_OFFSET, c+COL_OFFSET, 0, fmt[fmt_name])
 
     # Total price per buyer, plus accounting columns cheque / especes / avoir / du
     for r in range(n_buyers):
@@ -154,7 +161,9 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
         fmt_p = fmt['hdr_user_price_cycle'] if r % V_CYCLE_LENGTH == V_CYCLE_LENGTH-1 else fmt['hdr_user_price']
         sheet.write(r+ROW_OFFSET, COL_OFFSET-1, fml, fmt_p, price_buyer[r])
         fmt_p = fmt['price_h_cycle'] if r % V_CYCLE_LENGTH == V_CYCLE_LENGTH-1 else fmt['price']
-        if group_recap:
+        if not PAYMENT_COLUMNS:
+            pass
+        elif group_recap:
             # Retrieve values from other pages' totals
             fml = "=%s!%%s12" % (buyers[r])
             sheet.write(r+ROW_OFFSET, 1, fml % 'B', fmt_p, 0)
@@ -170,6 +179,7 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
             sheet.write(r+ROW_OFFSET, 4, fml, fmt_p, price_buyer[r])
 
     if extra_line:
+        # TODO Retrieve cyclical style
         fml = "=SUMPRODUCT(" \
               "%(firstcol)s$%(u_price_row)s:%(lastcol)s$%(u_price_row)s," \
               "%(firstcol)s%(qty_row)s:%(lastcol)s%(qty_row)s)" % \
@@ -179,21 +189,25 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
                'qty_row': n_buyers+ROW_OFFSET+1}
         fmt_p = fmt['hdr_user_price_cycle']
         sheet.write(n_buyers + ROW_OFFSET, COL_OFFSET-1, fml, fmt_p, 0)
-        sheet.write(n_buyers + ROW_OFFSET, 1, 0, fmt_p)
-        sheet.write(n_buyers + ROW_OFFSET, 2, 0, fmt_p)
-        sheet.write(n_buyers + ROW_OFFSET, 3, 0, fmt_p)
-        fml = "=F%(r)s-B%(r)s-C%(r)s-D%(r)s" % {'r': n_buyers+ROW_OFFSET+1}
-        sheet.write(n_buyers + ROW_OFFSET, 4, fml, fmt_p, 0)
+        if PAYMENT_COLUMNS:
+            sheet.write(n_buyers + ROW_OFFSET, 1, 0, fmt_p)
+            sheet.write(n_buyers + ROW_OFFSET, 2, 0, fmt_p)
+            sheet.write(n_buyers + ROW_OFFSET, 3, 0, fmt_p)
+            fml = "=F%(r)s-B%(r)s-C%(r)s-D%(r)s" % {'r': n_buyers+ROW_OFFSET+1}
+            sheet.write(n_buyers + ROW_OFFSET, 4, fml, fmt_p, 0)
 
     # Total price for all users
     fml = "=SUM(%%(sumcol)s%(firstrow)s:%%(sumcol)s%(lastrow)s)" % \
           {'sumcol': _col_name(COL_OFFSET-1), 'firstrow':ROW_OFFSET+1, 'lastrow': n_buyers+ROW_OFFSET+extra_line}
-    sheet.write(11, 1, fml % {'sumcol': 'B'}, fmt['hdr_price'], 0)
-    sheet.write(11, 2, fml % {'sumcol': 'C'}, fmt['hdr_price'], 0)
-    sheet.write(11, 3, fml % {'sumcol': 'D'}, fmt['hdr_price'], 0)
-    sheet.write(11, 4, fml % {'sumcol': 'E'}, fmt['hdr_price'], 0)
-    sheet.write(11, 5, fml % {'sumcol': 'F'}, fmt['hdr_price'], sum(price_buyer))
-
+    if PAYMENT_COLUMNS:
+        sheet.write(11, 1, fml % {'sumcol': 'B'}, fmt['hdr_price'], 0)
+        sheet.write(11, 2, fml % {'sumcol': 'C'}, fmt['hdr_price'], 0)
+        sheet.write(11, 3, fml % {'sumcol': 'D'}, fmt['hdr_price'], 0)
+        sheet.write(11, 4, fml % {'sumcol': 'E'}, fmt['hdr_price'], 0)
+        sheet.write(11, 5, fml % {'sumcol': 'F'}, fmt['hdr_price'], sum(price_buyer))
+    else:
+        sheet.write(10, 0, "Prix total", fmt['hdr_title_right'])
+        sheet.write(10, 1, fml % {'sumcol': 'B'}, fmt['hdr_price'], sum(price_buyer))
 
     # Total quantities and weights per product
     total_packages = 0
@@ -224,6 +238,10 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
             weight = "?"
         sheet.write(9, c+COL_OFFSET, fml, fmt['hdr_weight'], weight)
         sheet.write_blank(10, c+COL_OFFSET, None, fmt['hdr_blank'])
+
+        # Total price per product
+        fml = "=%(colname)s4*%(colname)s7" % vars
+        sheet.write(ROW_OFFSET-1, c+COL_OFFSET, fml, fmt['hdr_price'], pd.price*qty)
 
     # Total # of packages and weight
     vars = {'firstcol': _col_name(COL_OFFSET), 'lastcol': _col_name(n_products+COL_OFFSET-1)}
