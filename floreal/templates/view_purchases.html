@@ -77,7 +77,7 @@
             {{pt.full_packages}} × {{pt.product.quantity_per_package}}{{pt.product.unit|unit_multiple}} <br/>
             <span class="out_of_packages"> + {{pt.out_of_packages|floatformat}}{{pt.product.unit|unit_multiple}}</span>
             {% elif pt.full_packages %}{# round number of packages, no loose item. #}
-            {{pt.quantity}} = <br/>
+            {{pt.quantity|floatformat}} = <br/>
             <span class="nothing_out_of_package">
                 {{pt.full_packages}} × {{pt.product.quantity_per_package}}{{pt.product.unit|unit_multiple}}
             </span>
