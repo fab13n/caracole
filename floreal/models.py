@@ -346,21 +346,8 @@ class ProductDiscrepancy(models.Model):
     class Meta:
         verbose_name_plural = "Product Discrepancies"
 
-class DeliveryDiscrepancy(models.Model):
-    """Lof of an accounting discrepancy that cannot be attributed to a specific product."""
-    delivery = models.ForeignKey(Delivery)
-    amount = models.DecimalField(decimal_places=2, max_digits=9)
-    subgroup = models.ForeignKey(Subgroup)
-    reason = models.CharField(max_length=256)
 
-    def __unicode__(self):
-        return u"%s/%s: %+g€ for %s: %s" % (
-            self.delivery.network.name,
-            self.delivery.name,
-            self.amount,
-            self.subgroup.name,
-            self.reason
-        )
-
-    class Meta:
-        verbose_name_plural = "Delivery Discrepancies"
+# Per-delivery, per-subgroup discrepancies:
+#
+# There's one mock product per delivery, up to one discrepancy per subgroup.
+# They need to be get/set for a given (dv, sg) pair.
