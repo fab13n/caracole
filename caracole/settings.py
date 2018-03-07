@@ -49,6 +49,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'registration',  # WARNING that's django-registration-redux, not django-registration!
     'django_extensions',
     'django_markdown'
