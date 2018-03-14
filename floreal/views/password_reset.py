@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 from django.contrib.auth.forms import PasswordResetForm
@@ -13,7 +13,7 @@ def password_reset(request, password_reset_form=PasswordResetForm, post_reset_re
         if form.is_valid():
             email = form.cleaned_data['email']
             if not User.objects.filter(is_active=True, email__iexact=email).exists():
-                return HttpResponseForbidden(u"Cet e-mail ne correspond à aucun utilisateur Caracole !")
+                return HttpResponseForbidden("Cet e-mail ne correspond à aucun utilisateur Caracole !")
 
     return original_password_reset(request, password_reset_form=password_reset_form,
                                    post_reset_redirect=post_reset_redirect, **kwargs)

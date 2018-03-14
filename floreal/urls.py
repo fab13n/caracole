@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 from django.conf.urls import include, url
@@ -69,7 +69,7 @@ urlpatterns = [
     url(r'^journal$', views.journal, name='view_journal'),
     url(r'^charte.html$', TemplateView.as_view(template_name='charte.html'), name='charte'),
 
-    url(r'^admin/', include(admin.site.urls), name='admin'),
+    url(r'^admin/', admin.site.urls),
 
     url(r'^accounts/register$', views.user_register, name="user_register"),
     url(r'^accounts/registration_post.html$', views.user_register_post, name="registration_post"),

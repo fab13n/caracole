@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 from decimal import Decimal
@@ -54,7 +54,7 @@ def _parse_form(request):
         total_after = Decimal(d["pd%s-delivered-total" % pd.id])
         amount = total_after - total_before
         if amount:
-            print u"Quantity of %s adjusted from %s to %s" % (pd.name, total_before, total_after)
+            print("Quantity of %s adjusted from %s to %s" % (pd.name, total_before, total_after))
             reason = d['pd%s-reason' % pd.id]
             set_discrepancy(pd, sg, amount, reason)
 

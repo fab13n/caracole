@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 from floreal import models as m
@@ -22,12 +22,12 @@ def allocate(limit, wishes):
     :param wishes: quantities wished by each customer (dictionary, arbitrary key types).
     :return:  quantities allocated to each customer (dictionary, same keys as above).
     """
-    wish_values = wishes.values()
+    wish_values = list(wishes.values())
     if sum(wish_values) <= limit:
         # print "There's enough for everyone!"
         return wishes
     unallocated = limit  # resources left to attribute
-    granted = {k: 0 for k in wishes.keys()}  # what consumers have been granted so far
+    granted = {k: 0 for k in list(wishes.keys())}  # what consumers have been granted so far
     n_unsatisfied = len(wishes) - wish_values.count(0)  # nb of consumers still unsatisfied
     ceiling = 0  # current limit (increases until everything is allocated)
 
@@ -36,7 +36,7 @@ def allocate(limit, wishes):
         lot = unallocated / n_unsatisfied  # We can safely distribute at least this much
         ceiling += lot
         # print ("%i units left; allocating %i units to %i unsatisfied people" % (unallocated, lot, n_unsatisfied))
-        for k, wish_k in wishes.items():
+        for k, wish_k in list(wishes.items()):
             wish_more_k = wish_k - granted[k]
             if wish_more_k > 0:  # this consumer isn't satisfied yet, give him some more
                 lot_k = min(wish_more_k, lot)  # don't give more than what he asked for, though.
@@ -47,7 +47,7 @@ def allocate(limit, wishes):
                     n_unsatisfied -= 1  # He's satisfied now!
 
     # 2nd stage: give the remaining units, one by one, to biggest unsatisfied buyers
-    got_leftover = sorted(wishes.keys(), key=lambda k: granted[k]-wishes[k])[0:unallocated]
+    got_leftover = sorted(list(wishes.keys()), key=lambda k: granted[k]-wishes[k])[0:unallocated]
     # print ("%i more units to distribute, they will go to %s" % (unallocated, got_leftover))
     for k in got_leftover:
         granted[k] += 1
@@ -57,7 +57,7 @@ def allocate(limit, wishes):
     if True:
         assert unallocated == 0
         assert sum(granted.values()) == limit
-        for k in wishes.keys():
+        for k in list(wishes.keys()):
             assert granted[k] <= wishes[k]
             assert granted[k] <= ceiling+1
 
@@ -82,7 +82,7 @@ def set_limit(pd):
         uid = pc.user_id
         if formerly_granted[uid] != granted[uid]:  # Save some DB accesses
             pc.quantity = granted[uid]
-            print "%s %s had their purchase of %s modified: ordered %s, formerly granted %s, now granted %s" % (
+            print("%s %s had their purchase of %s modified: ordered %s, formerly granted %s, now granted %s" % (
                 pc.user.first_name, pc.user.last_name, pc.product.name, pc.quantity, formerly_granted[uid], pc.quantity
-            )
+            ))
             pc.save(force_update=True)

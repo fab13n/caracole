@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 import re
@@ -52,7 +52,7 @@ def _parse_form(request):
         try:
             pc = m.Purchase.objects.get(product_id=pd, user_id=u)
             if ordered != 0:
-                print "Updating purchase %d" % pc.id
+                print("Updating purchase %d" % pc.id)
                 pc.quantity = ordered
                 pc.save(force_update=True)
             else:
