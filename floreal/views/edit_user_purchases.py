@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 import django
@@ -6,7 +6,7 @@ if django.VERSION < (1, 8):
     from django.core.context_processors import csrf
 else:
     from django.template.context_processors import csrf
-from django.shortcuts import redirect, render_to_response
+from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
 
 from .. import models as m
@@ -35,7 +35,7 @@ def edit_user_purchases(request, delivery):
             'purchases': order.purchases
         }
         vars.update(csrf(request))
-        return render_to_response('edit_user_purchases.html', vars)
+        return render(request,'edit_user_purchases.html', vars)
 
 
 def _parse_form(request):

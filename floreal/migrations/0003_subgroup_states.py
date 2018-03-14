@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
@@ -16,8 +17,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('state', models.CharField(default=b'X', max_length=1, choices=[(b'Y', 'Commande valid\xe9e'), (b'X', 'Non valid\xe9'), (b'Z', 'Compta valid\xe9e')])),
-                ('delivery', models.ForeignKey(to='floreal.Delivery')),
-                ('subgroup', models.ForeignKey(to='floreal.Subgroup')),
+                ('delivery', models.ForeignKey(to='floreal.Delivery', on_delete=models.CASCADE)),
+                ('subgroup', models.ForeignKey(to='floreal.Subgroup', on_delete=models.CASCADE)),
             ],
             options={
             },

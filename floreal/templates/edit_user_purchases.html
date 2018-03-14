@@ -1,7 +1,6 @@
 {% extends 'layout_semi_wide.html' %}
 {% load floreal_filters %}
 {% load static %}
-{% load django_markdown %}
 
 {% block head %}
   <script type='text/javascript'>
@@ -121,7 +120,7 @@
     </table>
     {% if delivery.description %}
     <div style="height: 20px;"></div>
-    <p id="dv-description">{{delivery.description|markdown}}</p>
+    <p id="dv-description">{{delivery.description}}</p>
     <div style="height: 20px;"></div>
     {% else %}
     <div style="height: 20px;"></div>
@@ -149,7 +148,7 @@
           <td class="qpp">{% if pd.quantity_per_package %}{{pd.quantity_per_package}}{{pd.unit|unit_multiple}}/carton{% else %} - {% endif %}</td>
           <td class="reset"><input type="image" src={% static 'images/minus.png' %} onclick="reset_order({{pd.id}}); return false" value="Remettre à 0"></td>
         </tr>
-        <tr><td colspan="8" class="description">{%if pd.description%}<div>{{pd.description|markdown}}
+        <tr><td colspan="8" class="description">{%if pd.description%}<div>{{pd.description}}
         </div>{%endif%}</td></tr>
         {% endfor %}
         <tr class="total">

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
@@ -18,8 +19,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('message', models.TextField(null=True, blank=True)),
-                ('subgroup', models.ForeignKey(to='floreal.Subgroup')),
-                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+                ('subgroup', models.ForeignKey(to='floreal.Subgroup', on_delete=models.CASCADE)),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE)),
             ],
             options={
             },

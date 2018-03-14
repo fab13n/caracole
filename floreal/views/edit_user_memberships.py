@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 import re
@@ -9,7 +9,7 @@ if django.VERSION < (1, 8):
 else:
     from django.template.context_processors import csrf
 from django.http import HttpResponseForbidden, JsonResponse
-from django.shortcuts import render_to_response, redirect
+from django.shortcuts import render, redirect
 
 from .. import models as m
 from .getters import get_network
@@ -70,7 +70,7 @@ def edit_user_memberships(request, network):
             return redirect("edit_user_memberships", network=nw.id)
     vars = {'user': request.user, 'nw': nw, 'multi_sg': nw.subgroup_set.count() > 1}
     vars.update(csrf(request))
-    return render_to_response('edit_user_memberships.html', vars)
+    return render(request,'edit_user_memberships.html', vars)
 
 
 def _parse_form(request, nw):

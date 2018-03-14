@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 """
@@ -51,42 +51,48 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'registration',  # WARNING that's django-registration-redux, not django-registration!
     'django_extensions',
-    'django_markdown'
+     #'django_markdown', # WARNING that's django-markdown-app, not django-markdown !
+     #'tinymce'
 )
 
-if django.VERSION < (1, 8):
-    INSTALLED_APPS += ('longerusernameandemail',)
 
-MIDDLEWARE_CLASSES = (
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-)
+]
 
-if django.VERSION < (1, 8):
-    TEMPLATE_DEBUG = True
-    TEMPLATE_STRING_IF_INVALID = "[[[Invalid template variable %s]]]"
-else:
-    TEMPLATES = [
-        {
-            'BACKEND': 'django.template.backends.django.DjangoTemplates',
-            'DIRS': [os.path.join(BASE_DIR, 'templates')],
-            'APP_DIRS': True,
-            'OPTIONS': {
-                'context_processors': [
-                    'django.template.context_processors.request',
-                    'django.contrib.auth.context_processors.auth',
-                    'django.contrib.messages.context_processors.messages'
-                ],
-                'debug': True,
-                'string_if_invalid': "[[[Invalid template variable %s]]]"
-            }
+#MIDDLEWARE = (
+#    'django.contrib.sessions.middleware.SessionMiddleware',
+#    'django.middleware.common.CommonMiddleware',
+#    'django.middleware.csrf.CsrfViewMiddleware',
+#    'django.contrib.auth.middleware.AuthenticationMiddleware',
+#    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+#    'django.contrib.messages.middleware.MessageMiddleware',
+#    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+#)
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages'
+            ],
+            'debug': True,
+            'string_if_invalid': "[[[Invalid template variable %s]]]"
         }
-    ]
+    }
+]
 
 ROOT_URLCONF = 'floreal.urls'
 
@@ -95,7 +101,7 @@ WSGI_APPLICATION = 'caracole.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': '/home/fabien/src/caracole/database.sqlite3'
+        'NAME': '/home/master/caracole/database.sqlite3'
     }
 }
 

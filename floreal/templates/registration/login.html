@@ -2,9 +2,21 @@
 
 {% block content %}
 
+
+{% if form.errors %}
+<p style="background-color:powderblue;">E-mail ou mot de passe invalide. Veuillez réessayer.</p>
+{% endif %}
+
+{% if next %}
+    {% if user.is_authenticated %}
+    <p style="background-color:red;">Vous n'avez pas accès à cette page.</p>
+    {% else %}
+     
+    {% endif %}
+{% endif %}
 <h2>Vous avez déjà un compte circuits courts Caracole:</h2>
 <p>Identifiez-vous :</p>
-<form action="" method="post">
+<form method="post" action="">
   <table>
     {# I'm too lazy to figure out how to change the label from "username" to "e-mail" in the default form #}
     <tr><th><label for="id_username">e-mail :</label></th><td>{{form.username}}</td></tr>
@@ -12,6 +24,7 @@
     <tr><td></td><td><input type="submit" value="S'identifier"/></td></tr>
   </table>
   {% csrf_token %}
+<input type="hidden" name="next" value="{{ next }}">
 </form>
 
 <p>On vous a proposé de rejoindre un ciruit Caracole ? <a href="{% url 'user_register' %}">Enregistrez-vous</a>.</p>
