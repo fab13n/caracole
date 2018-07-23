@@ -51,7 +51,6 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'registration',  # WARNING that's django-registration-redux, not django-registration!
     'django_extensions',
-    'django_markdown'
 )
 
 if django.VERSION < (1, 8):

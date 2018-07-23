@@ -5,8 +5,6 @@ from django.conf.urls import url
 from django.contrib import admin
 from django.views.generic import TemplateView
 
-#from django_markdown import urls as django_markdown_urls
-
 from . import views
 
 app_name = 'circuitscourts'
