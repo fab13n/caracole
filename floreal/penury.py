@@ -22,12 +22,12 @@ def allocate(limit, wishes):
     :param wishes: quantities wished by each customer (dictionary, arbitrary key types).
     :return:  quantities allocated to each customer (dictionary, same keys as above).
     """
-    wish_values = wishes.values()
+    wish_values = list(wishes.values())
     if sum(wish_values) <= limit:
         # print "There's enough for everyone!"
         return wishes
     unallocated = limit  # resources left to attribute
-    granted = {k: 0 for k in wishes.keys()}  # what consumers have been granted so far
+    granted = {k: 0 for k in list(wishes.keys())}  # what consumers have been granted so far
     n_unsatisfied = len(wishes) - wish_values.count(0)  # nb of consumers still unsatisfied
     ceiling = 0  # current limit (increases until everything is allocated)
 
@@ -82,7 +82,7 @@ def set_limit(pd):
         uid = pc.user_id
         if formerly_granted[uid] != granted[uid]:  # Save some DB accesses
             pc.quantity = granted[uid]
-            print "%s %s had their purchase of %s modified: ordered %s, formerly granted %s, now granted %s" % (
+            print("%s %s had their purchase of %s modified: ordered %s, formerly granted %s, now granted %s" % (
                 pc.user.first_name, pc.user.last_name, pc.product.name, pc.quantity, formerly_granted[uid], pc.quantity
-            )
+            ))
             pc.save(force_update=True)

@@ -22,7 +22,7 @@ _unsafe_tex_chars = {
         '<': r'\textless',
         '>': r'\textgreater',
     }
-_unsafe_tex_regex = re.compile('|'.join(re.escape(unicode(key))
+_unsafe_tex_regex = re.compile('|'.join(re.escape(str(key))
                                         for key in sorted(_unsafe_tex_chars.keys(), key=lambda item: - len(item))))
 
 @register.filter
@@ -36,28 +36,28 @@ def price_nocurrency(f):
     euros = int(f)
     cents = int(f * 100) % 100
     if cents:
-        return ur"%d{\scriptsize ,%02d}" % (euros, cents)
+        return r"%d{\scriptsize ,%02d}" % (euros, cents)
     else:
-        return ur"%d" % euros
+        return r"%d" % euros
 
 @register.filter
 def price(f):
     euros = int(f)
     cents = int(f * 100) % 100
     if cents:
-        return ur"%d{\scriptsize ,%02d\euro}" % (euros, cents)
+        return r"%d{\scriptsize ,%02d\euro}" % (euros, cents)
     else:
-        return ur"%d{\scriptsize\euro}" % euros
+        return r"%d{\scriptsize\euro}" % euros
 
 @register.filter
 def qty(f):
-    return u"%g" % f
+    return "%g" % f
 
 @register.filter
 def short_unit(u):
     if u != 'kg':
         u = 'pc'
-    return ur"{\scriptsize %s}" % u
+    return r"{\scriptsize %s}" % u
 
 @register.filter
 def unit(u):

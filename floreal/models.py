@@ -117,12 +117,12 @@ class Delivery(models.Model):
     REGULATING     = 'E'
     TERMINATED     = 'F'
     STATE_CHOICES = {
-        PREPARATION:    u"En préparation",
-        ORDERING_ALL:   u"Ouverte",
-        ORDERING_ADMIN: u"Admins",
-        FROZEN:         u"Gelée",
-        REGULATING:     u"Régularisation",
-        TERMINATED:     u"Terminée" }
+        PREPARATION:    "En préparation",
+        ORDERING_ALL:   "Ouverte",
+        ORDERING_ADMIN: "Admins",
+        FROZEN:         "Gelée",
+        REGULATING:     "Régularisation",
+        TERMINATED:     "Terminée" }
     name = models.CharField(max_length=64)
     network = models.ForeignKey(Network, on_delete=models.CASCADE)
     state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=PREPARATION)
@@ -166,9 +166,9 @@ class SubgroupStateForDelivery(models.Model):
     READY_FOR_ACCOUNTING = 'Z'
     DEFAULT = INITIAL
     STATE_CHOICES = {
-        INITIAL:              u"Non validé",
-        READY_FOR_DELIVERY:   u"Commande validée",
-        READY_FOR_ACCOUNTING: u"Compta validée"}
+        INITIAL:              "Non validé",
+        READY_FOR_DELIVERY:   "Commande validée",
+        READY_FOR_ACCOUNTING: "Compta validée"}
     state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=DEFAULT)
     delivery = models.ForeignKey(Delivery, on_delete=models.CASCADE)
     subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
@@ -225,10 +225,10 @@ class Purchase(models.Model):
         return self.quantity * self.product.unit_weight
 
     def __unicode__(self, specify_user=False):
-        fmt = u"%(quantity)g%(mult)s%(unit)s %(prod_name)s à %(price).2f€"
+        fmt = "%(quantity)g%(mult)s%(unit)s %(prod_name)s à %(price).2f€"
         unit = self.product.unit
         result = fmt % {
-            'mult': u'×'if len(unit)>0 and unit[0].isdigit() else u' ',
+            'mult': '×'if len(unit)>0 and unit[0].isdigit() else ' ',
             'quantity': self.quantity,
             'unit': plural(self.product.unit, self.quantity),
             'prod_name': articulate(self.product.name, self.quantity),
@@ -289,7 +289,7 @@ class Order(object):
                 self.weight = 0
                 self.quantity = 0
 
-            def __nonzero__(self):
+            def __bool__(self):
                 return False
 
         if not products:
@@ -354,7 +354,7 @@ class DeliveryDiscrepancy(models.Model):
     reason = models.CharField(max_length=256)
 
     def __unicode__(self):
-        return u"%s/%s: %+g€ for %s: %s" % (
+        return "%s/%s: %+g€ for %s: %s" % (
             self.delivery.network.name,
             self.delivery.name,
             self.amount,
