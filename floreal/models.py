@@ -12,7 +12,7 @@ from caracole import settings
 
 class UserPhones(models.Model):
     """Associate one or several phone numbers to each user."""
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     phone = models.CharField(max_length=20)
 
     def __unicode__(self):
@@ -51,8 +51,8 @@ class Subgroup(models.Model):
     Extra users are allowed to order a negative quantity of products."""
 
     name = models.CharField(max_length=64)
-    network = models.ForeignKey(Network)
-    extra_user = models.ForeignKey(User, null=True, blank=True, related_name='+')
+    network = models.ForeignKey(Network, on_delete=models.CASCADE)
+    extra_user = models.ForeignKey(User, null=True, blank=True, related_name='+', on_delete=models.SET_NULL)
     # Users might only be staff of one subgroup per network
     staff = models.ManyToManyField(User, related_name='staff_of_subgroup')
     users = models.ManyToManyField(User, related_name='user_of_subgroup')
@@ -97,8 +97,8 @@ class Subgroup(models.Model):
 
 
 class Candidacy(models.Model):
-    user = models.ForeignKey(User)
-    subgroup = models.ForeignKey(Subgroup)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
     message = models.TextField(null=True, blank=True)  # Currently unused, might be used to communicate with admins
 
 
@@ -124,7 +124,7 @@ class Delivery(models.Model):
         REGULATING:     u"Régularisation",
         TERMINATED:     u"Terminée" }
     name = models.CharField(max_length=64)
-    network = models.ForeignKey(Network)
+    network = models.ForeignKey(Network, on_delete=models.CASCADE)
     state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=PREPARATION)
     description = models.TextField(null=True, blank=True, default=None)
 
@@ -170,8 +170,8 @@ class SubgroupStateForDelivery(models.Model):
         READY_FOR_DELIVERY:   u"Commande validée",
         READY_FOR_ACCOUNTING: u"Compta validée"}
     state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=DEFAULT)
-    delivery = models.ForeignKey(Delivery)
-    subgroup = models.ForeignKey(Subgroup)
+    delivery = models.ForeignKey(Delivery, on_delete=models.CASCADE)
+    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
 
 
 class Product(models.Model):
@@ -181,7 +181,7 @@ class Product(models.Model):
     """
 
     name = models.CharField(max_length=64)
-    delivery = models.ForeignKey(Delivery)
+    delivery = models.ForeignKey(Delivery, on_delete=models.CASCADE)
     price = models.DecimalField(decimal_places=2, max_digits=6)
     quantity_per_package = models.IntegerField(null=True, blank=True)
     unit = models.CharField(max_length=64, null=True, blank=True)
@@ -209,8 +209,8 @@ class Purchase(models.Model):
     If the product isn't available in unlimited quantity, then the ordered quantity
     might differ from the granted one."""
 
-    user = models.ForeignKey(User, null=True)
-    product = models.ForeignKey(Product)
+    user = models.ForeignKey(User, null=True, on_delete=models.PROTECT)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.DecimalField(decimal_places=3, max_digits=6)
 
     class Meta:
@@ -315,7 +315,7 @@ class Order(object):
 class JournalEntry(models.Model):
     """Record of a noteworthy action by an admin, for social debugging purposes: changing delivery statuses,
     moving users around."""
-    user = models.ForeignKey(User, null=True)
+    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     date = models.DateTimeField(default=datetime.now)
     action = models.CharField(max_length=256)
 
@@ -327,9 +327,9 @@ class JournalEntry(models.Model):
 class ProductDiscrepancy(models.Model):
     """Log of an accounting discrepancy between what's been ordered and what's actually been paid for in a given subgroup.
     """
-    product = models.ForeignKey(Product)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
     amount = models.DecimalField(decimal_places=3, max_digits=9)
-    subgroup = models.ForeignKey(Subgroup)
+    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
     reason = models.CharField(max_length=256)
 
     def __unicode__(self):
@@ -348,9 +348,9 @@ class ProductDiscrepancy(models.Model):
 
 class DeliveryDiscrepancy(models.Model):
     """Lof of an accounting discrepancy that cannot be attributed to a specific product."""
-    delivery = models.ForeignKey(Delivery)
+    delivery = models.ForeignKey(Delivery, on_delete=models.CASCADE)
     amount = models.DecimalField(decimal_places=2, max_digits=9)
-    subgroup = models.ForeignKey(Subgroup)
+    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
     reason = models.CharField(max_length=256)
 
     def __unicode__(self):
