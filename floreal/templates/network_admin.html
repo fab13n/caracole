@@ -14,7 +14,7 @@ tr:hover input[type=button] {visibility: visible;}
     var STATE_NAMES = { {% for it in Delivery.STATE_CHOICES.items %}{{it.0}}: "{{it.1}}", {% endfor %}"pending": "⌛" };
 
     function set_delivery_state(dv_id, state) {
-        var url = "{% url 'set_delivery_state' delivery='DVID' state='STATE' %}".replace('DVID', dv_id).replace('STATE', state);
+        var url = "{% url 'circuitscourts:set_delivery_state' delivery='DVID' state='STATE' %}".replace('DVID', dv_id).replace('STATE', state);
         function display_state(state){
             $("#dv-"+dv_id+"-state-display").text(STATE_NAMES[state]);
         }
@@ -27,7 +27,7 @@ tr:hover input[type=button] {visibility: visible;}
     function create_subgroup() {
         if( confirm("Êtes-vous sûr de vouloir créer un nouveau sous-groupe d'utilisateurs dans le réseau {{nw.name}} ?")) {
             var name = window.prompt("Créer un nouveau sous-groupe nommé :")
-            var url_scheme = "{% url 'create_subgroup' network=nw.id name='NAME' %}";
+            var url_scheme = "{% url 'circuitscourts:create_subgroup' network=nw.id name='NAME' %}";
             if (name) {
                 window.location = url_scheme.replace('NAME', encodeURI(name));
             }
@@ -36,12 +36,12 @@ tr:hover input[type=button] {visibility: visible;}
     }
 
     function goto_delivery(dv_id) {
-        window.location = "{% url 'edit_delivery' delivery='DV_ID' %}".replace('DV_ID', dv_id);
+        window.location = "{% url 'circuitscourts:edit_delivery' delivery='DV_ID' %}".replace('DV_ID', dv_id);
     }
 
     function rename_delivery(dv_id, dv_name) {
         var new_name = window.prompt("Renommer la commande "+dv_name+" :");
-        var url = "{% url 'set_delivery_name' delivery='DVID' name='NAME' %}".replace('DVID', dv_id).replace('NAME', new_name);
+        var url = "{% url 'circuitscourts:set_delivery_name' delivery='DVID' name='NAME' %}".replace('DVID', dv_id).replace('NAME', new_name);
         if (new_name) {
             $.ajax(url, {success: function() { window.location.reload(); }});
         }
@@ -59,16 +59,16 @@ tr:hover input[type=button] {visibility: visible;}
 
 <h2>Administration du réseau {{nw.name}}</h2>
 <ul>
-  <li><a href="{% url 'index' %}">Retour à la page principale</a> ↩</li>
-  <li><a href="{% url 'list_delivery_models' network=nw.id %}">Créer une nouvelle commande {{nw.name}} <img src="{% static 'images/plus.png' %}"/></a></li>
-  <li><a href="{% url 'edit_user_memberships' network=nw.id %}">Répartir les membres en sous-groupes {{nw.name}} <img src="{% static 'images/edit.png' %}"/></a></li>
-  <li><a href="{% url 'emails_network' network=nw.id %}">e-mails <img src="{% static 'images/email.png' %}"/></a> et
-      <a href="{% url 'phones_network' network=nw.id %}">téléphones</a> ☎ du réseau {{nw.name}}.</li>
+  <li><a href="{% url 'circuitscourts:index' %}">Retour à la page principale</a> ↩</li>
+  <li><a href="{% url 'circuitscourts:list_delivery_models' network=nw.id %}">Créer une nouvelle commande {{nw.name}} <img src="{% static 'images/plus.png' %}"/></a></li>
+  <li><a href="{% url 'circuitscourts:edit_user_memberships' network=nw.id %}">Répartir les membres en sous-groupes {{nw.name}} <img src="{% static 'images/edit.png' %}"/></a></li>
+  <li><a href="{% url 'circuitscourts:emails_network' network=nw.id %}">e-mails <img src="{% static 'images/email.png' %}"/></a> et
+      <a href="{% url 'circuitscourts:phones_network' network=nw.id %}">téléphones</a> ☎ du réseau {{nw.name}}.</li>
   <li><a href="#" id='create-subgroup'>Créer un nouveau sous-groupe de {{nw.name}}</a></li>
   <li>Voir la synthèse des commandes en cours
-      <a href="{% url 'all_deliveries_html' network=nw.id states='BCDE' %}">en ligne</a>,
-      <a href="{% url 'all_deliveries_latex' network=nw.id states='BCDE' %}">en PDF</a></li>
-  <li><a href="{% url 'archived_deliveries' network=nw.id %}">Voir les commandes archivées</a></li>
+      <a href="{% url 'circuitscourts:all_deliveries_html' network=nw.id states='BCDE' %}">en ligne</a>,
+      <a href="{% url 'circuitscourts:all_deliveries_latex' network=nw.id states='BCDE' %}">en PDF</a></li>
+  <li><a href="{% url 'circuitscourts:archived_deliveries' network=nw.id %}">Voir les commandes archivées</a></li>
 </ul>
 
 <h2>Voir ou éditer une commande active</h2>
@@ -86,7 +86,7 @@ tr:hover input[type=button] {visibility: visible;}
       <tr><td>&nbsp;</td></tr>
       {% for dv in deliveries %}
       <tr>
-          <td class="left"><a href="{% url 'edit_delivery' delivery=dv.id %}">{{dv.name}} <img src="{% static 'images/edit.png' %}"/></a></td>
+          <td class="left"><a href="{% url 'circuitscourts:edit_delivery' delivery=dv.id %}">{{dv.name}} <img src="{% static 'images/edit.png' %}"/></a></td>
           <td id="dv-{{dv.id}}-state-display">{{dv.state_name}}</td>
           {% for S in dv.STATE_CHOICES.keys|sort %}
           <td><input type="radio" name="dv-{{dv.id}}-state" value="dv-{{dv.id}}-state-{{S}}"
@@ -105,9 +105,9 @@ tr:hover input[type=button] {visibility: visible;}
       {% for cd in candidacies %}
       <li>{{cd.user.first_name}} {{cd.user.last_name}}
         <a href="mailto://{{cd.user.email}}">({{cd.user.email}})</a> pour le sous-groupe <b>{{cd.subgroup.name}}</b>:
-        <a href="{% url 'validate_candidacy' candidacy=cd.id response='Y' %}?next=/"><span class="yes">Accepter</span></a>✔
+        <a href="{% url 'circuitscourts:validate_candidacy' candidacy=cd.id response='Y' %}?next=/"><span class="yes">Accepter</span></a>✔
         /
-        <a href="{% url 'validate_candidacy' candidacy=cd.id response='N' %}?next=/"><span class="no">Refuser</span></a>✘
+        <a href="{% url 'circuitscourts:validate_candidacy' candidacy=cd.id response='N' %}?next=/"><span class="no">Refuser</span></a>✘
       </li>
       {% endfor %}
   </ul>

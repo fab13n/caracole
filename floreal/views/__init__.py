@@ -92,7 +92,7 @@ def delete_archived_delivery(request, delivery):
     nw = dv.network
     dv.delete()
     m.JournalEntry.log(request.user, "Deleted archived delivery %d (%s) from %s", dv.id, dv.name, nw.name)
-    return redirect('archived_deliveries', nw.id)
+    return redirect('circuitscourts:archived_deliveries', nw.id)
 
 
 @nw_admin_required()
@@ -105,7 +105,7 @@ def delete_all_archived_deliveries(request, network):
             ids.append(dv.id)
             dv.delete()
     m.JournalEntry.log(request.user, "Deleted archived empty deliveries [%s] from %s", ', '.join(str(i) for i in ids), nw.name)
-    return redirect('archived_deliveries', network)
+    return redirect('circuitscourts:archived_deliveries', network)
 
 
 @nw_admin_required()
@@ -116,7 +116,7 @@ def create_subgroup(request, network, name):
         return HttpResponseBadRequest("Il y a déjà un sous-groupe de ce nom dans "+nw.name)
     m.Subgroup.objects.create(name=name, network=nw)
     m.JournalEntry.log(request.user, "Created subgroup %s in %s", name, nw.name)
-    return redirect('edit_user_memberships', network=nw.id)
+    return redirect('circuitscourts:edit_user_memberships', network=nw.id)
 
 
 @login_required()
@@ -133,7 +133,7 @@ def create_network(request, nw_name, sg_name):
     sg.users.add(user)
     target = request.GET.get('next', False)
     m.JournalEntry.log(user, "Created network %s with subgroup %s", nw_name, sg_name)
-    return redirect(target) if target else redirect('network_admin', network=nw.id)
+    return redirect(target) if target else redirect('circuitscourts:network_admin', network=nw.id)
 
 
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)
@@ -206,7 +206,7 @@ def create_delivery(request, network=None, dv_model=None):
                                      unit_weight=prev_pd.unit_weight, quantum=prev_pd.quantum,
                                      description=prev_pd.description)
     m.JournalEntry.log(request.user, "Created new delivery %s in %s", name, nw.name)
-    return redirect(reverse('edit_delivery_products', kwargs={'delivery': new_dv.id})+"?new=true")
+    return redirect(reverse('circuitscourts:edit_delivery_products', kwargs={'delivery': new_dv.id})+"?new=true")
 
 
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)
@@ -224,7 +224,7 @@ def set_delivery_state(request, delivery, state):
         save_delivery(dv)
     m.JournalEntry.log(request.user, "Set delivery %s/%s in state %s",
                        dv.network.name, dv.name, m.Delivery.STATE_CHOICES[state])
-    return redirect('edit_delivery', delivery=dv.id)
+    return redirect('circuitscourts:edit_delivery', delivery=dv.id)
 
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)
 def set_delivery_name(request, delivery, name):
@@ -258,7 +258,7 @@ def set_subgroup_state_for_delivery(request, subgroup, delivery, state):
     target = request.GET.get('next', False)
     m.JournalEntry.log(request.user, "In %s, set subgroup %s in state %s for delivery %s",
                        dv.network.name, sg.name, state, dv.name)
-    return redirect(target) if target else redirect('edit_delivery', delivery=dv.id)
+    return redirect(target) if target else redirect('circuitscourts:edit_delivery', delivery=dv.id)
 
 
 @login_required()

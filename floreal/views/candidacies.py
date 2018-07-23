@@ -48,7 +48,7 @@ def leave_network(request, network):
         sg.staff.remove(user.id)
 
     target = request.GET.get('next', False)
-    return redirect(target) if target else redirect('candidacy')
+    return redirect(target) if target else redirect('circuitscourts:candidacy')
 
 
 @login_required()
@@ -71,7 +71,7 @@ def create_candidacy(request, subgroup):
         m.JournalEntry.log(user, "Applied for %s/%s, but was already a member", sg.network.name, sg.name)
 
     target = request.GET.get('next', False)
-    return redirect(target) if target else redirect('candidacy')
+    return redirect(target) if target else redirect('circuitscourts:candidacy')
 
 
 def auto_validate_candidacy(cd):
@@ -96,7 +96,7 @@ def cancel_candidacy(request, candidacy):
     m.JournalEntry.log(user, "Cancelled own application for %s/%s", cd.subgroup.network.name, cd.subgroup.name)
     cd.delete()
     target = request.GET.get('next', False)
-    return redirect(target) if target else redirect('candidacy')
+    return redirect(target) if target else redirect('circuitscourts:candidacy')
 
 
 @sg_admin_required(lambda a: get_candidacy(a['candidacy']).subgroup)
@@ -158,5 +158,5 @@ def validate_candidacy_without_checking(request, candidacy, response, send_confi
     cd.delete()
 
     target = request.GET.get('next', False)
-    return redirect(target) if target else redirect('candidacy')
+    return redirect(target) if target else redirect('circuitscourts:candidacy')
 

@@ -64,10 +64,10 @@ def edit_user_memberships(request, network):
 
     if request.method == 'POST':
         if _parse_form(request, nw):
-            return redirect("index")
+            return redirect("circuitscourts:index")
         else:
             # TODO: display errors in template
-            return redirect("edit_user_memberships", network=nw.id)
+            return redirect("circuitscourts:edit_user_memberships", network=nw.id)
     vars = {'user': request.user, 'nw': nw, 'multi_sg': nw.subgroup_set.count() > 1}
     vars.update(csrf(request))
     return render_to_response('edit_user_memberships.html', vars)

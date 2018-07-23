@@ -162,7 +162,7 @@
           <td colspan="3"></td>
         </tr>
     </table>
-    <input type="submit" value="Sauvegarder" /> <a href="{% url 'index' %}">Annuler les modifications</a>
+    <input type="submit" value="Sauvegarder" /> <a href="{% url 'circuitscourts:index' %}">Annuler les modifications</a>
     <input type='hidden' name='dv-id' value='{{delivery.id}}' />
     {% csrf_token %}
 </form>

@@ -13,7 +13,7 @@
   <body>
     <div id="wrapper">
       <div id="logo">
-        <h1><a href='{% url "index" %}'>Circuits Courts Caracole</a></h1>
+        <h1><a href='{% url "circuitscourts:index" %}'>Circuits Courts Caracole</a></h1>
         <h2>Gestion associative de commandes en circuits courts</h2>
       </div>
       <!-- start page -->
@@ -33,15 +33,15 @@
           {% endif %}
           <ul>
             {% if not user.is_anonymous %}
-            <li><a href="{% url 'auth_logout' %}?next={% url 'index' %}">Deconnection</a></li>
+            <li><a href="{% url 'auth_logout' %}?next={% url 'circuitscourts:index' %}">Deconnection</a></li>
             <li><a href="{% url 'auth_password_change' %}">Changer de mot de passe</a></li>
             {% if user.is_staff %}
-            <li><a href="{% url 'view_journal' %}">Journal des événements</a></li>
+            <li><a href="{% url 'circuitscourts:view_journal' %}">Journal des événements</a></li>
             <li><a href="{% url 'admin:index' %}">Administrer DB</a></li>
             {% endif %}
             {% endif %}
-            <li><a href="{% url 'index' %}">Page d'accueil</a></li>
-            <li><a href="{% url 'charte' %}">La Charte Caracole</a></li>
+            <li><a href="{% url 'circuitscourts:index' %}">Page d'accueil</a></li>
+            <li><a href="{% url 'circuitscourts:charte' %}">La Charte Caracole</a></li>
             <li><a href="http://caracole.le-pic.org/index.php">Caracole</a></li>
           </ul>
         </div>
@@ -63,4 +63,4 @@
     </div>
   </body>
 </html>
-  
+

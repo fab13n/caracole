@@ -22,10 +22,10 @@ def edit_user_purchases(request, delivery):
     order = m.Order(user, delivery)
     if request.method == 'POST':
         if _parse_form(request):
-            return redirect("index")
+            return redirect("circuitscourts:index")
         else:
             # TODO: display errors in template
-            return redirect("edit_user_purchases", delivery=delivery.id)
+            return redirect("circuitscourts:edit_user_purchases", delivery=delivery.id)
     else:
         vars = {
             'user': user,
