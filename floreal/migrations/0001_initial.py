@@ -72,7 +72,7 @@ class Migration(migrations.Migration):
                 ('quantity_limit', models.IntegerField(null=True, blank=True)),
                 ('unit_weight', models.DecimalField(default=0.0, max_digits=6, decimal_places=3, blank=True)),
                 ('quantum', models.DecimalField(default=1, max_digits=3, decimal_places=2, blank=True)),
-                ('delivery', models.ForeignKey(to='floreal.Delivery')),
+                ('delivery', models.ForeignKey(to='floreal.Delivery', on_delete=models.CASCADE)),
             ],
             options={
                 'ordering': ('-quantity_per_package', 'name'),
@@ -85,8 +85,8 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('ordered', models.DecimalField(max_digits=6, decimal_places=3)),
                 ('granted', models.DecimalField(max_digits=6, decimal_places=3)),
-                ('product', models.ForeignKey(to='floreal.Product')),
-                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL, null=True)),
+                ('product', models.ForeignKey(to='floreal.Product', on_delete=models.CASCADE)),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE)),
             ],
             options={
             },
@@ -97,8 +97,9 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('name', models.CharField(max_length=64)),
-                ('extra_user', models.ForeignKey(related_name='+', blank=True, to=settings.AUTH_USER_MODEL, null=True)),
-                ('network', models.ForeignKey(to='floreal.Network')),
+                ('extra_user', models.ForeignKey(related_name='+', blank=True, to=settings.AUTH_USER_MODEL, null=True,
+                                                 on_delete=models.CASCADE)),
+                ('network', models.ForeignKey(to='floreal.Network', on_delete=models.CASCADE)),
                 ('staff', models.ManyToManyField(related_name='staff_of_subgroup', to=settings.AUTH_USER_MODEL)),
                 ('users', models.ManyToManyField(related_name='user_of_subgroup', to=settings.AUTH_USER_MODEL)),
             ],
@@ -122,7 +123,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='delivery',
             name='network',
-            field=models.ForeignKey(to='floreal.Network'),
+            field=models.ForeignKey(to='floreal.Network', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AlterUniqueTogether(
