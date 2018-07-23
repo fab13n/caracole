@@ -13,7 +13,7 @@ def nw_admin_required(admin_getter=lambda a: a.get('network', None)):
     def decorator(f):
         def g(request, *args, **kwargs):
             user = request.user
-            if not user.is_authenticated():
+            if not user.is_authenticated:
                 return HttpResponseForbidden('Réservé aux administrateurs')
             nw = get_network(admin_getter(kwargs))
             if nw:
@@ -34,7 +34,7 @@ def sg_admin_required(admin_getter=lambda a: a.get('subgroup', None)):
     def decorator(f):
         def g(request, *args, **kwargs):
             user = request.user
-            if not user.is_authenticated():
+            if not user.is_authenticated:
                 return HttpResponseForbidden('Réservé aux administrateurs')
             sg = get_subgroup(admin_getter(kwargs))
             if sg:
