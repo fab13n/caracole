@@ -23,10 +23,9 @@ from .edit_user_memberships import edit_user_memberships, json_memberships
 from .regulation import adjust_subgroup
 from .view_purchases import \
     view_purchases_html, view_purchases_latex, view_purchases_xlsx, view_cards_latex, get_archive, non_html_response
-from .password_reset import password_reset
 from .candidacies import candidacy, cancel_candidacy, validate_candidacy, leave_network, create_candidacy
+from .require_phone_number import has_number, add_phone_number
 
-from floreal.views import require_phone_number as phone
 
 @login_required()
 def index(request):
@@ -39,7 +38,7 @@ def index(request):
     DISPLAYED_STATES = [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN, m.Delivery.FROZEN]
 
     vars = {'user': request.user, 'Delivery': m.Delivery, 'SubgroupState': m.SubgroupStateForDelivery}
-    vars['has_phone'] = phone.has_number(request.user)
+    vars['has_phone'] = has_number(request.user)
     user_subgroups = m.Subgroup.objects.filter(users__in=[user])
     user_networks = [sg.network for sg in user_subgroups]
     vars['deliveries'] = m.Delivery.objects \
@@ -54,7 +53,6 @@ def index(request):
     subgroup_admin = [sg_dv_cd for sg_dv_cd in subgroup_admin if sg_dv_cd['dv'].exists() or sg_dv_cd['cd'].exists()]
     vars['subgroup_admin'] = subgroup_admin
     return render_to_response('index.html', vars)
-
 
 
 @nw_admin_required()
@@ -73,6 +71,7 @@ def _dv_has_no_purchase(dv):
         if pd.purchase_set.exists():
             return False
     return True
+
 
 @nw_admin_required()
 def archived_deliveries(request, network):
@@ -226,6 +225,7 @@ def set_delivery_state(request, delivery, state):
                        dv.network.name, dv.name, m.Delivery.STATE_CHOICES[state])
     return redirect('circuitscourts:edit_delivery', delivery=dv.id)
 
+
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)
 def set_delivery_name(request, delivery, name):
     """Change a delivery's name."""
@@ -236,6 +236,7 @@ def set_delivery_name(request, delivery, name):
     m.JournalEntry.log(request.user, "Change delivery name in %s: %s->%s",
                        dv.network.name, prev_name, name)
     return HttpResponse("")
+
 
 def save_delivery(dv):
     """Save an Excel spreadsheet and a PDF table of a delivery that's just been completed."""

@@ -1,13 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from django.conf.urls import url
-from django.contrib import admin
+from django.conf.urls import url, include
 from django.views.generic import TemplateView
 
-from . import views
+from . import views, django_markdown_urls_patched_for_django2
 
 app_name = 'circuitscourts'
+
 urlpatterns = [
     url(r'^$', views.index, name='index'),
 
@@ -68,6 +68,6 @@ urlpatterns = [
     url(r'^journal$', views.journal, name='view_journal'),
     url(r'^charte.html$', TemplateView.as_view(template_name='charte.html'), name='charte'),
 
-
-
+    url(r'^add-phone-number/(?P<phone>[^./]+)$', views.add_phone_number, name="add_phone_number"),
+    url('^markdown/', include(django_markdown_urls_patched_for_django2.urlpatterns)),
 ]
