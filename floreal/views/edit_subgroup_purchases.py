@@ -31,7 +31,7 @@ def edit_subgroup_purchases(request, delivery, subgroup):
 
     if request.method == 'POST':
         _parse_form(request)
-        return redirect("view_subgroup_purchases_html", delivery=delivery.id, subgroup=subgroup.id)
+        return redirect("circuitscourts:view_subgroup_purchases_html", delivery=delivery.id, subgroup=subgroup.id)
     else:
         vars = delivery_description(delivery, [subgroup], user=user)
         vars.update(csrf(request))
@@ -52,7 +52,7 @@ def _parse_form(request):
         try:
             pc = m.Purchase.objects.get(product_id=pd, user_id=u)
             if ordered != 0:
-                print "Updating purchase %d" % pc.id
+                print("Updating purchase %d" % pc.id)
                 pc.quantity = ordered
                 pc.save(force_update=True)
             else:

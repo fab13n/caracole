@@ -23,10 +23,9 @@ from .edit_user_memberships import edit_user_memberships, json_memberships
 from .regulation import adjust_subgroup
 from .view_purchases import \
     view_purchases_html, view_purchases_latex, view_purchases_xlsx, view_cards_latex, get_archive, non_html_response
-from .password_reset import password_reset
 from .candidacies import candidacy, cancel_candidacy, validate_candidacy, leave_network, create_candidacy
+from .require_phone_number import has_number, add_phone_number
 
-from floreal.views import require_phone_number as phone
 
 @login_required()
 def index(request):
@@ -39,7 +38,7 @@ def index(request):
     DISPLAYED_STATES = [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN, m.Delivery.FROZEN]
 
     vars = {'user': request.user, 'Delivery': m.Delivery, 'SubgroupState': m.SubgroupStateForDelivery}
-    vars['has_phone'] = phone.has_number(request.user)
+    vars['has_phone'] = has_number(request.user)
     user_subgroups = m.Subgroup.objects.filter(users__in=[user])
     user_networks = [sg.network for sg in user_subgroups]
     vars['deliveries'] = m.Delivery.objects \
@@ -54,7 +53,6 @@ def index(request):
     subgroup_admin = [sg_dv_cd for sg_dv_cd in subgroup_admin if sg_dv_cd['dv'].exists() or sg_dv_cd['cd'].exists()]
     vars['subgroup_admin'] = subgroup_admin
     return render_to_response('index.html', vars)
-
 
 
 @nw_admin_required()
@@ -74,6 +72,7 @@ def _dv_has_no_purchase(dv):
             return False
     return True
 
+
 @nw_admin_required()
 def archived_deliveries(request, network):
     user = request.user
@@ -88,11 +87,11 @@ def archived_deliveries(request, network):
 def delete_archived_delivery(request, delivery):
     dv = get_delivery(delivery)
     if not _dv_has_no_purchase(dv):
-        return HttpResponseForbidden(u'Cette commande n\'est pas vide, passer par l\'admin DB')
+        return HttpResponseForbidden('Cette commande n\'est pas vide, passer par l\'admin DB')
     nw = dv.network
     dv.delete()
     m.JournalEntry.log(request.user, "Deleted archived delivery %d (%s) from %s", dv.id, dv.name, nw.name)
-    return redirect('archived_deliveries', nw.id)
+    return redirect('circuitscourts:archived_deliveries', nw.id)
 
 
 @nw_admin_required()
@@ -105,7 +104,7 @@ def delete_all_archived_deliveries(request, network):
             ids.append(dv.id)
             dv.delete()
     m.JournalEntry.log(request.user, "Deleted archived empty deliveries [%s] from %s", ', '.join(str(i) for i in ids), nw.name)
-    return redirect('archived_deliveries', network)
+    return redirect('circuitscourts:archived_deliveries', network)
 
 
 @nw_admin_required()
@@ -113,19 +112,19 @@ def create_subgroup(request, network, name):
     # name = urllib.unquote(name)
     nw = get_network(network)
     if nw.subgroup_set.filter(name=name).exists():
-        return HttpResponseBadRequest(u"Il y a déjà un sous-groupe de ce nom dans "+nw.name)
+        return HttpResponseBadRequest("Il y a déjà un sous-groupe de ce nom dans "+nw.name)
     m.Subgroup.objects.create(name=name, network=nw)
     m.JournalEntry.log(request.user, "Created subgroup %s in %s", name, nw.name)
-    return redirect('edit_user_memberships', network=nw.id)
+    return redirect('circuitscourts:edit_user_memberships', network=nw.id)
 
 
 @login_required()
 def create_network(request, nw_name, sg_name):
     user = request.user
     if not user.is_staff:
-        return HttpResponseForbidden(u"Creation de réseaux réservée au staff")
+        return HttpResponseForbidden("Creation de réseaux réservée au staff")
     if m.Network.objects.filter(name__iexact=nw_name).exists():
-        return HttpResponseBadRequest(u"Il y a déjà un réseau nommé "+nw_name)
+        return HttpResponseBadRequest("Il y a déjà un réseau nommé "+nw_name)
     nw = m.Network.objects.create(name=nw_name)
     sg = m.Subgroup.objects.create(name=sg_name, network=nw)
     nw.staff.add(user)
@@ -133,7 +132,7 @@ def create_network(request, nw_name, sg_name):
     sg.users.add(user)
     target = request.GET.get('next', False)
     m.JournalEntry.log(user, "Created network %s with subgroup %s", nw_name, sg_name)
-    return redirect(target) if target else redirect('network_admin', network=nw.id)
+    return redirect(target) if target else redirect('circuitscourts:network_admin', network=nw.id)
 
 
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)
@@ -184,15 +183,15 @@ def create_delivery(request, network=None, dv_model=None):
 
     if request.user not in nw.staff.all():
         # Vérifier qu'on est bien admin du bon réseau
-        return HttpResponseForbidden(u'Réservé aux administrateurs du réseau ' + nw.name)
-    months = [u'Janvier', u'Février', u'Mars', u'Avril', u'Mai', u'Juin', u'Juillet',
-              u'Août', u'Septembre', u'Octobre', u'Novembre', u'Décembre']
+        return HttpResponseForbidden('Réservé aux administrateurs du réseau ' + nw.name)
+    months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet',
+              'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
     now = datetime.now()
     name = '%s %d' % (months[now.month-1], now.year)
     n = 1
     while m.Delivery.objects.filter(network=nw, name=name).exists():
         if n == 1:
-            fmt = u"%dème de " + name
+            fmt = "%dème de " + name
         n += 1
         name = fmt % n
     new_dv = m.Delivery.objects.create(name=name, network=nw, state=m.Delivery.PREPARATION)
@@ -206,7 +205,7 @@ def create_delivery(request, network=None, dv_model=None):
                                      unit_weight=prev_pd.unit_weight, quantum=prev_pd.quantum,
                                      description=prev_pd.description)
     m.JournalEntry.log(request.user, "Created new delivery %s in %s", name, nw.name)
-    return redirect(reverse('edit_delivery_products', kwargs={'delivery': new_dv.id})+"?new=true")
+    return redirect(reverse('circuitscourts:edit_delivery_products', kwargs={'delivery': new_dv.id})+"?new=true")
 
 
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)
@@ -214,9 +213,9 @@ def set_delivery_state(request, delivery, state):
     """Change a delivery's state."""
     dv = get_delivery(delivery)
     if request.user not in dv.network.staff.all():
-        return HttpResponseForbidden(u'Réservé aux administrateurs du réseau '+dv.network.name)
+        return HttpResponseForbidden('Réservé aux administrateurs du réseau '+dv.network.name)
     if state not in m.Delivery.STATE_CHOICES:
-        return HttpResponseBadRequest(state+u" n'est pas un état valide.")
+        return HttpResponseBadRequest(state+" n'est pas un état valide.")
     must_save = dv.state <= m.Delivery.REGULATING < state
     dv.state = state
     dv.save()
@@ -224,7 +223,8 @@ def set_delivery_state(request, delivery, state):
         save_delivery(dv)
     m.JournalEntry.log(request.user, "Set delivery %s/%s in state %s",
                        dv.network.name, dv.name, m.Delivery.STATE_CHOICES[state])
-    return redirect('edit_delivery', delivery=dv.id)
+    return redirect('circuitscourts:edit_delivery', delivery=dv.id)
+
 
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)
 def set_delivery_name(request, delivery, name):
@@ -236,6 +236,7 @@ def set_delivery_name(request, delivery, name):
     m.JournalEntry.log(request.user, "Change delivery name in %s: %s->%s",
                        dv.network.name, prev_name, name)
     return HttpResponse("")
+
 
 def save_delivery(dv):
     """Save an Excel spreadsheet and a PDF table of a delivery that's just been completed."""
@@ -253,12 +254,12 @@ def set_subgroup_state_for_delivery(request, subgroup, delivery, state):
     dv = get_delivery(delivery)
     sg = get_subgroup(subgroup)
     if sg.network != dv.network:
-        return HttpResponseBadRequest(u"Ce sous-groupe ne participe pas à cette livraison.")
+        return HttpResponseBadRequest("Ce sous-groupe ne participe pas à cette livraison.")
     dv.set_stateForSubgroup(sg, state)
     target = request.GET.get('next', False)
     m.JournalEntry.log(request.user, "In %s, set subgroup %s in state %s for delivery %s",
                        dv.network.name, sg.name, state, dv.name)
-    return redirect(target) if target else redirect('edit_delivery', delivery=dv.id)
+    return redirect(target) if target else redirect('circuitscourts:edit_delivery', delivery=dv.id)
 
 
 @login_required()
@@ -269,18 +270,18 @@ def view_emails(request, network=None, subgroup=None):
         nw = get_network(network)
         vars['network'] = nw
         if user not in nw.staff.all():
-            return HttpResponseForbidden(u"Réservé aux admins")
+            return HttpResponseForbidden("Réservé aux admins")
     if subgroup:
         sg = get_subgroup(subgroup)
         vars['subgroups'] = [sg]
         if not network:
             vars['network'] = sg.network
         if user not in sg.staff.all() and user not in sg.network.staff.all():
-            return HttpResponseForbidden(u"Réservé aux admins")
+            return HttpResponseForbidden("Réservé aux admins")
     elif network:
         vars['subgroups'] = m.Subgroup.objects.filter(network_id=network)
     else:
-        return HttpResponseForbidden(u"Préciser un réseau ou un sous-groupe")
+        return HttpResponseForbidden("Préciser un réseau ou un sous-groupe")
     return render_to_response('emails.html', vars)
 
 
@@ -291,7 +292,7 @@ def view_phones(request, network=None, subgroup=None):
     if network:
         nw = get_network(network)
         if user not in nw.staff.all():
-            return HttpResponseForbidden(u"Réservé aux admins")
+            return HttpResponseForbidden("Réservé aux admins")
         subgroups = nw.subgroup_set.order_by('name')
     if subgroup:
         sg = get_subgroup(subgroup)
@@ -300,7 +301,7 @@ def view_phones(request, network=None, subgroup=None):
         if not network:
             vars['network'] = sg.network
         if user not in sg.staff.all() and user not in nw.staff.all():
-            return HttpResponseForbidden(u"Réservé aux admins")
+            return HttpResponseForbidden("Réservé aux admins")
     vars['nw'] = nw
     vars['nw_admin'] = nw.staff.order_by('last_name', 'first_name')
     nw_staff_id = set(u.id for u in vars['nw_admin'])

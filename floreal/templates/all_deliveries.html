@@ -40,7 +40,7 @@ td.yes { background-color: #ccffcc; color: green; font-size: larger; }
         {% for dv, has_purchased in x %}
         {% if has_purchased %}
         <td class="yes u-{{u.id}} dv-{{dv.id}} highlightable">
-            <a href="{% url 'view_all_purchases_html' delivery=dv.id %}">✔</a>
+            <a href="{% url 'circuitscourts:view_all_purchases_html' delivery=dv.id %}">✔</a>
         </td>
         {% else %}
         <td class="u-{{u.id}} dv-{{dv.id}} highlightable">-</td>{% endif %}

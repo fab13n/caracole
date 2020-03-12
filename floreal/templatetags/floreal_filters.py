@@ -10,21 +10,21 @@ register = template.Library()
 
 @register.filter
 def forced_sign(f):
-    return u"%+g" % f
+    return "%+g" % f
 
 @register.filter
 def price(f):
-    return u"%.02f€" % f
+    return "%.02f€" % f
 
 
 @register.filter
 def price_nocurrency(f):
-    return u"%.02f" % f
+    return "%.02f" % f
 
 @register.filter
 def weight(w):
-    if w>=1: return u"%.2gkg" % w
-    else: return u"%dg" % (w*1000)
+    if w>=1: return "%.2gkg" % w
+    else: return "%dg" % (w*1000)
 
 @register.filter
 def email(u):
@@ -34,9 +34,9 @@ def email(u):
 @register.filter
 def unit_multiple(unit):
     if unit[0].isdigit():
-        return u"×"+unit
+        return "×"+unit
     else:
-        return u" "+unit
+        return " "+unit
 
 
 @register.filter

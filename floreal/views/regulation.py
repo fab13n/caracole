@@ -23,10 +23,10 @@ def adjust_subgroup(request, delivery, subgroup=None):
     dv = m.Delivery.objects.get(id=delivery)
     if request.method == 'POST':  # Parse response
         if _parse_form(request):
-            return redirect(request.GET.get("next", "index"))
+            return redirect(request.GET.get("next", "circuitscourts:index"))
         else:  # Generate page
             # TODO: display errors in template
-            return redirect("subgroup_regulation", delivery=dv.id)
+            return redirect("circuitscourts:subgroup_regulation", delivery=dv.id)
     else:
         sg = get_subgroup(subgroup)
         dd = delivery_description(dv, [sg])
@@ -54,7 +54,7 @@ def _parse_form(request):
         total_after = Decimal(d["pd%s-delivered-total" % pd.id])
         amount = total_after - total_before
         if amount:
-            print u"Quantity of %s adjusted from %s to %s" % (pd.name, total_before, total_after)
+            print("Quantity of %s adjusted from %s to %s" % (pd.name, total_before, total_after))
             reason = d['pd%s-reason' % pd.id]
             set_discrepancy(pd, sg, amount, reason)
 

@@ -9,12 +9,12 @@
 
 <h2>Livraisons archivées du réseau {{nw.name}}</h2>
 <ul>
-    <li><a href="{% url 'index' %}">Retour à l'administration du réseau {{nw.name}}</a></li>
-    <li><a href="{% url 'index' %}">Retour à la page principale</a><br/></li>
+    <li><a href="{% url 'circuitscourts:index' %}">Retour à l'administration du réseau {{nw.name}}</a></li>
+    <li><a href="{% url 'circuitscourts:index' %}">Retour à la page principale</a><br/></li>
 </ul>
 <ul>
     {% for dv in deliveries %}
-    <li><a href="{% url 'edit_delivery' delivery=dv.id %}">{{dv.name}} <img src="{% static 'images/edit.png' %}"/></a>
+    <li><a href="{% url 'circuitscourts:edit_delivery' delivery=dv.id %}">{{dv.name}} <img src="{% static 'images/edit.png' %}"/></a>
         ({{dv.state_name}})</li>
     {% empty %}
     <li>(aucune commande)</li>
@@ -24,9 +24,9 @@
 {% if empty_deliveries %}
 <h3>Effacer les commandes archivées et vides</h3>
 <ul>
-    <li><b><a href="{% url 'delete_all_archived_deliveries' network=nw.id %}">Toutes ✘</a></b></li>
+    <li><b><a href="{% url 'circuitscourts:delete_all_archived_deliveries' network=nw.id %}">Toutes ✘</a></b></li>
     {% for dv in empty_deliveries %}
-    <li><a href="{% url 'delete_archived_delivery' delivery=dv.id %}">{{dv.name}} ✘</a></li>
+    <li><a href="{% url 'circuitscourts:delete_archived_delivery' delivery=dv.id %}">{{dv.name}} ✘</a></li>
     {% endfor %}
 </ul>
 {% endif %}

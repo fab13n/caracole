@@ -184,7 +184,7 @@
   }
 
   $(document).ready(function(){
-    $.getJSON("{% url 'json_memberships' network=nw.id %}", function(data) {
+    $.getJSON("{% url 'circuitscourts:json_memberships' network=nw.id %}", function(data) {
         users = data.users;
         sorted_users = data.sorted_users;
         sorted_subgroups = data.subgroups;

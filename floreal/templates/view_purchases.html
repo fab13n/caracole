@@ -38,13 +38,13 @@
           Télécharger:
           {% if table|length > 1 %}
             <ul>
-              <li><a href="{% url 'view_all_purchases_xlsx' delivery=delivery.id %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
-              <li><a href="{% url 'view_all_purchases_latex' delivery=delivery.id %}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
+              <li><a href="{% url 'circuitscourts:view_all_purchases_xlsx' delivery=delivery.id %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
+              <li><a href="{% url 'circuitscourts:view_all_purchases_latex' delivery=delivery.id %}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
             </ul>
           {% else %}
             <ul>
-              <li><a href="{% url 'view_subgroup_purchases_xlsx' delivery=delivery.id subgroup=table.0.subgroup.id %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
-              <li><a href="{% url 'view_subgroup_purchases_latex' delivery=delivery.id subgroup=table.0.subgroup.id %}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
+              <li><a href="{% url 'circuitscourts:view_subgroup_purchases_xlsx' delivery=delivery.id subgroup=table.0.subgroup.id %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
+              <li><a href="{% url 'circuitscourts:view_subgroup_purchases_latex' delivery=delivery.id subgroup=table.0.subgroup.id %}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
             </ul>
           {% endif %}
         </td>

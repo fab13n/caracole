@@ -1,8 +1,6 @@
 {% extends 'layout_semi_wide.html' %}
-{% load django_markdown %}
 
 {% block head %}
-{% markdown_media %}
   <script type='text/javascript'>
     // <![CDATA[
 
@@ -148,9 +146,6 @@
       $("#r"+r_num+" .unit input").keyup(function() { reflect_unit_change("r"+r_num); });
       reflect_unit_change("r"+r_num);
 
-      // Enable markdown edition for description
-      $("#r"+r_num+"-description textarea").markItUp(mySettings, {"previewParserPath": "/markdown/preview/"});
-
       return "r"+r_num;
     }
 
@@ -263,7 +258,6 @@
     <h3>Description de la commande</h3>
     <p>
         <textarea name="dv-description" id="dv-description" rows="10">{{delivery.description|default_if_none:""}}</textarea>
-        {% markdown_editor "#dv-description" %}
     </p>
 
     <table id="products-table">

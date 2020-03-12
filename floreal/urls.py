@@ -1,13 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from django.conf.urls import include, url
-from django.contrib import admin
+from django.conf.urls import url, include
 from django.views.generic import TemplateView
 
-#from django_markdown import urls as django_markdown_urls
+from . import views, django_markdown_urls_patched_for_django2
 
-from . import views
+app_name = 'circuitscourts'
 
 urlpatterns = [
     url(r'^$', views.index, name='index'),
@@ -69,14 +68,6 @@ urlpatterns = [
     url(r'^journal$', views.journal, name='view_journal'),
     url(r'^charte.html$', TemplateView.as_view(template_name='charte.html'), name='charte'),
 
-    url(r'^admin/', include(admin.site.urls), name='admin'),
-
-    url(r'^accounts/register$', views.user_register, name="user_register"),
-    url(r'^accounts/registration_post.html$', views.user_register_post, name="registration_post"),
-    url(r'^accounts/password/reset/?$', views.password_reset, name="password_reset"),
-    url(r'^accounts/', include('registration.backends.simple.urls')),
-
-    url(r'^add-phone-number/(?P<phone>[^./]+)$', views.phone.add_phone_number, name="add_phone_number"),
-
-    url('^markdown/', include("django_markdown.urls")),
+    url(r'^add-phone-number/(?P<phone>[^./]+)$', views.add_phone_number, name="add_phone_number"),
+    url('^markdown/', include(django_markdown_urls_patched_for_django2.urlpatterns)),
 ]

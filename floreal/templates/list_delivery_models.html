@@ -15,12 +15,12 @@
 <p>Créer une nouvelle commande :</p>
 
 <ul>
-    <li><a href="{% url 'create_empty_delivery' network=nw.id%}">vide</a></li>
+    <li><a href="{% url 'circuitscourts:create_empty_delivery' network=nw.id%}">vide</a></li>
     {% for dv in deliveries %}
-    <li>basée sur <a href="{% url 'create_delivery_copy' dv_model=dv.id %}">"{{dv.name}}"</a></li>
+    <li>basée sur <a href="{% url 'circuitscourts:create_delivery_copy' dv_model=dv.id %}">"{{dv.name}}"</a></li>
     {% endfor %}
 </ul>
 
-<p>Retourner à l'<a href="{% url 'network_admin' network=nw.id %}">administration du réseau {{nw.name}}</a>.</p>
+<p>Retourner à l'<a href="{% url 'circuitscourts:network_admin' network=nw.id %}">administration du réseau {{nw.name}}</a>.</p>
 
 {% endblock %}
