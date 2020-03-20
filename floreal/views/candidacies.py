@@ -153,7 +153,7 @@ def validate_candidacy_without_checking(request, candidacy, response, send_confi
     mail += u"\n\nCordialement, le robot du site de commande des Circuits Courts Caracole."
     title = u"[caracole] Votre demande d'inscription au circuit court "+cd.subgroup.network.name
     if send_confirmation_mail:
-        send_mail(subject=title, message=''.join(mail), from_email=settings.EMAIL_HOST_USER, recipient_list=[cd.user.email],
+        send_mail(subject=title, message=''.join(mail), from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=[cd.user.email],
                   fail_silently=True)
     cd.delete()
 
