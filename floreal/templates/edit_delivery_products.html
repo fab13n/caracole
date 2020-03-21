@@ -246,7 +246,7 @@
     <table id="dv-table">
         <tr>
           <th><label for="dv-name">Nom de la livraison :</label></th>
-          <td><input id="dv-name" maxlength="64" name="dv-name" type="text" value="{{delivery.name|escapejs}}" /></td>
+          <td><input id="dv-name" maxlength="64" name="dv-name" type="text" value="{{delivery.name|escapejs}}" required  /></td>
         </tr>
       <tr>
         <th><label for="dv-state">État de la livraison :</label></th>
@@ -287,8 +287,12 @@
         <tbody></tbody>
     </table>
     <p>
+
         <button type='button' onclick="add_blank_products();">Ajouter des produits</button>
+        <!---        
         <button type='button' class='submit' onclick="submit_if_valid();">Sauvegarder</button>
+        --->
+        <input type='submit' value="Sauvegarder"/>        
         <input type='hidden' name='dv-id' value='{{delivery.id}}' />
         <input type='hidden' name='n_rows' id="n_rows" value='0' />
         {% csrf_token %}

@@ -127,8 +127,8 @@ def validate_candidacy_without_checking(request, candidacy, response, send_confi
         else:
             mail += u"Votre adhésion au sous-groupe %s, " % (cd.subgroup.name,)
             was_sg_admin = False
-        mail += u"au sein du réseau %s, a été acceptée" % (cd.subgroup.network.name,)
-        mail += u" par %s. " % (adm,) if adm else u" automatiquement. "
+        mail += u"au sein du réseau %s, a été acceptée." % (cd.subgroup.network.name,)
+       #mail += u" par %s. " % (adm,) if adm else u" automatiquement. "
         cd.subgroup.users.add(cd.user)
         is_nw_admin = cd.subgroup.network.staff.filter(id=cd.user_id).exists()
         if was_sg_admin and is_nw_admin:
@@ -150,8 +150,9 @@ def validate_candidacy_without_checking(request, candidacy, response, send_confi
             cd.subgroup.name, cd.subgroup.network.name,
             u", ".join(cd.subgroup.network.staff.all()),)
 
-    mail += u"\n\nCordialement, le robot du site de commande des Circuits Courts Caracole."
-    title = u"[caracole] Votre demande d'inscription au circuit court "+cd.subgroup.network.name
+    mail += u"\n\nCordialement, le robot du site de commande des Circuits Courts Civam."
+    mail += u"\n\nLien vers le site : http://solalim.civam-occitanie.fr"
+    title = u"[Circuits courts] Votre demande d'inscription au circuit court "+cd.subgroup.network.name
     if send_confirmation_mail:
         send_mail(subject=title, message=''.join(mail), from_email=settings.EMAIL_HOST_USER, recipient_list=[cd.user.email],
                   fail_silently=True)

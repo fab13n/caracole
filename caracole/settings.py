@@ -22,15 +22,15 @@ SECRET_KEY = 'w$o71h9mt#ju3xk5m1kn*69)+%w)%9e*-)p@_*addg%xcdc677'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['5.196.73.88', 'solalim.civam-occitanie.fr']
 
 EMAIL_USE_TLS = True
-EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST = 'ssl0.ovh.net'
 EMAIL_PORT = 587
-EMAIL_HOST_USER = 'circuits.courts.caracole@gmail.com'
+EMAIL_HOST_USER = 'solalim@civam-occitanie.fr'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-EMAIL_HOST_PASSWORD = '31escargots'
-EMAIL_SUBJECT_PREFIX = '[Circuits Courts Caracole] '
+EMAIL_HOST_PASSWORD = 'Sol@limcivam'
+EMAIL_SUBJECT_PREFIX = '[Circuits Courts Civam] '
 
 # longusernameandemail settings
 MAX_USERNAME_LENGTH = 128
@@ -95,7 +95,7 @@ WSGI_APPLICATION = 'caracole.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': '/home/fabien/src/caracole/database.sqlite3'
+        'NAME': '/home/francois/caracole2/database.sqlite3'
     }
 }
 
@@ -114,10 +114,11 @@ LOGIN_REDIRECT_URL = "/"
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
 
-STATIC_URL = '/caracole/static/'
+STATIC_URL = '/static/'
 
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "floreal", "static"),
 )
+STATIC_ROOT = '/home/francois/caracole2/static'
 
 AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend',)

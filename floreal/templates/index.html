@@ -30,8 +30,9 @@
     $(function() {
         var phone = window.prompt(
                 "Bonjour,\n \n" +
-                "Les organisateurs de Caracole ont besoin de votre numéro te téléphone, si possible mobile, " +
-                "pour pouvoir vous joindre en cas de problème de distribution. Merci de le renseigner ici.\n \n" +
+                "Le Civam a besoin de votre numéro te téléphone, si possible mobile, " +
+                "pour pouvoir vous joindre en cas de problème de distribution. " +
+                "Merci de le renseigner ici.\n \n" +
                 "Numéro de mobile de {{user.first_name}} {{user.last_name}}:");
         if(phone) {
             var url = "{% url 'add_phone_number' phone='PHONE' %}".replace('PHONE', phone);
