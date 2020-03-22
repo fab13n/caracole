@@ -27,11 +27,13 @@ def edit_user_purchases(request, delivery):
             # TODO: display errors in template
             return redirect("edit_user_purchases", delivery=delivery.id)
     else:
+        products = m.Product.objects.filter(delivery=delivery)
         vars = {
+            'QUOTAS_ENABLED': True,
             'user': user,
             'delivery': delivery,
             'subgroup': delivery.network.subgroup_set.get(users__in=[user]),
-            'products': m.Product.objects.filter(delivery=delivery),
+            'products': products,
             'purchases': order.purchases
         }
         vars.update(csrf(request))

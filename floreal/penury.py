@@ -64,20 +64,40 @@ def allocate(limit, wishes):
     return granted
 
 
-def set_limit(pd):
+def set_limit(pd, last_pc=None):
     """
     Use `allocate()` to ensure that product `pd` hasn't been granted in amount larger than `limit`.
     :param pd: product featuring the quantity limit
     """
     # TODO: in case of limitation, first cancel extra users' orders
+    if pd.quantity_limit is None:  # No limit, granted==ordered for everyone
+        return
+
     purchases = m.Purchase.objects.filter(product=pd)
     wishes = {pc.user_id: int(pc.quantity) for pc in purchases}
     formerly_granted = {pc.user_id: int(pc.quantity) for pc in purchases}
-    if pd.quantity_limit is None:  # No limit, granted==ordered for everyone
-        granted = wishes
-    else:  # Apply limitations
-        granted = allocate(int(pd.quantity_limit), wishes)
 
+    if last_pc is not None:
+        # First limit the last purchase
+        wished = sum(wishes.values())
+        excess = wished - pd.quantity_limit
+        if excess <= 0:
+            return  # No penury
+        elif last_pc.quantity > excess:
+            # Fixing the last purchase is enough to cancel the excess
+            last_pc.quantity -= excess
+            last_pc.save()
+            return
+        else:
+            # The last purchase must be fixed, but that won't be enough
+            del wishes[last_pc.user_id]
+            last_pc.delete()
+            # Then go on to penury re-allocation
+
+    # Call the algorithm
+    granted = allocate(int(pd.quantity_limit), wishes)
+
+    # Save changed purchases into DB
     for pc in purchases:
         uid = pc.user_id
         if formerly_granted[uid] != granted[uid]:  # Save some DB accesses

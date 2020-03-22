@@ -4,6 +4,7 @@
 from datetime import datetime
 
 from django.db import models
+from django.db.models import Sum
 from django.contrib.auth.models import User
 
 from floreal.francais import articulate, plural, Plural
@@ -203,6 +204,14 @@ class Product(models.Model):
             self.unit_weight = 1.
         super(Product, self).save(force_insert, force_update, using, update_fields)
 
+    @property
+    def left(self):
+        """How much of this product is there left?"""
+        if self.quantity_limit is None:
+            return None
+        else:
+            quantity_ordered = self.purchase_set.aggregate(t=Sum('quantity'))['t']
+            return self.quantity_limit - quantity_ordered
 
 class Purchase(models.Model):
     """A purchase is an intent to acquire quantity of a product  a delivery.
@@ -223,6 +232,13 @@ class Purchase(models.Model):
     @property
     def weight(self):
         return self.quantity * self.product.unit_weight
+
+    @property
+    def max_quantity(self):
+        """What's the current max quantity allowed for this order,
+        assuming its current quantity is saved in DB so that product.left is accurate."""
+        left = self.product.left
+        return None if left is None else self.quantity + left
 
     def __unicode__(self, specify_user=False):
         fmt = u"%(quantity)g%(mult)s%(unit)s %(prod_name)s à %(price).2f€"
@@ -347,7 +363,7 @@ class ProductDiscrepancy(models.Model):
         verbose_name_plural = "Product Discrepancies"
 
 class DeliveryDiscrepancy(models.Model):
-    """Lof of an accounting discrepancy that cannot be attributed to a specific product."""
+    """Log of an accounting discrepancy that cannot be attributed to a specific product."""
     delivery = models.ForeignKey(Delivery)
     amount = models.DecimalField(decimal_places=2, max_digits=9)
     subgroup = models.ForeignKey(Subgroup)

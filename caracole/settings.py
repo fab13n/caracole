@@ -22,7 +22,7 @@ SECRET_KEY = 'w$o71h9mt#ju3xk5m1kn*69)+%w)%9e*-)p@_*addg%xcdc677'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-ALLOWED_HOSTS = ['5.196.73.88', 'solalim.civam-occitanie.fr']
+ALLOWED_HOSTS = ['5.196.73.88', 'localhost', 'solalim.civam-occitanie.fr']
 
 EMAIL_USE_TLS = True
 EMAIL_HOST = 'ssl0.ovh.net'
@@ -95,7 +95,7 @@ WSGI_APPLICATION = 'caracole.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': '/home/francois/caracole2/database.sqlite3'
+        'NAME': BASE_DIR + '/database.sqlite3'
     }
 }
 
