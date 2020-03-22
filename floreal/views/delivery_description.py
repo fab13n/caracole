@@ -83,7 +83,7 @@ def delivery_description(delivery, subgroups, **kwargs):
                 totals['full_packages'] = qty // qpp
                 totals['out_of_packages'] = qty % qpp
             if delivery.state >= delivery.REGULATING:
-                q = m.Discrepancy.objects.filter(product=pd, subgroup=sg)
+                q = m.ProductDiscrepancy.objects.filter(product=pd, subgroup=sg)
                 if q.exists():
                     totals['discrepancy'] = q[0].amount
                     totals['discrepancy_reason'] = q[0].reason
