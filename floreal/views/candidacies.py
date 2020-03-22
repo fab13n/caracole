@@ -154,7 +154,7 @@ def validate_candidacy_without_checking(request, candidacy, response, send_confi
     mail += u"\n\nLien vers le site : http://solalim.civam-occitanie.fr"
     title = u"[Circuits courts] Votre demande d'inscription au circuit court "+cd.subgroup.network.name
     if send_confirmation_mail:
-        send_mail(subject=title, message=''.join(mail), from_email=settings.EMAIL_HOST_USER, recipient_list=[cd.user.email],
+        send_mail(subject=title, message=''.join(mail), from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=[cd.user.email],
                   fail_silently=True)
     cd.delete()
 
