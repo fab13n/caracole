@@ -1,0 +1,18 @@
+{% extends 'common.tex' %}
+{% load latex %}
+{% block content %}
+Membres du réseau {{nw.name}}
+\begin{longtable}{|r|c|l|}
+\hline
+Nom & téléphone & e-mail \\ \hline
+\endhead
+{% for sg in nw.subgroup_set.all %}
+% subgroup {{sg.name}}
+{% for u in sg.users.all %}
+{{u.first_name}} {{u.last_name}} & 
+{% with n=u.userphones_set.first %}{% if n is not None %}{\tt {{n.phone}}}{% else %}\nope{% endif %}{% endwith %} &
+{{u.email}} \\ \hline
+{% endfor %}
+{% endfor %}
+\end{longtable}
+{% endblock %}

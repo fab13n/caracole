@@ -62,6 +62,7 @@ urlpatterns = [
 
     url(r'^nw-(?P<network>[^./]+)/emails$', views.view_emails, name='emails_network'),
     url(r'^sg-(?P<subgroup>[^./]+)/emails$', views.view_emails, name='emails_subgroup'),
+    url(r'^nw-(?P<network>[^./]+)/emails.pdf$', views.view_emails_pdf, name='emails_network_pdf'),
 
     url(r'^nw-(?P<network>[^./]+)/phones$', views.view_phones, name='phones_network'),
     url(r'^sg-(?P<subgroup>[^./]+)/phones$', views.view_phones, name='phones_subgroup'),

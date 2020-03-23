@@ -262,6 +262,11 @@ def set_subgroup_state_for_delivery(request, subgroup, delivery, state):
     return redirect(target) if target else redirect('edit_delivery', delivery=dv.id)
 
 
+@nw_admin_required()
+def view_emails_pdf(request, network):
+    nw = get_network(network)
+    return latex.emails(nw)
+
 @login_required()
 def view_emails(request, network=None, subgroup=None):
     user = request.user
