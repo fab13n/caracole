@@ -196,6 +196,10 @@
         init_form_inputs();
         $('#users-table').delegate('td.highlightable', 'hover', handle_highlight);
     });
+    $("form").submit(function() {
+      disable_unmodified_inputs(); // So that they won't be sent
+      return true; // run the normal submit
+    });
   });
   // ]]>
   </script>
@@ -227,7 +231,7 @@
   <input type="hidden" id="modified-users" name="modified" value=""/>
   <table id="users-table">
     <tr id="header-row">
-      <td colspan="2"><input id="submit" type="submit" value="Sauvegarder" onclick="disable_unmodified_inputs()" disabled="true"/></td>
+      <td colspan="2"><input id="submit" type="submit" value="Sauvegarder" disabled="true"/></td>
       {% if multi_sg %}
       <th class="rotate"><div><div>Admin réseau</div></div></th>
       <th class="rotate"><div><div>Admin sous-groupe</div></div></th>
