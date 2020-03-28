@@ -119,6 +119,6 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "floreal", "static"),
 )
-STATIC_ROOT = '/home/francois/caracole2/static'
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend',)

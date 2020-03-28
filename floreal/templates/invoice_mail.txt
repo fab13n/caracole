@@ -1,8 +1,13 @@
 {% load floreal_filters %}
 Bonjour,
 
-Vous avez effectué les commandes ci-dessous sur les circuits courts du 
-Civam. Vous devez régler ces commandes avant le {{payment_date}}:
+Vous avez effectué les commandes ci-dessous sur les circuits courts
+solalim (solidarité alimentaire du Civam).
+
+Vous devez régler ces commandes avant le {{payment_date}}:
+
+Les règlements se feront à la date d'échéance, en réalité avant la distribution
+, livraison. Dans le cas contraire, vos commandes seront annulées. 
 
 * directement à chacun des producteurs ;
 * par virement électronique ;
