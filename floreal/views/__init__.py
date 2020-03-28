@@ -24,7 +24,7 @@ from .regulation import adjust_subgroup
 from .view_purchases import \
     view_purchases_html, view_purchases_latex, view_purchases_xlsx, view_cards_latex, get_archive, non_html_response
 from .password_reset import password_reset
-from .candidacies import candidacy, cancel_candidacy, validate_candidacy, leave_network, create_candidacy
+from .candidacies import candidacy, cancel_candidacy, validate_candidacy, leave_network, create_candidacy, manage_candidacies
 from .invoice_mail import invoice_mail
 
 from floreal.views import require_phone_number as phone
@@ -328,6 +328,8 @@ def view_history(request):
     orders = [(nw, od) for (nw, od) in orders if od.price > 0]  # Filter out empty orders
     vars = {'user': request.user, 'orders': orders}
     return render_to_response("view_history.html", vars)
+
+
 
 
 @nw_admin_required()

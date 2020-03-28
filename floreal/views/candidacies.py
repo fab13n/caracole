@@ -9,7 +9,7 @@ from django.core.mail import send_mail
 from caracole import settings
 from .. import models as m
 from .getters import get_network, get_subgroup, get_candidacy
-from .decorators import sg_admin_required
+from .decorators import sg_admin_required, nw_admin_required
 
 
 @login_required()
@@ -32,7 +32,7 @@ def candidacy(request):
         if item['candidate_to']:
             item['can_be_candidate_to'] = item['can_be_candidate_to'].exclude(id=item['candidate_to'].user.id)
         networks.append(item)
-    print networks
+    # print networks
     return render_to_response('candidacy.html', {'user': user, 'networks': networks})
 
 
@@ -107,6 +107,11 @@ def validate_candidacy(request, candidacy, response):
                        cd.subgroup.network.name, cd.subgroup.name)
     return validate_candidacy_without_checking(request, candidacy=candidacy, response=response, send_confirmation_mail=True)
 
+@nw_admin_required()
+def manage_candidacies(request, network):
+    nw = get_network(network)
+    candidacies = m.Candidacy.objects.filter(subgroup__network=nw)
+    return render_to_response('manage_candidacies.html', {'user': request.user, 'nw': nw, 'candidacies': candidacies})
 
 def validate_candidacy_without_checking(request, candidacy, response, send_confirmation_mail):
     """A (legal) candidacy has been answered by an admin.

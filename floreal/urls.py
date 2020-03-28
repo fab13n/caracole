@@ -43,6 +43,7 @@ urlpatterns = [
     url(r'^cd-(?P<candidacy>[^./]+)/set-response/(?P<response>[YN])$', views.validate_candidacy, name='validate_candidacy'),
     url(r'^nw-(?P<network>[^/]+)/leave$', views.leave_network, name='leave_network'),
     url(r'^new-cd/sg-(?P<subgroup>[^./]+)$', views.create_candidacy, name='create_candidacy'),
+    url(r'^nw-(?P<network>[^/]+)/candidacies', views.manage_candidacies, name='manage_candidacies'),
 
     url(r'^dv-(?P<delivery>[^./]+).html$', views.view_purchases_html, name='view_all_purchases_html'),
     url(r'^dv-(?P<delivery>[^./]+)/table.pdf$', views.view_purchases_latex, name='view_all_purchases_latex'),
