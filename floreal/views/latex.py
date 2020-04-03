@@ -49,3 +49,6 @@ def delivery_cards(dv):
 def delivery_table(dv):
     descr = delivery_description(dv, dv.network.subgroup_set.all())
     return render_latex("delivery-table.tex", {'d': descr})
+
+def emails(nw):
+    return render_latex("emails.tex", {"nw": nw})

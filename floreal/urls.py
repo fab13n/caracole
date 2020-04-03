@@ -25,6 +25,7 @@ urlpatterns = [
     url(r'^nw-(?P<network>[^./]+)/edit-users.json$', views.json_memberships, name='json_memberships'),
     url(r'^nw-(?P<network>[^./]+)/all-deliveries/(?P<states>[A-Z]+)$', views.all_deliveries_html, name='all_deliveries_html'),
     url(r'^nw-(?P<network>[^./]+)/all-deliveries/(?P<states>[A-Z]+).pdf$', views.all_deliveries_latex, name='all_deliveries_latex'),
+    url(r'^nw-(?P<network>[^./]+)/invoice-mail/(?P<payment_date>.*)$', views.invoice_mail, name='invoice_mail'),
 
     url(r'^dv-(?P<delivery>[^./]+)$', views.edit_user_purchases, name='edit_user_purchases'),
     url(r'^dv-(?P<delivery>[^./]+)/staff$', views.edit_delivery, name='edit_delivery'),
@@ -43,6 +44,7 @@ urlpatterns = [
     url(r'^cd-(?P<candidacy>[^./]+)/set-response/(?P<response>[YN])$', views.validate_candidacy, name='validate_candidacy'),
     url(r'^nw-(?P<network>[^/]+)/leave$', views.leave_network, name='leave_network'),
     url(r'^new-cd/sg-(?P<subgroup>[^./]+)$', views.create_candidacy, name='create_candidacy'),
+    url(r'^nw-(?P<network>[^/]+)/candidacies', views.manage_candidacies, name='manage_candidacies'),
 
     url(r'^dv-(?P<delivery>[^./]+).html$', views.view_purchases_html, name='view_all_purchases_html'),
     url(r'^dv-(?P<delivery>[^./]+)/table.pdf$', views.view_purchases_latex, name='view_all_purchases_latex'),
@@ -62,6 +64,7 @@ urlpatterns = [
 
     url(r'^nw-(?P<network>[^./]+)/emails$', views.view_emails, name='emails_network'),
     url(r'^sg-(?P<subgroup>[^./]+)/emails$', views.view_emails, name='emails_subgroup'),
+    url(r'^nw-(?P<network>[^./]+)/emails.pdf$', views.view_emails_pdf, name='emails_network_pdf'),
 
     url(r'^nw-(?P<network>[^./]+)/phones$', views.view_phones, name='phones_network'),
     url(r'^sg-(?P<subgroup>[^./]+)/phones$', views.view_phones, name='phones_subgroup'),

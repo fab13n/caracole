@@ -10,6 +10,8 @@
       {id: {{pd.id}}, quantum: {{pd.quantum|default_if_none:0}}, weight: {{pd.unit_weight}}, unit: "{{pd.unit|escapejs}}"},{% endfor %}
     ];
     var PURCHASES = { {% for pc in purchases %}{{pc.product.id}}: {{pc.quantity}}, {% endfor %} };
+    var MAX_PURCHASES = { {% for pc in purchases %}{% if pc.max_quantity is not None %}{{pc.product.id}}: {{pc.max_quantity}}, {% endif %}{% endfor %} };
+
 
     /* update per-line totals as well as delivery total */
     function update_weight_prices_and_errors() {
@@ -68,6 +70,9 @@
         if(PURCHASES.hasOwnProperty(id)) {
           $("#pd"+id+"-ordered_quantity").attr("value", PURCHASES[id]);
         }
+        if(MAX_PURCHASES.hasOwnProperty(id)) {
+          $("#pd"+id+"-ordered_quantity").attr("max", MAX_PURCHASES[id]);
+        }
       }
       $(":input").bind('keyup mouseup', update_weight_prices_and_errors);
       update_weight_prices_and_errors();
@@ -75,7 +80,7 @@
   // ]]>
   </script>
   <style type="text/css">
-	.total_cell { font-weight: bold; }
+    .total_cell { font-weight: bold; }
     .product-name { text-align: right; }
     .product-unit { text-align: left; }
     .unit-price { padding-left: 10px; }
@@ -139,7 +144,9 @@
         <tr id="row-{{pd.id}}">
           <td class="place">{{forloop.counter}}</td>
           <td class="product-name">{{pd.name}}</td>
-          <td class="quantity"><input class="quantity" id="pd{{pd.id}}-ordered_quantity" maxlength="64" name="pd{{pd.id}}" type="number" step="{{pd.quantum|default_if_none:1}}" min="0" value="0" /></td>
+          <td class="quantity"><input class="quantity" id="pd{{pd.id}}-ordered_quantity" maxlength="64" name="pd{{pd.id}}" type="number" step="{{pd.quantum|default_if_none:1}}" min="0"
+            {%if left is not None%}max="{{left}}"{%endif%}
+            value="0" /></td>
           <td class="product-unit">
               {{pd.unit|unit_multiple}}{% if pd.unit != 'kg' and pd.unit_weight %} ({{pd.unit_weight|weight}}){% endif %}
           </td>

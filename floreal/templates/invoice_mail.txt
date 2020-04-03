@@ -1,0 +1,29 @@
+{% load floreal_filters %}
+Bonjour,
+
+Vous avez effectué les commandes ci-dessous sur les circuits courts
+solalim (solidarité alimentaire du Civam).
+
+Vous devez régler ces commandes avant le {{payment_date}}:
+
+Les règlements se feront à la date d'échéance, en réalité avant la distribution
+, livraison. Dans le cas contraire, vos commandes seront annulées. 
+
+* directement à chacun des producteurs ;
+* par virement électronique ;
+* sur les comptes décrits dans chaque commande.
+
+Faute de règlement dans les temps, votre commande ne pourra pas être prise
+en compte.
+
+Commandes de {{user.first_name}} {{user.last_name}}
+
+{% for item in dv_pcs_totals %}
+{{item.dv.name}}: {{item.total|price}}
+---
+{{item.dv.description}}
+---
+{% for pc in item.pcs %}
+- {{pc}}{% endfor %}
+-------------------------------------------------------------------------------
+{% endfor %}

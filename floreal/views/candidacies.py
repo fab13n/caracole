@@ -9,7 +9,7 @@ from django.core.mail import send_mail
 from caracole import settings
 from .. import models as m
 from .getters import get_network, get_subgroup, get_candidacy
-from .decorators import sg_admin_required
+from .decorators import sg_admin_required, nw_admin_required
 
 
 @login_required()
@@ -32,8 +32,8 @@ def candidacy(request):
         if item['candidate_to']:
             item['can_be_candidate_to'] = item['can_be_candidate_to'].exclude(id=item['candidate_to'].user.id)
         networks.append(item)
-    print(networks)
-    return render(request,'candidacy.html', {'user': user, 'networks': networks})
+    # print networks
+    return render(request, 'candidacy.html', {'user': user, 'networks': networks})
 
 
 @login_required()
@@ -107,6 +107,11 @@ def validate_candidacy(request, candidacy, response):
                        cd.subgroup.network.name, cd.subgroup.name)
     return validate_candidacy_without_checking(request, candidacy=candidacy, response=response, send_confirmation_mail=True)
 
+@nw_admin_required()
+def manage_candidacies(request, network):
+    nw = get_network(network)
+    candidacies = m.Candidacy.objects.filter(subgroup__network=nw)
+    return render(request, 'manage_candidacies.html', {'user': request.user, 'nw': nw, 'candidacies': candidacies})
 
 def validate_candidacy_without_checking(request, candidacy, response, send_confirmation_mail):
     """A (legal) candidacy has been answered by an admin.
@@ -150,10 +155,11 @@ def validate_candidacy_without_checking(request, candidacy, response, send_confi
             cd.subgroup.name, cd.subgroup.network.name,
             ", ".join(cd.subgroup.network.staff.all()),)
 
-    mail += "\n\nCordialement, le robot du site de commande des Circuits Courts Caracole."
-    title = "[caracole] Votre demande d'inscription au circuit court "+cd.subgroup.network.name
+    mail += "\n\nCordialement, le robot du site de commande des Circuits Courts Civam."
+    mail += "\n\nLien vers le site : http://solalim.civam-occitanie.fr"
+    title = "[Circuits courts] Votre demande d'inscription au circuit court "+cd.subgroup.network.name
     if send_confirmation_mail:
-        send_mail(subject=title, message=''.join(mail), from_email=settings.EMAIL_HOST_USER, recipient_list=[cd.user.email],
+        send_mail(subject=title, message=''.join(mail), from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=[cd.user.email],
                   fail_silently=True)
     cd.delete()
 

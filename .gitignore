@@ -5,3 +5,5 @@ db.sqlite3
 database.sqlite3
 *.bak
 *~
+venv*/
+static

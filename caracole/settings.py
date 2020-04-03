@@ -7,7 +7,7 @@ Django settings for floreal project.
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
-
+from os import environ as E
 import django
 
 
@@ -18,26 +18,25 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'w$o71h9mt#ju3xk5m1kn*69)+%w)%9e*-)p@_*addg%xcdc677'
+SECRET_KEY = E['DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', E['PUBLIC_HOST']]
 
 EMAIL_USE_TLS = True
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'circuits.courts.caracole@gmail.com'
+EMAIL_HOST = E['SMTP_HOST']
+EMAIL_PORT = int(E['SMTP_PORT'])
+EMAIL_HOST_USER = E['SMTP_USER']
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-EMAIL_HOST_PASSWORD = '31escargots'
-EMAIL_SUBJECT_PREFIX = '[Circuits Courts Caracole] '
+EMAIL_HOST_PASSWORD = E['SMTP_PASSWORD']
+EMAIL_SUBJECT_PREFIX = '[Circuits Courts] '
 
 # longusernameandemail settings
 MAX_USERNAME_LENGTH = 128
 MAX_EMAIL_LENGTH = 128
 REQUIRE_UNIQUE_EMAIL = False
 
-# Application definition
 DELIVERY_ARCHIVE_DIR = '/tmp/deliveries'
 
 
@@ -51,8 +50,6 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'registration',  # WARNING that's django-registration-redux, not django-registration!
     'django_extensions',
-     #'django_markdown', # WARNING that's django-markdown-app, not django-markdown !
-     #'tinymce'
 )
 
 
@@ -66,16 +63,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
-#MIDDLEWARE = (
-#    'django.contrib.sessions.middleware.SessionMiddleware',
-#    'django.middleware.common.CommonMiddleware',
-#    'django.middleware.csrf.CsrfViewMiddleware',
-#    'django.contrib.auth.middleware.AuthenticationMiddleware',
-#    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
-#    'django.contrib.messages.middleware.MessageMiddleware',
-#    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-#)
 
 TEMPLATES = [
     {
@@ -99,9 +86,16 @@ ROOT_URLCONF = 'floreal.urls'
 WSGI_APPLICATION = 'caracole.wsgi.application'
 
 DATABASES = {
-    'default': {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": E["POSTGRES_DBNAME"],
+        "USER": E["POSTGRES_USER"],
+        "PASSWORD": E["POSTGRES_PASSWORD"],
+        "HOST": E["POSTGRES_HOST"],
+        "PORT": int(E["POSTGRES_PORT"]),
+    } if os.path.isfile("/.dockerenv") else {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': '/home/master/caracole/database.sqlite3'
+        'NAME': BASE_DIR + '/database.sqlite3'
     }
 }
 
@@ -120,10 +114,11 @@ LOGIN_REDIRECT_URL = "/"
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
 
-STATIC_URL = '/caracole/static/'
+STATIC_URL = '/static/'
 
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "floreal", "static"),
 )
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend',)

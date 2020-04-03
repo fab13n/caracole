@@ -1,7 +1,18 @@
 {% extends 'layout.html' %}
 
-{% block content %}
+{% block head %}
 
+<style type="text/css">
+.errorlist {
+  font-weight: bold;
+  color: red;
+}
+</style>
+
+{% endblock %}
+
+
+{% block content %}
 
 {% if form.errors %}
 <p style="background-color:powderblue;">E-mail ou mot de passe invalide. Veuillez réessayer.</p>
@@ -14,6 +25,7 @@
      
     {% endif %}
 {% endif %}
+
 <h2>Vous avez déjà un compte circuits courts Caracole:</h2>
 <p>Identifiez-vous :</p>
 <form method="post" action="">
@@ -27,7 +39,9 @@
 <input type="hidden" name="next" value="{{ next }}">
 </form>
 
-<p>On vous a proposé de rejoindre un ciruit Caracole ? <a href="{% url 'user_register' %}">Enregistrez-vous</a>.</p>
+{{form.non_field_errors}}
+
+<p>On vous a proposé de rejoindre un circuit Civam ? <a href="{% url 'user_register' %}">Enregistrez-vous</a>.</p>
 
 <p>Vous avez oublié votre mot de passe ? <a href="{% url 'auth_password_reset' %}">Remettez-le à zéro</a>.</p>
 

@@ -30,8 +30,9 @@
     $(function() {
         var phone = window.prompt(
                 "Bonjour,\n \n" +
-                "Les organisateurs de Caracole ont besoin de votre numéro te téléphone, si possible mobile, " +
-                "pour pouvoir vous joindre en cas de problème de distribution. Merci de le renseigner ici.\n \n" +
+                "Le Civam a besoin de votre numéro te téléphone, si possible mobile, " +
+                "pour pouvoir vous joindre en cas de problème de distribution. " +
+                "Merci de le renseigner ici.\n \n" +
                 "Numéro de mobile de {{user.first_name}} {{user.last_name}}:");
         if(phone) {
             var url = "{% url 'add_phone_number' phone='PHONE' %}".replace('PHONE', phone);
@@ -82,7 +83,7 @@ Commander pour :
 
 <p><a href="{% url 'view_history' %}">Historique de vos anciennes commandes</a></p>
 
-{% if network_admin or subgroup_admin %}
+{% if network_admin or subgroup_admin or user.is_staff %}
 <h2>Administrer</h2>
 <ul>
     {% for nw in network_admin %}

@@ -23,7 +23,8 @@ from .edit_user_memberships import edit_user_memberships, json_memberships
 from .regulation import adjust_subgroup
 from .view_purchases import \
     view_purchases_html, view_purchases_latex, view_purchases_xlsx, view_cards_latex, get_archive, non_html_response
-from .candidacies import candidacy, cancel_candidacy, validate_candidacy, leave_network, create_candidacy
+from .candidacies import candidacy, cancel_candidacy, validate_candidacy, leave_network, create_candidacy, manage_candidacies
+from .invoice_mail import invoice_mail
 
 from floreal.views import require_phone_number as phone
 
@@ -260,6 +261,11 @@ def set_subgroup_state_for_delivery(request, subgroup, delivery, state):
     return redirect(target) if target else redirect('edit_delivery', delivery=dv.id)
 
 
+@nw_admin_required()
+def view_emails_pdf(request, network):
+    nw = get_network(network)
+    return latex.emails(nw)
+
 @login_required()
 def view_emails(request, network=None, subgroup=None):
     user = request.user
@@ -321,6 +327,8 @@ def view_history(request):
     orders = [(nw, od) for (nw, od) in orders if od.price > 0]  # Filter out empty orders
     vars = {'user': request.user, 'orders': orders}
     return render(request,"view_history.html", vars)
+
+
 
 
 @nw_admin_required()

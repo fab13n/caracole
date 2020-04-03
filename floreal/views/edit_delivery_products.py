@@ -33,7 +33,7 @@ def edit_delivery_products(request, delivery):
         return redirect('edit_delivery', delivery.id)
 
     else:  # Create and populate forms to render
-        vars = {'QUOTAS_ENABLED': False,
+        vars = {'QUOTAS_ENABLED': True,
                 'user': request.user,
                 'delivery': delivery}
         vars.update(csrf(request))
@@ -135,5 +135,5 @@ def _parse_form(request):
             pd.save()
 
     # In case of change in quantity limitations, adjust granted quantities for purchases
-    #for pd in dv.product_set.all():
-    #    set_limit(pd)
+    for pd in dv.product_set.all():
+        set_limit(pd)

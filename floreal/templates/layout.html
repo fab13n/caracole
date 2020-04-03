@@ -2,10 +2,10 @@
 {% load static %}
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <title>Circuits courts Caracole</title>
+    <title>Circuits courts Civam</title>
     <link href="{% static 'layout/common.css' %}" rel="stylesheet" type="text/css" />
     <link href="{% static 'layout/default.css' %}" rel="stylesheet" type="text/css" />
-    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon" />
+    <link rel="icon" href="{% static 'favicon.png' %}" type="image/png" />
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
     <script type="text/javascript" src="{% static 'js/jquery.js' %}"></script>
     {% block head %} {% endblock %}
@@ -13,7 +13,7 @@
   <body>
     <div id="wrapper">
       <div id="logo">
-        <h1><a href='{% url "index" %}'>Circuits Courts Caracole</a></h1>
+        <h1><a href='{% url "index" %}'>Circuits Courts Civam</a></h1>
         <h2>Gestion associative de commandes en circuits courts</h2>
       </div>
       <!-- start page -->
@@ -26,7 +26,7 @@
         <!-- start sidebar -->
         <div id="sidebar">
           {% if user.is_anonymous %}
-          <em>Non conneté</em>
+          <em>Non connecté</em>
           {% else %}
           Connecté comme<br/>
           <em>{{user.first_name}} {{user.last_name}}</em>.
@@ -41,8 +41,6 @@
             {% endif %}
             {% endif %}
             <li><a href="{% url 'index' %}">Page d'accueil</a></li>
-            <li><a href="{% url 'charte' %}">La Charte Caracole</a></li>
-            <li><a href="http://caracole.le-pic.org/index.php">Caracole</a></li>
           </ul>
         </div>
         <!-- end sidebar -->
@@ -53,7 +51,7 @@
       <div id="footer">
         <div id="footer-wrap">
           <p id="legal">
-            (c) 2012-2016 <a href='mailto://fleutot+caracole@gmail.com'>F. Fleutot</a>.
+            (c) 2012-2020 <a href='mailto://fleutot+civam@gmail.com'>F. Fleutot</a>.
             CSS (c) <a href="http://www.freecsstemplates.org/">Free
             CSS Templates</a>.
           </p>

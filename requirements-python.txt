@@ -1,0 +1,11 @@
+Django==3.0.4
+django-extensions==2.2.9
+django-registration-redux==2.7
+ipython
+Markdown==3.2.1
+psycopg2
+pytz==2019.3
+six==1.14.0
+typing==3.7.4.1
+uwsgi
+XlsxWriter==1.2.8
