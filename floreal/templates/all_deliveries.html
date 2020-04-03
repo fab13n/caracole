@@ -25,7 +25,7 @@ td.yes { background-color: #ccffcc; color: green; font-size: larger; }
 {% endblock %}
 
 {% block content %}
-<h1>Commandes en cours pour le réseau {{network.name}}</h1>
+<h1>{{table|length}} Commandes en cours pour le réseau {{network.name}}</h1>
 <table>
     <tr>
         <td></td>
