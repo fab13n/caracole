@@ -37,8 +37,11 @@ MAX_USERNAME_LENGTH = 128
 MAX_EMAIL_LENGTH = 128
 REQUIRE_UNIQUE_EMAIL = False
 
-# Application definition
-DELIVERY_ARCHIVE_DIR = '/tmp/deliveries'
+# Application definitions
+DELIVERY_ARCHIVE_DIR = os.path.join(BASE_DIR, "delivery_archive")
+
+if not os.path.isdir(DELIVERY_ARCHIVE_DIR):
+    os.makedirs(DELIVERY_ARCHIVE_DIR)
 
 
 INSTALLED_APPS = (
