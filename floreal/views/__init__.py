@@ -162,13 +162,19 @@ def edit_delivery(request, delivery):
     return render_to_response('edit_delivery.html', vars)
 
 
-def list_delivery_models(request, network):
+def list_delivery_models(request, network, all_networks=False):
     """Propose to create a delivery based on a previous delivery."""
     nw = m.Network.objects.get(id=network)
+    if all_networks:
+        authorized_networks = request.user.staff_of_network.all()
+        deliveries = m.Delivery.objects.filter(network__in=authorized_networks)
+    else:
+        deliveries =  m.Delivery.objects.filter(network=nw)
     vars = {
         'user': request.user,
         'nw': nw,
-        'deliveries': m.Delivery.objects.filter(network=nw).order_by("-id")
+        'all_networks': all_networks,
+        'deliveries': deliveries.order_by("network", "-id")
     }
     return render_to_response('list_delivery_models.html', vars)
 
@@ -179,9 +185,10 @@ def create_delivery(request, network=None, dv_model=None):
     """Create a new delivery, then redirect to its edition page."""
     if network:
         nw = m.Network.objects.get(id=network)
-    elif dv_model:
-        dv_model = m.Delivery.objects.get(id=dv_model)
+    else:
         nw = dv_model.network
+    if dv_model:
+        dv_model = m.Delivery.objects.get(id=dv_model)
 
     if request.user not in nw.staff.all():
         # Vérifier qu'on est bien admin du bon réseau

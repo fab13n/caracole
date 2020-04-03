@@ -17,8 +17,19 @@
 <ul>
     <li><a href="{% url 'create_empty_delivery' network=nw.id%}">vide</a></li>
     {% for dv in deliveries %}
-    <li>basée sur <a href="{% url 'create_delivery_copy' dv_model=dv.id %}">"{{dv.name}}"</a></li>
+    <li>basée sur <a href="{% url 'create_delivery_copy' network=nw.id dv_model=dv.id %}">
+        {% if all_networks %}
+        {{dv.network.name}}: {{dv.name}}
+        {% else %}
+        {{dv.name}}
+        {% endif %}
+    </a></li>
     {% endfor %}
+    {% if all_networks %}
+    <li><a href="{% url 'list_delivery_models' network=nw.id %}">Uniquement le réseau {{nw.name}}</a></li>
+    {% else %}
+    <li><a href="{% url 'list_delivery_models_all_networks' network=nw.id %}">Lister tous les réseaux</a></li>
+    {% endif %}
 </ul>
 
 <p>Retourner à l'<a href="{% url 'network_admin' network=nw.id %}">administration du réseau {{nw.name}}</a>.</p>
