@@ -83,7 +83,7 @@ Commander pour :
 
 <p><a href="{% url 'view_history' %}">Historique de vos anciennes commandes</a></p>
 
-{% if network_admin or subgroup_admin %}
+{% if network_admin or subgroup_admin or user.is_staff %}
 <h2>Administrer</h2>
 <ul>
     {% for nw in network_admin %}

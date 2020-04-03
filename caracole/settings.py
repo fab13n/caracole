@@ -49,6 +49,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'impersonate',
     'registration',  # WARNING that's django-registration-redux, not django-registration!
     'django_extensions',
     'django_markdown'
@@ -65,6 +66,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'impersonate.middleware.ImpersonateMiddleware'
 )
 
 if django.VERSION < (1, 8):
