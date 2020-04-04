@@ -50,7 +50,7 @@
         </tr>
         {% for sc in active_sections %}
         <tr>
-            <td><input type="text" name="sc{{sc.id}}-name" value="{{sc.name}}"/></td>
+            <td><input type="text" name="sc{{sc.id}}-name" value="{{sc.name|escapejs}}"/></td>
             <td>
                 <!-- options will be filled and maintained in Javascript -->
                 <select id="sc{{sc.id}}-parent" name="sc{{sc.id}}-parent">

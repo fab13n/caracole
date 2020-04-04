@@ -40,7 +40,7 @@ tr:hover input[type=button] {visibility: visible;}
     }
 
     function rename_delivery(dv_id, dv_name) {
-        var new_name = window.prompt("Renommer la commande "+dv_name+" :");
+        var new_name = window.prompt("Renommer la commande "+dv_name+" :", dv_name);
         var url = "{% url 'set_delivery_name' delivery='DVID' name='NAME' %}".replace('DVID', dv_id).replace('NAME', new_name);
         if (new_name) {
             $.ajax(url, {success: function() { window.location.reload(); }});
@@ -103,7 +103,7 @@ tr:hover input[type=button] {visibility: visible;}
                      onclick="set_delivery_state({{dv.id}}, '{{S}}');"
                      {% if dv.state == S %}checked="checked"{% endif %}/></td>
           {% endfor %}
-          <td><input type="button" value="renommer" onclick="return rename_delivery({{dv.id}}, '{{dv.name}}');"/></td>
+          <td><input type="button" value="renommer" onclick="return rename_delivery({{dv.id}}, '{{dv.name|escapejs}}');"/></td>
           <td><input type="button" value="voir/éditer" onclick="return goto_delivery({{dv.id}});"/></td>
       </tr>
       {% endfor %}
