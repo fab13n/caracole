@@ -193,7 +193,11 @@ class Product(models.Model):
     place = models.PositiveSmallIntegerField(null=True, blank=True, default=True)
 
     class Meta:
-        unique_together = (('delivery', 'name'),)
+        # Problematic: during delivery modifications, some product names may transiently have a name
+        # duplicated wrt another product to be renamed in the same update.
+        # Moreover, in a future evolution, we'll want to allow several products with the same name but
+        # different quantities, and a dedicated UI rendering for them.
+        # unique_together = (('delivery', 'name'),)
         ordering = ('place', '-quantity_per_package', 'name',)
 
     def __unicode__(self):

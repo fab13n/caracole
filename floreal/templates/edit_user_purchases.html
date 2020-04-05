@@ -8,10 +8,9 @@
   // <![CDATA[
     {# TODO: refactor in objects #}
     var PRODUCTS = [{% for pd in products %}
-      {id: {{pd.id}}, quantum: {{pd.quantum|default_if_none:0}}, weight: {{pd.unit_weight}}, unit: "{{pd.unit|escapejs}}"},{% endfor %}
+      {id: {{pd.id}}, quantum: {{pd.quantum|default_if_none:0}}, left: {{pd.left|default_if_none:"null"}}, weight: {{pd.unit_weight}}, unit: "{{pd.unit|escapejs}}"},{% endfor %}
     ];
     var PURCHASES = { {% for pc in purchases %}{{pc.product.id}}: {{pc.quantity}}, {% endfor %} };
-    var MAX_PURCHASES = { {% for pc in purchases %}{% if pc.max_quantity is not None %}{{pc.product.id}}: {{pc.max_quantity}}, {% endif %}{% endfor %} };
 
 
     /* update per-line totals as well as delivery total */
@@ -71,9 +70,16 @@
         if(PURCHASES.hasOwnProperty(id)) {
           $("#pd"+id+"-ordered_quantity").attr("value", PURCHASES[id]);
         }
-        if(MAX_PURCHASES.hasOwnProperty(id)) {
-          $("#pd"+id+"-ordered_quantity").attr("max", MAX_PURCHASES[id]);
-        }
+      }
+      for(i in PRODUCTS){
+        var pd = PRODUCTS[i];
+        if(pd.left !== null) {
+          /* if there's a max quantity on a product, prevent from ordering more than that in addition to what's ordered. */
+          var purchased = PURCHASES[pd.id] || 0;
+          $("#pd"+pd.id+"-ordered_quantity").attr("max", pd.left + purchased);
+          // var name = $("#row-"+pd.id+" .product-name").text();
+          // console.log(name, "left=", pd.left, "purchased=", purchased, "max=", pd.left+purchased, $("#pd"+pd.id+"-ordered_quantity")[0]);
+        } 
       }
       $(":input").bind('keyup mouseup', update_weight_prices_and_errors);
       update_weight_prices_and_errors();
