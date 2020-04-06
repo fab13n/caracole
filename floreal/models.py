@@ -214,7 +214,7 @@ class Product(models.Model):
         if self.quantity_limit is None:
             return None
         else:
-            quantity_ordered = self.purchase_set.aggregate(t=Sum('quantity'))['t']
+            quantity_ordered = self.purchase_set.aggregate(t=Sum('quantity'))['t'] or 0
             return self.quantity_limit - quantity_ordered
 
 class Purchase(models.Model):
