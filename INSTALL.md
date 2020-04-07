@@ -5,14 +5,16 @@ L'installation se fait de préférence à l'aide de docker et
 docker-compose sur une machine Linux. La procédure n'a pas encore été
 complètement automatisée, ce document décrit son état actuel.
 
-1. personnaliser l'environnement: editer le fichier `.env`, choisir
-   le port sur lequel le site est exporté, le nom, l'e-mail et le mot
-   de passe du super-utilisateur (il est administrateur de réseaux et
-   de la base de données).
+1. personnaliser l'environnement: editer le fichier `.env`, choisir le
+   port sur lequel le site est exporté, le nom, l'e-mail et le mot de
+   passe du super-utilisateur (il est administrateur de réseaux et de
+   la base de données), les réglages du compte SMTP d'envoi de mail,
+   la clef secrete `DJANGO_SECRET_KEY` (celle par défaut se promène
+   partout notamment sur Github).
    
-2. personnaliser la configuration de Django dans
-   `caracole/settings.py`: changer `SECRET_KEY`, `ALLOWED_HOSTS`, la
-   config du client SMTP permettant d'envoyer des e-mails.
+   
+2. éventuellement faire des réglages avancés dans
+   `caracole/settings.py`.
    
 3. initialiser la base de fichiers statiques et la base de données:
    `docker-compose up init`

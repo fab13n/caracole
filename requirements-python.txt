@@ -1,9 +1,10 @@
 Django==3.0.4
 django-extensions==2.2.9
 django-registration-redux==2.7
-ipython
+django-impersonate==1.5
+ipython==7.13.0
 Markdown==3.2.1
-psycopg2
+psycopg2==2.8.5
 pytz==2019.3
 six==1.14.0
 typing==3.7.4.1

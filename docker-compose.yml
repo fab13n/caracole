@@ -43,8 +43,6 @@ services:
       - SMTP_PASSWORD
     depends_on:
       - db
-    ports:
-      - 1234:8000
 
   dev:
     <<: *django_prod

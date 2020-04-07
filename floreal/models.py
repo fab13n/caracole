@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 
 from datetime import datetime
 
@@ -193,7 +192,11 @@ class Product(models.Model):
     place = models.PositiveSmallIntegerField(null=True, blank=True, default=True)
 
     class Meta:
-        unique_together = (('delivery', 'name'),)
+        # Problematic: during delivery modifications, some product names may transiently have a name
+        # duplicated wrt another product to be renamed in the same update.
+        # Moreover, in a future evolution, we'll want to allow several products with the same name but
+        # different quantities, and a dedicated UI rendering for them.
+        # unique_together = (('delivery', 'name'),)
         ordering = ('place', '-quantity_per_package', 'name',)
 
     def __str__(self):
@@ -210,7 +213,7 @@ class Product(models.Model):
         if self.quantity_limit is None:
             return None
         else:
-            quantity_ordered = self.purchase_set.aggregate(t=Sum('quantity'))['t']
+            quantity_ordered = self.purchase_set.aggregate(t=Sum('quantity'))['t'] or 0
             return self.quantity_limit - quantity_ordered
 
 class Purchase(models.Model):

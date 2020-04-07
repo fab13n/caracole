@@ -4,7 +4,6 @@
 from django.conf.urls import include, url
 from django.contrib import admin
 from django.views.generic import TemplateView
-from django.contrib.auth.views import PasswordResetView, PasswordResetDoneView
 
 #from django_markdown import urls as django_markdown_urls
 
@@ -15,7 +14,8 @@ urlpatterns = [
 
     url(r'^new-nw/(?P<nw_name>[^./]+)/(?P<sg_name>[^./]+)$', views.create_network, name='create_network'),
     url(r'^new-dv/nw-(?P<network>[^./]+)/list$', views.list_delivery_models, name='list_delivery_models'),
-    url(r'^new-dv/dv-(?P<dv_model>[^./]+)$', views.create_delivery, name='create_delivery_copy'),
+    url(r'^new-dv/nw-(?P<network>[^./]+)/list-all$', views.list_delivery_models, kwargs={'all_networks': True}, name='list_delivery_models_all_networks'),
+    url(r'^new-dv/nw-(?P<network>[^./]+)/dv-(?P<dv_model>[^./]+)$', views.create_delivery, name='create_delivery_copy'),
     url(r'^new-dv/nw-(?P<network>[^./]+)$', views.create_delivery, kwargs={'dv_model': None}, name='create_empty_delivery'),
     url(r'^new-sg/nw-(?P<network>[^./]+)/(?P<name>.+)$', views.create_subgroup, name='create_subgroup'),
 
@@ -73,12 +73,12 @@ urlpatterns = [
     url(r'^journal$', views.journal, name='view_journal'),
     url(r'^charte.html$', TemplateView.as_view(template_name='charte.html'), name='charte'),
 
-    url(r'^admin/', admin.site.urls),
-
+    url(r'^admin/', include(admin.site.urls), name='admin'),
+    url(r'^impersonate/', include('impersonate.urls')),
+ 
     url(r'^accounts/register$', views.user_register, name="user_register"),
     url(r'^accounts/registration_post.html$', views.user_register_post, name="registration_post"),
-    url(r'^accounts/password/reset/?$', PasswordResetView.as_view(), name="password_reset"),
-    url(r'accounts/password/reset_done/?$', PasswordResetDoneView.as_view(), name="password_reset_done"),
+    url(r'^accounts/password/reset/?$', views.password_reset, name="password_reset"),
     url(r'^accounts/', include('registration.backends.simple.urls')),
 
     url(r'^add-phone-number/(?P<phone>[^./]+)$', views.phone.add_phone_number, name="add_phone_number"),

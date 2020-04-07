@@ -38,6 +38,10 @@
             {% if user.is_staff %}
             <li><a href="{% url 'view_journal' %}">Journal des événements</a></li>
             <li><a href="{% url 'admin:index' %}">Administrer DB</a></li>
+            <li><a href="/impersonate/list/">Usurper une identité</a></li>
+            {% endif %}
+            {% if user.is_impersonate %}
+            <li><a href="/impersonate/stop/">Cesser d'usurper {{user}}</a></li>
             {% endif %}
             {% endif %}
             <li><a href="{% url 'index' %}">Page d'accueil</a></li>
