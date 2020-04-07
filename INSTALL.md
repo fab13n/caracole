@@ -1,6 +1,10 @@
 Déployer les circuits courts Caracole
 =====================================
 
+
+Avec Docker
+-----------
+
 L'installation se fait de préférence à l'aide de docker et
 docker-compose sur une machine Linux. La procédure n'a pas encore été
 complètement automatisée, ce document décrit son état actuel.
@@ -37,3 +41,49 @@ complètement automatisée, ce document décrit son état actuel.
 
 7. une fois que tout fonctionne, passer `DEBUG = False` dans
    `caracole/seetings.py`.
+
+
+Sans Docker
+-----------
+
+1. Mettre à jour les variables d'environnement dans `.env` (cf. Docker
+  ci-dessus) 
+2. Convertir le fichier de la syntaxe docker-compose en syntaxe bash
+3. Evaluer le fichier de variables bash
+4. Créer un environnement virtuel Python 3
+5. Rentrer dans cet environnement
+6. Installer les dépendance PIP dans cet environnement
+
+```
+edit .env                              # Configure setup
+caracole/env2bash .env > .env.sh       # Convert to bash
+. .env.sh                              # Set variables
+python3 -m virtualenv venv             # Create virtualenv
+. venv/bin/activate                    # Enter virtualenv
+pip install -r requirements-python.txt # Install dependencies
+```
+
+`psycopg2` peut s'avérer un peu pénible à installer (il a des
+dépendances Postgres qui doivent être installées hors virtualenv), et
+peu utile : lorsqu'il tourne hors Docker, le site est prévu pour
+utiliser préférentiellement un base sqlite3. Vous pouvez le désactiver
+en le retirant de `requirements-python.txt`.
+
+Maintenant on peut initialiser la DB:
+
+```
+./manage.py migrate         # Initialize DB
+./manage.py createsuperuser # Create a superuser. use an email as username
+```
+
+À partir de là, vous pouvez faire tourner le serveur de développement :
+
+```
+./manage.py runserver 0.0.0.0:8000
+```
+
+Pour effectivement déployer, il faudra installer un reverse proxy
+(nginx ou apache2 par exemple), l'interfacer en WSGI avec Django grâce
+à `uwsgi` ou `Gunicorn`, si possible configurer TLS avec
+Letsencrypt. Mais sauf besoins spécifiques, le déploiement avec
+`docker-compose` devrait rester le plus simple.

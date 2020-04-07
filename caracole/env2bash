@@ -1,0 +1,9 @@
+#!/bin/bash
+IN=$1
+
+if [[ "$IN" == "" ]]; then
+   echo "Usage: $0 <docker-compose-env-file> > <bash-source-file>"
+   exit 1
+fi
+
+cat $IN | sed 's/^\([A-Z_0-9]*\)=\(.*\)$/export \1="\2"/g'
