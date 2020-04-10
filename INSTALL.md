@@ -20,8 +20,10 @@ complètement automatisée, ce document décrit son état actuel.
 2. éventuellement faire des réglages avancés dans
    `caracole/settings.py`.
    
-3. initialiser la base de fichiers statiques et la base de données:
-   `docker-compose up init`
+3. lancer le script d'initialisation. Il initialisera la base de
+   donnée, la base de fichiers statiques, créera les fichiers de
+   configuration nginx, et optionellement demandera un certificat
+   TLS à letsencrypt `./initialize.sh`.
 
 4. lancer le site, soit en mode développement `docker-compose up dev`,
    soit en mode production `docker-compose up --detach prod`
@@ -41,6 +43,25 @@ complètement automatisée, ce document décrit son état actuel.
 
 7. une fois que tout fonctionne, passer `DEBUG = False` dans
    `caracole/seetings.py`.
+
+
+HTTPS
+-----
+
+Pour servir le site avec un chiffrement et une authentification
+sécurisées (en https plutôt qu'en http donc), il faut posséder un nom
+de domaine, servir sur les ports standard 80 et 443, et obtenir un
+certificat TLS de la part de Letsencrypt. Des services
+`docker-compose` sont inclus dans la distribution pour vous y
+aider. Voici les étapes à suivre, dans l'hypothèse où vous n'avez pas
+déjà de certificats TLS :
+
+* dans `.env`, régler `PUBLIC_HTTP_PORT=80, PUBLIC_HTTPS_PORT=443` et
+  renseigner dans `PUBLIC_HOST` le nom de domaine de votre serveur.
+
+* Lancer le service docker qui demandera à letsencrypt votre premier
+  certificat et lui prouvera que le nom de domaine vous appartient :
+  `docker-compose up certbot`.
 
 
 Sans Docker

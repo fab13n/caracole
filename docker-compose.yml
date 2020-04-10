@@ -6,7 +6,7 @@ services:
     environment:
       - POSTGRES_USER=${SUPERUSER_USERNAME}
       - POSTGRES_PASSWORD=${SUPERUSER_PASSWORD}
-      - POSTGRES_DBNAME
+      - POSTGRES_DB=${POSTGRES_DBNAME}
       - POSTGRES_HOST
       - POSTGRES_PORT
       - PGDATA=/pgdata
@@ -53,6 +53,11 @@ services:
 
   init:
     <<: *django_prod
+    volumes:
+      - ./manage.py:/home/caracole/manage.py
+      - ./caracole:/home/caracole/caracole
+      - ./floreal:/home/caracole/floreal
+      - ${VOLUMES}/static:/home/caracole/static
     command: ./caracole/initialize.sh
 
   prod:
@@ -62,9 +67,9 @@ services:
       - ${PUBLIC_HTTP_PORT}:80
       - ${PUBLIC_HTTPS_PORT}:443
     volumes:
-      - ./nginx-${PUBLIC_PROTO}.conf:/etc/nginx/conf.d/default.conf
-      - ./static:/home/caracole/static
+      - ${VOLUMES}/${PUBLIC_PROTO}.conf:/etc/nginx/conf.d/default.conf
       - ${VOLUMES}/certbot/conf:/etc/letsencrypt
+      - ${VOLUMES}/static:/var/www/caracole/static
       - ${VOLUMES}/certbot/www:/var/www/certbot
     depends_on:
       - django_prod
@@ -78,3 +83,12 @@ services:
       - ${VOLUMES}/certbot/www:/var/www/certbot
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
+  certbot_nginx:
+    image: nginx:1.15-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ${VOLUMES}/certbot/conf:/etc/letsencrypt
+      - ${VOLUMES}/certbot/www:/var/www/certbot
+      - ${VOLUMES}/certbot/default.conf:/etc/nginx/conf.d/default.conf

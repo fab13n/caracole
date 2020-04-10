@@ -77,7 +77,7 @@ urlpatterns = [
     # TODO Test usefulness of final /
     re_path('^accounts/password/reset/?$', PasswordResetView.as_view(), name="password_reset"),
     re_path('^accounts/password/reset_done/?$', PasswordResetDoneView.as_view(), name="password_reset_done"),
-    path('accounts', include('registration.backends.simple.urls')),
+    path('accounts/', include('registration.backends.simple.urls')),
 
     path('add-phone-number/<phone>', views.phone.add_phone_number, name="add_phone_number"),
 ]

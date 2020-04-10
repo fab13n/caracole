@@ -3,6 +3,7 @@ TIME=15
 echo "Waiting $TIME seconds to make sure the DB is initialized"
 sleep $TIME
 ./manage.py migrate
+./manage.py collectstatic --no-input
 ./manage.py shell <<EOF
 from django.contrib.auth.models import User
 username = "$SUPERUSER_USERNAME"

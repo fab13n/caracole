@@ -1,0 +1,32 @@
+upstream django { server django_prod:8000; }
+
+server {
+    listen $PUBLIC_HTTP_PORT;
+    server_name $PUBLIC_HOST;
+    location / {
+    	# Force redirection to HTTPS
+        return 301 https://$host$request_uri;
+    }    
+    location /.well-known/acme-challenge {
+    	# Where certbot posts certificate renewal challenges for Letsencrypt
+    	root /var/www/certbot;
+    }
+}
+server {
+    listen $PUBLIC_HTTPS_PORT ssl;
+    server_name $PUBLIC_HOST;
+    gzip on;
+    gzip_comp_level 6;
+
+    ssl_certificate /etc/letsencrypt/live/$PUBLIC_HOST/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$PUBLIC_HOST/privkey.pem;
+
+    location / {
+        uwsgi_pass  django;
+        include     uwsgi_params;
+    }
+
+    location /static/ {
+        alias /var/www/caracole/static/;
+    }
+}

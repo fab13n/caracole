@@ -1,0 +1,18 @@
+server {
+    listen 80;
+    server_name $PUBLIC_HOST;
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+server {
+    listen 443 ssl;
+    server_name $PUBLIC_HOST;
+    ssl_certificate /etc/letsencrypt/live/$PUBLIC_HOST/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$PUBLIC_HOST/privkey.pem;
+    location / {
+    }
+}
