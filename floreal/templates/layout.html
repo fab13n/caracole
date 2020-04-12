@@ -38,7 +38,7 @@
             {% if user.is_staff %}
             <li><a href="{% url 'view_journal' %}">Journal des événements</a></li>
             <li><a href="{% url 'admin:index' %}">Administrer DB</a></li>
-            <li><a href="/impersonate/list/">Usurper une identité</a></li>
+            <li><a href="{% url 'impersonate-search' %}">Usurper une identité</a></li>
             {% endif %}
             {% if user.is_impersonate %}
             <li><a href="/impersonate/stop/">Cesser d'usurper {{user}}</a></li>
