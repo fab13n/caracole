@@ -357,15 +357,25 @@ def journal(request):
 @nw_admin_required()
 def all_deliveries(request, network, states):
     nw = get_network(network)
-    deliveries = m.Delivery.objects.filter(network=nw, state__in=states)
+    deliveries = list(m.Delivery.objects.filter(network=nw, state__in=states))
     users = m.User.objects.filter(user_of_subgroup__network=nw)
 
-    def has_purchased(u, dv):
-        return m.Purchase.objects.filter(product__delivery=dv, user=u).exists()
+    # u -> dv -> has_purchased
+    users_with_purchases = {u: {dv: False for dv in deliveries} for u in users}
 
-    t = [(u, [(dv, has_purchased(u, dv)) for dv in deliveries]) for u in users]
-    # Filter out users without purchases
-    t = [(u, dv_pc) for (u, dv_pc) in t if any(pc for (dv, pc) in dv_pc)]
+    for dv in deliveries:
+        for u in users.filter(purchase__product__delivery=dv).distinct():
+            users_with_purchases[u][dv] = True
+
+    # Remove network users with no purchases in any delivery
+    users_with_purchases = {
+        u: dv_pc
+        for u, dv_pc in users_with_purchases.items()
+        if any(v for v in dv_pc.values())
+    }
+            
+    # t: List[Tuple[m.User, List[Tuple[m.Delivery, bool]]]]
+    t = [(u, [(dv, dv_pc[dv]) for dv in deliveries]) for u, dv_pc in users_with_purchases.items()]
     t.sort(key=lambda x: (x[0].last_name, x[0].first_name))
 
     return {'states': states, 'network': nw, 'table': t}
