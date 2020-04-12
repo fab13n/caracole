@@ -25,7 +25,7 @@ from .view_purchases import \
     view_purchases_html, view_purchases_latex, view_purchases_xlsx, view_cards_latex, get_archive, non_html_response
 from .password_reset import password_reset
 from .candidacies import candidacy, cancel_candidacy, validate_candidacy, leave_network, create_candidacy, manage_candidacies
-from .invoice_mail import invoice_mail
+from .invoice_mail import invoice_mail_form
 
 from floreal.views import require_phone_number as phone
 

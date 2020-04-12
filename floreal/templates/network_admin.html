@@ -47,14 +47,6 @@ tr:hover input[type=button] {visibility: visible;}
         }
     }
 
-    function on_invoice_mail_click() {
-        var payment_date = prompt("Envoyer un mail pour les commandes gelées. Quelle date limite de réglement ?");
-        if(payment_date){
-            var url_scheme = "{% url 'invoice_mail' network=nw.id payment_date='DATE' %}";
-            window.location = url_scheme.replace('DATE', encodeURI(payment_date));
-        }
-    }
-
     /* Demand confirmation through a dialog before following link. */
     $(function(){
         $("#create-subgroup").on('click', create_subgroup);
@@ -76,7 +68,7 @@ tr:hover input[type=button] {visibility: visible;}
   <li>Voir la synthèse des commandes en cours
       <a href="{% url 'all_deliveries_html' network=nw.id states='BCDE' %}">en ligne</a>,
       <a href="{% url 'all_deliveries_latex' network=nw.id states='BCDE' %}">en PDF</a></li>
-  <li><a href="#" onclick='on_invoice_mail_click()'>Envoyer un rappel mail pour les commandes gelées<img src="{% static 'images/email.png' %}"/></a></li>
+  <li><a href="{% url 'invoice_mail_form' network=nw.id %}">Envoyer un rappel mail pour les commandes gelées<img src="{% static 'images/email.png' %}"/></a></li>
   <li><a href="{% url 'archived_deliveries' network=nw.id %}">Voir les commandes archivées</a></li>
 </ul>
 
