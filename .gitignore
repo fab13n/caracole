@@ -7,3 +7,4 @@ database.sqlite3
 *~
 venv*/
 static
+postgresql

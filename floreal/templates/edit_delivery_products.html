@@ -217,20 +217,21 @@
   </script>
   <style type="text/css">
       td.name input { width: 200px; }
-      td.unit input { width: 40px; }
+      td.unit input { width: 50px; }
       td.unit-label { text-align: left; }
-      td.price input { width: 40px; text-align: right; }
-      td.quantity_per_package input { width: 40px; text-align: right; }
-      .quota, .quantity_per_package { padding-left: 20px; }
+      td.price input { width: 60px; text-align: right; }
+      td.quantity_per_package input { width: 45px; text-align: right; }
+      .quota, .quantity_per_package { padding-left: 10px; }
       td.quota input { width: 40px; }
-      td.quantum input { width: 40px; }
-      td.quantity_limit input { width: 40px; }
+      td.quantum input { width: 38px; }
+      td.quantity_limit input { width: 38px; }
       td.unit_weight input { width: 40px; text-align: right; }
       tr.deleted { text-decoration: line-through; }
       tr.deleted input { text-decoration: line-through; }
       tr.deleted textarea { text-decoration: line-through; }
-      #products-table th.non-rotate { vertical-align: bottom; }
+      #products-table th.non-rotate { vertical-align: bottom; text-align : center}
       #products-table textarea { width: 100%; }
+      #products-table input { padding: 1px;}  
       table .hidden { display: none; }
       td.place button { padding: 1px; }
       #dv-table th {text-align: right; }
@@ -292,10 +293,8 @@
     <p>
 
         <button type='button' onclick="add_blank_products();">Ajouter des produits</button>
-        <!---        
-        <button type='button' class='submit' onclick="submit_if_valid();">Sauvegarder</button>
-        --->
-        <input type='submit' value="Sauvegarder"/>        
+        <input type="submit" value="Sauvegarder" name="save_and_stay"/>
+        <input type="submit" value="Sauvegarder et retour" name="save_and_leave"/>			
         <input type='hidden' name='dv-id' value='{{delivery.id}}' />
         <input type='hidden' name='n_rows' id="n_rows" value='0' />
         {% csrf_token %}

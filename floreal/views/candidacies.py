@@ -32,7 +32,6 @@ def candidacy(request):
         if item['candidate_to']:
             item['can_be_candidate_to'] = item['can_be_candidate_to'].exclude(id=item['candidate_to'].user.id)
         networks.append(item)
-    # print networks
     return render(request, 'candidacy.html', {'user': user, 'networks': networks})
 
 

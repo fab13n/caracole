@@ -30,7 +30,10 @@ def edit_delivery_products(request, delivery):
     if request.method == 'POST':  # Handle submitted data
         _parse_form(request)
         JournalEntry.log(request.user, "Edited products for delivery %s/%s", delivery.network.name, delivery.name)
-        return redirect('edit_delivery', delivery.id)
+        if 'save_and_leave' in request.POST:
+            return redirect('edit_delivery', delivery.id)
+        else:
+            return redirect('edit_delivery_products', delivery.id)
 
     else:  # Create and populate forms to render
         vars = {'QUOTAS_ENABLED': True,
@@ -96,7 +99,7 @@ def _parse_form(request):
 
     for r in range(int(d['n_rows'])):
         fields = _get_pd_fields(d, 'r%d' % r)
-        if fields.get('id', False):
+        if fields.get('id'):
             pd = Product.objects.get(pk=fields['id'])
             if pd.delivery == dv:
                 if fields['deleted']:  # Delete previously existing product
@@ -126,11 +129,11 @@ def _parse_form(request):
             print("Adding new product from line #%d" % r)
             pd = Product.objects.create(name=fields['name'],
                                         price=fields['price'],
+                                        place=fields['place'],
                                         quantity_per_package=fields['quantity_per_package'],
                                         quantity_limit=fields['quantity_limit'],
                                         unit=fields['unit'],
                                         unit_weight=fields['unit_weight'],
-                                        place = fields['place'],
                                         delivery=dv)
             pd.save()
 
