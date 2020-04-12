@@ -99,7 +99,7 @@ def set_limit(pd, last_pc=None):
         uid = pc.user_id
         if formerly_granted[uid] != granted[uid]:  # Save some DB accesses
             pc.quantity = granted[uid]
-            print("%s %s had their purchase of %s modified: ordered %s, formerly granted %s, now granted %s" %
-                pc.user.first_name, pc.user.last_name, pc.product.name, pc.quantity, formerly_granted[uid], pc.quantity
-            )
+            # print("%s %s had their purchase of %s modified: ordered %s, formerly granted %s, now granted %s" %
+            #     pc.user.first_name, pc.user.last_name, pc.product.name, pc.quantity, formerly_granted[uid], pc.quantity
+            # )
             pc.save(force_update=True)

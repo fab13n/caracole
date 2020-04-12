@@ -87,7 +87,6 @@ def _pd_update(pd, fields):
 def _parse_form(request):
     """Parse a delivery edition form and update DB accordingly."""
     d = request.POST
-    print(d)
     dv = Delivery.objects.get(pk=int(d['dv-id']))
 
     # Edit delivery name and state
@@ -103,30 +102,31 @@ def _parse_form(request):
             pd = Product.objects.get(pk=fields['id'])
             if pd.delivery == dv:
                 if fields['deleted']:  # Delete previously existing product
-                    print("Deleting product",  pd)
+                    #print("Deleting product",  pd)
                     pd.delete()
                     # Since purchases have foreign keys to purchased products,
                     # they will be automatically deleted.
                     # No need to update penury management either, as there's
                     # no purchase of this product left to adjust.
                 else:  # Update product
-                    print("Updating product", pd)
+                    # print "Updating product", pd
                     _pd_update(pd, fields)
                     pd.save(force_update=True)
             else:  # From another delivery
                 if fields['deleted']:  # Don't import product
-                    print("Ignoring past product", pd)
+                    # print("Ignoring past product", pd)
                     pass
                 else:  # Import product copy from other delivery
-                    print("Importing past product",  pd)
+                    # print("Importing past product",  pd)
                     _pd_update(pd, fields)
                     pd.delivery = dv
                     pd.id = None
                     pd.save(force_insert=True)
         elif fields['deleted']:
-                print("New product in r%d deleted/empty: ignoring" % r)
+                # print("New product in r%d deleted/empty: ignoring" % r)
+                pass
         else:  # Parse products created from blank lines
-            print("Adding new product from line #%d" % r)
+            # print("Adding new product from line #%d" % r)
             pd = Product.objects.create(name=fields['name'],
                                         price=fields['price'],
                                         place=fields['place'],
@@ -134,6 +134,7 @@ def _parse_form(request):
                                         quantity_limit=fields['quantity_limit'],
                                         unit=fields['unit'],
                                         unit_weight=fields['unit_weight'],
+                                        place = fields['place'],
                                         delivery=dv)
             pd.save()
 

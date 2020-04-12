@@ -75,13 +75,21 @@ def edit_user_memberships(request, network):
 
 def _parse_form(request, nw):
     d = request.POST
+    has_single_subgroup = nw.subgroup_set.count() == 1
+    # TODO:
+    # in single-subgroup networks, make sure everyone is in the subgroup
+    # Do something about people who're subgroup staff but aren't member of the subgroup
+    # Do something about people who're in no subgroup. Easy for single-subgroup,
+    # Not sure when there are several.
     for uid in re.findall(r'[^u,]+', d['modified']):
         u = m.User.objects.get(pk=int(uid))
         is_network_admin = 'u'+uid+'-network-admin' in d
         was_network_admin = u.staff_of_network.filter(id=nw.id).exists()
-        is_subgroup_admin = 'u'+uid+'-subgroup-admin' in d
+        # In single-subgroup networks, network admins are also subgroup admins
+        is_subgroup_admin = 'u'+uid+'-subgroup-admin' in d or is_network_admin and has_single_subgroup
         was_subgroup_admin = u.staff_of_subgroup.filter(network=nw).exists()
         sgid = int(d['u'+uid+'-sg'])
+        # TODO WTF? Use first(), and don't compare an id with an instance
         old_sg = u.user_of_subgroup.filter(network=nw)
         if not old_sg or old_sg[0] != sgid:  # Subgroup has changed
             for sg in old_sg:

@@ -26,8 +26,7 @@ urlpatterns = [
     path('nw-<network>/edit-users.json', views.json_memberships, name='json_memberships'),
     path('nw-<network>/all-deliveries/<states>', views.all_deliveries_html, name='all_deliveries_html'),
     path('nw-<network>/all-deliveries/<slug:states>.pdf', views.all_deliveries_latex, name='all_deliveries_latex'),
-    # Date may contain slashes
-    re_path(r'^nw-(?P<network>[^./]+)/invoice-mail/(?P<payment_date>.*)$', views.invoice_mail, name='invoice_mail'),
+    path('nw-<network>/invoice-mail-form', views.invoice_mail_form, name='invoice_mail_form'),
 
     path('nw-<delivery>', views.edit_user_purchases, name='edit_user_purchases'),
     path('nw-<delivery>/staff', views.edit_delivery, name='edit_delivery'),

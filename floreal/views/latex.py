@@ -17,7 +17,7 @@ def render_latex(template_name, ctx):
         f.flush()
         src_file_name = f.name
         dst_file_name = os.path.splitext(src_file_name)[0]+".pdf"
-        print("Generated tex file %s" % src_file_name)
+        # print("Generated tex file %s" % src_file_name)
         os.chdir("/tmp/")
         # TODO: popen + grep to get the warning about tables to be re-run
         os.system("pdflatex -halt-on-error %s" % src_file_name)

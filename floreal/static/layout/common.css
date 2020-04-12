@@ -72,7 +72,7 @@ input, textarea, select {
 	font-family: Georgia, "Times New Roman", Times, serif;
 	font-size: 46px;
 	font-style: italic;
-	text-shadow: 0 0 5px white;
+    text-shadow: 0 0 5px white;
 }
 
 #logo h1 a {

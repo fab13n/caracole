@@ -342,6 +342,9 @@ class JournalEntry(models.Model):
     def log(cls, u, fmt, *args, **kwargs):
         cls.objects.create(user=u, date=datetime.now(), action=fmt % (args or kwargs))
 
+    def __str__(self):
+        n = self.user.email if self.user else "?"
+        return (", ".join((n, self.date.isoformat(), self.action)))
 
 class ProductDiscrepancy(models.Model):
     """Log of an accounting discrepancy between what's been ordered and what's actually been paid for in a given subgroup.
