@@ -34,7 +34,7 @@ def invoice_mail_form(request, network):
         recipients = {u.strip() for u in P['recipients'].split(',')}
         return send_invoice_mail(request, deliveries, recipients, P['subject'], P['body'])
     elif not deliveries:
-        return HttpResponse("Acune commande actuellement gelée dans le réseau" + nw.name)
+        return HttpResponse("Aucune commande actuellement gelée dans le réseau" + nw.name)
     else:
         vars = {
             'nw': nw,
