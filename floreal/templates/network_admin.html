@@ -102,16 +102,16 @@ tr:hover input[type=button] {visibility: visible;}
   {% if candidacies %}
   <p></p>
   <h2>Candidatures</h2>
-  <li><a href="{% url 'manage_candidacies' network=nw.id %}">Gérer toutes les candidatures</a></li>
   <ul>
-      {% for cd in candidacies %}
-      <li>{{cd.user.first_name}} {{cd.user.last_name}}
-        <a href="mailto://{{cd.user.email}}">({{cd.user.email}})</a> pour le sous-groupe <b>{{cd.subgroup.name}}</b>:
-        <a href="{% url 'validate_candidacy' candidacy=cd.id response='Y' %}?next={%url 'network_admin' network=nw.id%}"><span class="yes">Accepter</span></a>✔
-        /
-        <a href="{% url 'validate_candidacy' candidacy=cd.id response='N' %}?next={%url 'network_admin' network=nw.id%}"><span class="no">Refuser</span></a>✘
-      </li>
-      {% endfor %}
+    <li><a href="{% url 'manage_candidacies' network=nw.id %}">Gérer toutes les candidatures</a></li>
+    {% for cd in candidacies %}
+    <li>{{cd.user.first_name}} {{cd.user.last_name}}
+      <a href="mailto://{{cd.user.email}}">({{cd.user.email}})</a> pour le sous-groupe <b>{{cd.subgroup.name}}</b>:
+      <a href="{% url 'validate_candidacy' candidacy=cd.id response='Y' %}?next={%url 'network_admin' network=nw.id%}"><span class="yes">Accepter</span></a>✔
+      /
+      <a href="{% url 'validate_candidacy' candidacy=cd.id response='N' %}?next={%url 'network_admin' network=nw.id%}"><span class="no">Refuser</span></a>✘
+    </li>
+    {% endfor %}
   </ul>
   {% endif %}
 {% endblock content %}
