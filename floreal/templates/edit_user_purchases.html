@@ -19,6 +19,7 @@
       var total_weight = 0;
       for(var i=0; i<PRODUCTS.length; i++) {
         var pd = PRODUCTS[i];
+        if(pd.unavailable) { continue; }
         var ordered = parseFloat($("#pd"+pd.id+"-ordered_quantity").attr("value"));
         var unit_price = parseFloat($("#pd"+pd.id+"-unit_price").text().replace(',','.'));
         var price = ordered * unit_price;
@@ -43,7 +44,9 @@
      * disable submission. Otherwise, remove any existing quantum error message. */
     function check_quantum(pd) {
       var msgid = "pd"+pd.id+"-quantum-error";
-      if(pd.quantum) {
+      if(pd.unavailable) {
+        return true;
+      } if(pd.quantum) {
         var ordered = Number($("#pd"+pd.id+"-ordered_quantity").val());
         var reminder = Math.abs(ordered % pd.quantum)
         var EPSILON = 1e-9;
@@ -53,7 +56,7 @@
           $("#"+msgid).remove();
           return true; // no error
         } else if($("#"+msgid).length == 0) { // A message is needed and there is none
-          $("#row-"+pd.id).after("<tr id='"+msgid+"' class='quantum-error'><td colspan=7>"+
+          $("#row-"+pd.id).after("<tr id='"+msgid+"' class='quantum-error'><td colspan=8>"+
             "Ce produit doit être commandé par multiples de "+pd.quantum+" "+pd.unit);
           return false; // error
         } else { // message needed, but already there
@@ -76,7 +79,15 @@
         if(pd.left !== null) {
           /* if there's a max quantity on a product, prevent from ordering more than that in addition to what's ordered. */
           var purchased = PURCHASES[pd.id] || 0;
-          $("#pd"+pd.id+"-ordered_quantity").attr("max", pd.left + purchased);
+          var max = pd.left + purchased;
+          if(max === 0) {
+            console.log("Produit épuisé:", pd);
+            $("#row-"+pd.id+" td:nth-child(n+3)").remove();
+            $("#row-"+pd.id).append("<td colspan=6 class='unavailable'>(épuisé)</td>");
+            pd.unavailable = true;
+          } else {
+            $("#pd"+pd.id+"-ordered_quantity").attr("max", max);
+          }
           // var name = $("#row-"+pd.id+" .product-name").text();
           // console.log(name, "left=", pd.left, "purchased=", purchased, "max=", pd.left+purchased, $("#pd"+pd.id+"-ordered_quantity")[0]);
         } 
@@ -91,6 +102,7 @@
     .product-name { text-align: right; }
     .product-unit { text-align: left; }
     .unit-price { padding-left: 10px; }
+    .unavailable { text-align: center !important; font-style: italic; }
     #delivery-table { border: 1px solid #811305; font-size: larger; }
     #delivery-table th { text-align: right; background-color: #fff0e0; }
     #delivery-table td { text-align: left; }
