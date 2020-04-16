@@ -29,7 +29,7 @@ def edit_delivery_products(request, delivery):
 
     if request.method == 'POST':  # Handle submitted data
         _parse_form(request)
-        JournalEntry.log(request.user, "Edited products for delivery %s/%s", delivery.network.name, delivery.name)
+        JournalEntry.log(request.user, "Edited products for delivery dv-%d %s/%s", delivery.id, delivery.network.name, delivery.name)
         return redirect('edit_delivery', delivery.id)
 
     else:  # Create and populate forms to render

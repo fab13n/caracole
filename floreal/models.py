@@ -341,7 +341,11 @@ class JournalEntry(models.Model):
 
     @classmethod
     def log(cls, u, fmt, *args, **kwargs):
-        cls.objects.create(user=u, date=datetime.now(), action=fmt % (args or kwargs))
+        try:
+            action = fmt % (args or kwargs)
+            cls.objects.create(user=u, date=datetime.now(), action=action)
+        except Exception:
+            cls.objects.create("Failed to log, based on format " + repr(fmt))
 
     def __str__(self):
         n = self.user.email if self.user else "?"

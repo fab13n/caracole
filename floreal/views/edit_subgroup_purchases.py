@@ -68,7 +68,7 @@ def _parse_form(request):
         if pc:
             set_limit(pc.product)
         dv = m.Delivery.objects.get(id=d['dv-id'])
-        m.JournalEntry.log(request.user, "Modified %d user purchases in %s/%s",
-                           len(pd_u_mods), dv.network.name, dv.name)
+        m.JournalEntry.log(request.user, "Modified %d user purchases in dv-%d %s/%s",
+                           len(pd_u_mods), dv.id, dv.network.name, dv.name)
 
     return True  # true == no error
