@@ -99,7 +99,7 @@ Commander pour :
         <ul>
             <li><a href="{% url 'emails_subgroup' subgroup=sg.id %}">e-mails <img src="{% static 'images/email.png' %}"/></a> et
                 <a href="{% url 'phones_subgroup' subgroup=sg.id %}">téléphones</a> ☎ des membres.</li>
-            {# Too heavy with Civam's lots of users
+            {% comment "désactivé pour le Civam" %}
             {% for cd in sg_dv_cd.cd %}
             <li>{{cd.user.first_name}} {{cd.user.last_name}} (<a href="mailto://{{cd.user.email}}">{{cd.user.email}}</a>)
                 souhaite rejoindre le sous-groupe {{cd.subgroup.name}} :
@@ -108,7 +108,7 @@ Commander pour :
                 <a href="{% url 'validate_candidacy' candidacy=cd.id response='N' %}?next=/"><span class="no">Refuser</span></a>✘
             </li>
             {% endfor %}
-            #}
+            {% endcomment %}
 
             {% for dv in sg_dv_cd.dv %}
             <li>Commande <em>{{dv.name}}</em> / {{sg.network.name}} / {{sg.name}} ({{dv.state_name}}):

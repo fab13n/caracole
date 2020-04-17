@@ -23,7 +23,7 @@ services:
       - ./uwsgi.ini:/home/caracole/uwsgi.ini
       - ./caracole:/home/caracole/caracole
       - ./floreal:/home/caracole/floreal
-      - ./database.sqlite3:/home/caracole/database.sqlite3
+      - ${VOLUMES}/database.sqlite3:/home/caracole/database.sqlite3
     environment:
       - SUPERUSER_PASSWORD
       - SUPERUSER_USERNAME
