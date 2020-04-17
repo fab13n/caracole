@@ -23,6 +23,7 @@ services:
       - ./uwsgi.ini:/home/caracole/uwsgi.ini
       - ./caracole:/home/caracole/caracole
       - ./floreal:/home/caracole/floreal
+      - ./database.sqlite3:/home/caracole/database.sqlite3
     environment:
       - SUPERUSER_PASSWORD
       - SUPERUSER_USERNAME
@@ -41,8 +42,8 @@ services:
       - SMTP_PORT
       - SMTP_USER
       - SMTP_PASSWORD
-    depends_on:
-      - db
+    # depends_on:
+    #   - db
 
   dev:
     <<: *django_prod

@@ -25,7 +25,7 @@ def wait_for_postgres():
 
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "caracole.settings")
-    if os.path.isfile("/.dockerenv"):
+    if 'POSTGRES_DBNAME' in os.environ:
         wait_for_postgres()
     
 

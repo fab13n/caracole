@@ -134,7 +134,6 @@ def _parse_form(request):
                                         quantity_limit=fields['quantity_limit'],
                                         unit=fields['unit'],
                                         unit_weight=fields['unit_weight'],
-                                        place = fields['place'],
                                         delivery=dv)
             pd.save()
 
