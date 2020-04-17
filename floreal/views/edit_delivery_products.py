@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# -*- coding: utf8 -*-
 
 """Helpers to edit products list: generate suggestions based on current and
 past products, parse POSTed forms to update a delivery's products list."""
@@ -128,13 +127,13 @@ def _parse_form(request):
         else:  # Parse products created from blank lines
             # print("Adding new product from line #%d" % r)
             pd = Product.objects.create(name=fields['name'],
+                                        description=fields['description'],
                                         price=fields['price'],
                                         place=fields['place'],
                                         quantity_per_package=fields['quantity_per_package'],
                                         quantity_limit=fields['quantity_limit'],
                                         unit=fields['unit'],
                                         unit_weight=fields['unit_weight'],
-                                        place = fields['place'],
                                         delivery=dv)
             pd.save()
 

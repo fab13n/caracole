@@ -6,7 +6,7 @@ from django.template.loader import get_template
 from django.http import HttpResponse
 from django.core.mail import send_mail, send_mass_mail
 from django.conf import settings
-from django.shortcuts import redirect, render_to_response
+from django.shortcuts import redirect, render
 from .getters import get_network, get_subgroup, get_candidacy
 from django.template.context_processors import csrf
 from django.template.base import Template
@@ -46,7 +46,7 @@ def invoice_mail_form(request, network):
             'body': get_template('invoice_mail.txt').template.source
         }
         vars.update(csrf(request))
-        return render_to_response('invoice_mail_form.html', vars)
+        return render(request, 'invoice_mail_form.html', vars)
 
 
 def send_invoice_mail(request, deliveries, recipients, subject, body):

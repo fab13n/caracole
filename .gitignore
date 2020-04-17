@@ -8,3 +8,4 @@ database.sqlite3
 venv*/
 static
 postgresql
+.env.bash
