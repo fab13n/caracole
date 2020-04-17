@@ -31,7 +31,7 @@
         {% else %}
         <td>n/a</td>
         {% endif %}
-        <td class="action">{{e.action}}</td>
+        <td class="action">{{e.action|safe}}</td>
     </tr>
     {% endfor %}
     {% endfor %}

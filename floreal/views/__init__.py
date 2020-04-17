@@ -2,10 +2,12 @@
 
 from datetime import datetime
 import os
+import re
 
 from django.shortcuts import render, redirect, reverse
 from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpResponse
 from django.contrib.auth.decorators import login_required
+from django.utils import html
 
 from caracole import settings
 from .. import models as m
@@ -335,13 +337,6 @@ def view_history(request):
     return render(request,"view_history.html", vars)
 
 
-
-
-
-
-
-
-
 JOURNAL_LINKS = {
    'cd': '/admin/floreal/candidacy/%d/',
    'nw': '/nw-%d',
@@ -351,7 +346,7 @@ JOURNAL_LINKS = {
 
 @nw_admin_required()
 def journal(request):
-
+    journal_link_re = re.compile(r'\b([a-z][a-z]?)-([0-9]+)')
     def add_link_to_actions(m):
          txt, code, n = m.group(0, 1, 2)
          href = JOURNAL_LINKS.get(code) 
@@ -361,8 +356,8 @@ def journal(request):
     current_day = None
     for entry in m.JournalEntry.objects.all().order_by("-date")[:1024]:
         today = entry.date.strftime("%x")
-        action = journal_link_re.sub(add_link_to_actions, entry.action)
-        record = {'user': entry.user, 'hour': entry.date.strftime("%XZ"), 'action': entry.action}
+        action = journal_link_re.sub(add_link_to_actions, html.escape(entry.action))
+        record = {'user': entry.user, 'hour': entry.date.strftime("%XZ"), 'action': action}
         if not current_day or current_day['day'] != today:
             current_day = {'day': today, 'entries': [record]}
             days.append(current_day)
