@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-
+import re
 from datetime import datetime
 
 from django.db import models
@@ -17,6 +17,26 @@ class UserPhones(models.Model):
 
     def __str__(self):
         return "%s %s: %s" % (self.user.first_name, self.user.last_name, self.phone)
+
+    @property
+    def display_number(self):
+        if not hasattr(self, '_display_number'):
+            n = "".join(k for k in self.phone if k.isdigit())
+            if len(n) == 10:
+                self._display_number = " ".join(n[i:i+2] for i in range(0, len(n), 2)) 
+            else:
+                self._display_number = self.phone
+        return self._display_number
+
+    @property
+    def uri(self):
+        if not hasattr(self, '_uri'):
+            n = "".join(k for k in self.phone if k.isdigit())
+            if len(n) == 10:
+                self._uri = "tel:+33" + n[1:]
+            else:
+                self._uri = None
+        return self._uri
 
 
 class Network(models.Model):
