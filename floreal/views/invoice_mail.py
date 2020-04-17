@@ -12,7 +12,6 @@ from django.template.context_processors import csrf
 from django.template.base import Template
 from django.template.context import Context
 
-
 def render_text(template_name, ctx):
     t = get_template(template_name)
     text_unicode = t.render(ctx)
