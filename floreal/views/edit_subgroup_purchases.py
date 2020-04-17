@@ -4,10 +4,7 @@
 import re
 
 import django
-if django.VERSION < (1, 8):
-    from django.core.context_processors import csrf
-else:
-    from django.template.context_processors import csrf
+from django.template.context_processors import csrf
 from django.shortcuts import redirect, render
 from django.http import HttpResponseForbidden
 

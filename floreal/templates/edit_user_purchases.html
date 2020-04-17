@@ -10,6 +10,8 @@
       {id: {{pd.id}}, quantum: {{pd.quantum|default_if_none:0}}, left: {{pd.left|default_if_none:"null"}}, weight: {{pd.unit_weight}}, unit: "{{pd.unit|escapejs}}"},{% endfor %}
     ];
     var PURCHASES = { {% for pc in purchases %}{{pc.product.id}}: {{pc.quantity}}, {% endfor %} };
+    var MAX_PURCHASES = { {% for pc in purchases %}{% if pc.max_quantity is not None %}{{pc.product.id}}: {{pc.max_quantity}}, {% endif %}{% endfor %} };
+
 
 
     /* update per-line totals as well as delivery total */
@@ -68,6 +70,9 @@
       for(id in PURCHASES) {
         if(PURCHASES.hasOwnProperty(id)) {
           $("#pd"+id+"-ordered_quantity").attr("value", PURCHASES[id]);
+        }
+        if(MAX_PURCHASES.hasOwnProperty(id)) {
+          $("#pd"+id+"-ordered_quantity").attr("max", MAX_PURCHASES[id]);
         }
       }
       for(i in PRODUCTS){

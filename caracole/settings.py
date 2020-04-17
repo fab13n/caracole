@@ -30,7 +30,7 @@ EMAIL_PORT = int(E['SMTP_PORT'])
 EMAIL_HOST_USER = E['SMTP_USER']
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 EMAIL_HOST_PASSWORD = E['SMTP_PASSWORD']
-EMAIL_SUBJECT_PREFIX = '[Circuits Courts] '
+EMAIL_SUBJECT_PREFIX = '[Circuits Courts Civam] '
 
 # longusernameandemail settings
 MAX_USERNAME_LENGTH = 128
@@ -99,7 +99,7 @@ DATABASES = {
         "PASSWORD": E["POSTGRES_PASSWORD"],
         "HOST": E["POSTGRES_HOST"],
         "PORT": int(E["POSTGRES_PORT"]),
-    } if os.path.isfile("/.dockerenv") else {
+    } if "POSTGRES_DBNAME" in E else {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR + '/database.sqlite3'
     }

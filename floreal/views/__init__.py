@@ -339,6 +339,8 @@ def view_history(request):
 
 
 
+
+
 @nw_admin_required()
 def journal(request):
     days = []

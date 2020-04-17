@@ -108,7 +108,7 @@ def _parse_form(request):
                     # No need to update penury management either, as there's
                     # no purchase of this product left to adjust.
                 else:  # Update product
-                    # print "Updating product", pd
+                    # print("Updating product", pd)
                     _pd_update(pd, fields)
                     pd.save(force_update=True)
             else:  # From another delivery
@@ -134,6 +134,7 @@ def _parse_form(request):
                                         quantity_limit=fields['quantity_limit'],
                                         unit=fields['unit'],
                                         unit_weight=fields['unit_weight'],
+                                        place = fields['place'],
                                         delivery=dv)
             pd.save()
 
