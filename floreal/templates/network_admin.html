@@ -47,14 +47,6 @@ tr:hover input[type=button] {visibility: visible;}
         }
     }
 
-    function on_invoice_mail_click() {
-        var payment_date = prompt("Envoyer un mail pour les commandes gelées. Quelle date limite de réglement ?");
-        if(payment_date){
-            var url_scheme = "{% url 'invoice_mail' network=nw.id payment_date='DATE' %}";
-            window.location = url_scheme.replace('DATE', encodeURI(payment_date));
-        }
-    }
-
     /* Demand confirmation through a dialog before following link. */
     $(function(){
         $("#create-subgroup").on('click', create_subgroup);
@@ -113,14 +105,15 @@ tr:hover input[type=button] {visibility: visible;}
   <h2>Candidatures</h2>
   <li><a href="{% url 'manage_candidacies' network=nw.id %}">Gérer toutes les candidatures</a></li>
   <ul>
-      {% for cd in candidacies %}
-      <li>{{cd.user.first_name}} {{cd.user.last_name}}
-        <a href="mailto://{{cd.user.email}}">({{cd.user.email}})</a> pour le sous-groupe <b>{{cd.subgroup.name}}</b>:
-        <a href="{% url 'validate_candidacy' candidacy=cd.id response='Y' %}?next={%url 'network_admin' network=nw.id%}"><span class="yes">Accepter</span></a>✔
-        /
-        <a href="{% url 'validate_candidacy' candidacy=cd.id response='N' %}?next={%url 'network_admin' network=nw.id%}"><span class="no">Refuser</span></a>✘
-      </li>
-      {% endfor %}
+    <li><a href="{% url 'manage_candidacies' network=nw.id %}">Gérer toutes les candidatures</a></li>
+    {% for cd in candidacies %}
+    <li>{{cd.user.first_name}} {{cd.user.last_name}}
+      <a href="mailto://{{cd.user.email}}">({{cd.user.email}})</a> pour le sous-groupe <b>{{cd.subgroup.name}}</b>:
+      <a href="{% url 'validate_candidacy' candidacy=cd.id response='Y' %}?next={%url 'network_admin' network=nw.id%}"><span class="yes">Accepter</span></a>✔
+      /
+      <a href="{% url 'validate_candidacy' candidacy=cd.id response='N' %}?next={%url 'network_admin' network=nw.id%}"><span class="no">Refuser</span></a>✘
+    </li>
+    {% endfor %}
   </ul>
   {% endif %}
 {% endblock content %}

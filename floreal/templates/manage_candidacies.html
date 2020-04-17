@@ -23,10 +23,10 @@
 <ul>
 {% for cd in candidacies %}
 <li>{{cd.user.first_name}} {{cd.user.last_name}} (<a href="mailto://{{cd.user.email}}">{{cd.user.email}}</a>)
-    souhaite rejoindre le sous-groupe {{cd.subgroup.name}} :
-    <a href="{% url 'validate_candidacy' candidacy=cd.id response='Y' %}?next={% url 'manage_candidacies' network=nw.id %}"><span class="yes">Accepter</span></a>✔
+    → {{cd.subgroup.name}} :
+    <a href="{% url 'validate_candidacy' candidacy=cd.id response='Y' %}?next={% url 'manage_candidacies' network=nw.id %}"><span class="yes">Oui</span></a>✔
     /
-    <a href="{% url 'validate_candidacy' candidacy=cd.id response='N' %}?next={% url 'manage_candidacies' network=nw.id %}"><span class="no">Refu/span></a>✘
+    <a href="{% url 'validate_candidacy' candidacy=cd.id response='N' %}?next={% url 'manage_candidacies' network=nw.id %}"><span class="no">Non</span></a>✘
 </li>
 {% endfor %}
 </ul>

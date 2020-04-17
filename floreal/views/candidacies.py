@@ -40,7 +40,7 @@ def leave_network(request, network):
     """Leave subgroups of this network, as a user and a subgroup admin (not as a network-admin)."""
     user = request.user
     nw = get_network(network)
-    m.JournalEntry.log(user, "Left network %s", nw.name)
+    m.JournalEntry.log(user, "Left network nw-%d %s", nw.id, nw.name)
     for sg in user.user_of_subgroup.filter(network__id=nw.id):
         sg.users.remove(user.id)
     for sg in user.staff_of_subgroup.filter(network__id=nw.id):
@@ -62,12 +62,12 @@ def create_candidacy(request, subgroup):
         cd = m.Candidacy.objects.create(user=user, subgroup=sg)
         if auto_validate_candidacy(cd):
             # TODO when should confirmation e-mails be avoided? shouldn't it be up to auto_validate_candidacy to decide?
-            m.JournalEntry.log(user, "Applied for %s/%s, automatically granted", sg.network.name, sg.name)
+            m.JournalEntry.log(user, "Applied for sg-%d %s/%s, automatically granted", sg.id, sg.network.name, sg.name)
             validate_candidacy_without_checking(request, candidacy=cd.id, response='Y', send_confirmation_mail=True)
         else:
-            m.JournalEntry.log(user, "Applied for %s/%s, candidacy pending", sg.network.name, sg.name)
+            m.JournalEntry.log(user, "Applied for nw-%d sg-%d %s/%s, candidacy pending", sg.network.id, sg.id, sg.network.name, sg.name)
     else:
-        m.JournalEntry.log(user, "Applied for %s/%s, but was already a member", sg.network.name, sg.name)
+        m.JournalEntry.log(user, "Applied for sg-%d %s/%s, but was already a member", sg.id, sg.network.name, sg.name)
 
     target = request.GET.get('next', False)
     return redirect(target) if target else redirect('candidacy')
@@ -91,8 +91,8 @@ def cancel_candidacy(request, candidacy):
     user = request.user
     cd = get_candidacy(candidacy)
     if user != cd.user:
-        return HttpResponseForbidden("Vous ne pouvez annuler que vos propres candidatures.")
-    m.JournalEntry.log(user, "Cancelled own application for %s/%s", cd.subgroup.network.name, cd.subgroup.name)
+        return HttpResponseForbidden(u"Vous ne pouvez annuler que vos propres candidatures.")
+    m.JournalEntry.log(user, "Cancelled own application for sg-%d %s/%s", cd.subgroup.id, cd.subgroup.network.name, cd.subgroup.name)
     cd.delete()
     target = request.GET.get('next', False)
     return redirect(target) if target else redirect('candidacy')
@@ -101,9 +101,9 @@ def cancel_candidacy(request, candidacy):
 @sg_admin_required(lambda a: get_candidacy(a['candidacy']).subgroup)
 def validate_candidacy(request, candidacy, response):
     cd = get_candidacy(candidacy)
-    m.JournalEntry.log(request.user, "%s candidacy from %s to %s/%s",
-                       ("Granted" if response == 'Y' else 'Rejected'), cd.user.username,
-                       cd.subgroup.network.name, cd.subgroup.name)
+    m.JournalEntry.log(request.user, "%s candidacy from u-%d %s to sg-%d %s/%s",
+                       ("Granted" if response == 'Y' else 'Rejected'), cd.user.id, cd.user.username,
+                       cd.subgroup.id, cd.subgroup.network.name, cd.subgroup.name)
     return validate_candidacy_without_checking(request, candidacy=candidacy, response=response, send_confirmation_mail=True)
 
 @nw_admin_required()
@@ -156,7 +156,7 @@ def validate_candidacy_without_checking(request, candidacy, response, send_confi
 
     mail += "\n\nCordialement, le robot du site de commande des Circuits Courts Civam."
     mail += "\n\nLien vers le site : http://solalim.civam-occitanie.fr"
-    title = "[Circuits courts] Votre demande d'inscription au circuit court "+cd.subgroup.network.name
+    title = settings.EMAIL_SUBJECT_PREFIX + " Votre demande d'inscription au circuit court "+cd.subgroup.network.name
     if send_confirmation_mail:
         send_mail(subject=title, message=''.join(mail), from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=[cd.user.email],
                   fail_silently=True)

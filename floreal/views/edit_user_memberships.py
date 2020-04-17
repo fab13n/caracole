@@ -102,8 +102,8 @@ def _parse_form(request, nw):
                 new_sg = None
             if is_subgroup_admin:
                 u.staff_of_subgroup.add(new_sg)
-            m.JournalEntry.log(request.user, "Moved %s from %s/%s to %s",
-                               u.username, nw.name, ('+'.join(sg.name for sg in old_sg) or 'non-member'),
+            m.JournalEntry.log(request.user, "Moved u-%d %s from %s/%s to %s",
+                               u.id, u.username, nw.name, ('+'.join(sg.name for sg in old_sg) or 'non-member'),
                                (new_sg.name if new_sg else "non-member"))
         else:  # Subgroup hasn't changed
             sg = old_sg[0]
@@ -113,15 +113,15 @@ def _parse_form(request, nw):
                 u.staff_of_subgroup.add(sg)
 
         if was_network_admin and not is_network_admin:
-            m.JournalEntry.log(request.user, "Removed network admin rights for %s in %s", u.username, nw.name)
+            m.JournalEntry.log(request.user, "Removed network admin rights for u-%d %s in nw-%d %s", u.id, u.username, nw.id, nw.name)
             u.staff_of_network.remove(nw)
         elif not was_network_admin and is_network_admin:
-            m.JournalEntry.log(request.user, "Granted network admin rights for %s in %s", u.username, nw.name)
+            m.JournalEntry.log(request.user, "Granted network admin rights for u-%d %s in nw-%d %s", u.id, u.username, nw-id, nw.name)
             u.staff_of_network.add(nw)
 
         if was_subgroup_admin and not is_subgroup_admin:
-            m.JournalEntry.log(request.user, "Removed subgroup admin rights for %s in %s", u.username, nw.name)
+            m.JournalEntry.log(request.user, "Removed subgroup admin rights for u-%d %s in nw-%d %s", u.id, u.username, nw.id, nw.name)
         elif not was_subgroup_admin and is_subgroup_admin:
-            m.JournalEntry.log(request.user, "Granted subgroup admin rights for %s in %s", u.username, nw.name)
+            m.JournalEntry.log(request.user, "Granted subgroup admin rights for u-%d %s in nw-%d %s", u.id, u.username, nw.id, nw.name)
 
     return True

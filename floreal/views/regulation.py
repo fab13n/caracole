@@ -60,8 +60,8 @@ def _parse_form(request):
 
     if dv.get_stateForSubgroup(sg) < m.SubgroupStateForDelivery.READY_FOR_ACCOUNTING:
         dv.set_stateForSubgroup(sg, m.SubgroupStateForDelivery.READY_FOR_ACCOUNTING)
-        m.JournalEntry.log(request.user, "Subgroup %s/%s regularized accounting for delivery %s",
-                           dv.network.name, sg.name, dv.name)
+        m.JournalEntry.log(request.user, "Subgroup sg-%d %s/%s regularized accounting for delivery dv-%d %s",
+                           sg.id, dv.network.name, sg.name, dv.id, dv.name)
 
     return True  # true == no error
 

@@ -35,7 +35,7 @@ def invoice_mail_form(request, network):
         recipients = {u.strip() for u in P['recipients'].split(',')}
         return send_invoice_mail(request, deliveries, recipients, P['subject'], P['body'])
     elif not deliveries:
-        return HttpResponse("Acune commande actuellement gelée dans le réseau" + nw.name)
+        return HttpResponse("Aucune commande actuellement gelée dans le réseau" + nw.name)
     else:
         vars = {
             'nw': nw,
@@ -86,7 +86,7 @@ def send_invoice_mail(request, deliveries, recipients, subject, body):
 
     if True:
         send_mass_mail(datalist, fail_silently=True)
-    debug_text = "\n\n=====\n\n".join("To: %s; Subject: %s\n%s" % (
+    text = "\n\n=====\n\n".join("To: %s; Subject: %s\n%s" % (
         to, subject, body) for (subject, body, _, [to]) in datalist)
 
     return non_html_response(["mails"], "txt", text)

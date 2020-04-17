@@ -90,7 +90,7 @@ def delete_archived_delivery(request, delivery):
         return HttpResponseForbidden('Cette commande n\'est pas vide, passer par l\'admin DB')
     nw = dv.network
     dv.delete()
-    m.JournalEntry.log(request.user, "Deleted archived delivery %d (%s) from %s", dv.id, dv.name, nw.name)
+    m.JournalEntry.log(request.user, "Deleted archived delivery dv-%d (%s) from %s", dv.id, dv.name, nw.name)
     return redirect('archived_deliveries', nw.id)
 
 
@@ -103,7 +103,7 @@ def delete_all_archived_deliveries(request, network):
         if _dv_has_no_purchase(dv):
             ids.append(dv.id)
             dv.delete()
-    m.JournalEntry.log(request.user, "Deleted archived empty deliveries [%s] from %s", ', '.join(str(i) for i in ids), nw.name)
+    m.JournalEntry.log(request.user, "Deleted archived empty deliveries [%s] from %s", ', '.join("dv-%d" % i for i in ids), nw.name)
     return redirect('archived_deliveries', network)
 
 
@@ -112,9 +112,9 @@ def create_subgroup(request, network, name):
     # name = urllib.unquote(name)
     nw = get_network(network)
     if nw.subgroup_set.filter(name=name).exists():
-        return HttpResponseBadRequest("Il y a déjà un sous-groupe de ce nom dans "+nw.name)
-    m.Subgroup.objects.create(name=name, network=nw)
-    m.JournalEntry.log(request.user, "Created subgroup %s in %s", name, nw.name)
+        return HttpResponseBadRequest(u"Il y a déjà un sous-groupe de ce nom dans "+nw.name)
+    sg = m.Subgroup.objects.create(name=name, network=nw)
+    m.JournalEntry.log(request.user, "Created subgroup sg-%d %s in nw-%d %s", sg.id, name, nw.id, nw.name)
     return redirect('edit_user_memberships', network=nw.id)
 
 
@@ -131,7 +131,7 @@ def create_network(request, nw_name, sg_name):
     sg.staff.add(user)
     sg.users.add(user)
     target = request.GET.get('next', False)
-    m.JournalEntry.log(user, "Created network %s with subgroup %s", nw_name, sg_name)
+    m.JournalEntry.log(user, "Created network nw-%d %s with subgroup sg-%d %s", nw.id, nw_name, sg.id, sg_name)
     return redirect(target) if target else redirect('network_admin', network=nw.id)
 
 
@@ -211,7 +211,7 @@ def create_delivery(request, network=None, dv_model=None):
                                      unit=prev_pd.unit, quantity_limit=prev_pd.quantity_limit,
                                      unit_weight=prev_pd.unit_weight, quantum=prev_pd.quantum,
                                      description=prev_pd.description)
-    m.JournalEntry.log(request.user, "Created new delivery %s in %s", name, nw.name)
+    m.JournalEntry.log(request.user, "Created new delivery dv-%d %s in nw-%d %s", new_dv.id, name, nw.id, nw.name)
     return redirect(reverse('edit_delivery_products', kwargs={'delivery': new_dv.id})+"?new=true")
 
 
@@ -228,8 +228,8 @@ def set_delivery_state(request, delivery, state):
     dv.save()
     if must_save:
         save_delivery(dv)
-    m.JournalEntry.log(request.user, "Set delivery %s/%s in state %s",
-                       dv.network.name, dv.name, m.Delivery.STATE_CHOICES[state])
+    m.JournalEntry.log(request.user, "Set delivery dv-%d %s/%s in state %s",
+                       dv.id, dv.network.name, dv.name, m.Delivery.STATE_CHOICES[state])
     return redirect('edit_delivery', delivery=dv.id)
 
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)
@@ -239,8 +239,8 @@ def set_delivery_name(request, delivery, name):
     prev_name = dv.name
     dv.name = name
     dv.save()
-    m.JournalEntry.log(request.user, "Change delivery name in %s: %s->%s",
-                       dv.network.name, prev_name, name)
+    m.JournalEntry.log(request.user, "Change delivery dv-%d name in nw-%d %s: %s->%s",
+                       dv.id, dv.network.id, dv.network.name, prev_name, name)
     return HttpResponse("")
 
 def save_delivery(dv):
@@ -262,8 +262,8 @@ def set_subgroup_state_for_delivery(request, subgroup, delivery, state):
         return HttpResponseBadRequest("Ce sous-groupe ne participe pas à cette livraison.")
     dv.set_stateForSubgroup(sg, state)
     target = request.GET.get('next', False)
-    m.JournalEntry.log(request.user, "In %s, set subgroup %s in state %s for delivery %s",
-                       dv.network.name, sg.name, state, dv.name)
+    m.JournalEntry.log(request.user, "In nw-%d %s, set subgroup sg-%d %s in state %s for delivery dv-%d %s",
+                       dv.network.id, dv.network.name, sg.id, sg.name, state, dv.id, dv.name)
     return redirect(target) if target else redirect('edit_delivery', delivery=dv.id)
 
 
@@ -341,13 +341,28 @@ def view_history(request):
 
 
 
+
+JOURNAL_LINKS = {
+   'cd': '/admin/floreal/candidacy/%d/',
+   'nw': '/nw-%d',
+   'u': '/admin/auth/user/%d/',
+   'dv': '/dv-%d/staff'
+}
+
 @nw_admin_required()
 def journal(request):
+
+    def add_link_to_actions(m):
+         txt, code, n = m.group(0, 1, 2)
+         href = JOURNAL_LINKS.get(code) 
+         return "<a href='%s'>%s</a>" % (href % int(n), txt) if href else txt 
+
     days = []
     current_day = None
     for entry in m.JournalEntry.objects.all().order_by("-date")[:1024]:
         today = entry.date.strftime("%x")
-        record = {'user': entry.user, 'hour': entry.date.strftime("%X"), 'action': entry.action}
+        action = journal_link_re.sub(add_link_to_actions, entry.action)
+        record = {'user': entry.user, 'hour': entry.date.strftime("%XZ"), 'action': entry.action}
         if not current_day or current_day['day'] != today:
             current_day = {'day': today, 'entries': [record]}
             days.append(current_day)

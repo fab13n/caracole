@@ -26,7 +26,11 @@
     {% for e in d.entries %}
     <tr>
         <td class="hour">{{e.hour}}</td>
+        {% if e.user %}
         <td class="user"><a href="mailto://{{e.user.email}}">{{e.user.first_name}} {{e.user.last_name}}</a></td>
+        {% else %}
+        <td>n/a</td>
+        {% endif %}
         <td class="action">{{e.action}}</td>
     </tr>
     {% endfor %}
