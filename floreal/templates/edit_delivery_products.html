@@ -132,7 +132,7 @@
               <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>{%endif%}\n\
             <td class="quantum"><input name="r%-quantum" min="0" type="number" step="0.001"/></td>\n\
             <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>\n\
-            <td class="unit_weight"><input name="r%-unit_weight" min="0" step="0.1" type="number"/></td><td>kg</td>\n\
+            <td class="unit_weight"><input name="r%-unit_weight" min="0" step="0.001" type="number"/></td><td>kg</td>\n\
             <td class="deleted">\n\
               <input name="r%-deleted" value="r%-deleted" onchange="reflect_deletion(\'r%\')" type="checkbox">\n\
             </td>\n\
@@ -176,9 +176,8 @@
       if( record['described']) {
         $("#"+r_prefix+" .described input")[0].checked=true;
         $("#"+r_prefix+"-description textarea").val(record.description);
-      } else {
-        reflect_description(r_prefix);
       }
+      reflect_description(r_prefix); // hide or enable summernote
     }
 
     /* Add rows of blank products at the end of the table */
@@ -276,13 +275,10 @@
     <h3>Description de la commande</h3>
     <p>
         <textarea name="dv-description" id="dv-description" rows="10">{{delivery.description|default_if_none:""}}</textarea>
-    <script type='text/javascript'>
-      //  $("#"+r_prefix+"-description").show();
-        //  { % markdown_editor "dv-description" %} ne marche pas, pas compris
-        // $("#dv-description").markItUp(mySettings, {"previewParserPath": "/markdown/preview/"});
-    </script>
     </p>
-
+    XXX
+    {{delivery.product_set.first.image}}
+    XXX
     <table id="products-table">
         <thead>
             <tr>

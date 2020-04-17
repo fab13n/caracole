@@ -19,7 +19,6 @@ def edit_user_purchases(request, delivery):
     """Let user order for himself, or modified an order on an open delivery."""
     delivery = get_delivery(delivery)
     user = request.user
-    order = m.Order(user, delivery)
     if request.method == 'POST':
         if _parse_form(request):
             return redirect("index")
@@ -27,14 +26,27 @@ def edit_user_purchases(request, delivery):
             # TODO: display errors in template
             return redirect("edit_user_purchases", delivery=delivery.id)
     else:
-        products = m.Product.objects.filter(delivery=delivery)
+        # Turn product objects into records, so that we can monkey-patch purchase data in it
+        products = {pd['id']: pd for pd in m.Product.objects.filter(delivery=delivery).values()}
+        # TODO could be done in a single SQL query:
+        # 1. group then sum purchases by product within a delivery, you get totals bought
+        # 2. deduce from quota if applicable
+        for pd in products.values():
+            pd['left'] = m.Product.objects.get(id=pd['id']).left
+            pd['purchased'] = 0  # Will be overridden if a purchase is found
+            pd['max_quantity'] = pd['left']
+        for pc in m.Purchase.objects.filter(product__delivery=delivery, user=user):
+            pd = products[pc.product_id]
+            pd['purchased'] = pc.quantity
+            if pd['left'] is not None:
+                pd['max_quantity'] = pc.quantity + pd['left']
+
         vars = {
             'QUOTAS_ENABLED': True,
             'user': user,
             'delivery': delivery,
             'subgroup': delivery.network.subgroup_set.get(users__in=[user]),
             'products': products,
-            'purchases': order.purchases
         }
         vars.update(csrf(request))
         return render(request,'edit_user_purchases.html', vars)

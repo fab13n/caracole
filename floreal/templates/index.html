@@ -44,10 +44,18 @@
 {% endif %}
 <style type="text/css">
     li ul { margin-bottom: 0px; }
+    p.admin-message { font-weight: bold; }
 </style>
 {% endblock %}
 
 {% block content %}
+
+{% if messages %}
+<h2>Message des administrateurs</h2>
+{% for msg in messages %}
+<p class="admin-message">{{msg.0}} : {{msg.1}}</p>
+{% endfor %}
+{% endif %}
 
 {% if deliveries %}
 <h2>Commandes en cours</h2>

@@ -10,3 +10,4 @@ six==1.14.0
 typing==3.7.4.1
 uwsgi
 XlsxWriter==1.2.8
+Pillow==7.1.1

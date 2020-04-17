@@ -5,15 +5,19 @@
 {% block head %}
   <script type='text/javascript'>
   // <![CDATA[
-    {# TODO: refactor in objects #}
-    var PRODUCTS = [{% for pd in products %}
-      {id: {{pd.id}}, quantum: {{pd.quantum|default_if_none:0}}, left: {{pd.left|default_if_none:"null"}}, weight: {{pd.unit_weight}}, unit: "{{pd.unit|escapejs}}"},{% endfor %}
+    var PRODUCTS = [{% for id, pd in products.items %}
+      { name: "{{pd.name|escapejs}}",
+        id: {{id}},
+        quantum: {{pd.quantum|default_if_none:0}},
+        quantity_per_package: {{pd.quantity_per_package|default_if_none:"null"}},
+        left: {{pd.left|default_if_none:"null"}},
+        weight: {{pd.unit_weight}},
+        unit: "{{pd.unit|escapejs}}",
+        unit_price: {{pd.price}},
+        purchased: {{pd.purchased}},
+        max_quantity: {{pd.max_quantity|default_if_none:"null"}}
+      },{% endfor %}
     ];
-    var PURCHASES = { {% for pc in purchases %}{{pc.product.id}}: {{pc.quantity}}, {% endfor %} };
-    var MAX_PURCHASES = { {% for pc in purchases %}{% if pc.max_quantity is not None %}{{pc.product.id}}: {{pc.max_quantity}}, {% endif %}{% endfor %} };
-
-
-
 
     /* update per-line totals as well as delivery total */
     function update_weight_prices_and_errors() {
@@ -23,16 +27,15 @@
         var pd = PRODUCTS[i];
         if(pd.unavailable) { continue; }
         var ordered = parseFloat($("#pd"+pd.id+"-ordered_quantity").attr("value"));
-        var unit_price = parseFloat($("#pd"+pd.id+"-unit_price").text().replace(',','.'));
-        var price = ordered * unit_price;
-        $("#pd"+pd.id+"-ordered_price").text(price.toFixed(2));
+        var price = ordered * pd.unit_price;
+        $(".pd"+pd.id+"-ordered_price").text(price.toFixed(2));
         total_price  += price;
         total_weight += ordered * pd.weight;
-        console.log(pd.id + " -> " + ordered + " * " + unit_price + " = " + price + " -> Σ=" + total_price);
+        console.log(pd.id + " -> " + ordered + " * " + pd.unit_price + " = " + price + " -> Σ=" + total_price);
         check_quantum(pd);
       }
-      $("#total_price").text(total_price.toFixed(2));
-      $("#total_weight").text(total_weight.toFixed(0));
+      $(".total_price").text(total_price.toFixed(2));
+      $(".total_weight").text(total_weight.toFixed(0));
       // Prevent submission if there's at least one quantum error
       $("input[type=submit]").prop('disabled', $(".quantum-error").length > 0);
     }
@@ -70,43 +73,38 @@
     }
 
     $(document).ready(function() {
-      /* Set purchases */
-      for(id in PURCHASES) {
-        if(PURCHASES.hasOwnProperty(id)) {
-          $("#pd"+id+"-ordered_quantity").attr("value", PURCHASES[id]);
-        }
-        if(MAX_PURCHASES.hasOwnProperty(id)) {
-          $("#pd"+id+"-ordered_quantity").attr("max", MAX_PURCHASES[id]);
-        }
-      }
+      var no_packaging_column = true;
       for(i in PRODUCTS){
         var pd = PRODUCTS[i];
-        if(pd.left !== null) {
-          /* if there's a max quantity on a product, prevent from ordering more than that in addition to what's ordered. */
-          var purchased = PURCHASES[pd.id] || 0;
-          $("#pd"+pd.id+"-ordered_quantity").attr("max", pd.left + purchased);
-          // var name = $("#row-"+pd.id+" .product-name").text();
-          // console.log(name, "left=", pd.left, "purchased=", purchased, "max=", pd.left+purchased, $("#pd"+pd.id+"-ordered_quantity")[0]);
-        } 
+
+        /* Fill the input */
+        $("#pd"+pd.id+"-ordered_quantity").attr("value", pd.purchased);
+
+        /* Check if the "cartons" column is useful */
+        if(pd.quantity_per_package !== null) { no_packaging_column = false; }
+
+        /* Handle order limits */
+        if(pd.max_quantity === null) {
+          // No purchase limit on this product, pass
+        } else if(pd.max_quantity === 0) {
+          // Product is out-of-stock, disable the corresponding input
+          console.log("Produit épuisé:", pd);
+          $("#row-"+pd.id+" td:nth-child(n+3)").remove();
+          $("#row-"+pd.id).append("<td colspan=6 class='unavailable'>(épuisé)</td>");
+          pd.unavailable = true;
+        } else {
+          // There's a purchase limit but it hasn't been reached yet.
+          $("#pd"+pd.id+"-ordered_quantity").attr("max", pd.max_quantity);
+        }
       }
-      for(i in PRODUCTS){
-        var pd = PRODUCTS[i];
-        if(pd.left !== null) {
-          /* if there's a max quantity on a product, prevent from ordering more than that in addition to what's ordered. */
-          var purchased = PURCHASES[pd.id] || 0;
-          var max = pd.left + purchased;
-          if(max === 0) {
-            console.log("Produit épuisé:", pd);
-            $("#row-"+pd.id+" td:nth-child(n+3)").remove();
-            $("#row-"+pd.id).append("<td colspan=6 class='unavailable'>(épuisé)</td>");
-            pd.unavailable = true;
-          } else {
-            $("#pd"+pd.id+"-ordered_quantity").attr("max", max);
-          }
-          // var name = $("#row-"+pd.id+" .product-name").text();
-          // console.log(name, "left=", pd.left, "purchased=", purchased, "max=", pd.left+purchased, $("#pd"+pd.id+"-ordered_quantity")[0]);
-        } 
+
+      if(no_packaging_column) {
+        // remove "carton" column: title and lines, and shorten description colspans
+        $("#products-table th:nth-child(6)").remove();
+        $("#products-table td:nth-child(7)").remove();
+        $("td.description").attr("colspan", 7);
       }
+
       $(":input").bind('keyup mouseup', update_weight_prices_and_errors);
       update_weight_prices_and_errors();
     })
@@ -118,6 +116,8 @@
     .product-unit { text-align: left; }
     .unit-price { padding-left: 10px; }
     .unavailable { text-align: center !important; font-style: italic; }
+    #delivery-description-table { border: 1px solid #811305; font-size: larger; }
+    #delivery-description-table td { text-align: left; }
     #delivery-table { border: 1px solid #811305; font-size: larger; }
     #delivery-table th { text-align: right; background-color: #fff0e0; }
     #delivery-table td { text-align: left; }
@@ -159,7 +159,9 @@
     </table>
     {% if delivery.description %}
     <div style="height: 20px;"></div>
-    <p id="dv-description">{{delivery.description|safe}}</p>
+    <table id="delivery-description-table"><tr><td>
+      <p id="dv-description">{{delivery.description|safe}}</p>
+    </td></tr></table>
     <div style="height: 20px;"></div>
     {% else %}
     <div style="height: 20px;"></div>
@@ -174,33 +176,28 @@
             <th>Cartons</th>
             <th>Effacer ?</th>
         </tr>
-        {% for pd in products %}
+        {% for pd in products.values %}
         <tr id="row-{{pd.id}}">
           <td class="place">{{forloop.counter}}</td>
           <td class="product-name">{{pd.name}}</td>
-          <td class="quantity"><input class="quantity" id="pd{{pd.id}}-ordered_quantity" maxlength="64" name="pd{{pd.id}}" type="number" step="{{pd.quantum|default_if_none:1}}" min="0"
-            {%if left is not None%}max="{{left}}"{%endif%}
-            value="0" /></td>
-          <td class="product-unit">
-              {{pd.unit|unit_multiple}}{% if pd.unit != 'kg' and pd.unit_weight %} ({{pd.unit_weight|weight}}){% endif %}
-          </td>
+          <td class="quantity"><input class="quantity" id="pd{{pd.id}}-ordered_quantity" maxlength="64" name="pd{{pd.id}}" type="number" step="{{pd.quantum|default_if_none:1}}" min="0" value="0" /></td>
+          <td class="product-unit">{{pd.unit|unit_multiple}}{% if pd.unit != 'kg' and pd.unit_weight %} ({{pd.unit_weight|weight}}){% endif %}</td>
           <td class="unit-price"><span id="pd{{pd.id}}-unit_price">{{pd.price|price_nocurrency}}</span> €/{{pd.unit}}</td>
-          <td class="price"><span id="pd{{pd.id}}-ordered_price">-</span> €</td>
+          <td class="price"><span class="pd{{pd.id}}-ordered_price">-</span> €</td>
           <td class="qpp">{% if pd.quantity_per_package %}{{pd.quantity_per_package}}{{pd.unit|unit_multiple}}/carton{% else %} - {% endif %}</td>
           <td class="reset"><input type="image" src={% static 'images/minus.png' %} onclick="reset_order({{pd.id}}); return false" value="Remettre à 0"></td>
         </tr>
-        <tr><td colspan="8" class="description">{%if pd.description%}<div>{{pd.description|safe}}
-        </div>{%endif%}</td></tr>
+        {%if pd.description%}<tr><td colspan="8" class="description"><div>{{pd.description|safe}}</div></td></tr>{%endif%}
         {% endfor %}
         <tr class="total">
-          <td colspan="3"></td>
-          <th>Prix total:</th><td class="total_cell"><span id="total_price">-</span>&nbsp;€</td>
-          <td colspan="3"></td>
+          <td colspan="4"></td>
+          <th>Prix total:</th><td class="total_cell"><span class="total_price">-</span>&nbsp;€</td>
+          <td colspan="1"></td>
         </tr>
         <tr class="total">
-          <td colspan="3"></td>
-          <th>Poids total:</th><td class="total_cell"><span id="total_weight">-</span>&nbsp;kg</td>
-          <td colspan="3"></td>
+          <td colspan="4"></td>
+          <th>Poids total:</th><td class="total_cell"><span class="total_weight">-</span>&nbsp;kg</td>
+          <td colspan="1"></td>
         </tr>
     </table>
     <input type="submit" value="Valider la commande" /> <a href="{% url 'index' %}">Annuler les modifications</a>

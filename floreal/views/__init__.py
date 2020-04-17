@@ -54,8 +54,10 @@ def index(request):
                        for sg in subgroup_admin]
     subgroup_admin = [sg_dv_cd for sg_dv_cd in subgroup_admin if sg_dv_cd['dv'].exists() or sg_dv_cd['cd'].exists()]
     vars['subgroup_admin'] = subgroup_admin
+    vars['messages'] = {("Message général", msg.message) for msg in m.AdminMessage.objects.filter(everyone=True)}
+    vars['messages'] |= {(nw.name, msg.message) for nw in user_networks for msg in nw.adminmessage_set.all()}
+    vars['messages'] |= {(str(sg), msg.message) for sg in user_subgroups for msg in sg.adminmessage_set.all()}
     return render(request,'index.html', vars)
-
 
 
 @nw_admin_required()
