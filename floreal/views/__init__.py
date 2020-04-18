@@ -8,6 +8,8 @@ from django.shortcuts import render, redirect, reverse
 from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.utils import html
+from django.template.context_processors import csrf
+from django.db.models import Count
 
 from caracole import settings
 from .. import models as m
@@ -54,9 +56,9 @@ def index(request):
                        for sg in subgroup_admin]
     subgroup_admin = [sg_dv_cd for sg_dv_cd in subgroup_admin if sg_dv_cd['dv'].exists() or sg_dv_cd['cd'].exists()]
     vars['subgroup_admin'] = subgroup_admin
-    vars['messages'] = {("Message général", msg.message) for msg in m.AdminMessage.objects.filter(everyone=True)}
-    vars['messages'] |= {(nw.name, msg.message) for nw in user_networks for msg in nw.adminmessage_set.all()}
-    vars['messages'] |= {(str(sg), msg.message) for sg in user_subgroups for msg in sg.adminmessage_set.all()}
+    vars['messages'] = {("Message général", msg.message, msg.id) for msg in m.AdminMessage.objects.filter(everyone=True)}
+    vars['messages'] |= {(nw.name, msg.message, msg.id) for nw in user_networks for msg in nw.adminmessage_set.all()}
+    vars['messages'] |= {(str(sg), msg.message, msg.id) for sg in user_subgroups for msg in sg.adminmessage_set.all()}
     return render(request,'index.html', vars)
 
 
@@ -405,3 +407,52 @@ def all_deliveries_latex(request, network, states):
     content = render_latex("all_deliveries.tex", ctx)
     name_bits = [get_network(network).name, "active_deliveries", datetime.now().strftime("%Y-%m-%d")]
     return non_html_response(name_bits, "pdf", content)
+
+def editor(request, target, title='Éditer', template="editor.html", **kwargs):
+    ctx = dict(title=title, target=target, **kwargs)
+    ctx.update(csrf(request))
+    return render(request, template, ctx)
+
+@sg_admin_required()
+def set_message(request):
+    if request.method == "POST":
+        P = request.POST
+        d = P['destination'].split('-')
+        # TODO: check that user has the admin rights suitable for the destination
+        if d[0] == 'everyone':
+            dest = {'everyone': True}
+        elif d[0] == 'nw':
+            dest = {'network_id': int(d[1])}
+        elif d[0] == 'sg':
+            dest = {'subgroups_id': int(d[1])}
+        else:
+            assert False
+        text = P['editor']
+        if text.startswith("<p>"):
+            text = text[3:]
+        if text.endswith("</p>"):
+            text = text[:-4]
+        msg = m.AdminMessage.objects.create(message=text, **dest)
+        return redirect("index")
+    else:
+        u = request.user
+        options = \
+            [('Tout le monde', 'everyone')] + \
+            [('Sous-groupe %s'%sg.name, 'sg-%d' % sg.id) \
+                for sg in u.staff_of_subgroup \
+                .annotate(nsg=Count('network__subgroup')) \
+                .filter(nsg__gt=1)] + \
+            [('Réseau %s'%nw.name, 'nw-%d' % nw.id) \
+                for nw in u.staff_of_network.all()]
+        return editor(request,
+                  title="Message administrateur",
+                  template="set_message.html",
+                  target="/set-message",
+                  options=options)
+
+@sg_admin_required()
+def unset_message(request, id):
+    # TODO check that user is allowed for that message
+    # To be done in a m.Message method
+    m.AdminMessage.objects.get(id=int(id)).delete()
+    return redirect("index")

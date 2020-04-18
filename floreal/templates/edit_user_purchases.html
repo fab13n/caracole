@@ -103,6 +103,7 @@
         $("#products-table th:nth-child(6)").remove();
         $("#products-table td:nth-child(7)").remove();
         $("td.description").attr("colspan", 7);
+        $("td.total-padding:last-child").attr("colspan", 1);
       }
 
       $(":input").bind('keyup mouseup', update_weight_prices_and_errors);
@@ -116,7 +117,7 @@
     .product-unit { text-align: left; }
     .unit-price { padding-left: 10px; }
     .unavailable { text-align: center !important; font-style: italic; }
-    #delivery-description-table { border: 1px solid #811305; font-size: larger; }
+    #delivery-description-table { border: 1px solid #811305; font-size: larger; margin-left: auto; margin-right: auto; }
     #delivery-description-table td { text-align: left; }
     #delivery-table { border: 1px solid #811305; font-size: larger; }
     #delivery-table th { text-align: right; background-color: #fff0e0; }
@@ -190,14 +191,14 @@
         {%if pd.description%}<tr><td colspan="8" class="description"><div>{{pd.description|safe}}</div></td></tr>{%endif%}
         {% endfor %}
         <tr class="total">
-          <td colspan="4"></td>
+          <td class="total-padding" colspan="4"></td>
           <th>Prix total:</th><td class="total_cell"><span class="total_price">-</span>&nbsp;€</td>
-          <td colspan="1"></td>
+          <td class="total-padding" colspan="2"></td>
         </tr>
-        <tr class="total">
+        <tr class="total-padding" class="total">
           <td colspan="4"></td>
           <th>Poids total:</th><td class="total_cell"><span class="total_weight">-</span>&nbsp;kg</td>
-          <td colspan="1"></td>
+          <td class="total-padding" colspan="2"></td>
         </tr>
     </table>
     <input type="submit" value="Valider la commande" /> <a href="{% url 'index' %}">Annuler les modifications</a>

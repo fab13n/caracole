@@ -1,7 +1,7 @@
 upstream django { server django_prod:8000; }
 
 server {
-    listen $PUBLIC_HTTP_PORT;
+    listen 80;
     server_name $PUBLIC_HOST;
     location / {
     	# Force redirection to HTTPS
@@ -12,8 +12,9 @@ server {
     	root /var/www/certbot;
     }
 }
+
 server {
-    listen $PUBLIC_HTTPS_PORT ssl;
+    listen 443 ssl;
     server_name $PUBLIC_HOST;
     gzip on;
     gzip_comp_level 6;

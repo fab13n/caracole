@@ -17,7 +17,7 @@ def wait_for_postgres():
             break
         except (socket.error, OSError):
             if first_loop:
-                print(f"Wait for DB", end="")
+                print("Wait for DB", end="")
                 first_loop = False
             print(".", end="", flush=True)
             time.sleep(1)
@@ -25,7 +25,7 @@ def wait_for_postgres():
 
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "caracole.settings")
-    if 'POSTGRES_DBNAME' in os.environ:
+    if os.environ.get('POSTGRES_DBNAME'):
         wait_for_postgres()
     
 

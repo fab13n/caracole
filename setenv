@@ -2,3 +2,6 @@ ENV_FILE=$(dirname $BASH_SOURCE)/.env
 cat $ENV_FILE | sed 's/^\([A-Z_0-9]*\)=\(.*\)$/export \1="\2"/g' > $ENV_FILE.bash
 . $ENV_FILE.bash
 
+if [[ -d venv ]]; then
+   . venv/bin/activate
+fi

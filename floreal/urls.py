@@ -24,11 +24,11 @@ urlpatterns = [
     path('nw-<network>/archives', views.archived_deliveries, name='archived_deliveries'),
     path('nw-<network>/edit-users', views.edit_user_memberships, name='edit_user_memberships'),
     path('nw-<network>/edit-users.json', views.json_memberships, name='json_memberships'),
-    path('nw-<network>/all-deliveries/<states>', views.all_deliveries_html, name='all_deliveries_html'),
-    path('nw-<network>/all-deliveries/<slug:states>.pdf', views.all_deliveries_latex, name='all_deliveries_latex'),
+    re_path(r'^nw-(?P<network>[^/]+)/all-deliveries/(?P<states>[A-Z]+)$', views.all_deliveries_html, name='all_deliveries_html'),
+    re_path(r'^nw-(?P<network>[^/]+)/all-deliveries/(?P<states>[A-Z]+)\.pdf$', views.all_deliveries_latex, name='all_deliveries_latex'),
     path('nw-<network>/invoice-mail-form', views.invoice_mail_form, name='invoice_mail_form'),
 
-    path('dv-<delivery>', views.edit_user_purchases, name='edit_user_purchases'),
+    re_path('^dv-(?P<delivery>[^./]+)$', views.edit_user_purchases, name='edit_user_purchases'),
     path('dv-<delivery>/staff', views.edit_delivery, name='edit_delivery'),
     path('dv-<delivery>/edit-products', views.edit_delivery_products, name='edit_delivery_products'),
     path('dv-<delivery>/sg-<subgroup>/edit', views.edit_subgroup_purchases, name='edit_subgroup_purchases'),
@@ -45,7 +45,7 @@ urlpatterns = [
     path('new-cd/sg-<subgroup>', views.create_candidacy, name='create_candidacy'),
     path('nw-<network>/candidacies', views.manage_candidacies, name='manage_candidacies'),
 
-    path('dv-<delivery>.html', views.view_purchases_html, name='view_all_purchases_html'),
+    re_path('^dv-(?P<delivery>[^./]+).html$', views.view_purchases_html, name='view_all_purchases_html'),
     path('dv-<delivery>/table.pdf', views.view_purchases_latex, name='view_all_purchases_latex'),
     path('dv-<delivery>/cards.pdf', views.view_cards_latex, name='view_all_cards_latex'),
     path('dv-<delivery>.xlsx', views.view_purchases_xlsx, name='view_all_purchases_xlsx'),
@@ -79,4 +79,7 @@ urlpatterns = [
     path('accounts/', include('registration.backends.simple.urls')),
 
     path('add-phone-number/<phone>', views.phone.add_phone_number, name="add_phone_number"),
+    path('edit/<title>/<path:target>', views.editor, name='editor'),
+    path('set-message', views.set_message, name='set_message'),
+    path('unset-message/<int:id>', views.unset_message, name='unset_message'),
 ]

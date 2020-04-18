@@ -210,7 +210,7 @@ class Product(models.Model):
     quantum = models.DecimalField(decimal_places=2, max_digits=3, default=1, blank=True)
     description = models.TextField(null=True, blank=True, default=None)
     place = models.PositiveSmallIntegerField(null=True, blank=True, default=True)
-    image = models.ImageField(null=True, default=True, blank=True)
+    # image = models.ImageField(null=True, default=True, blank=True)
 
     class Meta:
         # Problematic: during delivery modifications, some product names may transiently have a name
@@ -418,3 +418,14 @@ class AdminMessage(models.Model):
     network = models.ForeignKey(Network, null=True, blank=True, default=None, on_delete=models.CASCADE)
     subgroup = models.ForeignKey(Subgroup, null=True, blank=True, default=None, on_delete=models.CASCADE)
     message = models.TextField()
+
+    def __str__(self):
+        d = []
+        if self.everyone:
+            d += ["Tout le monde"]
+        if self.network is not None:
+            d += ["Réseau "+self.network.name]
+        if self.subgroup is not None:
+            d += ["Sous-groupe "+self.subgroup.name]
+        return ", ".join(d) + ": " + self.message
+    

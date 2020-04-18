@@ -2,7 +2,7 @@ upstream django { server django_prod:8000; }
 
 server {
   listen *:80;
-  server $PUBLIC_HOST;
+  server_name $PUBLIC_HOST;
   gzip on;
   gzip_comp_level 6;
 
@@ -12,6 +12,6 @@ server {
   }
 
   location /static/ {
-    alias /home/caracole/static/;
+    alias /var/www/caracole/static/;
   }
 }

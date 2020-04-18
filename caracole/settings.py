@@ -99,7 +99,7 @@ DATABASES = {
         "PASSWORD": E["POSTGRES_PASSWORD"],
         "HOST": E["POSTGRES_HOST"],
         "PORT": int(E["POSTGRES_PORT"]),
-    } if "POSTGRES_DBNAME" in E else {
+    } if E.get("POSTGRES_DBNAME") else {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR + '/database.sqlite3'
     }

@@ -1,11 +1,18 @@
 #!/bin/bash
-TIME=15
-echo "Waiting $TIME seconds to make sure the DB is initialized"
-sleep $TIME
+
+if [[ "$POSTGRES_DBNAME" != "" ]]; then
+    TIME=15
+    echo "Waiting $TIME seconds to make sure the DB is initialized"
+    sleep $TIME
+fi
 ./manage.py migrate
 ./manage.py collectstatic --no-input
 ./manage.py shell <<EOF
 from django.contrib.auth.models import User
+from django.conf import settings
+
+print(settings.DATABASES)
+
 username = "$SUPERUSER_USERNAME"
 kwargs = {
    'username': "$SUPERUSER_EMAIL",

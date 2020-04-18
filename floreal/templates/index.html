@@ -53,7 +53,9 @@
 {% if messages %}
 <h2>Message des administrateurs</h2>
 {% for msg in messages %}
-<p class="admin-message">{{msg.0}} : {{msg.1}}</p>
+<p class="admin-message">
+  <span class="destination">{{msg.0}}</span> : {{msg.1|safe}}
+{% if network_admin or subgroup_admin %}<a href="{% url 'unset_message' id=msg.2 %}">(<span class="no">Supprimer le message ✘</span>)</a>{% endif %}</p>
 {% endfor %}
 {% endif %}
 
@@ -94,6 +96,7 @@ Commander pour :
 {% if network_admin or subgroup_admin or user.is_staff %}
 <h2>Administrer</h2>
 <ul>
+    <li><a href="{% url 'set_message' %}">Poster un message</a></li>
     {% for nw in network_admin %}
     <li><a href="{% url 'network_admin' network=nw.id %}">Administrer le réseau <em>{{nw.name}}</em></a></li>
     {% endfor %}{# network_admin #}
