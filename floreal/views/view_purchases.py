@@ -1,10 +1,9 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
+#!/usr/bin/python3
 
 import os
 
 from django.http import HttpResponse, HttpResponseForbidden
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 
 from caracole import settings
@@ -37,13 +36,13 @@ def view_purchases_html(request, delivery, subgroup=None):
     if subgroup:
         sg = get_subgroup(subgroup)
         if request.user not in sg.staff.all() and request.user not in sg.network.staff.all():
-            return HttpResponseForbidden(u"Réservé aux admins")
+            return HttpResponseForbidden("Réservé aux admins")
         subgroups = [sg]
     else:
         if request.user not in dv.network.staff.all():
-            return HttpResponseForbidden(u"Réservé aux admins")
+            return HttpResponseForbidden("Réservé aux admins")
         subgroups = dv.network.subgroup_set.all()
-    return render_to_response('view_purchases.html', delivery_description(dv, subgroups))
+    return render(request,'view_purchases.html', delivery_description(dv, subgroups))
 
 
 @login_required()
@@ -54,11 +53,11 @@ def view_purchases_xlsx(request, delivery, subgroup=None):
     if subgroup:
         sg = get_subgroup(subgroup)
         if request.user not in sg.staff.all() and request.user not in sg.network.staff.all():
-            return HttpResponseForbidden(u"Réservé aux admins")
+            return HttpResponseForbidden("Réservé aux admins")
         subgroups = [sg]
     else:
         if request.user not in dv.network.staff.all():
-            return HttpResponseForbidden(u"Réservé aux admins")
+            return HttpResponseForbidden("Réservé aux admins")
         subgroups = dv.network.subgroup_set.all()
     return non_html_response((dv.network.name, dv.name), "xlsx", spreadsheet(dv, subgroups))
 
@@ -71,12 +70,12 @@ def view_purchases_latex(request, delivery, subgroup=None):
     if subgroup:
         sg = get_subgroup(subgroup)
         if request.user not in sg.staff.all() and request.user not in sg.network.staff.all():
-            return HttpResponseForbidden(u"Réservé aux admins")
+            return HttpResponseForbidden("Réservé aux admins")
         content = latex.subgroup(dv, sg)
         name_bits = (dv.network.name, dv.name, sg.name)
     else:
         if request.user not in dv.network.staff.all():
-            return HttpResponseForbidden(u"Réservé aux admins")
+            return HttpResponseForbidden("Réservé aux admins")
         content = latex.delivery_table(dv)
         name_bits = (dv.network.name, dv.name)
     return non_html_response(name_bits, "pdf", content)
@@ -90,7 +89,7 @@ def view_cards_latex(request, delivery, subgroup=None):
     if subgroup:
         sg = get_subgroup(subgroup)
         if request.user not in sg.staff.all() and request.user not in sg.network.staff.all():
-            return HttpResponseForbidden(u"Réservé aux admins")
+            return HttpResponseForbidden("Réservé aux admins")
         content = latex.cards(dv, sg)
         name_bits = (dv.network.name, dv.name, sg.name)
     else:
@@ -104,7 +103,7 @@ def get_archive(request, delivery, suffix):
     """Retrieve the PDF/MS-Excel file versions of a terminated delivery which have been saved upontermination."""
     dv = get_delivery(delivery)
     file_name = os.path.join(settings.DELIVERY_ARCHIVE_DIR, "dv-%d.%s" % (dv.id, suffix))
-    with open(file_name) as f:
+    with open(file_name, 'rb') as f:
         content = f.read()
     name_bits = (dv.network.name, dv.name)
     return non_html_response(name_bits, suffix, content)

@@ -1,11 +1,10 @@
-#!/usr/bin/python
-# -*- coding: utf8 -*-
+#!/usr/bin/python3
 
 """Helpers to edit products list: generate suggestions based on current and
 past products, parse POSTed forms to update a delivery's products list."""
 
 import django
-from django.shortcuts import render_to_response, redirect
+from django.shortcuts import render, redirect
 if django.VERSION < (1, 8):
     from django.core.context_processors import csrf
 else:
@@ -29,15 +28,18 @@ def edit_delivery_products(request, delivery):
 
     if request.method == 'POST':  # Handle submitted data
         _parse_form(request)
-        JournalEntry.log(request.user, "Edited products for delivery %s/%s", delivery.network.name, delivery.name)
-        return redirect('edit_delivery', delivery.id)
+        JournalEntry.log(request.user, "Edited products for delivery dv-%d %s/%s", delivery.id, delivery.network.name, delivery.name)
+        if 'save_and_leave' in request.POST:
+            return redirect('edit_delivery', delivery.id)
+        else:
+            return redirect('edit_delivery_products', delivery.id)
 
     else:  # Create and populate forms to render
-        vars = {'QUOTAS_ENABLED': False,
+        vars = {'QUOTAS_ENABLED': True,
                 'user': request.user,
                 'delivery': delivery}
         vars.update(csrf(request))
-        return render_to_response('edit_delivery_products.html', vars)
+        return render(request,'edit_delivery_products.html', vars)
 
 
 def _get_pd_fields(d, r_prefix):
@@ -60,7 +62,7 @@ def _get_pd_fields(d, r_prefix):
             'place': int(raw['place']),
             'price': float(raw['price']),
             'quantity_per_package': int(qpp) if qpp else None,
-            'unit': raw['unit'] or u'pièce',
+            'unit': raw['unit'] or 'pièce',
             'quantity_limit': int(quota) if quota else None,
             'quantum': float(quantum) if quantum else None,
             'unit_weight': float(weight) if weight is not None else None,
@@ -84,7 +86,6 @@ def _pd_update(pd, fields):
 def _parse_form(request):
     """Parse a delivery edition form and update DB accordingly."""
     d = request.POST
-    print(d)
     dv = Delivery.objects.get(pk=int(d['dv-id']))
 
     # Edit delivery name and state
@@ -96,36 +97,39 @@ def _parse_form(request):
 
     for r in range(int(d['n_rows'])):
         fields = _get_pd_fields(d, 'r%d' % r)
-        if fields.get('id', False):
+        if fields.get('id'):
             pd = Product.objects.get(pk=fields['id'])
             if pd.delivery == dv:
                 if fields['deleted']:  # Delete previously existing product
-                    print "Deleting product",  pd
+                    #print("Deleting product",  pd)
                     pd.delete()
                     # Since purchases have foreign keys to purchased products,
                     # they will be automatically deleted.
                     # No need to update penury management either, as there's
                     # no purchase of this product left to adjust.
                 else:  # Update product
-                    print "Updating product", pd
+                    # print("Updating product", pd)
                     _pd_update(pd, fields)
                     pd.save(force_update=True)
             else:  # From another delivery
                 if fields['deleted']:  # Don't import product
-                    print "Ignoring past product", pd
+                    # print("Ignoring past product", pd)
                     pass
                 else:  # Import product copy from other delivery
-                    print "Importing past product",  pd
+                    # print("Importing past product",  pd)
                     _pd_update(pd, fields)
                     pd.delivery = dv
                     pd.id = None
                     pd.save(force_insert=True)
         elif fields['deleted']:
-                print "New product in r%d deleted/empty: ignoring" % r
+                # print("New product in r%d deleted/empty: ignoring" % r)
+                pass
         else:  # Parse products created from blank lines
-            print "Adding new product from line #%d" % r
+            # print("Adding new product from line #%d" % r)
             pd = Product.objects.create(name=fields['name'],
+                                        description=fields['description'],
                                         price=fields['price'],
+                                        place=fields['place'],
                                         quantity_per_package=fields['quantity_per_package'],
                                         quantity_limit=fields['quantity_limit'],
                                         unit=fields['unit'],
@@ -134,5 +138,5 @@ def _parse_form(request):
             pd.save()
 
     # In case of change in quantity limitations, adjust granted quantities for purchases
-    #for pd in dv.product_set.all():
-    #    set_limit(pd)
+    for pd in dv.product_set.all():
+        set_limit(pd)

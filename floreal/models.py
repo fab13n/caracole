@@ -1,9 +1,9 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
+#!/usr/bin/python3
+import re
 from datetime import datetime
 
 from django.db import models
+from django.db.models import Sum
 from django.contrib.auth.models import User
 
 from floreal.francais import articulate, plural, Plural
@@ -12,11 +12,31 @@ from caracole import settings
 
 class UserPhones(models.Model):
     """Associate one or several phone numbers to each user."""
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     phone = models.CharField(max_length=20)
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s %s: %s" % (self.user.first_name, self.user.last_name, self.phone)
+
+    @property
+    def display_number(self):
+        if not hasattr(self, '_display_number'):
+            n = "".join(k for k in self.phone if k.isdigit())
+            if len(n) == 10:
+                self._display_number = " ".join(n[i:i+2] for i in range(0, len(n), 2)) 
+            else:
+                self._display_number = self.phone
+        return self._display_number
+
+    @property
+    def uri(self):
+        if not hasattr(self, '_uri'):
+            n = "".join(k for k in self.phone if k.isdigit())
+            if len(n) == 10:
+                self._uri = "tel:+33" + n[1:]
+            else:
+                self._uri = None
+        return self._uri
 
 
 class Network(models.Model):
@@ -36,7 +56,7 @@ class Network(models.Model):
     class Meta:
         ordering = ('name',)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
 
@@ -51,8 +71,8 @@ class Subgroup(models.Model):
     Extra users are allowed to order a negative quantity of products."""
 
     name = models.CharField(max_length=64)
-    network = models.ForeignKey(Network)
-    extra_user = models.ForeignKey(User, null=True, blank=True, related_name='+')
+    network = models.ForeignKey(Network, on_delete=models.CASCADE)
+    extra_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
     # Users might only be staff of one subgroup per network
     staff = models.ManyToManyField(User, related_name='staff_of_subgroup')
     users = models.ManyToManyField(User, related_name='user_of_subgroup')
@@ -63,7 +83,7 @@ class Subgroup(models.Model):
         unique_together = (('network', 'name'),)
         ordering = ('name',)
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s/%s" % (self.network.name, self.name)
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
@@ -97,8 +117,8 @@ class Subgroup(models.Model):
 
 
 class Candidacy(models.Model):
-    user = models.ForeignKey(User)
-    subgroup = models.ForeignKey(Subgroup)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
     message = models.TextField(null=True, blank=True)  # Currently unused, might be used to communicate with admins
 
 
@@ -117,14 +137,14 @@ class Delivery(models.Model):
     REGULATING     = 'E'
     TERMINATED     = 'F'
     STATE_CHOICES = {
-        PREPARATION:    u"En préparation",
-        ORDERING_ALL:   u"Ouverte",
-        ORDERING_ADMIN: u"Admins",
-        FROZEN:         u"Gelée",
-        REGULATING:     u"Régularisation",
-        TERMINATED:     u"Terminée" }
+        PREPARATION:    "En préparation",
+        ORDERING_ALL:   "Ouverte",
+        ORDERING_ADMIN: "Admins",
+        FROZEN:         "Gelée",
+        REGULATING:     "Régularisation",
+        TERMINATED:     "Terminée" }
     name = models.CharField(max_length=64)
-    network = models.ForeignKey(Network)
+    network = models.ForeignKey(Network, on_delete=models.CASCADE)
     state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=PREPARATION)
     description = models.TextField(null=True, blank=True, default=None)
 
@@ -142,7 +162,7 @@ class Delivery(models.Model):
         except models.ObjectDoesNotExist:
             SubgroupStateForDelivery.objects.create(delivery=self, subgroup=sg, state=state)
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s/%s" % (self.network.name, self.name)
 
     def state_name(self):
@@ -166,12 +186,12 @@ class SubgroupStateForDelivery(models.Model):
     READY_FOR_ACCOUNTING = 'Z'
     DEFAULT = INITIAL
     STATE_CHOICES = {
-        INITIAL:              u"Non validé",
-        READY_FOR_DELIVERY:   u"Commande validée",
-        READY_FOR_ACCOUNTING: u"Compta validée"}
-    state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=DEFAULT)
-    delivery = models.ForeignKey(Delivery)
-    subgroup = models.ForeignKey(Subgroup)
+        INITIAL:              "Non validé",
+        READY_FOR_DELIVERY:   "Commande validée",
+        READY_FOR_ACCOUNTING: "Compta validée"}
+    state = models.CharField(max_length=1, choices=list(STATE_CHOICES.items()), default=DEFAULT)
+    delivery = models.ForeignKey(Delivery, on_delete=models.CASCADE)
+    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
 
 
 class Product(models.Model):
@@ -181,7 +201,7 @@ class Product(models.Model):
     """
 
     name = models.CharField(max_length=64)
-    delivery = models.ForeignKey(Delivery)
+    delivery = models.ForeignKey(Delivery, on_delete=models.CASCADE)
     price = models.DecimalField(decimal_places=2, max_digits=6)
     quantity_per_package = models.IntegerField(null=True, blank=True)
     unit = models.CharField(max_length=64, null=True, blank=True)
@@ -190,12 +210,17 @@ class Product(models.Model):
     quantum = models.DecimalField(decimal_places=2, max_digits=3, default=1, blank=True)
     description = models.TextField(null=True, blank=True, default=None)
     place = models.PositiveSmallIntegerField(null=True, blank=True, default=True)
+    # image = models.ImageField(null=True, default=True, blank=True)
 
     class Meta:
-        unique_together = (('delivery', 'name'),)
+        # Problematic: during delivery modifications, some product names may transiently have a name
+        # duplicated wrt another product to be renamed in the same update.
+        # Moreover, in a future evolution, we'll want to allow several products with the same name but
+        # different quantities, and a dedicated UI rendering for them.
+        # unique_together = (('delivery', 'name'),)
         ordering = ('place', '-quantity_per_package', 'name',)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
@@ -203,14 +228,22 @@ class Product(models.Model):
             self.unit_weight = 1.
         super(Product, self).save(force_insert, force_update, using, update_fields)
 
+    @property
+    def left(self):
+        """How much of this product is there left?"""
+        if self.quantity_limit is None:
+            return None
+        else:
+            quantity_ordered = self.purchase_set.aggregate(t=Sum('quantity'))['t'] or 0
+            return self.quantity_limit - quantity_ordered
 
 class Purchase(models.Model):
     """A purchase is an intent to acquire quantity of a product  a delivery.
     If the product isn't available in unlimited quantity, then the ordered quantity
     might differ from the granted one."""
 
-    user = models.ForeignKey(User, null=True)
-    product = models.ForeignKey(Product)
+    user = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.DecimalField(decimal_places=3, max_digits=6)
 
     class Meta:
@@ -224,16 +257,23 @@ class Purchase(models.Model):
     def weight(self):
         return self.quantity * self.product.unit_weight
 
-    def __unicode__(self, specify_user=False):
-        fmt = u"%(quantity)g%(mult)s%(unit)s %(prod_name)s à %(price).2f€"
+    @property
+    def max_quantity(self):
+        """What's the current max quantity allowed for this order,
+        assuming its current quantity is saved in DB so that product.left is accurate."""
+        left = self.product.left
+        return None if left is None else self.quantity + left
+
+    def __str__(self, specify_user=False):
+        fmt = "%(quantity)g%(mult)s%(unit)s %(prod_name)s à %(price).2f€"
         unit = self.product.unit
         result = fmt % {
-            'mult': u'×'if len(unit)>0 and unit[0].isdigit() else u' ',
+            'mult': '×'if len(unit)>0 and unit[0].isdigit() else ' ',
             'quantity': self.quantity,
             'unit': plural(self.product.unit, self.quantity),
             'prod_name': articulate(self.product.name, self.quantity),
             'price': self.quantity * self.product.price,
-            'user_name': self.user.__unicode__()
+            'user_name': self.user.__str__()
         }
         if specify_user:
             result += " pour %s %s" % (self.user.first_name, self.user.last_name)
@@ -289,7 +329,7 @@ class Order(object):
                 self.weight = 0
                 self.quantity = 0
 
-            def __nonzero__(self):
+            def __bool__(self):
                 return False
 
         if not products:
@@ -315,24 +355,31 @@ class Order(object):
 class JournalEntry(models.Model):
     """Record of a noteworthy action by an admin, for social debugging purposes: changing delivery statuses,
     moving users around."""
-    user = models.ForeignKey(User, null=True)
+    user = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
     date = models.DateTimeField(default=datetime.now)
     action = models.CharField(max_length=256)
 
     @classmethod
     def log(cls, u, fmt, *args, **kwargs):
-        cls.objects.create(user=u, date=datetime.now(), action=fmt % (args or kwargs))
+        try:
+            action = fmt % (args or kwargs)
+            cls.objects.create(user=u, date=datetime.now(), action=action)
+        except Exception:
+            cls.objects.create("Failed to log, based on format " + repr(fmt))
 
+    def __str__(self):
+        n = self.user.email if self.user else "?"
+        return (", ".join((n, self.date.isoformat(), self.action)))
 
 class ProductDiscrepancy(models.Model):
     """Log of an accounting discrepancy between what's been ordered and what's actually been paid for in a given subgroup.
     """
-    product = models.ForeignKey(Product)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
     amount = models.DecimalField(decimal_places=3, max_digits=9)
-    subgroup = models.ForeignKey(Subgroup)
+    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
     reason = models.CharField(max_length=256)
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s/%s: %+g %s of %s for %s: %s" % (
             self.product.delivery.network.name,
             self.product.delivery.name,
@@ -347,10 +394,10 @@ class ProductDiscrepancy(models.Model):
         verbose_name_plural = "Product Discrepancies"
 
 class DeliveryDiscrepancy(models.Model):
-    """Lof of an accounting discrepancy that cannot be attributed to a specific product."""
-    delivery = models.ForeignKey(Delivery)
+    """Log of an accounting discrepancy that cannot be attributed to a specific product."""
+    delivery = models.ForeignKey(Delivery, on_delete=models.CASCADE)
     amount = models.DecimalField(decimal_places=2, max_digits=9)
-    subgroup = models.ForeignKey(Subgroup)
+    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
     reason = models.CharField(max_length=256)
 
     def __unicode__(self):
@@ -364,3 +411,21 @@ class DeliveryDiscrepancy(models.Model):
 
     class Meta:
         verbose_name_plural = "Delivery Discrepancies"
+
+
+class AdminMessage(models.Model):
+    everyone = models.BooleanField(default=False)
+    network = models.ForeignKey(Network, null=True, blank=True, default=None, on_delete=models.CASCADE)
+    subgroup = models.ForeignKey(Subgroup, null=True, blank=True, default=None, on_delete=models.CASCADE)
+    message = models.TextField()
+
+    def __str__(self):
+        d = []
+        if self.everyone:
+            d += ["Tout le monde"]
+        if self.network is not None:
+            d += ["Réseau "+self.network.name]
+        if self.subgroup is not None:
+            d += ["Sous-groupe "+self.subgroup.name]
+        return ", ".join(d) + ": " + self.message
+    

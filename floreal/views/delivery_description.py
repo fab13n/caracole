@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 from .. import models as m
@@ -66,15 +66,15 @@ def delivery_description(delivery, subgroups, **kwargs):
             user_to_subgroup[u] = sg
 
     # Sum quantities per subgroup and per product;
-    for od in orders.itervalues():
+    for od in orders.values():
         sg = user_to_subgroup[od.user]
         for pc in od.purchases:
             if pc:
                 sg_pd_totals[sg][pc.product]['quantity'] += pc.quantity
 
     # Break up quantities in packages + loose items, compute price, gather discrepancies
-    for sg, pd_totals in sg_pd_totals.iteritems():
-        for pd, totals in pd_totals.iteritems():
+    for sg, pd_totals in sg_pd_totals.items():
+        for pd, totals in pd_totals.items():
             qty = totals['quantity']
             qpp = pd.quantity_per_package
             totals['price'] = qty * totals['product'].price
@@ -83,7 +83,7 @@ def delivery_description(delivery, subgroups, **kwargs):
                 totals['full_packages'] = qty // qpp
                 totals['out_of_packages'] = qty % qpp
             if delivery.state >= delivery.REGULATING:
-                q = m.Discrepancy.objects.filter(product=pd, subgroup=sg)
+                q = m.ProductDiscrepancy.objects.filter(product=pd, subgroup=sg)
                 if q.exists():
                     totals['discrepancy'] = q[0].amount
                     totals['discrepancy_reason'] = q[0].reason

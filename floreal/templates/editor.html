@@ -1,0 +1,25 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block head %}
+  <script type="text/javascript" src="{% static 'js/jquery-3.4.1.min.js' %}"></script>
+  <link href="{% static 'js/bootstrap.min.css' %}" rel="stylesheet">
+  <script type="text/javascript" src="{% static 'js/bootstrap.min.js' %}"></script>
+  <link href="{% static 'summernote/summernote.min.css' %}" rel="stylesheet">
+  <script type="text/javascript" src="{% static 'summernote/summernote.min.js' %}"></script>
+  <script type='text/javascript'>
+    $(document).ready(function() { $(".editor").summernote(); })
+  </script>
+  <style type="text/css">
+  </style>
+{% endblock %}
+
+{% block content %}
+<h1>{{title}}</h1>
+<form method="POST" action={{target}}>
+  {% block custom %}{% endblock %}
+  <textarea name="editor" class="editor"></textarea>
+  <input type="submit" value="Sauvegarder" name="save"/>
+  {% csrf_token %}
+</form>
+{% endblock %}

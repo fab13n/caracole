@@ -24,7 +24,7 @@
   {% for u in nw_admin %}
   <tr>
     <td>{{u.first_name}} {{u.last_name}}</td><td><a href="mailto://{{u.email}}">{{u.email}}</a></td>
-    <td>{% with u.userphones_set.first as p %}{% if p %}{{p.phone}}{% endif %}{% endwith %}</td>
+    <td>{% with u.userphones_set.first as p %}{% if not p %}{% elif p.uri %}<a href="{{p.uri}}">{{p.display_number}}</a> {% else %}{{p.display_number}}{% endif %}{% endwith %}</td>
   </tr>
   {% endfor %}
   {% for subgroup in subgroups %}
@@ -33,7 +33,7 @@
   {% for u in subgroup.sg_admin %}
   <tr>
     <td>{{u.first_name}} {{u.last_name}}</td><td><a href="mailto://{{u.email}}">{{u.email}}</a></td>
-    <td>{% with u.userphones_set.first as p %}{% if p %}{{p.phone}}{% endif %}{% endwith %}</td>
+    <td>{% with u.userphones_set.first as p %}{% if not p %}{% elif p.uri %}<a href="{{p.uri}}">{{p.display_number}}</a> {% else %}{{p.display_number}}{% endif %}{% endwith %}</td>
   </tr>
   {% endfor %}
   <tr class="gap-small"><td colspan="3"></td></tr>
@@ -41,7 +41,7 @@
   {% for u in subgroup.sg_user %}
   <tr>
     <td>{{u.first_name}} {{u.last_name}}</td><td><a href="mailto://{{u.email}}">{{u.email}}</a></td>
-    <td>{% with u.userphones_set.first as p %}{% if p %}{{p.phone}}{% endif %}{% endwith %}</td>
+    <td>{% with u.userphones_set.first as p %}{% if not p %}{% elif p.uri %}<a href="{{p.uri}}">{{p.display_number}}</a> {% else %}{{p.display_number}}{% endif %}{% endwith %}</td>
   </tr>
   {% endfor %}
   {% endfor %}

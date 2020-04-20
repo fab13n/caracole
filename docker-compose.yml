@@ -1,0 +1,127 @@
+version: "3"
+
+services:
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_USER=${SUPERUSER_USERNAME}
+      - POSTGRES_PASSWORD=${SUPERUSER_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DBNAME}
+      - POSTGRES_HOST
+      - POSTGRES_PORT
+      - PGDATA=/pgdata
+    volumes:
+      - ${VOLUMES}/postgresql:/pgdata
+
+  django_prod: &django_prod
+    image: caracole
+    build: .
+    command: >
+      bash -c "
+      ./manage.py migrate &&
+      uwsgi --ini /home/caracole/uwsgi.ini
+      "
+    restart: unless-stopped
+    volumes:
+      - ./manage.py:/home/caracole/manage.py
+      - ./uwsgi.ini:/home/caracole/uwsgi.ini
+      - ./caracole:/home/caracole/caracole
+      - ./floreal:/home/caracole/floreal
+      - ${VOLUMES}/database.sqlite3:/home/caracole/database.sqlite3
+      - ${VOLUMES}/logs:/home/caracole/logs
+    environment:
+      - SUPERUSER_PASSWORD
+      - SUPERUSER_USERNAME
+      - SUPERUSER_EMAIL
+      - POSTGRES_USER=${SUPERUSER_USERNAME}
+      - POSTGRES_PASSWORD=${SUPERUSER_PASSWORD}
+      - POSTGRES_DBNAME
+      - POSTGRES_HOST
+      - POSTGRES_PORT
+      - DJANGO_SETTINGS_MODULE=caracole.settings
+      - DJANGO_SECRET_KEY
+      - PUBLIC_HTTP_PORT
+      - PUBLIC_HTTPS_PORT
+      - PUBLIC_HOST
+      - SMTP_HOST
+      - SMTP_PORT
+      - SMTP_USER
+      - SMTP_PASSWORD
+    # depends_on:
+    #   - db
+
+  dev:
+    <<: *django_prod
+    command: ./manage.py runserver 0.0.0.0:8000
+    restart: "no"
+    volumes:
+      - ./manage.py:/home/caracole/manage.py
+      - ./uwsgi.ini:/home/caracole/uwsgi.ini
+      - ./caracole:/home/caracole/caracole
+      - ./floreal:/home/caracole/floreal
+      - ${VOLUMES}/database.sqlite3.test:/home/caracole/database.sqlite3
+    environment:
+      - SUPERUSER_PASSWORD
+      - SUPERUSER_USERNAME
+      - SUPERUSER_EMAIL
+      - POSTGRES_USER=${SUPERUSER_USERNAME}
+      - POSTGRES_PASSWORD=${SUPERUSER_PASSWORD}
+      - POSTGRES_DBNAME
+      - POSTGRES_HOST
+      - POSTGRES_PORT
+      - DJANGO_SETTINGS_MODULE=caracole.settings
+      - DJANGO_SECRET_KEY
+      - PUBLIC_HTTP_PORT
+      - PUBLIC_HTTPS_PORT
+      - PUBLIC_HOST
+      - SMTP_HOST
+      - SMTP_PORT
+      - SMTP_USER
+      - SMTP_PASSWORD
+      - DEBUG=True
+    ports:
+      - 8765:8000
+
+  init:
+    <<: *django_prod
+    volumes:
+      - ./manage.py:/home/caracole/manage.py
+      - ./caracole:/home/caracole/caracole
+      - ./floreal:/home/caracole/floreal
+      - ${VOLUMES}/static:/home/caracole/static
+      - ${VOLUMES}/database.sqlite3:/home/caracole/database.sqlite3
+    command: ./caracole/initialize.sh
+
+  prod:
+    image: nginx
+    restart: unless-stopped
+    ports:
+      - ${PUBLIC_HTTP_PORT}:80
+      - ${PUBLIC_HTTPS_PORT}:443
+    volumes:
+      - ${VOLUMES}/${PUBLIC_PROTO}.conf:/etc/nginx/conf.d/default.conf
+      # - ${VOLUMES}/certbot/conf:/etc/letsencrypt
+      - /etc/letsencrypt:/etc/letsencrypt
+      - ${VOLUMES}/static:/var/www/caracole/static
+      - ${VOLUMES}/certbot/www:/var/www/certbot
+    depends_on:
+      - django_prod
+    
+  # https://medium.com/@pentacent/nginx-and-lets-encrypt-with-docker-in-less-than-5-minutes-b4b8a60d3a71
+  certbot:
+    image: certbot/certbot
+    restart: unless-stopped
+    volumes:
+      - ${VOLUMES}/certbot/conf:/etc/letsencrypt
+      - ${VOLUMES}/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+  certbot_nginx:
+    image: nginx:1.15-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ${VOLUMES}/certbot/conf:/etc/letsencrypt
+      - ${VOLUMES}/certbot/www:/var/www/certbot
+      - ${VOLUMES}/certbot/default.conf:/etc/nginx/conf.d/default.conf

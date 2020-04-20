@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 import re
@@ -9,7 +9,7 @@ if django.VERSION < (1, 8):
 else:
     from django.template.context_processors import csrf
 from django.http import HttpResponseForbidden, JsonResponse
-from django.shortcuts import render_to_response, redirect
+from django.shortcuts import render, redirect
 
 from .. import models as m
 from .getters import get_network
@@ -70,18 +70,26 @@ def edit_user_memberships(request, network):
             return redirect("edit_user_memberships", network=nw.id)
     vars = {'user': request.user, 'nw': nw, 'multi_sg': nw.subgroup_set.count() > 1}
     vars.update(csrf(request))
-    return render_to_response('edit_user_memberships.html', vars)
+    return render(request,'edit_user_memberships.html', vars)
 
 
 def _parse_form(request, nw):
     d = request.POST
+    has_single_subgroup = nw.subgroup_set.count() == 1
+    # TODO:
+    # in single-subgroup networks, make sure everyone is in the subgroup
+    # Do something about people who're subgroup staff but aren't member of the subgroup
+    # Do something about people who're in no subgroup. Easy for single-subgroup,
+    # Not sure when there are several.
     for uid in re.findall(r'[^u,]+', d['modified']):
         u = m.User.objects.get(pk=int(uid))
         is_network_admin = 'u'+uid+'-network-admin' in d
         was_network_admin = u.staff_of_network.filter(id=nw.id).exists()
-        is_subgroup_admin = 'u'+uid+'-subgroup-admin' in d
+        # In single-subgroup networks, network admins are also subgroup admins
+        is_subgroup_admin = 'u'+uid+'-subgroup-admin' in d or is_network_admin and has_single_subgroup
         was_subgroup_admin = u.staff_of_subgroup.filter(network=nw).exists()
         sgid = int(d['u'+uid+'-sg'])
+        # TODO WTF? Use first(), and don't compare an id with an instance
         old_sg = u.user_of_subgroup.filter(network=nw)
         if not old_sg or old_sg[0] != sgid:  # Subgroup has changed
             for sg in old_sg:
@@ -94,8 +102,8 @@ def _parse_form(request, nw):
                 new_sg = None
             if is_subgroup_admin:
                 u.staff_of_subgroup.add(new_sg)
-            m.JournalEntry.log(request.user, "Moved %s from %s/%s to %s",
-                               u.username, nw.name, ('+'.join(sg.name for sg in old_sg) or 'non-member'),
+            m.JournalEntry.log(request.user, "Moved u-%d %s from %s/%s to %s",
+                               u.id, u.username, nw.name, ('+'.join(sg.name for sg in old_sg) or 'non-member'),
                                (new_sg.name if new_sg else "non-member"))
         else:  # Subgroup hasn't changed
             sg = old_sg[0]
@@ -105,15 +113,15 @@ def _parse_form(request, nw):
                 u.staff_of_subgroup.add(sg)
 
         if was_network_admin and not is_network_admin:
-            m.JournalEntry.log(request.user, "Removed network admin rights for %s in %s", u.username, nw.name)
+            m.JournalEntry.log(request.user, "Removed network admin rights for u-%d %s in nw-%d %s", u.id, u.username, nw.id, nw.name)
             u.staff_of_network.remove(nw)
         elif not was_network_admin and is_network_admin:
-            m.JournalEntry.log(request.user, "Granted network admin rights for %s in %s", u.username, nw.name)
+            m.JournalEntry.log(request.user, "Granted network admin rights for u-%d %s in nw-%d %s", u.id, u.username, nw-id, nw.name)
             u.staff_of_network.add(nw)
 
         if was_subgroup_admin and not is_subgroup_admin:
-            m.JournalEntry.log(request.user, "Removed subgroup admin rights for %s in %s", u.username, nw.name)
+            m.JournalEntry.log(request.user, "Removed subgroup admin rights for u-%d %s in nw-%d %s", u.id, u.username, nw.id, nw.name)
         elif not was_subgroup_admin and is_subgroup_admin:
-            m.JournalEntry.log(request.user, "Granted subgroup admin rights for %s in %s", u.username, nw.name)
+            m.JournalEntry.log(request.user, "Granted subgroup admin rights for u-%d %s in nw-%d %s", u.id, u.username, nw.id, nw.name)
 
     return True

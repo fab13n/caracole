@@ -1,82 +1,85 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-from django.conf.urls import include, url
+from django.urls import include, re_path, path
 from django.contrib import admin
 from django.views.generic import TemplateView
+from django.contrib.auth.views import PasswordResetView, PasswordResetDoneView
 
 #from django_markdown import urls as django_markdown_urls
 
 from . import views
 
 urlpatterns = [
-    url(r'^$', views.index, name='index'),
+    path('', views.index, name='index'),
 
-    url(r'^new-nw/(?P<nw_name>[^./]+)/(?P<sg_name>[^./]+)$', views.create_network, name='create_network'),
-    url(r'^new-dv/nw-(?P<network>[^./]+)/list$', views.list_delivery_models, name='list_delivery_models'),
-    url(r'^new-dv/dv-(?P<dv_model>[^./]+)$', views.create_delivery, name='create_delivery_copy'),
-    url(r'^new-dv/nw-(?P<network>[^./]+)$', views.create_delivery, kwargs={'dv_model': None}, name='create_empty_delivery'),
-    url(r'^new-sg/nw-(?P<network>[^./]+)/(?P<name>.+)$', views.create_subgroup, name='create_subgroup'),
+    path('new-nw/<nw_name>/<sg_name>', views.create_network, name='create_network'),
+    path('new-dv/nw-<network>/list', views.list_delivery_models, name='list_delivery_models'),
+    path('new-dv/nw-<network>/list-all', views.list_delivery_models, kwargs={'all_networks': True}, name='list_delivery_models_all_networks'),
+    path('new-dv/nw-<network>/dv-<dv_model>', views.create_delivery, name='create_delivery_copy'),
+    path('new-dv/nw-<network>', views.create_delivery, kwargs={'dv_model': None}, name='create_empty_delivery'),
+    path('new-sg/nw-<network>/<name>', views.create_subgroup, name='create_subgroup'),
 
-    url(r'^nw-(?P<network>[^./]+)$', views.network_admin, name='network_admin'),
-    url(r'^nw-(?P<network>[^./]+)/archives$', views.archived_deliveries, name='archived_deliveries'),
-    url(r'^nw-(?P<network>[^./]+)/edit-users$', views.edit_user_memberships, name='edit_user_memberships'),
-    url(r'^nw-(?P<network>[^./]+)/edit-users.json$', views.json_memberships, name='json_memberships'),
-    url(r'^nw-(?P<network>[^./]+)/all-deliveries/(?P<states>[A-Z]+)$', views.all_deliveries_html, name='all_deliveries_html'),
-    url(r'^nw-(?P<network>[^./]+)/all-deliveries/(?P<states>[A-Z]+).pdf$', views.all_deliveries_latex, name='all_deliveries_latex'),
+    path('nw-<network>', views.network_admin, name='network_admin'),
+    path('nw-<network>/archives', views.archived_deliveries, name='archived_deliveries'),
+    path('nw-<network>/edit-users', views.edit_user_memberships, name='edit_user_memberships'),
+    path('nw-<network>/edit-users.json', views.json_memberships, name='json_memberships'),
+    re_path(r'^nw-(?P<network>[^/]+)/all-deliveries/(?P<states>[A-Z]+)$', views.all_deliveries_html, name='all_deliveries_html'),
+    re_path(r'^nw-(?P<network>[^/]+)/all-deliveries/(?P<states>[A-Z]+)\.pdf$', views.all_deliveries_latex, name='all_deliveries_latex'),
+    path('nw-<network>/invoice-mail-form', views.invoice_mail_form, name='invoice_mail_form'),
 
-    url(r'^dv-(?P<delivery>[^./]+)$', views.edit_user_purchases, name='edit_user_purchases'),
-    url(r'^dv-(?P<delivery>[^./]+)/staff$', views.edit_delivery, name='edit_delivery'),
-    url(r'^dv-(?P<delivery>[^./]+)/edit-products$', views.edit_delivery_products, name='edit_delivery_products'),
-    url(r'^dv-(?P<delivery>[^./]+)/sg-(?P<subgroup>[^./]+)/edit$',
-        views.edit_subgroup_purchases, name='edit_subgroup_purchases'),
-    url(r'^dv-(?P<delivery>[^./]+)/set-state/(?P<state>[A-Za-z]+)$', views.set_delivery_state, name='set_delivery_state'),
-    url(r'^dv-(?P<delivery>[^./]+)/set-name/(?P<name>.+)$', views.set_delivery_name, name='set_delivery_name'),
-    url(r'^dv-(?P<delivery>[^./]+)/sg-(?P<subgroup>[^./]+)/set-state/(?P<state>[A-Za-z]+)$',
-        views.set_subgroup_state_for_delivery, name='set_subgroup_state_for_delivery'),
-    url(r'^dv-(?P<delivery>[^./]+)/archive\.(?P<suffix>[^./]+)$', views.get_archive, name='get_archive'),
-    url(r'^dv-(?P<delivery>[^./]+)/sg-(?P<subgroup>[^./]+)/regulation$', views.adjust_subgroup, name='subgroup_regulation'),
+    re_path('^dv-(?P<delivery>[^./]+)$', views.edit_user_purchases, name='edit_user_purchases'),
+    path('dv-<delivery>/staff', views.edit_delivery, name='edit_delivery'),
+    path('dv-<delivery>/edit-products', views.edit_delivery_products, name='edit_delivery_products'),
+    path('dv-<delivery>/sg-<subgroup>/edit', views.edit_subgroup_purchases, name='edit_subgroup_purchases'),
+    path('dv-<delivery>/set-state/<state>', views.set_delivery_state, name='set_delivery_state'),
+    path('dv-<delivery>/set-name/<name>', views.set_delivery_name, name='set_delivery_name'),
+    path('dv-<delivery>/sg-<subgroup>/set-state/<state>', views.set_subgroup_state_for_delivery, name='set_subgroup_state_for_delivery'),
+    path('dv-<delivery>/archive.<suffix>', views.get_archive, name='get_archive'),
+    path('dv-<delivery>/sg-<subgroup>/regulation', views.adjust_subgroup, name='subgroup_regulation'),
 
-    url(r'^candidacy$', views.candidacy, name='candidacy'),
-    url(r'^cd-(?P<candidacy>[^./]+)/cancel$', views.cancel_candidacy, name='cancel_candidacy'),
-    url(r'^cd-(?P<candidacy>[^./]+)/set-response/(?P<response>[YN])$', views.validate_candidacy, name='validate_candidacy'),
-    url(r'^nw-(?P<network>[^/]+)/leave$', views.leave_network, name='leave_network'),
-    url(r'^new-cd/sg-(?P<subgroup>[^./]+)$', views.create_candidacy, name='create_candidacy'),
+    path('candidacy', views.candidacy, name='candidacy'),
+    path('cd-<candidacy>/cancel', views.cancel_candidacy, name='cancel_candidacy'),
+    path('cd-<candidacy>/set-response/<response>', views.validate_candidacy, name='validate_candidacy'),
+    path('nw-<network>/leave', views.leave_network, name='leave_network'),
+    path('new-cd/sg-<subgroup>', views.create_candidacy, name='create_candidacy'),
+    path('nw-<network>/candidacies', views.manage_candidacies, name='manage_candidacies'),
 
-    url(r'^dv-(?P<delivery>[^./]+).html$', views.view_purchases_html, name='view_all_purchases_html'),
-    url(r'^dv-(?P<delivery>[^./]+)/table.pdf$', views.view_purchases_latex, name='view_all_purchases_latex'),
-    url(r'^dv-(?P<delivery>[^./]+)/cards.pdf$', views.view_cards_latex, name='view_all_cards_latex'),
-    url(r'^dv-(?P<delivery>[^./]+).xlsx$', views.view_purchases_xlsx, name='view_all_purchases_xlsx'),
-    url(r'^dv-(?P<delivery>[^./]+)/sg-(?P<subgroup>[^./]+).html$',
-        views.view_purchases_html, name='view_subgroup_purchases_html'),
-    url(r'^dv-(?P<delivery>[^./]+)/sg-(?P<subgroup>[^./]+).xlsx$',
-        views.view_purchases_xlsx, name='view_subgroup_purchases_xlsx'),
-    url(r'^dv-(?P<delivery>[^./]+)/sg-(?P<subgroup>[^./]+)/table.pdf$',
-        views.view_purchases_latex, name='view_subgroup_purchases_latex'),
-    url(r'^dv-(?P<delivery>[^./]+)/sg-(?P<subgroup>[^./]+)/cards.pdf$',
-        views.view_cards_latex, name='view_subgroup_cards_latex'),
+    re_path('^dv-(?P<delivery>[^./]+).html$', views.view_purchases_html, name='view_all_purchases_html'),
+    path('dv-<delivery>/table.pdf', views.view_purchases_latex, name='view_all_purchases_latex'),
+    path('dv-<delivery>/cards.pdf', views.view_cards_latex, name='view_all_cards_latex'),
+    path('dv-<delivery>.xlsx', views.view_purchases_xlsx, name='view_all_purchases_xlsx'),
+    path('dv-<delivery>/sg-<slug:subgroup>.html', views.view_purchases_html, name='view_subgroup_purchases_html'),
+    path('dv-<delivery>/sg-<slug:subgroup>.xlsx', views.view_purchases_xlsx, name='view_subgroup_purchases_xlsx'),
+    path('dv-<delivery>/sg-<subgroup>/table.pdf', views.view_purchases_latex, name='view_subgroup_purchases_latex'),
+    path('dv-<delivery>/sg-<subgroup>/cards.pdf', views.view_cards_latex, name='view_subgroup_cards_latex'),
 
-    url(r'^dv-(?P<delivery>[^./]+)/delete$', views.delete_archived_delivery, name='delete_archived_delivery'),
-    url(r'^nw-(?P<network>[^./]+)/delete-empty-archives$', views.delete_all_archived_deliveries, name='delete_all_archived_deliveries'),
+    path('dv-<delivery>/delete', views.delete_archived_delivery, name='delete_archived_delivery'),
+    path('nw-<network>/delete-empty-archives', views.delete_all_archived_deliveries, name='delete_all_archived_deliveries'),
 
-    url(r'^nw-(?P<network>[^./]+)/emails$', views.view_emails, name='emails_network'),
-    url(r'^sg-(?P<subgroup>[^./]+)/emails$', views.view_emails, name='emails_subgroup'),
+    path('nw-<network>/emails', views.view_emails, name='emails_network'),
+    path('sg-<subgroup>/emails', views.view_emails, name='emails_subgroup'),
+    path('nw-<network>/emails.pdf', views.view_emails_pdf, name='emails_network_pdf'),
 
-    url(r'^nw-(?P<network>[^./]+)/phones$', views.view_phones, name='phones_network'),
-    url(r'^sg-(?P<subgroup>[^./]+)/phones$', views.view_phones, name='phones_subgroup'),
+    path('nw-<network>/phones', views.view_phones, name='phones_network'),
+    path('sg-<subgroup>/phones', views.view_phones, name='phones_subgroup'),
 
-    url(r'^history$', views.view_history, name='view_history'),
-    url(r'^journal$', views.journal, name='view_journal'),
-    url(r'^charte.html$', TemplateView.as_view(template_name='charte.html'), name='charte'),
+    path('history', views.view_history, name='view_history'),
+    path('journal', views.journal, name='view_journal'),
+    path('charte.html', TemplateView.as_view(template_name='charte.html'), name='charte'),
 
-    url(r'^admin/', include(admin.site.urls), name='admin'),
+    path('admin', admin.site.urls),
+    path('impersonate/', include('impersonate.urls')),
+ 
+    path('accounts/register', views.user_register, name="user_register"),
+    path('accounts/registration_post.html', views.user_register_post, name="registration_post"),
+    # TODO Test usefulness of final /
+    re_path('^accounts/password/reset/?$', PasswordResetView.as_view(), name="password_reset"),
+    re_path('^accounts/password/reset_done/?$', PasswordResetDoneView.as_view(), name="password_reset_done"),
+    path('accounts/', include('registration.backends.simple.urls')),
 
-    url(r'^accounts/register$', views.user_register, name="user_register"),
-    url(r'^accounts/registration_post.html$', views.user_register_post, name="registration_post"),
-    url(r'^accounts/password/reset/?$', views.password_reset, name="password_reset"),
-    url(r'^accounts/', include('registration.backends.simple.urls')),
-
-    url(r'^add-phone-number/(?P<phone>[^./]+)$', views.phone.add_phone_number, name="add_phone_number"),
-
-    url('^markdown/', include("django_markdown.urls")),
+    path('add-phone-number/<phone>', views.phone.add_phone_number, name="add_phone_number"),
+    path('edit/<title>/<path:target>', views.editor, name='editor'),
+    path('set-message', views.set_message, name='set_message'),
+    path('unset-message/<int:id>', views.unset_message, name='unset_message'),
 ]

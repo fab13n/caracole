@@ -1,5 +1,4 @@
-#!/usr/bin/python
-# -*- coding: utf8 -*-
+#!/usr/bin/python3
 
 import re
 
@@ -81,7 +80,7 @@ def user_register(request):
             user.set_password(d['password1'])
             user.save()
 
-            m.JournalEntry.log(user, "Created an account: %s %s, %s", user.first_name, user.last_name, user.username)
+            m.JournalEntry.log(user, "Created an account u-%d: %s %s, %s", user.id, user.first_name, user.last_name, user.username)
 
             # Auto-login
             new_user = authenticate(username=d['email'], password=d['password1'])
@@ -90,7 +89,7 @@ def user_register(request):
             return HttpResponseRedirect('registration_post.html')
         else:  # invalid form
             d = form.data
-            m.JournalEntry(None, "Failed account creation for %s %s (%s)", d['first_name'], d['last_name'], d['email'])
+            m.JournalEntry.log(None, "Failed account creation for %s %s (%s)", d['first_name'], d['last_name'], d['email'])
             return render(request, 'registration/registration_form.html', {'form': form})
     else:
         return render(request, 'registration/registration_form.html', {'form': RegistrationForm()})

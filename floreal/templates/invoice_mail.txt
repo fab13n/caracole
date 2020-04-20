@@ -1,0 +1,16 @@
+Bonjour,
+
+Voici le récapitulatif de vos commandes.
+
+{{user.first_name}} {{user.last_name}}
+
+{% load floreal_filters %}
+{% for item in purchases_by_delivery %}
+{{item.dv.name}}: {{item.total|price}}
+---
+{{item.dv.description}}
+---
+{% for pc in item.pcs %}
+- {{pc}}{% endfor %}
+-------------------------------------------------------------------------------
+{% endfor %}

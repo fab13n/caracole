@@ -1,8 +1,13 @@
 {% extends 'layout_semi_wide.html' %}
-{% load django_markdown %}
+{% load static %}
 
 {% block head %}
-{% markdown_media %}
+  <script type="text/javascript" src="{% static 'js/jquery-3.4.1.min.js' %}"></script>
+  <link href="{% static 'js/bootstrap.min.css' %}" rel="stylesheet">
+  <script type="text/javascript" src="{% static 'js/bootstrap.min.js' %}"></script>
+  <link href="{% static 'summernote/summernote.min.css' %}" rel="stylesheet">
+  <script type="text/javascript" src="{% static 'summernote/summernote.min.js' %}"></script>
+
   <script type='text/javascript'>
     // <![CDATA[
 
@@ -21,9 +26,11 @@
         'unit_weight': {{pd.unit_weight}},
         'deleted': {%if pd.delivery.id == delivery.id%}false{%else%}true{%endif%},
         {%if pd.description%}'described': true,
-        'description': "{{pd.description|escapejs}}",{%else%}'described': false,{%endif%}
+        'description': "{{pd.description|escapejs}}"{%else%}'described': false{%endif%},
         'delivery': {{pd.delivery.id}} },
     {% endfor %}];
+
+    var LOADED_DESCRIPTIONS = {};  // row prefix -> true
 
     /* If the "deleted" checkbox is checked, strike theline and disable product edition. */
     function reflect_deletion(r_prefix) {
@@ -50,6 +57,10 @@
       if( described) {
           $("#"+r_prefix+"-description").show();
           $("#"+r_prefix+"-description textarea").removeAttr("disabled");
+          if(! LOADED_DESCRIPTIONS[r_prefix]) {
+            LOADED_DESCRIPTIONS[r_prefix] = true;
+            $("#"+r_prefix+"-description textarea").summernote();
+          }
       } else {
           $("#"+r_prefix+"-description").hide();
           $("#"+r_prefix+"-description textarea").attr("disabled", "disabled");
@@ -118,10 +129,10 @@
             <td class="quantity_per_package"><input name="r%-quantity_per_package" type="number" /></td>\n\
             <td class="unit-label">&nbsp;<span class="unit-mirror"></span><span class="if-unit-mirror">/ct</span></td>\n\
             {%if QUOTAS_ENABLED%}<td class="quantity_limit"><input name="r%-quantity_limit" min="0" type="number"/></td>\n\
-            <td class="unit-label">&nbsp;<span class="r%-unit-mirror"></span></td>{%endif%}\n\
+              <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>{%endif%}\n\
             <td class="quantum"><input name="r%-quantum" min="0" type="number" step="0.001"/></td>\n\
             <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>\n\
-            <td class="unit_weight"><input name="r%-unit_weight" min="0" step="0.1" type="number"/></td><td>kg</td>\n\
+            <td class="unit_weight"><input name="r%-unit_weight" min="0" step="0.001" type="number"/></td><td>kg</td>\n\
             <td class="deleted">\n\
               <input name="r%-deleted" value="r%-deleted" onchange="reflect_deletion(\'r%\')" type="checkbox">\n\
             </td>\n\
@@ -131,7 +142,7 @@
         </tr>\n\
         <tr id="r%-description">\n\
           <td></td>\n\
-          <td colspan="{%if QUOTAS_ENABLED%}14{%else%}12{%endif%}">\n\
+          <td class="description" colspan="{%if QUOTAS_ENABLED%}14{%else%}12{%endif%}">\n\
             <textarea name="r%-description" rows="5"></textarea>\n\
           </td>\n\
         </tr>'.replace(/%/g, r_num));
@@ -147,9 +158,6 @@
       // wire unit change reflections upon keystrokes
       $("#r"+r_num+" .unit input").keyup(function() { reflect_unit_change("r"+r_num); });
       reflect_unit_change("r"+r_num);
-
-      // Enable markdown edition for description
-      $("#r"+r_num+"-description textarea").markItUp(mySettings, {"previewParserPath": "/markdown/preview/"});
 
       return "r"+r_num;
     }
@@ -168,9 +176,8 @@
       if( record['described']) {
         $("#"+r_prefix+" .described input")[0].checked=true;
         $("#"+r_prefix+"-description textarea").val(record.description);
-      } else {
-        reflect_description(r_prefix);
       }
+      reflect_description(r_prefix); // hide or enable summernote
     }
 
     /* Add rows of blank products at the end of the table */
@@ -214,24 +221,29 @@
           $("#dv-name").val("");
       }
 
+      $("#dv-description").summernote();
+
     })
     // ]]>
   </script>
   <style type="text/css">
       td.name input { width: 200px; }
-      td.unit input { width: 40px; }
+      td.unit input { width: 50px; }
       td.unit-label { text-align: left; }
-      td.price input { width: 40px; text-align: right; }
-      td.quantity_per_package input { width: 40px; text-align: right; }
-      .quota, .quantity_per_package { padding-left: 20px; }
+      td.price input { width: 60px; text-align: right; }
+      td.quantity_per_package input { width: 45px; text-align: right; }
+      .quota, .quantity_per_package { padding-left: 10px; }
       td.quota input { width: 40px; }
-      td.quantum input { width: 40px; }
+      td.quantum input { width: 38px; }
+      td.quantity_limit input { width: 38px; }
       td.unit_weight input { width: 40px; text-align: right; }
+      td.description { text-align: left; }
       tr.deleted { text-decoration: line-through; }
       tr.deleted input { text-decoration: line-through; }
       tr.deleted textarea { text-decoration: line-through; }
-      #products-table th.non-rotate { vertical-align: bottom; }
+      #products-table th.non-rotate { vertical-align: bottom; text-align : center}
       #products-table textarea { width: 100%; }
+      #products-table input { padding: 1px;}  
       table .hidden { display: none; }
       td.place button { padding: 1px; }
       #dv-table th {text-align: right; }
@@ -246,7 +258,7 @@
     <table id="dv-table">
         <tr>
           <th><label for="dv-name">Nom de la livraison :</label></th>
-          <td><input id="dv-name" maxlength="64" name="dv-name" type="text" value="{{delivery.name|escapejs}}" /></td>
+          <td><input id="dv-name" maxlength="64" name="dv-name" type="text" value="{{delivery.name|escape}}" required  /></td>
         </tr>
       <tr>
         <th><label for="dv-state">État de la livraison :</label></th>
@@ -263,7 +275,6 @@
     <h3>Description de la commande</h3>
     <p>
         <textarea name="dv-description" id="dv-description" rows="10">{{delivery.description|default_if_none:""}}</textarea>
-        {% markdown_editor "#dv-description" %}
     </p>
 
     <table id="products-table">
@@ -276,7 +287,7 @@
                 <th class="non-rotate"></th>
                 <th class="non-rotate">Unité</th>
                 <th colspan="2" class="qpp non-rotate">Par carton</th>
-                {% if QUOTAS_ENABLED %}<th colspan="2" class="quota">Quota</th>{% endif %}
+                {%if QUOTAS_ENABLED%}<th colspan="2" class="non-rotate quota">Quota</th>{%else%}<th>QUOTAS_ENABLED={{QUOTAS_ENABLED}}</th>{%endif%}
                 <th colspan="2" class="non-rotate">Quantum</th>
                 <th colspan="2" class="non-rotate">Poids</th>
                 <th class="rotate"><div><div>Effacer ?</div></div></th>
@@ -287,8 +298,10 @@
         <tbody></tbody>
     </table>
     <p>
+
         <button type='button' onclick="add_blank_products();">Ajouter des produits</button>
-        <button type='button' class='submit' onclick="submit_if_valid();">Sauvegarder</button>
+        <input type="submit" value="Sauvegarder" name="save_and_stay"/>
+        <input type="submit" value="Sauvegarder et retour" name="save_and_leave"/>			
         <input type='hidden' name='dv-id' value='{{delivery.id}}' />
         <input type='hidden' name='n_rows' id="n_rows" value='0' />
         {% csrf_token %}

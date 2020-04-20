@@ -1,9 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf8 -*-
 
 """Excel spreadsheet views generator."""
 
-from StringIO import StringIO
+from io import BytesIO
 import xlsxwriter as xls
 
 from .delivery_description import delivery_description
@@ -14,7 +14,7 @@ PROTECT_FORMULA_CELLS = False
 
 def _u8(s):
     """Convert DB contents into UTF8 if necessary."""
-    return unicode(s) if DATABASE_UTF8_ENABLED else str(s).decode('utf-8')
+    return str(s) if DATABASE_UTF8_ENABLED else str(s).decode('utf-8')
 
 
 def _col_name(c):
@@ -22,7 +22,7 @@ def _col_name(c):
     if c < 26:
         return chr(65+c)
     elif c < 26*27:
-        return chr(64+c/26) + chr(65+c%26)
+        return chr(64+c//26) + chr(65+c%26)
     else:
         raise Exception("Too many products")
 
@@ -52,24 +52,24 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
     sheet.set_column(1, 1, 12)
     sheet.set_row(0, 75)
     sheet.set_row(2, 50)
-    sheet.merge_range('A1:J1', u"Achats du réseau %s:\n%s pour %s" % (
+    sheet.merge_range('A1:J1', "Achats du réseau %s:\n%s pour %s" % (
         products[0].delivery.network.name, title, products[0].delivery.name), fmt['title'])
     sheet.freeze_panes(ROW_OFFSET, COL_OFFSET)
-    for row, title in enumerate([u"Prix unitaire", u"Poids unitaire", u"Nombre par carton",
-                                 u"Nombre de pièces", u"Nombre de cartons", u"Nombre en complément",
-                                 u"Poids total"]):
+    for row, title in enumerate(["Prix unitaire", "Poids unitaire", "Nombre par carton",
+                                 "Nombre de pièces", "Nombre de cartons", "Nombre en complément",
+                                 "Poids total"]):
         if PAYMENT_COLUMNS:
             sheet.merge_range('B%d:E%d'%(row+4, row+4), title, fmt['hdr_title_right'])
         else:
             sheet.write('A%d'%(row+4), title, fmt['hdr_title_right'])
     for r in range(3, 12):
         sheet.write_blank(r, COL_OFFSET-1, None, fmt['hdr_blank'])
-    sheet.write(2, COL_OFFSET-1, u"Prix\n&\nTotaux", fmt['hdr_title'])
+    sheet.write(2, COL_OFFSET-1, "Prix\n&\nTotaux", fmt['hdr_title'])
     if PAYMENT_COLUMNS:
-        sheet.write(10, 1, u"Espèces", fmt['hdr_title'])
-        sheet.write(10, 2, u"Chèque", fmt['hdr_title'])
-        sheet.write(10, 3, u"Avoir", fmt['hdr_title'])
-        sheet.write(10, 4, u"Dû", fmt['hdr_title'])
+        sheet.write(10, 1, "Espèces", fmt['hdr_title'])
+        sheet.write(10, 2, "Chèque", fmt['hdr_title'])
+        sheet.write(10, 3, "Avoir", fmt['hdr_title'])
+        sheet.write(10, 4, "Dû", fmt['hdr_title'])
 
     # Generate product names and prices rows
     if group_recap or one_group:
@@ -252,27 +252,27 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
 
 
 def spreadsheet(delivery, subgroups):
-    string_buffer = StringIO()  # Generate in a string rather than a file
-    book = xls.Workbook(string_buffer, {'in_memory': True})
+    bytes_buffer = BytesIO()  # Generate in a string rather than a file
+    book = xls.Workbook(bytes_buffer, {'in_memory': True})
     def _red(n):
-        return "#"+''.join(('%02x'%(255-(255-x)/n) for x in (0x81, 0x13, 0x05)))
+        return "#"+''.join(('%02x'%(255-(255-x)//n) for x in (0x81, 0x13, 0x05)))
     red1, red2, red3, red4 = _red(1), _red(2), _red(3), _red(10)
     fmt = {
         'hdr_title': book.add_format({'bold': True, 'bg_color': red2, 'font_color': 'white', 'align': 'center'}),
         'hdr_title_right': book.add_format({'bold': True, 'bg_color': red2, 'font_color': 'white', 'align': 'right'}),
-        'hdr_price': book.add_format({'num_format': u'0.00€', 'bold': True, 'bg_color': red3}),
-        'hdr_user_price': book.add_format({'num_format': u'0.00€', 'bold': True}),
-        'hdr_user_price_cycle': book.add_format({'num_format': u'0.00€', 'bold': True, 'bg_color': red4}),
-        'hdr_weight': book.add_format({'num_format': u'0.###"kg"', 'bold': True, 'bg_color': red3, 'align': 'right'}),
+        'hdr_price': book.add_format({'num_format': '0.00€', 'bold': True, 'bg_color': red3}),
+        'hdr_user_price': book.add_format({'num_format': '0.00€', 'bold': True}),
+        'hdr_user_price_cycle': book.add_format({'num_format': '0.00€', 'bold': True, 'bg_color': red4}),
+        'hdr_weight': book.add_format({'num_format': '0.###"kg"', 'bold': True, 'bg_color': red3, 'align': 'right'}),
         'hdr_qty': book.add_format({'bold': True, 'bg_color': red3, 'align': 'right'}),
         'hdr_user_qty': book.add_format({'bold': True, 'bg_color': red3}),
         'hdr_user_qty_cycle': book.add_format({'bold': True, 'bg_color': red3}),
         'hdr_blank': book.add_format({'bg_color': red3}),
 
         'title': book.add_format({'bold': True, 'align': 'vjustify', 'font_color': red1, 'font_size': 24}),
-        'price': book.add_format({'num_format': u'0.00€'}),
-        'price_h_cycle': book.add_format({'num_format': u'0.00€', 'bg_color': red4}),
-        'weight': book.add_format({'num_format': u'0.###"kg"'}),
+        'price': book.add_format({'num_format': '0.00€'}),
+        'price_h_cycle': book.add_format({'num_format': '0.00€', 'bg_color': red4}),
+        'weight': book.add_format({'num_format': '0.###"kg"'}),
         'qty': book.add_format({}),
         'qty_v_cycle': book.add_format({'bg_color': red4}),
         'qty_h_cycle': book.add_format({'bg_color': red4}),
@@ -288,7 +288,7 @@ def spreadsheet(delivery, subgroups):
     }
     # Everything but raw quantities is protected, i.e. everything with a style other than "qty_*"
     if PROTECT_FORMULA_CELLS:
-        for name, f in fmt.iteritems():
+        for name, f in fmt.items():
             if name[0:2] == 'qty':
                 f.set_locked(False)
 
@@ -338,4 +338,4 @@ def spreadsheet(delivery, subgroups):
 
 
     book.close()
-    return string_buffer.getvalue()
+    return bytes_buffer.getvalue()

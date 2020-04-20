@@ -1,4 +1,5 @@
-from django.shortcuts import render_to_response, redirect
+#!/usr/bin/env python3
+from django.shortcuts import render, redirect
 
 from floreal import models as m
 

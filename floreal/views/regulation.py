@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 from decimal import Decimal
@@ -8,7 +8,7 @@ if django.VERSION < (1, 8):
     from django.core.context_processors import csrf
 else:
     from django.template.context_processors import csrf
-from django.shortcuts import redirect, render_to_response
+from django.shortcuts import redirect, render
 
 from .. import models as m
 from ..penury import set_limit
@@ -37,7 +37,7 @@ def adjust_subgroup(request, delivery, subgroup=None):
             'ordered_price': dd['table'][0]['price']
         }
         vars.update(csrf(request), user=request.user)
-        return render_to_response('regulation.html', vars)
+        return render(request,'regulation.html', vars)
 
 
 def _parse_form(request):
@@ -54,14 +54,14 @@ def _parse_form(request):
         total_after = Decimal(d["pd%s-delivered-total" % pd.id])
         amount = total_after - total_before
         if amount:
-            print u"Quantity of %s adjusted from %s to %s" % (pd.name, total_before, total_after)
+            # print("Quantity of %s adjusted from %s to %s" % (pd.name, total_before, total_after))
             reason = d['pd%s-reason' % pd.id]
             set_discrepancy(pd, sg, amount, reason)
 
     if dv.get_stateForSubgroup(sg) < m.SubgroupStateForDelivery.READY_FOR_ACCOUNTING:
         dv.set_stateForSubgroup(sg, m.SubgroupStateForDelivery.READY_FOR_ACCOUNTING)
-        m.JournalEntry.log(request.user, "Subgroup %s/%s regularized accounting for delivery %s",
-                           dv.network.name, sg.name, dv.name)
+        m.JournalEntry.log(request.user, "Subgroup sg-%d %s/%s regularized accounting for delivery dv-%d %s",
+                           sg.id, dv.network.name, sg.name, dv.id, dv.name)
 
     return True  # true == no error
 

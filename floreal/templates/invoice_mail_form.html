@@ -1,0 +1,73 @@
+{% extends 'layout.html' %}
+{% load floreal_filters %}
+
+{% block head %}
+  <style type="text/css">
+  table {
+      width: 100%;
+  }
+  th {
+      width: 60px;
+      text-align: right;
+  }
+  td input {
+      width: 100%;
+  }
+  td textarea[name=recipients] {
+      width: 100%;
+      height: 30px;
+  }
+  td textarea[name=body] {
+      width: 100%;
+      height: 500px;
+  }
+  </style>
+{% endblock %}
+
+{% block content %}
+
+<p><a href="{% url 'network_admin' network=nw.id %}">Retour à l'administration du réseau {{nw.name}}</a> ↩</p>
+<p><a href="{% url 'index' %}">Retour à la page principale</a> ↩</p>
+
+<h1>Envoyer un mail récapitulatif</h1>
+
+<p>
+    Vous pouvez saisir ici le texte d'un mail récapitulatif, qui sera envoyé aux personnes
+    ayant commandé dans une des commandes actuellement gelées du réseau {{nw.name}}.
+    Il s'agit des commandes
+    {% for dv in deliveries %}{{dv.name}}{% if not forloop.last %}, {% endif %}{% endfor %}.
+</p>
+
+<p>
+    <em>Attention !</em> Le texte du mail contient des balises entre accolades, qui généreront 
+    le récapitulatif commande de chaque utilisateur. Ne modifiez pas cette partie si vous n'êtes
+    pas sûrs de ce que vous faites !
+</p>
+
+<form method="post" action="">
+    {% csrf_token %}
+    <table>
+        <tbody>
+            <tr>
+                <th>Destinataires&nbsp;:</th>
+                <td>
+                    <textarea name="recipients">{%for u in recipients%}{{u.email}}{%if not forloop.last%}, {%endif%}{%endfor%}</textarea>
+                </td>
+            </tr>
+            <tr>
+                <th>Sujet&nbsp;:</th>
+                <td>
+                    <input type="text" name="subject" value="{{subject|escape}}"/>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <textarea name="body">{{body}}</textarea>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <input type="submit" value="Envoyer"/>
+</form>
+
+{% endblock %}

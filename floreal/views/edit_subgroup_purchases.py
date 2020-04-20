@@ -1,14 +1,11 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 import re
 
 import django
-if django.VERSION < (1, 8):
-    from django.core.context_processors import csrf
-else:
-    from django.template.context_processors import csrf
-from django.shortcuts import redirect, render_to_response
+from django.template.context_processors import csrf
+from django.shortcuts import redirect, render
 from django.http import HttpResponseForbidden
 
 from .. import models as m
@@ -35,7 +32,7 @@ def edit_subgroup_purchases(request, delivery, subgroup):
     else:
         vars = delivery_description(delivery, [subgroup], user=user)
         vars.update(csrf(request))
-        return render_to_response('edit_subgroup_purchases.html', vars)
+        return render(request,'edit_subgroup_purchases.html', vars)
 
 
 def _parse_form(request):
@@ -52,7 +49,7 @@ def _parse_form(request):
         try:
             pc = m.Purchase.objects.get(product_id=pd, user_id=u)
             if ordered != 0:
-                print "Updating purchase %d" % pc.id
+                # print("Updating purchase %d" % pc.id)
                 pc.quantity = ordered
                 pc.save(force_update=True)
             else:
@@ -68,7 +65,7 @@ def _parse_form(request):
         if pc:
             set_limit(pc.product)
         dv = m.Delivery.objects.get(id=d['dv-id'])
-        m.JournalEntry.log(request.user, "Modified %d user purchases in %s/%s",
-                           len(pd_u_mods), dv.network.name, dv.name)
+        m.JournalEntry.log(request.user, "Modified %d user purchases in dv-%d %s/%s",
+                           len(pd_u_mods), dv.id, dv.network.name, dv.name)
 
     return True  # true == no error

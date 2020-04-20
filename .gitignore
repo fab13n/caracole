@@ -1,5 +1,12 @@
 *.pyc
+*.bak
+*~
 .idea
 db.sqlite3
-/floreal.json
 database.sqlite3
+venv*/
+volumes/
+static
+postgresql
+.env.bash
+static
