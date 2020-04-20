@@ -21,7 +21,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 SECRET_KEY = E['DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = E.get("DEBUG", "false").lower() == 'true'
 ALLOWED_HOSTS = ['localhost', E['PUBLIC_HOST']]
 
 EMAIL_USE_TLS = True

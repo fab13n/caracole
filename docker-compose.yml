@@ -28,6 +28,7 @@ services:
       - ./caracole:/home/caracole/caracole
       - ./floreal:/home/caracole/floreal
       - ${VOLUMES}/database.sqlite3:/home/caracole/database.sqlite3
+      - ${VOLUMES}/logs:/home/caracole/logs
     environment:
       - SUPERUSER_PASSWORD
       - SUPERUSER_USERNAME
@@ -53,8 +54,33 @@ services:
     <<: *django_prod
     command: ./manage.py runserver 0.0.0.0:8000
     restart: "no"
+    volumes:
+      - ./manage.py:/home/caracole/manage.py
+      - ./uwsgi.ini:/home/caracole/uwsgi.ini
+      - ./caracole:/home/caracole/caracole
+      - ./floreal:/home/caracole/floreal
+      - ${VOLUMES}/database.sqlite3.test:/home/caracole/database.sqlite3
+    environment:
+      - SUPERUSER_PASSWORD
+      - SUPERUSER_USERNAME
+      - SUPERUSER_EMAIL
+      - POSTGRES_USER=${SUPERUSER_USERNAME}
+      - POSTGRES_PASSWORD=${SUPERUSER_PASSWORD}
+      - POSTGRES_DBNAME
+      - POSTGRES_HOST
+      - POSTGRES_PORT
+      - DJANGO_SETTINGS_MODULE=caracole.settings
+      - DJANGO_SECRET_KEY
+      - PUBLIC_HTTP_PORT
+      - PUBLIC_HTTPS_PORT
+      - PUBLIC_HOST
+      - SMTP_HOST
+      - SMTP_PORT
+      - SMTP_USER
+      - SMTP_PASSWORD
+      - DEBUG=True
     ports:
-      - ${PUBLIC_HTTP_PORT}:8000
+      - 8765:8000
 
   init:
     <<: *django_prod

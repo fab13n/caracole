@@ -19,7 +19,8 @@ def allocate(limit, wishes):
     :param wishes: quantities wished by each customer (dictionary, arbitrary key types).
     :return:  quantities allocated to each customer (dictionary, same keys as above).
     """
-    wish_values = wishes.values()
+    # TODO Maybe remove those who wish 0?
+    wish_values = list(wishes.values())
     if sum(wish_values) <= limit:
         # print "There's enough for everyone!"
         return wishes
@@ -30,7 +31,7 @@ def allocate(limit, wishes):
 
     # first stage: find a ceiling that leaves less than one unit per unsatisfied buyer
     while unallocated >= n_unsatisfied:
-        lot = unallocated / n_unsatisfied  # We can safely distribute at least this much
+        lot = unallocated // n_unsatisfied  # We can safely distribute at least this much
         ceiling += lot
         # print ("%i units left; allocating %i units to %i unsatisfied people" % (unallocated, lot, n_unsatisfied))
         for k, wish_k in wishes.items():
@@ -86,7 +87,7 @@ def set_limit(pd, last_pc=None):
             last_pc.save()
             return
         else:
-            # The last purchase must be fixed, but that won't be enough
+            # The last purchase must be canceled, but that won't be enough
             del wishes[last_pc.user_id]
             last_pc.delete()
             # Then go on to penury re-allocation
@@ -99,6 +100,7 @@ def set_limit(pd, last_pc=None):
         uid = pc.user_id
         if formerly_granted[uid] != granted[uid]:  # Save some DB accesses
             pc.quantity = granted[uid]
+            # TODO logging
             # print("%s %s had their purchase of %s modified: ordered %s, formerly granted %s, now granted %s" %
             #     pc.user.first_name, pc.user.last_name, pc.product.name, pc.quantity, formerly_granted[uid], pc.quantity
             # )

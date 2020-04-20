@@ -63,7 +63,7 @@ def _parse_form(request):
     od = m.Order(request.user, dv)
     prev_purchases = {pc.product: pc for pc in od.purchases}
     for pd in dv.product_set.all():
-        ordered = float(d["pd%s" % pd.id])
+        ordered = float(d.get("pd%s" % pd.id, "0"))
         if ordered <= 0 and pd not in prev_purchases:
             continue
         if pd in prev_purchases:
