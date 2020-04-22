@@ -42,9 +42,10 @@ def delivery_description(delivery, subgroups, only_buyers=True, **kwargs):
           "price": number }
     """
     # List of products, ordered by name
-    products = delivery.product_set.all()
+    # TODO SQL check if select_Related helps
+    products = delivery.product_set.all().select_related()
     # Iterable of all users in subgroups
-    users = m.User.objects.filter(user_of_subgroup__in=subgroups, is_active=True)
+    users = m.User.objects.filter(user_of_subgroup__in=subgroups, is_active=True).select_related()
     if only_buyers:
         q = m.Purchase.objects.filter(product__delivery=delivery).values('user').distinct()
         buyer_ids = {r['user'] for r in q} | {sg.extra_user_id for sg in subgroups}

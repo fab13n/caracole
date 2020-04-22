@@ -308,7 +308,7 @@ class Order(object):
             self.price = None
             self.weight = None
         else:
-            self.purchases = Purchase.objects.filter(product__delivery=delivery, user=user)
+            self.purchases = Purchase.objects.filter(product__delivery=delivery, user=user)#.select_related()
             self.price = sum(p.price for p in self.purchases)
             self.weight = sum(p.weight for p in self.purchases)
 
@@ -323,6 +323,10 @@ class Order(object):
         :param products: ordered list of products; normally, the products available in `delivery`.
         :return: a user -> orders_list_indexed_as_products dictionary for all `users`."""
 
+        # TODO remove DummyPurchase, check for None in templates instead
+        # with __bool__ = False, we're already almost there.
+        # Only thing left is to default to 0 for spreadsheets,
+        # in the end of spreadsheet/spreadsheet/purchases
         class DummyPurchase(object):
             """"Dummy purchase, to be used as a stand-in in purchas tables when a product
             hasn't been purchased by a user."""
@@ -337,22 +341,24 @@ class Order(object):
                 return False
 
         if not products:
-            products = delivery.product_set.all()
-        purchases_by_user = {u: {} for u in users}
-        prices = {u: 0 for u in users}
-        weights = {u: 0 for u in users}
-        for pc in Purchase.objects.filter(product__delivery=delivery, user__in=users):
-            purchases_by_user[pc.user][pc.product] = pc
-            prices[pc.user] += pc.price
-            weights[pc.user] += pc.weight
+            products = delivery.product_set.all().select_related()
+        product_index = {pd.id: i for (i, pd) in enumerate(products)}
+        purchases_by_user_id_and_pd_idx = {u.id: [DummyPurchase(pd, u) for pd in products] for u in users}
+        prices = {u.id: 0 for u in users}
+        weights = {u.id: 0 for u in users}
 
-        def purchase_line(u):
-            return [purchases_by_user[u].get(pd, None) or DummyPurchase(pd, u) for pd in products]
+        all_purchases = Purchase.objects.filter(product__delivery=delivery, user__in=users).select_related("user", "product")
 
-        orders = {u: Order(u, delivery, purchases=purchase_line(u)) for u in users}
+        # TODO SQL compute sums in Order.__init__
+        for pc in all_purchases:
+            purchases_by_user_id_and_pd_idx[pc.user_id][product_index[pc.product_id]] = pc
+            prices[pc.user_id] += pc.price
+            weights[pc.user_id] += pc.weight
+
+        orders = {u: Order(u, delivery, purchases=purchases_by_user_id_and_pd_idx[u.id]) for u in users}
         for u in users:
-            orders[u].price = prices[u]
-            orders[u].weight = weights[u]
+            orders[u].price = prices[u.id]
+            orders[u].weight = weights[u.id]
         return orders
 
 
