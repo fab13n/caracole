@@ -5,9 +5,6 @@ from django.urls import include, re_path, path
 from django.contrib import admin
 from django.views.generic import TemplateView
 from django.contrib.auth.views import PasswordResetView, PasswordResetDoneView
-
-#from django_markdown import urls as django_markdown_urls
-
 from . import views
 
 urlpatterns = [
