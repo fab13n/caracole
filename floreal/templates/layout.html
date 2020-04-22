@@ -33,7 +33,7 @@
           {% endif %}
           <ul>
             {% if not user.is_anonymous %}
-            <li><a href="{% url 'auth_logout' %}?next={% url 'index' %}">Deconnection</a></li>
+            <li><a href="{% url 'auth_logout' %}?next={% url 'index' %}">Déconnexion</a></li>
             <li><a href="{% url 'auth_password_change' %}">Changer de mot de passe</a></li>
             {% if user.is_staff %}
             <li><a href="{% url 'view_journal' %}">Journal des événements</a></li>
