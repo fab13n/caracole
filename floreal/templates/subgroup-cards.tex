@@ -17,6 +17,7 @@
 {% else %}
 \setlength{\orderheight}{58mm}  % Three orders per column
 {% endif %}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
 {% endblock %}
 
 {% block content %}
@@ -27,7 +28,7 @@
 % product | unit price | ordered qty | ordered price | granted qty | granted price
 {# minipage=[alignment][height]{width} #}
 \begin{adjustbox}{minipage=[c][\orderheight]{13cm}}
-\begin{tabular}[c]{|r|l|rl|r|p{1cm}|p{1cm}|}
+\begin{tabular}[c]{|R{7cm}|l|rl|r|p{1cm}|p{1cm}|}
 \cline{3-7}
 \multicolumn{2}{c|}{\bf {{ur.user.first_name|tex_safe}} {{ur.user.last_name|tex_safe}}}&
 \multicolumn{3}{c|}{Commandés}&
