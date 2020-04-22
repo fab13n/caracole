@@ -1,4 +1,5 @@
 {% extends "layout_wide.html" %}
+{% load floreal_filters %}
 
 {% block head %}
 <style type="text/css">
@@ -48,4 +49,13 @@ td.yes { background-color: #ccffcc; color: green; font-size: larger; }
     </tr>
     {% endfor %}
 </table>
+
+<p></p>
+
+<h2>E-mails des commanditaires</h2>
+<p style="font-family: monospace; font-size: 8pt;">
+{% for u, x in table %}
+{{u|email}},{% endfor %}
+</p>
+
 {% endblock %}
