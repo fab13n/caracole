@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             name='Delivery',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('name', models.CharField(max_length=64)),
+                ('name', models.CharField(max_length=256)),
                 ('state', models.CharField(default=b'P', max_length=1, choices=[(b'A', b'Archived'), (b'P', b'Preparation'), (b'C', b'Closed'), (b'O', b'Open'), (b'F', b'Finalized')])),
             ],
             options={
@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
             name='Network',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('name', models.CharField(unique=True, max_length=64)),
+                ('name', models.CharField(unique=True, max_length=256)),
                 ('staff', models.ManyToManyField(related_name='staff_of_network', to=settings.AUTH_USER_MODEL)),
             ],
             options={
@@ -65,10 +65,10 @@ class Migration(migrations.Migration):
             name='Product',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('name', models.CharField(max_length=64)),
+                ('name', models.CharField(max_length=256)),
                 ('price', models.DecimalField(max_digits=6, decimal_places=2)),
                 ('quantity_per_package', models.IntegerField(null=True, blank=True)),
-                ('unit', models.CharField(max_length=64, null=True, blank=True)),
+                ('unit', models.CharField(max_length=256, null=True, blank=True)),
                 ('quantity_limit', models.IntegerField(null=True, blank=True)),
                 ('unit_weight', models.DecimalField(default=0.0, max_digits=6, decimal_places=3, blank=True)),
                 ('quantum', models.DecimalField(default=1, max_digits=3, decimal_places=2, blank=True)),
@@ -96,7 +96,7 @@ class Migration(migrations.Migration):
             name='Subgroup',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('name', models.CharField(max_length=64)),
+                ('name', models.CharField(max_length=256)),
                 ('extra_user', models.ForeignKey(related_name='+', blank=True, to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE)),
                 ('network', models.ForeignKey(to='floreal.Network', on_delete=models.CASCADE)),
                 ('staff', models.ManyToManyField(related_name='staff_of_subgroup', to=settings.AUTH_USER_MODEL)),

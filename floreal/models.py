@@ -49,7 +49,7 @@ class Network(models.Model):
     Regular users are not stored diretly in the network: they're stored in the network's
     subgroup they belong to."""
 
-    name = models.CharField(max_length=64, unique=True)
+    name = models.CharField(max_length=256, unique=True)
     staff = models.ManyToManyField(User, related_name='staff_of_network')
     auto_validate = models.BooleanField(default=False)
 
@@ -70,7 +70,7 @@ class Subgroup(models.Model):
     so that the subgroup's order sums up to entire boxes, if network staff wishes so.
     Extra users are allowed to order a negative quantity of products."""
 
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=256)
     network = models.ForeignKey(Network, on_delete=models.CASCADE)
     extra_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
     # Users might only be staff of one subgroup per network
@@ -143,7 +143,7 @@ class Delivery(models.Model):
         FROZEN:         "Gelée",
         REGULATING:     "Régularisation",
         TERMINATED:     "Terminée" }
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=256)
     network = models.ForeignKey(Network, on_delete=models.CASCADE)
     state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=PREPARATION)
     description = models.TextField(null=True, blank=True, default=None)
@@ -200,11 +200,11 @@ class Product(models.Model):
     so that changes in properties (prices, quotas etc.) don't affect other deliveries.
     """
 
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=256)
     delivery = models.ForeignKey(Delivery, on_delete=models.CASCADE)
     price = models.DecimalField(decimal_places=2, max_digits=6)
     quantity_per_package = models.IntegerField(null=True, blank=True)
-    unit = models.CharField(max_length=64, null=True, blank=True)
+    unit = models.CharField(max_length=256, null=True, blank=True)
     quantity_limit = models.IntegerField(null=True, blank=True)
     unit_weight = models.DecimalField(decimal_places=3, max_digits=6, default=0.0, blank=True)
     quantum = models.DecimalField(decimal_places=2, max_digits=3, default=1, blank=True)
@@ -357,13 +357,17 @@ class JournalEntry(models.Model):
     moving users around."""
     user = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
     date = models.DateTimeField(default=datetime.now)
-    action = models.CharField(max_length=256)
+    action = models.CharField(max_length=1024)
 
     @classmethod
     def log(cls, u, fmt, *args, **kwargs):
         try:
             action = fmt % (args or kwargs)
-            cls.objects.create(user=u, date=datetime.now(), action=action)
+            date = datetime.now()
+            if settings.USE_TZ:
+                # Use a timezone if appropriate
+                date = date.astimezone()
+            cls.objects.create(user=u, date=date, action=action)
         except Exception:
             cls.objects.create("Failed to log, based on format " + repr(fmt))
 

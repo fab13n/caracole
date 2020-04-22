@@ -86,7 +86,7 @@
         /* Handle order limits */
         if(pd.max_quantity === null) {
           // No purchase limit on this product, pass
-        } else if(pd.max_quantity === 0) {
+        } else if(pd.max_quantity <= 0) {
           // Product is out-of-stock, disable the corresponding input
           console.log("Produit épuisé:", pd);
           $("#row-"+pd.id+" td:nth-child(n+3)").remove();

@@ -1,0 +1,14 @@
+#!/bin/bash
+DIR=/home/fabien/caradocker
+DIRA=$DIR/db_archive
+DATE=$(date -u +%Y-%m-%dT%H:%MZ)
+MAX_FILES=100
+MAX_DAYS=10
+
+mkdir -p $DIRA
+cat $DIR/volumes/database.sqlite3 | gzip -c > $DIRA/database-$DATE.sqlite3.gz
+
+if [[ $(find $DIRA -name '*.sqlite3.gz' | wc -l) -gt $MAX_FILES ]]; then
+    echo "Too many archives"
+    # find $DIRA -name '*.sqlite3.gz' -mtime +$MAX_DAYS -exec rm {} \;
+fi
