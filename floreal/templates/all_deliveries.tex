@@ -16,4 +16,19 @@
 {% endfor %}
 \hline
 \end{longtable}
+
+\begin{longtable}{|r|c|l|}
+\hline
+\multicolumn{3}{|c|}{\large\bf Contacts}\\
+\hline
+\endhead
+{% for u, x in table %}
+{% cycle '' '' '\rowcolor{lightgray}' %}
+{{u.first_name|tex_safe}} {{u.last_name|tex_safe}} &
+{% with p=u.userphones_set.first %}{% if p %}{{p.display_number|tex_safe}}{% else %} - {% endif %}{% endwith %} &
+{\tt {{u.email|tex_safe}} }\\
+{% endfor %}
+\hline
+\end{longtable}
+
 {% endblock %}
