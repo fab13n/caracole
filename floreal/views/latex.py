@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 # -*-coding: utf-8 -*-
 import os
+import subprocess
 from tempfile import NamedTemporaryFile
 
 from django.template.loader import get_template
-
 from .delivery_description import delivery_description
 
-
+LATEX_RUN_TIMEOUT = 30  # seconds
+RERUN_LATEX_IF = [
+    b"Package longtable Warning: Table widths have changed. Rerun LaTeX."
+]
 def render_latex(template_name, ctx):
+        
     t = get_template(template_name)
     tex_unicode = t.render(ctx)
     tex_string = tex_unicode.encode('utf8')
@@ -18,13 +22,32 @@ def render_latex(template_name, ctx):
         src_file_name = f.name
         dst_file_name = os.path.splitext(src_file_name)[0]+".pdf"
         # print("Generated tex file %s" % src_file_name)
-        os.chdir("/tmp/")
-        # TODO: popen + grep to get the warning about tables to be re-run
-        os.system("pdflatex -halt-on-error %s" % src_file_name)
-        os.system("pdflatex -halt-on-error %s" % src_file_name)
-        os.system("pdflatex -halt-on-error %s" % src_file_name)
-        with open(dst_file_name, "rb") as g:
-            pdf_string = g.read()
+        prev_dir = os.getcwd()
+        try:
+            os.chdir("/tmp/")
+            cmd = ["pdflatex", "-halt-on-error", src_file_name]
+            # Run Latex up to 3 times, as longtable may need multiple runs to 
+            for i in range(3):
+                try:
+                    p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE)
+                    output, errors = p.communicate(timeout=LATEX_RUN_TIMEOUT)
+                    assert p.returncode == 0, "Impossible de compiler "+src_file_name
+
+                    if any(line in output for line in RERUN_LATEX_IF):
+                        print("RUN AGAIN")
+                        pass
+                    else:
+                        # print(output.decode('utf8'))
+                        break
+                except subprocess.TimeoutExpired: 
+                    # Avoid resource leaks upon timeout
+                    p.kill()
+                    output, errors = p.communicate()
+
+            with open(dst_file_name, "rb") as g:
+                pdf_string = g.read()
+        finally:
+            os.chdir(prev_dir)
     return pdf_string
 
 
