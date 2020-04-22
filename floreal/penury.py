@@ -62,7 +62,7 @@ def allocate(limit, wishes):
     return granted
 
 
-def set_limit(pd, last_pc=None):
+def set_limit(pd, last_pc=None, reallocate=False):
     """
     Use `allocate()` to ensure that product `pd` hasn't been granted in amount larger than `limit`.
     :param pd: product featuring the quantity limit
@@ -92,6 +92,9 @@ def set_limit(pd, last_pc=None):
             last_pc.delete()
             # Then go on to penury re-allocation
 
+    if not reallocate:
+        return
+            
     # Call the algorithm
     granted = allocate(int(pd.quantity_limit), wishes)
 

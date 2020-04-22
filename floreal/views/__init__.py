@@ -229,7 +229,8 @@ def set_delivery_state(request, delivery, state):
         return HttpResponseForbidden('Réservé aux administrateurs du réseau '+dv.network.name)
     if state not in m.Delivery.STATE_CHOICES:
         return HttpResponseBadRequest(state+" n'est pas un état valide.")
-    must_save = dv.state <= m.Delivery.REGULATING < state
+    must_save = dv.state <= m.Delivery.REGULATING < state \
+                and m.Purchase.objects.filter(product__delivery=dv).exists()
     dv.state = state
     dv.save()
     if must_save:
@@ -254,9 +255,9 @@ def save_delivery(dv):
     file_name_xlsx = os.path.join(settings.DELIVERY_ARCHIVE_DIR, "dv-%d.xlsx" % dv.id)
     with open(file_name_xlsx, 'wb') as f:
         f.write(spreadsheet(dv, dv.network.subgroup_set.all()))
-    file_name_pdf = os.path.join(settings.DELIVERY_ARCHIVE_DIR, "dv-%d.pdf" % dv.id)
-    with open(file_name_pdf, 'wb') as f:
-        f.write(latex_delivery_table(dv))
+    # file_name_pdf = os.path.join(settings.DELIVERY_ARCHIVE_DIR, "dv-%d.pdf" % dv.id)
+    # with open(file_name_pdf, 'wb') as f:
+    #     f.write(latex_delivery_table(dv))
 
 
 @sg_admin_required()
