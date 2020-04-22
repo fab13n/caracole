@@ -15,18 +15,22 @@ from .decorators import sg_admin_required, nw_admin_required
 @login_required()
 def candidacy(request):
     """Generate a page to choose and request candidacy among the legal ones."""
+    # TODO Lots of unnecessary SQL queries; subgroups sorted by network should be queried all at once.
     user = request.user
     user_of_subgroups = m.Subgroup.objects.filter(users__in=[user])
     candidacies = m.Candidacy.objects.filter(user=user)
     # name, user_of, candidate_to, can_be_candidate_to
     networks = []
     for nw in m.Network.objects.all():
-        sg_u = user_of_subgroups.filter(network=nw)
-        cd = candidacies.filter(subgroup__network=nw)
+        sg_u = user_of_subgroups.filter(network=nw).first()
+        cd = candidacies.filter(subgroup__network=nw).first()
         item = {'name': nw.name,
-                'user_of': sg_u.first() if sg_u.exists() else None,
-                'candidate_to': cd.first() if cd.exists() else None,
-                'can_be_candidate_to': nw.subgroup_set.all()}
+                'description': nw.description or "",
+                'user_of': sg_u,
+                'candidate_to': cd,
+                'can_be_candidate_to': nw.subgroup_set.all(),
+                'has_single_subgroup': nw.subgroup_set.all().count() == 1
+        }
         if item['user_of']:
             item['can_be_candidate_to'] = item['can_be_candidate_to'].exclude(id=item['user_of'].id)
         if item['candidate_to']:

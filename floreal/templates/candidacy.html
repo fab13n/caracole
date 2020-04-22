@@ -24,7 +24,28 @@ votre inscription parmi leurs membres.</p>
 
 {% for nw in networks %}
 <h2>Réseau {{nw.name}} :</h2>
+{{nw.description|safe}}
+{% if nw.has_single_subgroup %}
+
+<p>
+    {% if nw.candidate_to %}
+    Votre candidature à ce réseau est déjà enregistrée
+    (<a href="{% url 'cancel_candidacy' candidacy=nw.candidate_to.id %}">annuler</a>✘).
+    {% elif nw.user_of %}Vous êtes membre de {{nw.name}}. <a class="confirm"
+        msg="Êtes vous sûr de vouloir quitter le réseau {{nw.name}} ?"
+        href="{% url 'leave_network' network=nw.user_of.network.id %}">Quitter le réseau {{nw.name}}</a>
+    {% else %}{# has_single_subgroup && not member && not candidate #}
+    {% with sg=nw.can_be_candidate_to.0 %}
+    <a class="confirm"
+       msg="Êtes vous sûr de vouloir demander à rejoindre le réseau {{nw.name}} ?"
+       href="{% url 'create_candidacy' subgroup=sg.id %}">Demander à regjoindre {{nw.name}}</a>
+    {% endwith %}
+    {% endif %}{# candidate / user_of / can_be_candidate_to #}
+</p>
+
+{% else %}{# not has_single_subgroup #}
 <ul>
+
     {% if nw.user_of %}<li>Vous êtes membre du sous-groupe {{nw.user_of.name}}</li>{% endif %}
     {% if nw.candidate_to %}
     <li>Candidat au sous-groupe {{nw.candidate_to.subgroup.name}}
@@ -50,5 +71,6 @@ votre inscription parmi leurs membres.</p>
                               href="{% url 'leave_network' network=nw.user_of.network.id %}">Quitter le réseau {{nw.name}}
     </a></li>{% endif %}
 </ul>
+{% endif %}{# ! has_single_subgroup #}
 {% endfor %}{# nw #}
 {% endblock %}

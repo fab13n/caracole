@@ -23,6 +23,7 @@ urlpatterns = [
     path('nw-<network>', views.network_admin, name='network_admin'),
     path('nw-<network>/archives', views.archived_deliveries, name='archived_deliveries'),
     path('nw-<network>/edit-users', views.edit_user_memberships, name='edit_user_memberships'),
+    path('nw-<network>/edit-description', views.edit_network_description, name='edit_network_description'),
     path('nw-<network>/edit-users.json', views.json_memberships, name='json_memberships'),
     re_path(r'^nw-(?P<network>[^/]+)/all-deliveries/(?P<states>[A-Z]+)$', views.all_deliveries_html, name='all_deliveries_html'),
     re_path(r'^nw-(?P<network>[^/]+)/all-deliveries/(?P<states>[A-Z]+)\.pdf$', views.all_deliveries_latex, name='all_deliveries_latex'),
@@ -72,7 +73,7 @@ urlpatterns = [
     path('impersonate/', include('impersonate.urls')),
  
     path('accounts/register', views.user_register, name="user_register"),
-    path('accounts/registration_post.html', views.user_register_post, name="registration_post"),
+    path('accounts/registration_post.html', views.candidacy, name="registration_post"),
     # TODO Test usefulness of final /
     re_path('^accounts/password/reset/?$', PasswordResetView.as_view(), name="password_reset"),
     re_path('^accounts/password/reset_done/?$', PasswordResetDoneView.as_view(), name="password_reset_done"),

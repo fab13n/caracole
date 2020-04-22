@@ -18,7 +18,7 @@
 <h1>{{title}}</h1>
 <form method="POST" action={{target}}>
   {% block custom %}{% endblock %}
-  <textarea name="editor" class="editor"></textarea>
+  <textarea name="editor" class="editor">{{content|safe}}</textarea>
   <input type="submit" value="Sauvegarder" name="save"/>
   {% csrf_token %}
 </form>

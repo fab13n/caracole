@@ -52,6 +52,7 @@ class Network(models.Model):
     name = models.CharField(max_length=256, unique=True)
     staff = models.ManyToManyField(User, related_name='staff_of_network')
     auto_validate = models.BooleanField(default=False)
+    description = models.TextField(null=True, blank=True, default=None)
 
     class Meta:
         ordering = ('name',)
@@ -120,6 +121,9 @@ class Candidacy(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
     message = models.TextField(null=True, blank=True)  # Currently unused, might be used to communicate with admins
+
+    class Meta:
+        verbose_name_plural = "Candidacies"
 
 
 class Delivery(models.Model):

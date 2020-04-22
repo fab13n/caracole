@@ -61,7 +61,8 @@ tr:hover input[type=button] {visibility: visible;}
 <ul>
   <li><a href="{% url 'index' %}">Retour à la page principale</a> ↩</li>
   <li><a href="{% url 'list_delivery_models' network=nw.id %}">Créer une nouvelle commande {{nw.name}} <img src="{% static 'images/plus.png' %}"/></a></li>
-  <li><a href="{% url 'edit_user_memberships' network=nw.id %}">Répartir les membres en sous-groupes {{nw.name}} <img src="{% static 'images/edit.png' %}"/></a></li>
+  <li><a href="{% url 'edit_user_memberships' network=nw.id %}">Modifier la liste des membres <img src="{% static 'images/edit.png' %}"/></a></li>
+  <li><a href="{% url 'edit_network_description' network=nw.id %}">Éditer la présentation du réseau <img src="{% static 'images/edit.png' %}"/></a></li>
   <li><a href="{% url 'emails_network' network=nw.id %}">e-mails <img src="{% static 'images/email.png' %}"/></a> et
       <a href="{% url 'phones_network' network=nw.id %}">téléphones</a> ☎ du réseau {{nw.name}}.</li>
   <li><a href="{% url 'manage_candidacies' network=nw.id %}">Gérer les candidatures</a></li>

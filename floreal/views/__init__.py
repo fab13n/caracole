@@ -409,8 +409,13 @@ def all_deliveries_latex(request, network, states):
     name_bits = [get_network(network).name, "active_deliveries", datetime.now().strftime("%Y-%m-%d")]
     return non_html_response(name_bits, "pdf", content)
 
-def editor(request, target, title='Éditer', template="editor.html", **kwargs):
-    ctx = dict(title=title, target=target, **kwargs)
+def editor(request, target=None, title='Éditer', template="editor.html", content=None, **kwargs):
+    ctx = dict(
+        title=title,
+        target=target or request.path,
+        content=content or "",
+        **kwargs
+    )
     ctx.update(csrf(request))
     return render(request, template, ctx)
 
@@ -431,8 +436,8 @@ def set_message(request):
         text = P['editor']
         if text.startswith("<p>"):
             text = text[3:]
-        if text.endswith("</p>"):
-            text = text[:-4]
+            if text.endswith("</p>"):
+                text = text[:-4]
         msg = m.AdminMessage.objects.create(message=text, **dest)
         return redirect("index")
     else:
@@ -451,9 +456,25 @@ def set_message(request):
                   target="/set-message",
                   options=options)
 
+
 @sg_admin_required()
 def unset_message(request, id):
     # TODO check that user is allowed for that message
     # To be done in a m.Message method
     m.AdminMessage.objects.get(id=int(id)).delete()
     return redirect("index")
+
+
+@nw_admin_required()
+def edit_network_description(request, network):
+    nw = get_network(network)
+    if request.method == 'POST':
+        nw.description = request.POST['editor']
+        nw.save()
+        return redirect("network_admin", nw.id)
+    else:
+        return editor(
+            request,
+            title="Présentation du réseau "+nw.name,
+            content=nw.description
+        )
