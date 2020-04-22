@@ -331,7 +331,8 @@ def spreadsheet(delivery, subgroups):
         title = _u8(sg['subgroup'].name)
         buyers = [u['user'].first_name + " " + u['user'].last_name for u in sg['users']]
         def purchases(u_idx, pd_idx):
-            return sg['users'][u_idx]['orders'].purchases[pd_idx].quantity
+            pc = sg['users'][u_idx]['orders'].purchases[pd_idx]
+            return pc.quantity if pc is not None else 0
         _make_sheet(book, title, fmt, buyers, x['products'], purchases, group_recap=False,
                     one_group=one_group, extra_line=one_group)
 
