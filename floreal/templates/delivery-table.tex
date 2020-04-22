@@ -1,5 +1,6 @@
 {% extends 'common.tex' %}
 {% load latex %}
+{% block documentclassparams %}a4paper,french,10pt,{{orientation}}{% endblock %}
 {% block content %}
 \begin{longtable}{|r|{% for _ in d.products %}l|{% endfor %}}
 \hline

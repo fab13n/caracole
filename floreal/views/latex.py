@@ -61,7 +61,8 @@ def cards(dv, sg):
 
 def subgroup(dv, sg):
     descr = delivery_description(dv, [sg])
-    return render_latex("subgroup-table.tex", {'d': descr})
+    orientation = "landscape" if len(descr['products'])>20 else "portrait"
+    return render_latex("subgroup-table.tex", {'d': descr, 'orientation': orientation})
 
 
 def delivery_cards(dv):
@@ -71,7 +72,9 @@ def delivery_cards(dv):
 
 def delivery_table(dv):
     descr = delivery_description(dv, dv.network.subgroup_set.all())
-    return render_latex("delivery-table.tex", {'d': descr})
+    # TODO untested, only relevant for multi-group deliveries
+    orientation = "landscape" if len(descr['products'])>20 else "portrait"
+    return render_latex("delivery-table.tex", {'d': descr, 'orientation': orientation})
 
 def emails(nw):
     return render_latex("emails.tex", {"nw": nw})
