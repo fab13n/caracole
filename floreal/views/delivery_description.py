@@ -4,7 +4,7 @@
 from .. import models as m
 
 
-def delivery_description(delivery, subgroups, **kwargs):
+def delivery_description(delivery, subgroups, only_buyers=True, **kwargs):
     """Generate a description of the purchases performed by users in `subgroups`
     for `delivery`. The resulting dictionary is used to render HTML as well as
     PDF and MS-Excel views. It's used both to display the complete order to network staff,
@@ -45,6 +45,11 @@ def delivery_description(delivery, subgroups, **kwargs):
     products = delivery.product_set.all()
     # Iterable of all users in subgroups
     users = m.User.objects.filter(user_of_subgroup__in=subgroups, is_active=True)
+    if only_buyers:
+        q = m.Purchase.objects.filter(product__delivery=delivery).values('user').distinct()
+        buyer_ids = {r['user'] for r in q} | {sg.extra_user_id for sg in subgroups}
+        users = users.filter(id__in=buyer_ids) 
+
     # Dictionary user -> list of orders, indexed as products
     orders = m.Order.by_user_and_product(delivery, users, products)
 
@@ -129,6 +134,8 @@ def delivery_description(delivery, subgroups, **kwargs):
         for j, pd in enumerate(products):
             pd_totals_list.append(pd_totals[pd])
         for k, u in enumerate(sg.sorted_users):
+            if u not in users:
+                continue
             order = orders[u]
             user_records.append({
                 'user': u,
