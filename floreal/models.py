@@ -323,11 +323,23 @@ class Order(object):
         :param products: ordered list of products; normally, the products available in `delivery`.
         :return: a user -> orders_list_indexed_as_products dictionary for all `users`."""
 
+        class DummyPurchase(object):
+            """"Dummy purchase, to be used as a stand-in in purchas tables when a product
+            hasn't been purchased by a user."""
+            def __init__(self, product, user):
+                self.product = product
+                self.user = user
+                self.price = 0
+                self.weight = 0
+                self.quantity = 0
+
+            def __bool__(self):
+                return False
+
         if not products:
             products = delivery.product_set.all().select_related()
         product_index = {pd.id: i for (i, pd) in enumerate(products)}
-        n_products = len(products)
-        purchases_by_user_id_and_pd_idx = {u.id: [None] * n_products for u in users}
+        purchases_by_user_id_and_pd_idx = {u.id: [DummyPurchase(pd, u) for pd in products] for u in users}
         prices = {u.id: 0 for u in users}
         weights = {u.id: 0 for u in users}
 
