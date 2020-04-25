@@ -8,6 +8,7 @@ else:
     from django.template.context_processors import csrf
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseForbidden
 
 from .. import models as m
 from ..penury import set_limit
@@ -19,6 +20,8 @@ def edit_user_purchases(request, delivery):
     """Let user order for himself, or modified an order on an open delivery."""
     delivery = get_delivery(delivery)
     user = request.user
+    if delivery.state != delivery.ORDERING_ALL:
+        return HttpResponseForbidden("Cette commande n'est pas ouverte.")
     if request.method == 'POST':
         if _parse_form(request):
             return redirect("index")

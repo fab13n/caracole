@@ -334,6 +334,7 @@ def view_phones(request, network=None, subgroup=None):
 
 @login_required()
 def view_history(request):
+    # TODO SQL single request!
     orders = [(nw, m.Order(request.user, dv))
               for nw in m.Network.objects.all()
               for dv in nw.delivery_set.all()]
