@@ -81,3 +81,9 @@ urlpatterns = [
     path('set-message', views.set_message, name='set_message'),
     path('unset-message/<int:id>', views.unset_message, name='unset_message'),
 ]
+
+from django.conf import settings
+from django.conf.urls.static import static
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

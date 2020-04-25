@@ -14,4 +14,8 @@ server {
   location /static/ {
     alias /var/www/caracole/static/;
   }
+
+  location /media/ {
+    alias /var/www/caracole/media/;
+  }
 }

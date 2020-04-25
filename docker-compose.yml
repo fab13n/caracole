@@ -25,6 +25,7 @@ services:
       - ./floreal:/home/caracole/floreal
       - ${VOLUMES}/database.sqlite3:/home/caracole/database.sqlite3
       - ${VOLUMES}/logs:/home/caracole/logs
+      - ${VOLUMES}/media:/home/caracole/media
     environment:
       - SUPERUSER_PASSWORD
       - SUPERUSER_USERNAME
@@ -56,7 +57,8 @@ services:
       - ./uwsgi.ini:/home/caracole/uwsgi.ini
       - ./caracole:/home/caracole/caracole
       - ./floreal:/home/caracole/floreal
-      - ${VOLUMES}/database.sqlite3.test:/home/caracole/database.sqlite3
+      - ${VOLUMES}/database.sqlite3:/home/caracole/database.sqlite3
+      - ${VOLUMES}/media:/home/caracole/media
     environment:
       - SUPERUSER_PASSWORD
       - SUPERUSER_USERNAME
@@ -100,6 +102,7 @@ services:
       # - ${VOLUMES}/certbot/conf:/etc/letsencrypt
       - /etc/letsencrypt:/etc/letsencrypt
       - ${VOLUMES}/static:/var/www/caracole/static
+      - ${VOLUMES}/media:/var/www/caracole/media
       - ${VOLUMES}/certbot/www:/var/www/certbot
       # - ./nginx/maintenance.html:/var/www/maintenance.html
     depends_on:

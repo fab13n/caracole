@@ -1,4 +1,4 @@
-{% extends 'layout_semi_wide.html' %}
+{% extends 'layout_wide.html' %}
 {% load static %}
 
 {% block head %}
@@ -27,17 +27,20 @@
         'deleted': {%if pd.delivery.id == delivery.id%}false{%else%}true{%endif%},
         {%if pd.description%}'described': true,
         'description': "{{pd.description|escapejs}}"{%else%}'described': false{%endif%},
-        'delivery': {{pd.delivery.id}} },
+        'delivery': {{pd.delivery.id}},
+        'image': {% if pd.image %}"{{pd.image.url|escapejs}}"{% else %}null{% endif %} },
     {% endfor %}];
 
     var LOADED_DESCRIPTIONS = {};  // row prefix -> true
 
-    /* If the "deleted" checkbox is checked, strike theline and disable product edition. */
+    /* If the "deleted" checkbox is checked, strike the line and disable product edition. */
     function reflect_deletion(r_prefix) {
       /* TODO: also reflect place renumbering. */
+      /* TODO: hide description of deleted products. */
       var deleted = $("#"+r_prefix+" .deleted input").is(':checked');
       var inputs  = $("#"+r_prefix+" input[type=number],"+
                       "#"+ r_prefix+" input[type=text],"+
+                      "#"+ r_prefix+" input[type=file],"+
                       "#"+ r_prefix+" .described input[type=chechbox],"+
                       "#"+r_prefix+"-description textarea");
       var rows = $("#"+r_prefix+",#"+r_prefix+"-description");
@@ -68,18 +71,26 @@
     }
 
     function reflect_unit_change(r_prefix) {
-        var content = $("#"+r_prefix+" .unit input").attr('value');
+        var content = $("#"+r_prefix+" .unit input").val();
         if(RegExp("^\\d.*").test(content)) { content = "×"+content; }
         $("#"+r_prefix+" .unit-mirror").text(content);
         $("#"+r_prefix+" .if-unit-mirror")[content ? 'show' : 'hide']();
+    }
+
+    function reflect_image_change(r_prefix, event) {
+      var image = $("#"+r_prefix+" .image-upload img")[0];
+      $("#"+r_prefix+" input.image-modified").val("1");
+      image.src = URL.createObjectURL(event.target.files[0]);
     }
 
     /* Exchange the contents of row r0 and r0+1 */
     function swap_rows(r0) {
         var r1 = r0+1;
         console.log("Swapping rows "+r0+" and "+r1);
+
+        /* Swap input values, except file uploads */
         var input_fields = ['id', 'name', 'price', 'unit', 'quantity_per_package',
-                            'quantum', 'unit_weight'];
+                            'quantity_limit', 'quantum', 'unit_weight'];
         for(var i=0; i<input_fields.length; i++) {
             var field = input_fields[i];
             var v0 = $("#r"+r0+" ."+field+" input").val();
@@ -87,6 +98,8 @@
             $("#r"+r0+" ."+field+" input").val(v1);
             $("#r"+r1+" ."+field+" input").val(v0);
         }
+
+        /* Swap checkboxes states. */
         var checkboxes =['described', 'deleted'];
         for(i=0; i<checkboxes.length; i++) {
             var field = checkboxes[i];
@@ -96,11 +109,36 @@
             $("#r"+r1+" ."+field+" input").attr("checked", b0);
         }
 
+        /* Swap descriptions. TODO Check that summernote follows suit */
         var t0 = $("#r"+r0+"-description textarea").val();
         var t1 = $("#r"+r1+"-description textarea").val();
         $("#r"+r0+"-description textarea").val(t1);
         $("#r"+r1+"-description textarea").val(t0);
 
+        /* Swap images. This is tricky because file inputs can't have their content altered
+         * for security reasons. Therefore they will be moved and relabelled instead.
+         *
+         *  <td class="image-upload"><div>
+         *     <input name="rXXX-image-modified" class="image-modified" type="hidden"/>
+         *     <label class="image-display">
+         *       <img class="product-image"/>
+         *       <input name="rXXX-image-upload" type="file"
+         *              onchange="reflect_image_change('rXXX', event)"/></label></div></td>
+         */
+        var e0 = $("#r"+r0+" td.image-upload>div");
+        var e1 = $("#r"+r1+" td.image-upload>div");
+        // Exchange positions
+        e0.appendTo("#r"+r1+" td.image-upload");
+        e1.appendTo("#r"+r0+" td.image-upload");
+        // Exchange input names
+        e0.find("input[type=hidden]").attr("name", "r"+r1+"-image-modified");
+        e1.find("input[type=hidden]").attr("name", "r"+r0+"-image-modified");
+        e0.find("input[type=file]")
+            .attr("name", "r"+r1+"-image-upload")
+            .attr("onchange", "reflect_image_change('r"+r1+"', event)");
+        e1.find("input[type=file]")
+            .attr("name", "r"+r0+"-image-upload")
+            .attr("onchange", "reflect_image_change('r"+r0+"', event)");
 
         reflect_deletion("r"+r0);
         reflect_description("r"+r0);
@@ -117,7 +155,9 @@
       $("#n_rows").attr("value", N_ROWS);
       $("#products-table tbody").append('\n\
         <tr id="r%">\n\
-            <td class="hidden id"><input name="r%-id" type="hidden" /></td>\n\
+            <td class="hidden id">\n\
+              <input name="r%-id" type="hidden" />\n\
+            </td>\n\
             <td class="place">\n\
               <button type="button" class="up">▲</button> % <button class="down" type="button">▼</button>\n\
               <input name="r%-place" type="hidden" value="%"/>\n\
@@ -133,6 +173,14 @@
             <td class="quantum"><input name="r%-quantum" min="0" type="number" step="0.001"/></td>\n\
             <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>\n\
             <td class="unit_weight"><input name="r%-unit_weight" min="0" step="0.001" type="number"/></td><td>kg</td>\n\
+            <td class="image-upload"><div>\n\
+              <input name="r%-image-modified" class="image-modified" type="hidden" value="0"/>\n\
+              <label class="image-display">\n\
+                <img class="product-image" src="/media/none.png"/>\n\
+                <input name="r%-image-upload" type="file" accept="image/*"\n\
+                       onchange="reflect_image_change(\'r%\', event)"/>\n\
+              </label>\n\
+            </div></td>\n\
             <td class="deleted">\n\
               <input name="r%-deleted" value="r%-deleted" onchange="reflect_deletion(\'r%\')" type="checkbox">\n\
             </td>\n\
@@ -178,6 +226,10 @@
         $("#"+r_prefix+"-description textarea").val(record.description);
       }
       reflect_description(r_prefix); // hide or enable summernote
+      if(record.image) {
+        $("#"+r_prefix+" .product-image").attr("src", record.image);
+      }
+      // TODO need a way to erase images
     }
 
     /* Add rows of blank products at the end of the table */
@@ -233,10 +285,10 @@
       td.price input { width: 60px; text-align: right; }
       td.quantity_per_package input { width: 45px; text-align: right; }
       .quota, .quantity_per_package { padding-left: 10px; }
-      td.quota input { width: 40px; }
-      td.quantum input { width: 38px; }
-      td.quantity_limit input { width: 38px; }
-      td.unit_weight input { width: 40px; text-align: right; }
+      td.quota input { width: 45px; }
+      td.quantum input { width: 45px; }
+      td.quantity_limit input { width: 45px; }
+      td.unit_weight input { width: 45px; text-align: right; }
       td.description { text-align: left; }
       tr.deleted { text-decoration: line-through; }
       tr.deleted input { text-decoration: line-through; }
@@ -250,11 +302,15 @@
       #dv-table td input { width: 100%; }
       #dv-table td select { width: 100%; }
       #dv-description { width: 100%; height: 150px; }
+      td.image-upload input { display: none; }
+      .image-upload label { margin: 1px; }
+      .image-upload img { width: 25px; height: 25px; transition: transform 0.1s; object-fit: cover; }
+      .image-upload img:hover { transform: scale(10); border: 1px solid #811305; box-shadow: 1px 0.5px 0.5px black; cursor: pointer; }
   </style>
 {% endblock %}
 
 {% block content %}
-<form method="post" action="" id="form">
+<form method="post" action="" enctype="multipart/form-data" id="form">
     <table id="dv-table">
         <tr>
           <th><label for="dv-name">Nom de la livraison :</label></th>
@@ -290,6 +346,7 @@
                 {%if QUOTAS_ENABLED%}<th colspan="2" class="non-rotate quota">Quota</th>{%else%}<th>QUOTAS_ENABLED={{QUOTAS_ENABLED}}</th>{%endif%}
                 <th colspan="2" class="non-rotate">Quantum</th>
                 <th colspan="2" class="non-rotate">Poids</th>
+                <th class="non-rotate">Image</th>
                 <th class="rotate"><div><div>Effacer ?</div></div></th>
                 <th class="rotate"><div><div>Description ?</div></div></th>
             </tr>

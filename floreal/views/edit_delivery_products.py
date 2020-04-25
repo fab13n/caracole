@@ -4,12 +4,11 @@
 past products, parse POSTed forms to update a delivery's products list."""
 
 import django
+from django import forms
 from django.shortcuts import render, redirect
-if django.VERSION < (1, 8):
-    from django.core.context_processors import csrf
-else:
-    from django.template.context_processors import csrf
+from django.template.context_processors import csrf
 from django.http import HttpResponseForbidden
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from .getters import get_delivery
 from .decorators import nw_admin_required
@@ -35,6 +34,7 @@ def edit_delivery_products(request, delivery):
             return redirect('edit_delivery_products', delivery.id)
 
     else:  # Create and populate forms to render
+        image_form = forms.ImageField(required=False)
         vars = {'QUOTAS_ENABLED': True,
                 'user': request.user,
                 'delivery': delivery}
@@ -42,10 +42,10 @@ def edit_delivery_products(request, delivery):
         return render(request,'edit_delivery_products.html', vars)
 
 
-def _get_pd_fields(d, r_prefix):
+def _get_pd_fields(d, files, r_prefix):
     """Retrieve form fields representing a product."""
     fields = ['id', 'name', 'price', 'quantity_per_package', 'unit', 'quantity_limit', 'quantum', 'unit_weight',
-              'place', 'described', 'description']
+              'place', 'described', 'description', 'image-modified']
     raw = {f: d.get("%s-%s" % (r_prefix, f), None) for f in fields}
     id = raw['id']
     id = int(id) if id and id.isdigit() else None
@@ -55,19 +55,24 @@ def _get_pd_fields(d, r_prefix):
     quota = raw['quantity_limit']
     quantum = raw['quantum']
     weight = raw['unit_weight']
+    # TODO This is the place to apply some unit names normalisation.
     if not weight:  # 0 or None
         weight = 1 if raw['unit'] == 'kg' else 0
-    return {'id': id,
-            'name': raw['name'],
-            'place': int(raw['place']),
-            'price': float(raw['price']),
-            'quantity_per_package': int(qpp) if qpp else None,
-            'unit': raw['unit'] or 'pièce',
-            'quantity_limit': int(quota) if quota else None,
-            'quantum': float(quantum) if quantum else None,
-            'unit_weight': float(weight) if weight is not None else None,
-            'description': raw['description'] if raw['described'] else None,
-            'deleted': "%s-deleted" % (r_prefix) in d}
+    r = {'id': id,
+         'name': raw['name'],
+         'place': int(raw['place']),
+         'price': float(raw['price']),
+         'quantity_per_package': int(qpp) if qpp else None,
+         'unit': raw['unit'] or 'pièce',
+         'quantity_limit': int(quota) if quota else None,
+         'quantum': float(quantum) if quantum else None,
+         'unit_weight': float(weight) if weight is not None else None,
+         'description': raw['description'] if raw['described'] else None,
+         'deleted': "%s-deleted" % (r_prefix) in d,
+    }
+    if raw['image-modified'] == "1":
+        r['image'] = files.get("%s-image-upload" % r_prefix)
+    return r
 
 
 def _pd_update(pd, fields):
@@ -81,6 +86,34 @@ def _pd_update(pd, fields):
     pd.unit_weight = fields['unit_weight']
     pd.quantum = fields['quantum']
     pd.description = fields['description']
+    if 'image' in fields:
+        pd.image = fields['image'] 
+        _resize_image(pd)
+
+
+from io import BytesIO
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from PIL import Image
+
+IMAGE_SIZE = 250
+
+def _resize_image(pd):
+    f = pd.image.file
+    image = Image.open(f)
+    w = image.width
+    h = image.height
+    if w > h:
+        (x, y, w) = ((w-h)/2, 0, h)
+    else:
+        (x, y, h) = (0, (h-w)/2, w)
+    image = image.crop((x, y, w+x, h+y))
+    image = image.resize((IMAGE_SIZE, IMAGE_SIZE), Image.ANTIALIAS)
+    name = "pd_"+str(pd.id)+".jpg"
+    buffer = BytesIO()
+    image.save(buffer, "JPEG")
+    in_memory_file = InMemoryUploadedFile(buffer, f.field_name, name, f.content_type, None, f.charset)
+    pd.image.file = in_memory_file
+    pd.image.name = name
 
 
 def _parse_form(request):
@@ -96,7 +129,7 @@ def _parse_form(request):
     dv.save()
 
     for r in range(int(d['n_rows'])):
-        fields = _get_pd_fields(d, 'r%d' % r)
+        fields = _get_pd_fields(d, request.FILES, 'r%d' % r)
         if fields.get('id'):
             pd = Product.objects.get(pk=fields['id'])
             if pd.delivery == dv:

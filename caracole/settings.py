@@ -101,7 +101,7 @@ DATABASES = {
         "PORT": int(E["POSTGRES_PORT"]),
     } if E.get("POSTGRES_DBNAME") else {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR + '/database.sqlite3'
+        'NAME': E.get("SQLITE3_DBNAME", BASE_DIR + '/database.sqlite3')
     }
 }
 
@@ -126,6 +126,12 @@ STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "floreal", "static"),
 )
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+if not os.path.isdir(MEDIA_ROOT):
+    os.makedirs(MEDIA_ROOT)
 
 AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend',)
 
