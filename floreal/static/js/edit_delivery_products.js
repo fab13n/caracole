@@ -1,11 +1,8 @@
-// TODO Store in a rogue attribute of the checkbox?
-var LOADED_DESCRIPTIONS = {};  // row prefix -> true
-
 /* If the "deleted" checkbox is checked, strike the line and disable product edition. */
-function reflect_deletion(r_prefix) {
-  /* TODO: also reflect place renumbering. */
+function reflect_deletion(r) {
+  /* TODO: also reflect place renumbering? */
   /* TODO: hide description of deleted products. */
-  var P = "#" + r_prefix;
+  var P = "#r" + r;
   var deleted = $(P+" .deleted input").is(':checked');
   var inputs  = $(P+" input[type=number],"+
                   P+" input[type=text],"+
@@ -22,33 +19,42 @@ function reflect_deletion(r_prefix) {
   }
 }
 
-/* Enable/disable description editor */
-function reflect_description(r_prefix) {
-    var P = "#" + r_prefix;
+/* Enable/disable description editor
+ * The summernote editor is only loaded when needed.
+ * To remember wehether it is loaded, a "loaded" attribute is added
+ * to the bound <textarea> upon loading.
+ */
+function reflect_description(r) {
+    var P = "#r" + r;
     var described = $(P+' .described input').is(':checked');
+    var row = $(P+"-description"); 
+    var ta = $(P+"-description textarea");
     if( described) {
-        $(P+"-description").show();
-        $(P+"-description textarea").removeAttr("disabled");
-        if(! LOADED_DESCRIPTIONS[r_prefix]) {
-            LOADED_DESCRIPTIONS[r_prefix] = true;
-            $(P+"-description textarea").summernote();
+        var is_loaded = ta.attr("loaded");
+        row.show();
+        ta.removeAttr("disabled");
+        if(! is_loaded) {
+            ta.attr("loaded", "1");
+            ta.summernote();
         }
     } else {
-        $(P+"-description").hide();
-        $(P+"-description textarea").attr("disabled", "disabled");
+        row.hide();
+        ta.attr("disabled", "disabled");
     }
 }
 
-function reflect_unit_change(r_prefix) {
-    var P = "#" + r_prefix;
+/* The unit is reapeated all around the row. When the input field changes, reflect it. */
+function reflect_unit_change(r) {
+    var P = "#r" + r;
     var content = $(P+" .unit input").val();
     if(RegExp("^\\d.*").test(content)) { content = "×"+content; }
     $(P+" .unit-mirror").text(content);
     $(P+" .if-unit-mirror")[content ? 'show' : 'hide']();
 }
 
-function reflect_image_change(r_prefix, event) {
-    var P = "#" + r_prefix;
+/* When an image is uploaded, put its content in the previsualization label img */
+function reflect_image_change(r, event) {
+    var P = "#r" + r;
     var image = $(P+" .image-upload img")[0];
     $(P+" input.image-modified").val("1");
     image.src = URL.createObjectURL(event.target.files[0]);
@@ -88,11 +94,10 @@ function swap_rows(r0) {
      * to disable/reenable the summernote editors accordingly. */
     var ta0 = $(P0+"-description textarea");
     var ta1 = $(P1+"-description textarea");
-    // TODO may be simpler if LOADED_DESCRIPTION flag was in the record?
-    ld0 = LOADED_DESCRIPTIONS["r"+r0];
-    ld1 = LOADED_DESCRIPTIONS["r"+r1];
-    LOADED_DESCRIPTIONS["r"+r0] = ld1;
-    LOADED_DESCRIPTIONS["r"+r1] = ld0;
+    ld0 = ta0.attr("loaded");
+    ld1 = ta1.attr("loaded");
+    if(ld1) { ta0.attr("loaded", "1"); } else { ta0.removeAttr("loaded"); }
+    if(ld0) { ta1.attr("loaded", "1"); } else { ta1.removeAttr("loaded"); }
     if(ld0) { ta0.summernote('destroy'); }
     if(ld1) { ta1.summernote('destroy'); }
     var v0 = ta0.val();
@@ -122,24 +127,25 @@ function swap_rows(r0) {
     e1.find("input[type=hidden]").attr("name", "r"+r0+"-image-modified");
     e0.find("input[type=file]")
         .attr("name", "r"+r1+"-image-upload")
-        .attr("onchange", "reflect_image_change('r"+r1+"', event)");
+        .attr("onchange", "reflect_image_change("+r1+", event)");
     e1.find("input[type=file]")
         .attr("name", "r"+r0+"-image-upload")
-        .attr("onchange", "reflect_image_change('r"+r0+"', event)");
+        .attr("onchange", "reflect_image_change("+r0+", event)");
 
-    reflect_deletion("r"+r0);
-    reflect_description("r"+r0);
-    reflect_unit_change("r"+r0);
-    reflect_deletion("r"+r1);
-    reflect_description("r"+r1);
-    reflect_unit_change("r"+r1);
-    /* No reflect_image_change: it only happens when a faile is uploaded. */
+    reflect_deletion(r0);
+    reflect_description(r0);
+    reflect_unit_change(r0);
+    reflect_deletion(r1);
+    reflect_description(r1);
+    reflect_unit_change(r1);
+    /* No reflect_image_change: it only happens when a file is uploaded.
+     * Here the image is in the input's label, they're all swapped together. */
 }
 
 /* Add rows of blank products at the end of the table */
 function add_row() {
-  var r_num = Number($("#n_rows").val()) + 1;
-  $("#n_rows").val(r_num);
+  var r = Number($("#n_rows").val()) + 1;
+  $("#n_rows").val(r);
   $("#products-table tbody").append('\n\
     <tr id="r%">\n\
         <td class="hidden id">\n\
@@ -165,14 +171,14 @@ function add_row() {
           <label class="image-display">\n\
             <img class="product-image" src="/media/none.png"/>\n\
             <input name="r%-image-upload" type="file" accept="image/*"\n\
-                   onchange="reflect_image_change(\'r%\', event)"/>\n\
+                   onchange="reflect_image_change(%, event)"/>\n\
           </label>\n\
         </div></td>\n\
         <td class="deleted">\n\
-          <input name="r%-deleted" value="r%-deleted" onchange="reflect_deletion(\'r%\')" type="checkbox">\n\
+          <input name="r%-deleted" value="r%-deleted" onchange="reflect_deletion(%)" type="checkbox">\n\
         </td>\n\
         <td class="described">\n\
-          <input name="r%-described" value="r%-described" onchange="reflect_description(\'r%\')" type="checkbox">\n\
+          <input name="r%-described" value="r%-described" onchange="reflect_description(%)" type="checkbox">\n\
         </td>\n\
     </tr>\n\
     <tr id="r%-description">\n\
@@ -180,35 +186,35 @@ function add_row() {
       <td class="description" colspan="15">\n\
         <textarea name="r%-description" rows="5"></textarea>\n\
       </td>\n\
-    </tr>'.replace(/%/g, r_num));
+    </tr>'.replace(/%/g, r));
 
   // disable last "down" button, re-enable before-last "down" button, which was previously last
-  $("#r"+r_num+" td.place button.down").attr("disabled", "disabled");
-  $("#r"+(r_num-1)+" td.place button.down").removeAttr("disabled");
+  $("#r"+(r-1)+" td.place button.down").removeAttr("disabled");
+  $("#r"+r+" td.place button.down").attr("disabled", "disabled");
 
-  // wire buttons
-  $("#r"+r_num+" td.place button.up").click(function() { swap_rows(r_num-1); })
-  $("#r"+r_num+" td.place button.down").click(function() { swap_rows(r_num); })
+  // wire place-swapping buttons
+  $("#r"+r+" td.place button.up").click(function() { swap_rows(r-1); })
+  $("#r"+r+" td.place button.down").click(function() { swap_rows(r); })
 
   // wire unit change reflections upon keystrokes
-  $("#r"+r_num+" .unit input").keyup(function() { reflect_unit_change("r"+r_num); });
-  reflect_unit_change("r"+r_num);
+  $("#r"+r+" .unit input").keyup(function() { reflect_unit_change(r); });
+  reflect_unit_change(r);
 
-  return "r"+r_num;
+  return r;
 }
 
 /* Fill a product row with the content of JSON record */
-function fill_row(r_prefix, record) {
-    var P = "#" + r_prefix;
+function fill_row(r, record) {
+    var P = "#r" + r;
     $.each(record, function(k, v) {
-        $(P+' .'+k+" input").attr('value', v);
+        $(P+' .'+k+" input").val(v);
     });
-    reflect_unit_change(r_prefix);
+    reflect_unit_change(r);
     if(record.description) {
         $(P+" .described input")[0].checked=true;
         $(P+"-description textarea").val(record.description);
     }
-    reflect_description(r_prefix); // hide or enable summernote
+    reflect_description(r); // hide or enable summernote
     if(record.image) {
         $(P+" .product-image").attr("src", record.image);
     }
@@ -219,9 +225,10 @@ function fill_row(r_prefix, record) {
 function add_blank_products() {
   var N_ADDED_ROWS = 3;
   for(var i=0; i<N_ADDED_ROWS; i++) {
-    var r_prefix = add_row();
-    reflect_description(r_prefix); // hide description textarea
-    // No need to reflect deletion, they aren't deleted by default
+    var r = add_row();
+    reflect_description(r); // hide description textarea
+    // No need to reflect deletion, they aren't deleted by default.
+    // No need to reflect image, there isn't any.
   }
 }
 
@@ -248,16 +255,12 @@ $(document).ready(function() {
 
         /* Generate and fill product rows */
         for(var i = 0; i < dv.products.length; i++) {
-            var record = dv.products[i];
-            var r_prefix = add_row();
-            fill_row(r_prefix, record);
+            fill_row(add_row(), dv.products[i]);
         }
+
         /* Add a couple of empty rows & disable the "move up" button of the first one.
          * "move down" of the last one is handled whenever blank lines are inserted. */
         add_blank_products();
         $("#r1 td.place button.up").attr("disabled", "disabled");
-
       });
-
-
 })
