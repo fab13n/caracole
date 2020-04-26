@@ -34,7 +34,6 @@ def edit_delivery_products(request, delivery):
             return redirect('edit_delivery_products', delivery.id)
 
     else:  # Create and populate forms to render
-        image_form = forms.ImageField(required=False)
         vars = {'QUOTAS_ENABLED': True,
                 'user': request.user,
                 'delivery': delivery}

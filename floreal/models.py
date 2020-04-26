@@ -214,7 +214,7 @@ class Product(models.Model):
     quantum = models.DecimalField(decimal_places=2, max_digits=3, default=1, blank=True)
     description = models.TextField(null=True, blank=True, default=None)
     place = models.PositiveSmallIntegerField(null=True, blank=True, default=True)
-    image = models.ImageField(null=True, default=True, blank=True)
+    image = models.ImageField(null=True, default=None, blank=True)
 
     class Meta:
         # Problematic: during delivery modifications, some product names may transiently have a name
@@ -227,7 +227,16 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+    # Auto-fix frequent mis-usages    
+    UNIT_AUTO_TRANSLATE = {
+        "1": "pièce", "piece": "pièce", "1kg": "kg", "kilo": "kg", "unité": "pièce", "unite": "pièce"
+    }
+
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        if self.unit is None:
+            self.unit = "pièce"
+        else:
+            self.unit = self.UNIT_AUTO_TRANSLATE.get(self.unit.lower(), self.unit)
         if self.unit == 'kg':
             self.unit_weight = 1.
         super(Product, self).save(force_insert, force_update, using, update_fields)
@@ -240,6 +249,7 @@ class Product(models.Model):
         else:
             quantity_ordered = self.purchase_set.aggregate(t=Sum('quantity'))['t'] or 0
             return self.quantity_limit - quantity_ordered
+
 
 class Purchase(models.Model):
     """A purchase is an intent to acquire quantity of a product  a delivery.
