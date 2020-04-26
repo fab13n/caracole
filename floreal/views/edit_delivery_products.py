@@ -14,7 +14,33 @@ from .getters import get_delivery
 from .decorators import nw_admin_required
 from ..models import Product, Delivery, JournalEntry
 from ..penury import set_limit
+from django.http import JsonResponse
 
+
+def _serialize_product(pd):
+    return { 
+        'id': pd.id,
+        'name': pd.name,
+        'price': float(pd.price),
+        'unit': pd.unit,
+        'quantity_limit': pd.quantity_limit,
+        'quantity_per_package': pd.quantity_per_package,
+        'quantum': float(pd.quantum),
+        'unit_weight': float(pd.unit_weight),
+        'description': pd.description,
+        'delivery': pd.delivery_id,
+        'image': pd.image.url if pd.image else None
+    }
+
+def delivery_products_json(request, delivery):
+    dv = get_delivery(delivery)
+    return JsonResponse({
+        'id': dv.id,
+        'name': dv.name,
+        'state': dv.state,
+        'description': dv.description,
+        'products': [_serialize_product(pd) for pd in dv.product_set.all()]
+    })
 
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)
 def edit_delivery_products(request, delivery):

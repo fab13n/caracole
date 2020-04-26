@@ -29,6 +29,7 @@ urlpatterns = [
     re_path('^dv-(?P<delivery>[^./]+)$', views.edit_user_purchases, name='edit_user_purchases'),
     path('dv-<delivery>/staff', views.edit_delivery, name='edit_delivery'),
     path('dv-<delivery>/edit-products', views.edit_delivery_products, name='edit_delivery_products'),
+    path('dv-<delivery>/products.json', views.delivery_products_json, name='delivery_json'),
     path('dv-<delivery>/sg-<subgroup>/edit', views.edit_subgroup_purchases, name='edit_subgroup_purchases'),
     path('dv-<delivery>/set-state/<state>', views.set_delivery_state, name='set_delivery_state'),
     path('dv-<delivery>/set-name/<name>', views.set_delivery_name, name='set_delivery_name'),

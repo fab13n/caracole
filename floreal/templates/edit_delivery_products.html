@@ -7,288 +7,7 @@
   <script type="text/javascript" src="{% static 'js/bootstrap.min.js' %}"></script>
   <link href="{% static 'summernote/summernote.min.css' %}" rel="stylesheet">
   <script type="text/javascript" src="{% static 'summernote/summernote.min.js' %}"></script>
-
-  <script type='text/javascript'>
-    // <![CDATA[
-
-    var N_ROWS = 1;
-
-    var DELIVERY = {{delivery.id}};
-
-    var PRODUCTS = [{% for pd in delivery.product_set.all %}
-      { 'id': {{pd.id}},
-        'name': "{{pd.name|escapejs}}",
-        'price': "{{pd.price|escapejs}}",
-        'unit': "{{pd.unit|escapejs}}",
-        'quantity_limit': {%if pd.quantity_limit%}"{{pd.quantity_limit|escapejs}}"{%else%}null{%endif%},
-        'quantity_per_package': {%if pd.quantity_per_package%}"{{pd.quantity_per_package|escapejs}}"{%else%}null{%endif%},
-        'quantum': {{pd.quantum}},
-        'unit_weight': {{pd.unit_weight}},
-        'deleted': {%if pd.delivery.id == delivery.id%}false{%else%}true{%endif%},
-        {%if pd.description%}'described': true,
-        'description': "{{pd.description|escapejs}}"{%else%}'described': false{%endif%},
-        'delivery': {{pd.delivery.id}},
-        'image': {% if pd.image %}"{{pd.image.url|escapejs}}"{% else %}null{% endif %} },
-    {% endfor %}];
-
-    var LOADED_DESCRIPTIONS = {};  // row prefix -> true
-
-    /* If the "deleted" checkbox is checked, strike the line and disable product edition. */
-    function reflect_deletion(r_prefix) {
-      /* TODO: also reflect place renumbering. */
-      /* TODO: hide description of deleted products. */
-      var deleted = $("#"+r_prefix+" .deleted input").is(':checked');
-      var inputs  = $("#"+r_prefix+" input[type=number],"+
-                      "#"+ r_prefix+" input[type=text],"+
-                      "#"+ r_prefix+" input[type=file],"+
-                      "#"+ r_prefix+" .described input[type=chechbox],"+
-                      "#"+r_prefix+"-description textarea");
-      var rows = $("#"+r_prefix+",#"+r_prefix+"-description");
-      if( deleted) {
-        rows.addClass('deleted');
-        inputs.attr('disabled', 'disabled');
-      } else {
-        rows.removeClass('deleted');
-        inputs.removeAttr('disabled');
-      }
-    }
-
-    /* Enable/disable description editor */
-    function reflect_description(r_prefix) {
-      var described = $("#"+r_prefix+' .described input').is(':checked');
-      console.log("Change description of", r_prefix, "to", described);
-      if( described) {
-          $("#"+r_prefix+"-description").show();
-          $("#"+r_prefix+"-description textarea").removeAttr("disabled");
-          if(! LOADED_DESCRIPTIONS[r_prefix]) {
-            LOADED_DESCRIPTIONS[r_prefix] = true;
-            $("#"+r_prefix+"-description textarea").summernote();
-          }
-      } else {
-          $("#"+r_prefix+"-description").hide();
-          $("#"+r_prefix+"-description textarea").attr("disabled", "disabled");
-      }
-    }
-
-    function reflect_unit_change(r_prefix) {
-        var content = $("#"+r_prefix+" .unit input").val();
-        if(RegExp("^\\d.*").test(content)) { content = "×"+content; }
-        $("#"+r_prefix+" .unit-mirror").text(content);
-        $("#"+r_prefix+" .if-unit-mirror")[content ? 'show' : 'hide']();
-    }
-
-    function reflect_image_change(r_prefix, event) {
-      var image = $("#"+r_prefix+" .image-upload img")[0];
-      $("#"+r_prefix+" input.image-modified").val("1");
-      image.src = URL.createObjectURL(event.target.files[0]);
-    }
-
-    /* Exchange the contents of row r0 and r0+1 */
-    function swap_rows(r0) {
-        var r1 = r0+1;
-        console.log("Swapping rows "+r0+" and "+r1);
-
-        /* Swap input values, except file uploads */
-        var input_fields = ['id', 'name', 'price', 'unit', 'quantity_per_package',
-                            'quantity_limit', 'quantum', 'unit_weight'];
-        for(var i=0; i<input_fields.length; i++) {
-            var field = input_fields[i];
-            var v0 = $("#r"+r0+" ."+field+" input").val();
-            var v1 = $("#r"+r1+" ."+field+" input").val();
-            $("#r"+r0+" ."+field+" input").val(v1);
-            $("#r"+r1+" ."+field+" input").val(v0);
-        }
-
-        /* Swap checkboxes states. */
-        var checkboxes =['described', 'deleted'];
-        for(i=0; i<checkboxes.length; i++) {
-            var field = checkboxes[i];
-            var b0 = $("#r"+r0+" ."+field+" input").is(":checked");
-            var b1 = $("#r"+r1+" ."+field+" input").is(":checked");
-            $("#r"+r0+" ."+field+" input").prop("checked", b1);
-            $("#r"+r1+" ."+field+" input").prop("checked", b0);
-        }
-
-        /* Swap descriptions. Need to also check whether there's 0/1/2 descriptions,
-         * to to disable/reenable the summernote editor. */
-        var ta0 = $("#r"+r0+"-description textarea");
-        var ta1 = $("#r"+r1+"-description textarea");
-        if(LOADED_DESCRIPTIONS["r"+r0]) { ta0.summernote('destroy'); }
-        if(LOADED_DESCRIPTIONS["r"+r1]) { ta1.summernote('destroy'); }
-        var v0 = ta0.val();
-        var v1 = ta1.val();
-        ta0.val(v1);
-        ta1.val(v0);
-        v0 = LOADED_DESCRIPTIONS["r"+r0];
-        v1 = LOADED_DESCRIPTIONS["r"+r1];
-        LOADED_DESCRIPTIONS["r"+r0] = v1;
-        LOADED_DESCRIPTIONS["r"+r1] = v0;
-        if(LOADED_DESCRIPTIONS["r"+r0]) { ta0.summernote(); }
-        if(LOADED_DESCRIPTIONS["r"+r1]) { ta1.summernote(); }
-
-        /* Swap images. This is tricky because file inputs can't have their content altered
-         * for security reasons. Therefore they will be moved and relabelled instead.
-         *
-         *  <td class="image-upload"><div>
-         *     <input name="rXXX-image-modified" class="image-modified" type="hidden"/>
-         *     <label class="image-display">
-         *       <img class="product-image"/>
-         *       <input name="rXXX-image-upload" type="file"
-         *              onchange="reflect_image_change('rXXX', event)"/></label></div></td>
-         */
-        var e0 = $("#r"+r0+" td.image-upload>div");
-        var e1 = $("#r"+r1+" td.image-upload>div");
-        // Exchange positions
-        e0.appendTo("#r"+r1+" td.image-upload");
-        e1.appendTo("#r"+r0+" td.image-upload");
-        // Exchange input names
-        e0.find("input[type=hidden]").attr("name", "r"+r1+"-image-modified");
-        e1.find("input[type=hidden]").attr("name", "r"+r0+"-image-modified");
-        e0.find("input[type=file]")
-            .attr("name", "r"+r1+"-image-upload")
-            .attr("onchange", "reflect_image_change('r"+r1+"', event)");
-        e1.find("input[type=file]")
-            .attr("name", "r"+r0+"-image-upload")
-            .attr("onchange", "reflect_image_change('r"+r0+"', event)");
-
-        reflect_deletion("r"+r0);
-        reflect_description("r"+r0);
-        reflect_unit_change("r"+r0);
-        reflect_deletion("r"+r1);
-        reflect_description("r"+r1);
-        reflect_unit_change("r"+r1);
-    }
-
-    /* Add rows of blank products at the end of the table */
-    function add_row() {
-      var r_num = N_ROWS;
-      N_ROWS += 1;
-      $("#n_rows").attr("value", N_ROWS);
-      $("#products-table tbody").append('\n\
-        <tr id="r%">\n\
-            <td class="hidden id">\n\
-              <input name="r%-id" type="hidden" />\n\
-            </td>\n\
-            <td class="place">\n\
-              <button type="button" class="up">▲</button> % <button class="down" type="button">▼</button>\n\
-              <input name="r%-place" type="hidden" value="%"/>\n\
-            </td>\n\
-            <td class="name"><input maxlength="64" name="r%-name" type="text" /></td>\n\
-            <td class="price"><input name="r%-price" step="0.01" min="0" type="number" /></td>\n\
-            <td>€/</td>\n\
-            <td class="unit"><input maxlength="64" name="r%-unit" type="text" /></td>\n\
-            <td class="quantity_per_package"><input name="r%-quantity_per_package" type="number" /></td>\n\
-            <td class="unit-label">&nbsp;<span class="unit-mirror"></span><span class="if-unit-mirror">/ct</span></td>\n\
-            {%if QUOTAS_ENABLED%}<td class="quantity_limit"><input name="r%-quantity_limit" min="0" type="number"/></td>\n\
-              <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>{%endif%}\n\
-            <td class="quantum"><input name="r%-quantum" min="0" type="number" step="0.001"/></td>\n\
-            <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>\n\
-            <td class="unit_weight"><input name="r%-unit_weight" min="0" step="0.001" type="number"/></td><td>kg</td>\n\
-            <td class="image-upload"><div>\n\
-              <input name="r%-image-modified" class="image-modified" type="hidden" value="0"/>\n\
-              <label class="image-display">\n\
-                <img class="product-image" src="/media/none.png"/>\n\
-                <input name="r%-image-upload" type="file" accept="image/*"\n\
-                       onchange="reflect_image_change(\'r%\', event)"/>\n\
-              </label>\n\
-            </div></td>\n\
-            <td class="deleted">\n\
-              <input name="r%-deleted" value="r%-deleted" onchange="reflect_deletion(\'r%\')" type="checkbox">\n\
-            </td>\n\
-            <td class="described">\n\
-              <input name="r%-described" value="r%-described" onchange="reflect_description(\'r%\')" type="checkbox">\n\
-            </td>\n\
-        </tr>\n\
-        <tr id="r%-description">\n\
-          <td></td>\n\
-          <td class="description" colspan="{%if QUOTAS_ENABLED%}15{%else%}13{%endif%}">\n\
-            <textarea name="r%-description" rows="5"></textarea>\n\
-          </td>\n\
-        </tr>'.replace(/%/g, r_num));
-
-      // disable last "down" button, re-enable before-last "down" button, which was previously last
-      $("#r"+r_num+" td.place button.down").attr("disabled", "disabled");
-      $("#r"+(r_num-1)+" td.place button.down").removeAttr("disabled");
-
-      // wire buttons
-      $("#r"+r_num+" td.place button.up").click(function() { swap_rows(r_num-1); })
-      $("#r"+r_num+" td.place button.down").click(function() { swap_rows(r_num); })
-
-      // wire unit change reflections upon keystrokes
-      $("#r"+r_num+" .unit input").keyup(function() { reflect_unit_change("r"+r_num); });
-      reflect_unit_change("r"+r_num);
-
-      return "r"+r_num;
-    }
-
-    /* Fill a product row with data from a JSON record */
-    function fill_row(r_prefix, record) {
-      $.each(record, function(k, v) {
-        // console.log("set #"+prefix+"-"+k+" to "+v);
-        $('#'+r_prefix+' .'+k+" input").attr('value', v);
-      });
-      reflect_unit_change(r_prefix);
-      if( record['deleted']) {
-        $("#"+r_prefix+" .deleted input")[0].checked=true;
-        reflect_deletion(r_prefix);
-      }
-      if( record['described']) {
-        $("#"+r_prefix+" .described input")[0].checked=true;
-        $("#"+r_prefix+"-description textarea").val(record.description);
-      }
-      reflect_description(r_prefix); // hide or enable summernote
-      if(record.image) {
-        $("#"+r_prefix+" .product-image").attr("src", record.image);
-      }
-      // TODO need a way to erase images
-    }
-
-    /* Add rows of blank products at the end of the table */
-    function add_blank_products() {
-      var N_ADDED_ROWS = 3;
-      for(var i=0; i<N_ADDED_ROWS; i++) {
-        var r_prefix = add_row();
-        reflect_description(r_prefix); // hide description textarea
-        // No need to reflect deletion, they aren't deleted by default
-      }
-    }
-
-    function submit_if_valid() {
-        if($("#dv-name").val().trim() == "") {
-            alert("Avant de pouvoir sauvegarder, il faut donner un nom à la livraison, en haut du formulaire !");
-            return;
-        }
-        /* All sanity checks passed: submit the form */
-        $("#form").submit()
-    }
-
-    $(document).ready(function() {
-      /* Generate and fill product rows */
-      for(var i=0; i<PRODUCTS.length; i++) {
-        var record = PRODUCTS[i];
-        var r_prefix = add_row();
-        fill_row(r_prefix, record);
-      }
-
-      /* Add a couple of empty rows. */
-      add_blank_products();
-
-      /* Disable the "move up" button of the first product.
-       * "move down" of the last button has been handled through blank line insertions. */
-      $("#r1 td.place button.up").attr("disabled", "disabled");
-
-      /* If the delivery has just been created, clear up the name so that it has to be filled
-       * explicitly. */
-      var url_params = new URLSearchParams(window.location.search);
-      if(url_params.get('new')) {
-          $("#dv-name").val("");
-      }
-
-      $("#dv-description").summernote();
-
-    })
-    // ]]>
-  </script>
+  <script type='text/javascript' src="{% static 'js/edit_delivery_products.js' %}"></script>
   <style type="text/css">
       td.place button:disabled { color: lightgray; }
       td.name input { width: 200px; }
@@ -326,7 +45,7 @@
     <table id="dv-table">
         <tr>
           <th><label for="dv-name">Nom de la livraison :</label></th>
-          <td><input id="dv-name" maxlength="64" name="dv-name" type="text" value="{{delivery.name|escape}}" required  /></td>
+          <td><input id="dv-name" maxlength="64" name="dv-name" type="text" value="" required  /></td>
         </tr>
       <tr>
         <th><label for="dv-state">État de la livraison :</label></th>
@@ -342,20 +61,20 @@
 
     <h3>Description de la commande</h3>
     <p>
-        <textarea name="dv-description" id="dv-description" rows="10">{{delivery.description|default_if_none:""}}</textarea>
+        <textarea name="dv-description" id="dv-description" rows="10"></textarea>
     </p>
 
     <table id="products-table">
         <thead>
             <tr>
-                <th class="hidden non-rotate"></th>
+                <th class="non-rotate hidden"></th>
                 <th class="non-rotate">#</th>
                 <th class="non-rotate">Produit</th>
                 <th class="non-rotate">Prix</th>
                 <th class="non-rotate"></th>
                 <th class="non-rotate">Unité</th>
-                <th colspan="2" class="qpp non-rotate">Par carton</th>
-                {%if QUOTAS_ENABLED%}<th colspan="2" class="non-rotate quota">Quota</th>{%else%}<th>QUOTAS_ENABLED={{QUOTAS_ENABLED}}</th>{%endif%}
+                <th colspan="2" class="non-rotate qpp">Par carton</th>
+                <th colspan="2" class="non-rotate quota">Quota</th></th>
                 <th colspan="2" class="non-rotate">Quantum</th>
                 <th colspan="2" class="non-rotate">Poids</th>
                 <th class="non-rotate">Image</th>
@@ -369,9 +88,9 @@
     <p>
 
         <button type='button' onclick="add_blank_products();">Ajouter des produits</button>
-        <input type="submit" value="Sauvegarder" name="save_and_stay"/>
-        <input type="submit" value="Sauvegarder et retour" name="save_and_leave"/>			
-        <input type='hidden' name='dv-id' value='{{delivery.id}}' />
+        <input type="submit" value="Sauvegarder et continuer" name="save_and_stay"/>
+        <input type="submit" value="Sauvegarder et quitter" name="save_and_leave"/>			
+        <input type='hidden' name='dv-id' id='dv-id' value='' />
         <input type='hidden' name='n_rows' id="n_rows" value='0' />
         {% csrf_token %}
 	</p>
