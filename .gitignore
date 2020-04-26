@@ -5,9 +5,8 @@
 db.sqlite3
 database.sqlite3
 venv*/
-volumes/
-static
+/volumes/
+/static/
 postgresql
 .env.bash
-static
 /media/
