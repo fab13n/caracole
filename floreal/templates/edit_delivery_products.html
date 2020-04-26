@@ -105,15 +105,26 @@
             var field = checkboxes[i];
             var b0 = $("#r"+r0+" ."+field+" input").is(":checked");
             var b1 = $("#r"+r1+" ."+field+" input").is(":checked");
-            $("#r"+r0+" ."+field+" input").attr("checked", b1);
-            $("#r"+r1+" ."+field+" input").attr("checked", b0);
+            $("#r"+r0+" ."+field+" input").prop("checked", b1);
+            $("#r"+r1+" ."+field+" input").prop("checked", b0);
         }
 
-        /* Swap descriptions. TODO Check that summernote follows suit */
-        var t0 = $("#r"+r0+"-description textarea").val();
-        var t1 = $("#r"+r1+"-description textarea").val();
-        $("#r"+r0+"-description textarea").val(t1);
-        $("#r"+r1+"-description textarea").val(t0);
+        /* Swap descriptions. Need to also check whether there's 0/1/2 descriptions,
+         * to to disable/reenable the summernote editor. */
+        var ta0 = $("#r"+r0+"-description textarea");
+        var ta1 = $("#r"+r1+"-description textarea");
+        if(LOADED_DESCRIPTIONS["r"+r0]) { ta0.summernote('destroy'); }
+        if(LOADED_DESCRIPTIONS["r"+r1]) { ta1.summernote('destroy'); }
+        var v0 = ta0.val();
+        var v1 = ta1.val();
+        ta0.val(v1);
+        ta1.val(v0);
+        v0 = LOADED_DESCRIPTIONS["r"+r0];
+        v1 = LOADED_DESCRIPTIONS["r"+r1];
+        LOADED_DESCRIPTIONS["r"+r0] = v1;
+        LOADED_DESCRIPTIONS["r"+r1] = v0;
+        if(LOADED_DESCRIPTIONS["r"+r0]) { ta0.summernote(); }
+        if(LOADED_DESCRIPTIONS["r"+r1]) { ta1.summernote(); }
 
         /* Swap images. This is tricky because file inputs can't have their content altered
          * for security reasons. Therefore they will be moved and relabelled instead.
@@ -190,7 +201,7 @@
         </tr>\n\
         <tr id="r%-description">\n\
           <td></td>\n\
-          <td class="description" colspan="{%if QUOTAS_ENABLED%}14{%else%}12{%endif%}">\n\
+          <td class="description" colspan="{%if QUOTAS_ENABLED%}15{%else%}13{%endif%}">\n\
             <textarea name="r%-description" rows="5"></textarea>\n\
           </td>\n\
         </tr>'.replace(/%/g, r_num));
@@ -279,6 +290,7 @@
     // ]]>
   </script>
   <style type="text/css">
+      td.place button:disabled { color: lightgray; }
       td.name input { width: 200px; }
       td.unit input { width: 50px; }
       td.unit-label { text-align: left; }
