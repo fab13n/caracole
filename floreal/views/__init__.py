@@ -21,7 +21,7 @@ from .spreadsheet import spreadsheet
 from .edit_subgroup_purchases import edit_subgroup_purchases
 from .edit_user_purchases import edit_user_purchases
 from .user_registration import user_register, user_register_post
-from .edit_delivery_products import edit_delivery_products
+from .edit_delivery_products import edit_delivery_products, delivery_products_json
 from .edit_user_memberships import edit_user_memberships, json_memberships
 from .regulation import adjust_subgroup
 from .view_purchases import \
@@ -184,39 +184,33 @@ def list_delivery_models(request, network, all_networks=False):
 
 
 @nw_admin_required()
-def create_delivery(request, network=None, dv_model=None):
+def create_delivery(request, network, dv_model=None):
 
     """Create a new delivery, then redirect to its edition page."""
-    if network:
-        nw = m.Network.objects.get(id=network)
-    else:
-        nw = dv_model.network
-    if dv_model:
-        dv_model = m.Delivery.objects.get(id=dv_model)
-
+    nw = get_network(network)
     if request.user not in nw.staff.all():
         # Vérifier qu'on est bien admin du bon réseau
         return HttpResponseForbidden('Réservé aux administrateurs du réseau ' + nw.name)
+
     months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet',
               'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
     now = datetime.now()
     name = '%s %d' % (months[now.month-1], now.year)
+    fmt = "%dème de " + name
     n = 1
     while m.Delivery.objects.filter(network=nw, name=name).exists():
-        if n == 1:
-            fmt = "%dème de " + name
         n += 1
         name = fmt % n
     new_dv = m.Delivery.objects.create(name=name, network=nw, state=m.Delivery.PREPARATION)
     if dv_model:
-        for prev_pd in dv_model.product_set.all():
-            new_dv.description = dv_model.description
-            new_dv.save()
-            m.Product.objects.create(delivery=new_dv, name=prev_pd.name, price=prev_pd.price,
-                                     quantity_per_package=prev_pd.quantity_per_package,
-                                     unit=prev_pd.unit, quantity_limit=prev_pd.quantity_limit,
-                                     unit_weight=prev_pd.unit_weight, quantum=prev_pd.quantum,
-                                     description=prev_pd.description)
+        dv_model = m.Delivery.objects.get(id=dv_model)
+        new_dv.description = dv_model.description
+        new_dv.save()
+        for pd in dv_model.product_set.all():
+            pd.pk = None
+            pd.delivery_id=new_dv.id
+            pd.save()  # Will duplicate because pk==None
+
     m.JournalEntry.log(request.user, "Created new delivery dv-%d %s in nw-%d %s", new_dv.id, name, nw.id, nw.name)
     return redirect(reverse('edit_delivery_products', kwargs={'delivery': new_dv.id})+"?new=true")
 
