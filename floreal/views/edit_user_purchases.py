@@ -29,27 +29,17 @@ def edit_user_purchases(request, delivery):
             # TODO: display errors in template
             return redirect("edit_user_purchases", delivery=delivery.id)
     else:
-        # Turn product objects into records, so that we can monkey-patch purchase data in it
-        products = {pd['id']: pd for pd in m.Product.objects.filter(delivery=delivery).values()}
-        # TODO could be done in a single SQL query:
-        # 1. group then sum purchases by product within a delivery, you get totals bought
-        # 2. deduce from quota if applicable
-        for pd in products.values():
-            pd['left'] = m.Product.objects.get(id=pd['id']).left
-            pd['purchased'] = 0  # Will be overridden if a purchase is found
-            pd['max_quantity'] = pd['left']
-        for pc in m.Purchase.objects.filter(product__delivery=delivery, user=user):
-            pd = products[pc.product_id]
-            pd['purchased'] = pc.quantity
-            if pd['left'] is not None:
-                pd['max_quantity'] = pc.quantity + pd['left']
-
+        order = m.Order(user, delivery, with_dummies=True)
+        some_packaged = any(pc.product.quantity_per_package is not None for pc in order.purchases)
         vars = {
-            'QUOTAS_ENABLED': True,
             'user': user,
             'delivery': delivery,
             'subgroup': delivery.network.subgroup_set.get(users__in=[user]),
-            'products': products,
+            'order': order,
+            'some_packaged': some_packaged,
+            'out_of_stock_colspan': 6 if some_packaged else 5,
+            'total_padding_right_colspan': 2 if some_packaged else 1,
+            'description_colspan': 7 if some_packaged else 6,
         }
         vars.update(csrf(request))
         return render(request,'edit_user_purchases.html', vars)
@@ -63,23 +53,22 @@ def _parse_form(request):
     """
     d = request.POST
     dv = m.Delivery.objects.get(pk=int(d['dv-id']))
-    od = m.Order(request.user, dv)
+    od = m.Order(request.user, dv, with_dummies=True)
     prev_purchases = {pc.product: pc for pc in od.purchases}
     for pd in dv.product_set.all():
         ordered = float(d.get("pd%s" % pd.id, "0"))
-        if ordered <= 0 and pd not in prev_purchases:
-            continue
-        if pd in prev_purchases:
-            pc = prev_purchases[pd]
-        else:
-            pc = m.Purchase.objects.create(user=request.user, product=pd, quantity=0)
-        if ordered <= 0:
+        pc = prev_purchases[pd]
+        if pc.quantity == ordered:  # No change
+            pass
+        elif ordered == 0:  # Cancel existing purchase
             pc.delete()
-        else:
+        elif pc.quantity == 0:  # Create a non-dummy purchase
+            pc = m.Purchase.objects.create(user=request.user, product=pd, quantity=ordered)
+            set_limit(pd, last_pc=pc)  # In case of penury
+        else:  # Update existing purchase quantity
             pc.quantity = ordered
             pc.save()
-        set_limit(pd)  # In case of penury
+            set_limit(pd, last_pc=pc)  # In case of penury
 
     m.JournalEntry.log(request.user, "Modified their purchases for dv-%d %s/%s", dv.id, dv.network.name, dv.name)
-
     return True  # true == no error
