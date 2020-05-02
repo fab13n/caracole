@@ -104,7 +104,7 @@ services:
       - ${VOLUMES}/static:/var/www/caracole/static
       - ${VOLUMES}/media:/var/www/caracole/media
       - ${VOLUMES}/certbot/www:/var/www/certbot
-      # - ./nginx/maintenance.html:/var/www/maintenance.html
+      - ${VOLUMES}/maintenance:/var/www/maintenance
     depends_on:
       - django_prod
     

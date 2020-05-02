@@ -3,13 +3,23 @@ upstream django { server django_prod:8000; }
 server {
   listen 80;
   server_name $PUBLIC_HOST;
+
   location / {
+    if (-f /var/www/maintenance/maintenance.html) {
+      return 503;
+    }
     # Force redirection to HTTPS
     return 301 https://$host$request_uri;
   }    
+
   location /.well-known/acme-challenge {
     # Where certbot posts certificate renewal challenges for Letsencrypt
     root /var/www/certbot;
+  }
+
+  error_page 503 /maintenance.html;
+  location /maintenance.html {
+    alias /var/www/maintenance/maintenance.html;
   }
 }
 
@@ -23,6 +33,9 @@ server {
   ssl_certificate_key /etc/letsencrypt/live/$PUBLIC_HOST/privkey.pem;
 
   location / {
+    if (-f /var/www/maintenance/maintenance.html) {
+      return 503;
+    }
     uwsgi_pass  django;
     include     uwsgi_params;
   }
@@ -30,7 +43,13 @@ server {
   location /static/ {
     alias /var/www/caracole/static/;
   }
+
   location /media/ {
     alias /var/www/caracole/media/;
+  }
+
+  error_page 503 /maintenance.html;
+  location /maintenance.html {
+    alias /var/www/maintenance/maintenance.html;
   }
 }

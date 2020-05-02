@@ -7,6 +7,9 @@ server {
   gzip_comp_level 6;
 
   location / {
+    if (-f /var/www/maintenance/maintenance.html) {
+      return 503;
+    }
     uwsgi_pass  django;
     include     uwsgi_params;
   }
@@ -17,5 +20,10 @@ server {
 
   location /media/ {
     alias /var/www/caracole/media/;
+  }
+
+  error_page 503 /maintenance.html;
+  location /maintenance.html {
+    alias /var/www/maintenance/maintenance.html;
   }
 }
