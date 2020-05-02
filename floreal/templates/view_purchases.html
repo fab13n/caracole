@@ -113,9 +113,10 @@
     </tr>
     {% endif %}
 
-    {% if sgr.price > 0 %}{# if there is at least one purchase for that subgroup #}
+    {% if sgr.price != 0 %}{# if there is at least one purchase for that subgroup #}
     {% for ur in sgr.users %}{# each subgroup user's row #}
-    {% if ur.price > 0 %}{# this user made some purchases #}
+    {# first user is extra user: it may have negative commands causing a total of 0. #}
+    {% if ur.price != 0 or forloop.counter0 == 0 %}{# this user made some purchases #}
     <tr class="content_row group_content_{{sgr.subgroup.id}} {% cycle 'one' 'two' 'three' 'four' %}">
         <th class="left">{{ur.user.first_name}} {{ur.user.last_name}}</th>
         <td class="price">{{ur.price|price}}</td>
