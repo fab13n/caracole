@@ -8,7 +8,7 @@ Voici le récapitulatif de vos commandes.
 {% for item in purchases_by_delivery %}
 {{item.dv.name}}: {{item.total|price}}
 ---
-{{item.dv.description}}
+{{item.dv.description_text}}
 ---
 {% for pc in item.pcs %}
 - {{pc}}{% endfor %}

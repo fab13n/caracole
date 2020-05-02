@@ -2,12 +2,13 @@ Django==3.0.4
 django-extensions==2.2.9
 django-registration-redux==2.7
 django-impersonate==1.5
+html2text==2020.1.16
 ipython==7.13.0
-Markdown==3.2.1
+Markdown==3.2.1 
 psycopg2-binary==2.8.5
 pytz==2019.3
 six==1.14.0
 typing==3.7.4.1
-uwsgi
+uwsgi==2.0.18
 XlsxWriter==1.2.8
 Pillow==7.1.1

@@ -9,6 +9,8 @@ from django.contrib.auth.models import User
 from floreal.francais import articulate, plural, Plural
 from caracole import settings
 
+from html2text import html2text
+
 
 class UserPhones(models.Model):
     """Associate one or several phone numbers to each user."""
@@ -60,6 +62,9 @@ class Network(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def description_text(self):
+        return html2text(self.description)
 
 class Subgroup(models.Model):
     """Subgroup of a network. Each subgroup has a set of regular users, and a set of staff
@@ -179,6 +184,10 @@ class Delivery(models.Model):
         else:
             return min(s.state for s in states.all())
 
+    @property
+    def description_text(self):
+        return html2text(self.description)
+
     class Meta:
         verbose_name_plural = "Deliveries"
         unique_together = (('network', 'name'),)
@@ -249,6 +258,10 @@ class Product(models.Model):
         else:
             quantity_ordered = self.purchase_set.aggregate(t=Sum('quantity'))['t'] or 0
             return self.quantity_limit - quantity_ordered
+
+    @property
+    def description_text(self):
+        return html2text(self.description)
 
 
 class Purchase(models.Model):
