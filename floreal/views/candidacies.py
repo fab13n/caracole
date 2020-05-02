@@ -102,11 +102,21 @@ def cancel_candidacy(request, candidacy):
     return redirect(target) if target else redirect('candidacy')
 
 
-@sg_admin_required(lambda a: get_candidacy(a['candidacy']).subgroup)
+# Regular checker fails on candidacies handled more than once.
+# @sg_admin_required(lambda a: get_candidacy(a['candidacy']).subgroup)
 def validate_candidacy(request, candidacy, response):
-    cd = get_candidacy(candidacy)
-    m.JournalEntry.log(request.user, "%s candidacy from u-%d %s to sg-%d %s/%s",
-                       ("Granted" if response == 'Y' else 'Rejected'), cd.user.id, cd.user.username,
+    try:
+        cd = get_candidacy(candidacy)
+        sg = cd.subgroup
+        u = request.user
+        if u not in sg.sg.staff.all() and user not in sg.network.staff.all():
+            return HttpResponseForbidden('Réservé aux administrateurs du sous-groupe '+sg.network.name+'/'+sg.name)
+    except m.Candidacy.DoesNotExist:
+        m.JournalEntry.log("Attempt to treat inexistant candidacy cd-%d from %s", cd.id, cd.user.username)
+        return redirect(request.GET.get(next, 'candidacy'))
+
+    m.JournalEntry.log(request.user, "%s candidacy cd-%d from u-%d %s to sg-%d %s/%s",
+                       ("Granted" if response == 'Y' else 'Rejected'), cd.id, cd.user.id, cd.user.username,
                        cd.subgroup.id, cd.subgroup.network.name, cd.subgroup.name)
     return validate_candidacy_without_checking(request, candidacy=candidacy, response=response, send_confirmation_mail=True)
 
