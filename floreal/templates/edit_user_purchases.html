@@ -52,6 +52,7 @@
     #products-table tr.total th { border: none; text-align: right; }
     #products-table tr.total td { border: none; text-align: right; font-weight: bold;}
     #products-table td input { margin: 0px; text-align: right; width: 50px; font-size: large; }
+    #products-table td.image img { width:125px; height: 125px; margin: 5px; }
     #products-table td.product-name { text-align: right; }
     #products-table td.unit-price { text-align: right; }
     #products-table td.price { text-align: right; }
@@ -95,7 +96,7 @@
     {% endif %}
     <table id="products-table">
         <tr>
-            <th>Produit</th>
+            <th colspan="2">Produit</th>
             <th colspan="2">Quantité</th>
             <th>Prix unitaire</th>
             <th>Prix</th>
@@ -105,7 +106,12 @@
         {% for pc in order.purchases %}
         {% with pd=pc.product %}
         <tr class="product-row" id="pd{{pd.id}}">
+          {% if pc.described %}
+          <td class="image" rowspan=2><img src="{% if pd.image %}{{pd.image.url}}{% else %}/media/none.png{% endif %}"/></td>
           <td class="product-name">{{pd.name}}</td>
+          {% else %}
+          <td class="product-name" colspan=2>{{pd.name}}</td>
+          {% endif %}
           {% if pc.max_quantity == 0 %}
           <td colspan="{{out_of_stock_colspan}}" class="out-of-stock">(Produit épuisé)</td>
           {% else %}{# out-of-stock #}
@@ -127,17 +133,17 @@
           {% endif %}{# out-of-stock #}
         </tr>
         <tr><td colspan="{{description_colspan}}" class="description">
-          {% if pc.max_quantity != 0 and pd.description %}<hr/><div>{{pd.description|safe}}</div>{% endif %}
+          {% if pc.described %}<hr/><div>{{pd.description|default_if_none:"—"|safe}}</div>{% endif %}
         </td></tr>
         {% endwith %}{# pd #}
         {% endfor %}{# pc #}
         <tr class="total">
-          <td class="total-padding" colspan="3"></td>
+          <td class="total-padding" colspan="4"></td>
           <th>Prix total:</th><td class="total_cell"><span class="total_price">{{order.price|floatformat:2}}</span>&nbsp;€</td>
           <td class="total-padding" colspan="{{total_padding_right_colspan}}"></td>
         </tr>
         <tr class="total" class="total">
-          <td class="total-padding"   colspan="3"></td>
+          <td class="total-padding"   colspan="4"></td>
           <th>Poids total:</th><td class="total_cell"><span class="total_weight">{{order.weight|floatformat}}</span>&nbsp;kg</td>
           <td class="total-padding" colspan="{{total_padding_right_colspan}}"></td>
         </tr>

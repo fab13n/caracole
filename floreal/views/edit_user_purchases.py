@@ -31,6 +31,8 @@ def edit_user_purchases(request, delivery):
     else:
         order = m.Order(user, delivery, with_dummies=True)
         some_packaged = any(pc.product.quantity_per_package is not None for pc in order.purchases)
+        for pc in order.purchases:
+            pc.described = (pc.product.description or pc.product.image) and pc.max_quantity != 0
         vars = {
             'user': user,
             'delivery': delivery,
@@ -56,7 +58,10 @@ def _parse_form(request):
     od = m.Order(request.user, dv, with_dummies=True)
     prev_purchases = {pc.product: pc for pc in od.purchases}
     for pd in dv.product_set.all():
-        ordered = float(d.get("pd%s" % pd.id, "0"))
+        try:
+            ordered = float(d.get("pd%s" % pd.id, "0"))
+        except ValueError:  # Field present, didn't contain a valid float
+            continue
         pc = prev_purchases[pd]
         if pc.quantity == ordered:  # No change
             pass

@@ -9,12 +9,18 @@ from django.shortcuts import render, redirect
 from django.template.context_processors import csrf
 from django.http import HttpResponseForbidden
 from django.core.files.uploadedfile import SimpleUploadedFile
+from io import BytesIO
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from PIL import Image
 
 from .getters import get_delivery
 from .decorators import nw_admin_required
 from ..models import Product, Delivery, JournalEntry
 from ..penury import set_limit
 from django.http import JsonResponse
+
+
+IMAGE_SIZE = 250
 
 
 def _serialize_product(pd):
@@ -60,9 +66,7 @@ def edit_delivery_products(request, delivery):
             return redirect('edit_delivery_products', delivery.id)
 
     else:  # Create and populate forms to render
-        vars = {'QUOTAS_ENABLED': True,
-                'user': request.user,
-                'delivery': delivery}
+        vars = {'user': request.user, 'delivery': delivery}
         vars.update(csrf(request))
         return render(request,'edit_delivery_products.html', vars)
 
@@ -113,16 +117,10 @@ def _pd_update(pd, fields):
     pd.description = fields['description']
     if 'image' in fields:
         pd.image = fields['image'] 
-        _resize_image(pd)
+        _convert_image(pd)
 
 
-from io import BytesIO
-from django.core.files.uploadedfile import InMemoryUploadedFile
-from PIL import Image
-
-IMAGE_SIZE = 250
-
-def _resize_image(pd):
+def _convert_image(pd):
     f = pd.image.file
     image = Image.open(f)
     w = image.width
@@ -133,6 +131,7 @@ def _resize_image(pd):
         (x, y, h) = (0, (h-w)/2, w)
     image = image.crop((x, y, w+x, h+y))
     image = image.resize((IMAGE_SIZE, IMAGE_SIZE), Image.ANTIALIAS)
+    image = image.convert('RGB')  # In case of CMYK or RGBA
     name = "pd_"+str(pd.id)+".jpg"
     buffer = BytesIO()
     image.save(buffer, "JPEG")
@@ -192,7 +191,8 @@ def _parse_form(request):
                                         quantity_limit=fields['quantity_limit'],
                                         unit=fields['unit'],
                                         unit_weight=fields['unit_weight'],
-                                        delivery=dv)
+                                        delivery=dv,
+                                        image=fields.get('image'))
             pd.save()
 
     # In case of change in quantity limitations, adjust granted quantities for purchases
