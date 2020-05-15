@@ -109,7 +109,7 @@ def validate_candidacy(request, candidacy, response):
         cd = get_candidacy(candidacy)
         sg = cd.subgroup
         u = request.user
-        if u not in sg.sg.staff.all() and user not in sg.network.staff.all():
+        if u not in sg.staff.all() and user not in sg.network.staff.all():
             return HttpResponseForbidden('Réservé aux administrateurs du sous-groupe '+sg.network.name+'/'+sg.name)
     except m.Candidacy.DoesNotExist:
         m.JournalEntry.log("Attempt to treat inexistant candidacy cd-%d from %s", cd.id, cd.user.username)
@@ -121,10 +121,12 @@ def validate_candidacy(request, candidacy, response):
     return validate_candidacy_without_checking(request, candidacy=candidacy, response=response, send_confirmation_mail=True)
 
 @nw_admin_required()
-def manage_candidacies(request, network):
-    nw = get_network(network)
-    candidacies = m.Candidacy.objects.filter(subgroup__network=nw)
-    return render(request, 'manage_candidacies.html', {'user': request.user, 'nw': nw, 'candidacies': candidacies})
+def manage_candidacies(request):
+    candidacies = (
+        m.Candidacy.objects.filter(subgroup__network__staff__in=[request.user]) |
+        m.Candidacy.objects.filter(subgroup__staff__in=[request.user])
+    ).distinct()
+    return render(request, 'manage_candidacies.html', {'user': request.user, 'candidacies': candidacies})
 
 def validate_candidacy_without_checking(request, candidacy, response, send_confirmation_mail):
     """A (legal) candidacy has been answered by an admin.

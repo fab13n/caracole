@@ -42,7 +42,7 @@ urlpatterns = [
     path('cd-<candidacy>/set-response/<response>', views.validate_candidacy, name='validate_candidacy'),
     path('nw-<network>/leave', views.leave_network, name='leave_network'),
     path('new-cd/sg-<subgroup>', views.create_candidacy, name='create_candidacy'),
-    path('nw-<network>/candidacies', views.manage_candidacies, name='manage_candidacies'),
+    path('candidacy/staff', views.manage_candidacies, name='manage_candidacies'),
 
     re_path('^dv-(?P<delivery>[^./]+).html$', views.view_purchases_html, name='view_all_purchases_html'),
     path('dv-<delivery>/table.pdf', views.view_purchases_latex, name='view_all_purchases_latex'),

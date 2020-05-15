@@ -39,26 +39,51 @@ def index(request):
     user = request.user
 
     SUBGROUP_ADMIN_STATES = [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN, m.Delivery.FROZEN, m.Delivery.REGULATING]
-    DISPLAYED_STATES = [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN, m.Delivery.FROZEN]
+    SUBGROUP_ADMIN_ACTION_STATES = [m.Delivery.ORDERING_ADMIN, m.Delivery.REGULATING]
+    USER_DISPLAY_STATES = [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN, m.Delivery.FROZEN]
 
     vars = {'user': request.user, 'Delivery': m.Delivery, 'SubgroupState': m.SubgroupStateForDelivery}
     vars['has_phone'] = phone.has_number(request.user)
-    user_subgroups = m.Subgroup.objects.filter(users__in=[user])
+    user_subgroups = user.user_of_subgroup.all()
     user_networks = [sg.network for sg in user_subgroups]
-    vars['deliveries'] = m.Delivery.objects \
-        .filter(network__in=user_networks, state__in=DISPLAYED_STATES) \
+
+    # Deliveries which need to be displayed, and maybe ordered on.
+    # TODO Include order here rather then through filters
+    vars['user_deliveries'] = m.Delivery.objects \
+        .filter(network__in=user_networks, state__in=USER_DISPLAY_STATES) \
         .order_by('network', '-id')
-    vars['network_admin'] = m.Network.objects.filter(staff__in=[user])
-    subgroup_admin = m.Subgroup.objects.filter(staff__in=[user])
-    subgroup_admin = [{'sg': sg,
-                       'dv': sg.network.delivery_set.filter(state__in=SUBGROUP_ADMIN_STATES),
-                       'cd': sg.candidacy_set.all()}
-                       for sg in subgroup_admin]
-    subgroup_admin = [sg_dv_cd for sg_dv_cd in subgroup_admin if sg_dv_cd['dv'].exists() or sg_dv_cd['cd'].exists()]
-    vars['subgroup_admin'] = subgroup_admin
-    vars['messages'] = {("Message général", msg.message, msg.id) for msg in m.AdminMessage.objects.filter(everyone=True)}
-    vars['messages'] |= {(nw.name, msg.message, msg.id) for nw in user_networks for msg in nw.adminmessage_set.all()}
-    vars['messages'] |= {(str(sg), msg.message, msg.id) for sg in user_subgroups for msg in sg.adminmessage_set.all()}
+
+    # Every network for which I'm admin
+    vars['staffed_networks'] = user.staff_of_network.all()
+
+    # Subgroups and ctive deliveries for which I'm subgroup admin but not network-admin
+    vars['staffed_subgroups'] = [
+        {'subgroup': sg, 
+         'deliveries': sg.network.delivery_set.filter(state__in=SUBGROUP_ADMIN_STATES)
+        } for sg in user.staff_of_subgroup.exclude(network__staff__in=[user])
+    ]
+
+    # Every pending candidacy for which I'm network or subgroup admin
+    vars['candidacies'] = (
+        m.Candidacy.objects.filter(subgroup__network__staff__in=[user]) |
+        m.Candidacy.objects.filter(subgroup__staff__in=[user])
+    ).distinct()
+
+    # Every delivery for which I'm subgroup admin and an action is expected
+    actions = [
+        {'subgroup': sg, 
+         'deliveries': sg.network.delivery_set.filter(state__in=SUBGROUP_ADMIN_ACTION_STATES)
+        } for sg in user.staff_of_subgroup.all()
+    ]
+    vars['subgroup_action_deliveries'] = [a for a in actions if a['deliveries']]
+    
+    # Admin messages to display
+    vars['messages'] = (
+        {("Message général", msg.message, msg.id) for msg in m.AdminMessage.objects.filter(everyone=True)} |
+        {(nw.name, msg.message, msg.id) for nw in user_networks for msg in nw.adminmessage_set.all()} |
+        {(str(sg), msg.message, msg.id) for sg in user_subgroups for msg in sg.adminmessage_set.all()}
+    )
+
     return render(request,'index.html', vars)
 
 

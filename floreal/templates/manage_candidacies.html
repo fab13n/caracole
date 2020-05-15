@@ -16,17 +16,18 @@
 {% endblock %}
 
 {% block content %}
-<h1>Candidatures au réseau {{nw.name}}</h1>
+<h1>Candidatures</h1>
 
 <p>Valider ou refuser les candidatures :</p>
 
 <ul>
 {% for cd in candidacies %}
-<li>{{cd.user.first_name}} {{cd.user.last_name}} (<a href="mailto://{{cd.user.email}}">{{cd.user.email}}</a>)
-    → {{cd.subgroup.name}} :
-    <a href="{% url 'validate_candidacy' candidacy=cd.id response='Y' %}?next={% url 'manage_candidacies' network=nw.id %}"><span class="yes">Oui</span></a>✔
+<li><a href="mailto://{{cd.user.email}}">{{cd.user.first_name}} {{cd.user.last_name}}</a>
+    pour {{cd.subgroup.network.name}}
+    {% if cd.subgroup.name != cd.subgroup.network.name %} / {{cd.subgroup.name}} {%endif %} :
+    <a href="{% url 'validate_candidacy' candidacy=cd.id response='Y' %}?next={% url 'manage_candidacies' %}"><span class="yes">Accepter</span></a>✔
     /
-    <a href="{% url 'validate_candidacy' candidacy=cd.id response='N' %}?next={% url 'manage_candidacies' network=nw.id %}"><span class="no">Non</span></a>✘
+    <a href="{% url 'validate_candidacy' candidacy=cd.id response='N' %}?next={% url 'manage_candidacies' %}"><span class="no">Refuser</span></a>✘
 </li>
 {% endfor %}
 </ul>

@@ -65,7 +65,7 @@ tr:hover input[type=button] {visibility: visible;}
   <li><a href="{% url 'edit_network_description' network=nw.id %}">Éditer la présentation du réseau <img src="{% static 'images/edit.png' %}"/></a></li>
   <li><a href="{% url 'emails_network' network=nw.id %}">e-mails <img src="{% static 'images/email.png' %}"/></a> et
       <a href="{% url 'phones_network' network=nw.id %}">téléphones</a> ☎ du réseau {{nw.name}}.</li>
-  <li><a href="{% url 'manage_candidacies' network=nw.id %}">Gérer les candidatures</a></li>
+  <li><a href="{% url 'manage_candidacies' %}">Gérer les candidatures</a></li>
   <li><a href="#" id='create-subgroup'>Créer un nouveau sous-groupe de {{nw.name}}</a></li>
   <li>Voir la synthèse des commandes en cours
       <a href="{% url 'all_deliveries_html' network=nw.id states='BCDE' %}">en ligne</a>,
