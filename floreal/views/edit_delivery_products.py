@@ -71,7 +71,7 @@ def edit_delivery_products(request, delivery):
         return render(request,'edit_delivery_products.html', vars)
 
 def float_i18n(s):
-    """Some browsers return French-style commas rather than dot-based floats".
+    """Some browsers return French-style commas rather than dot-based floats."""
     return float(s.replace(",", "."))
 
 def _get_pd_fields(d, files, r_prefix):
