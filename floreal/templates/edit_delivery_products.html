@@ -1,99 +1,266 @@
 {% extends 'layout_wide.html' %}
 {% load static %}
 
+{% block document_ready %}
+
+  /* Turn plain inputs into Bootstrap inputs. */
+  $("input,select,button").addClass("form-control");
+
+  /* Turn plain textareas into TinyMCE WYSIWYG editors. */
+  tinymce.init({
+    selector: 'textarea',
+    content_css: "{% static 'floreal.css' %}",
+    language: 'fr_FR'
+  });
+
+{% endblock %}
+
 {% block head %}
-  <script type="text/javascript" src="{% static 'js/jquery-3.4.1.min.js' %}"></script>
-  <link href="{% static 'js/bootstrap.min.css' %}" rel="stylesheet">
-  <script type="text/javascript" src="{% static 'js/bootstrap.min.js' %}"></script>
-  <link href="{% static 'summernote/summernote.min.css' %}" rel="stylesheet">
-  <script type="text/javascript" src="{% static 'summernote/summernote.min.js' %}"></script>
-  <script type='text/javascript' src="{% static 'js/edit_delivery_products.js' %}"></script>
-  <style type="text/css">
-      td.place { white-space: nowrap; }
-      td.place button:disabled { color: lightgray; }
-      td.name input { width: 200px; }
-      td.unit input { width: 50px; }
-      td.unit-label { text-align: left; }
-      td.price input { width: 60px; text-align: right; }
-      td.quantity_per_package input { width: 45px; text-align: right; }
-      .quota, .quantity_per_package { padding-left: 10px; }
-      td.quota input { width: 45px; }
-      td.quantum input { width: 45px; }
-      td.quantity_limit input { width: 45px; }
-      td.unit_weight input { width: 45px; text-align: right; }
-      td.description { text-align: left; }
-      tr.deleted { text-decoration: line-through; }
-      tr.deleted input { text-decoration: line-through; }
-      tr.deleted textarea { text-decoration: line-through; }
-      #products-table th.non-rotate { vertical-align: bottom; text-align : center}
-      #products-table textarea { width: 100%; }
-      #products-table input { padding: 1px;}  
-      table .hidden { display: none; }
-      td.place button { padding: 1px; }
-      #dv-table th {text-align: right; }
-      #dv-table td input { width: 100%; }
-      #dv-table td select { width: 100%; }
-      #dv-description { width: 100%; height: 150px; }
-      td.image-upload input { display: none; }
-      .image-upload label { margin: 1px; }
-      .image-upload img { width: 25px; height: 25px; transition: transform 0.1s; object-fit: cover; }
-      .image-upload img:hover { transform: scale(10); border: 1px solid #811305; box-shadow: 1px 0.5px 0.5px black; cursor: pointer; }
-  </style>
+ 
+<script type='text/javascript' src="{% static 'edit_delivery_products.js' %}"></script>
+
+<style type="text/css">
+  td.place {
+    white-space: nowrap;
+  }
+
+  td.place button:disabled {
+    color: lightgray;
+  }
+
+  td.name input {
+    width: 200px;
+  }
+
+  td.unit input {
+    width: 50px;
+  }
+
+  td.unit-label {
+    text-align: left;
+  }
+
+  td.price input {
+    width: 60px;
+    text-align: right;
+  }
+
+  td.quantity_per_package input {
+    width: 45px;
+    text-align: right;
+  }
+
+  .quota,
+  .quantity_per_package {
+    padding-left: 10px;
+  }
+
+  td.quota input {
+    width: 75px;
+  }
+
+  td.quantum input {
+    width: 75px;
+  }
+
+  td.quantity_limit input {
+    width: 75px;
+  }
+
+  td.unit_weight input {
+    width: 75px;
+    text-align: right;
+  }
+
+  td.description {
+    text-align: left;
+  }
+
+  tr.deleted {
+    text-decoration: line-through;
+  }
+
+  tr.deleted input {
+    text-decoration: line-through;
+  }
+
+  tr.deleted textarea {
+    text-decoration: line-through;
+  }
+
+  #products-table th.non-rotate {
+    vertical-align: bottom;
+    text-align: center
+  }
+
+  #products-table textarea {
+    width: 100%;
+  }
+
+  #products-table input {
+    padding: 1px;
+  }
+
+  table .hidden {
+    display: none;
+  }
+
+  td.place button {
+    padding: 1px;
+  }
+
+  #dv-table th {
+    text-align: right;
+  }
+
+  #dv-table td input {
+    width: 100%;
+  }
+
+  #dv-table td select {
+    width: 100%;
+  }
+
+  #dv-description {
+    width: 100%;
+    height: 150px;
+  }
+
+  td.image-upload input {
+    display: none;
+  }
+
+  .image-upload label {
+    margin: 1px;
+  }
+
+  .image-upload img {
+    width: 25px;
+    height: 25px;
+    transition: transform 0.1s;
+    object-fit: cover;
+  }
+
+  .image-upload img:hover {
+    transform: scale(10);
+    border: 1px solid #811305;
+    box-shadow: 1px 0.5px 0.5px black;
+    cursor: pointer;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
 <form method="post" action="" enctype="multipart/form-data" id="form">
-    <table id="dv-table">
-        <tr>
-          <th><label for="dv-name">Nom de la livraison :</label></th>
-          <td><input id="dv-name" maxlength="64" name="dv-name" type="text" value="" required  /></td>
-        </tr>
-      <tr>
-        <th><label for="dv-state">État de la livraison :</label></th>
-        <td><select id="dv-state" name="dv-state">
+  <table id="dv-table">
+    <tr>
+      <th><label for="dv-name">Nom de la livraison :</label></th>
+      <td><input id="dv-name" maxlength="64" name="dv-name" type="text" value="" required /></td>
+    </tr>
+    <tr>
+      <th><label for="dv-state">État de la livraison :</label></th>
+      <td><select id="dv-state" name="dv-state">
           {% for key, name in delivery.STATE_CHOICES.items %}
-          <option value="{{key}}" {% if delivery.state == key %}selected="selected"{% endif %}>{{name}}</option>
+          <option value="{{key}}" {% if delivery.state == key %}selected="selected" {% endif %}>{{name}}</option>
           {% endfor %}
         </select></td>
+    </tr>
+  </table>
+
+  <div style="height: 50px;"></div>
+
+  <h3>Description de la commande</h3>
+  <p>
+    <textarea name="dv-description" id="dv-description" rows="10"></textarea>
+  </p>
+
+  <table id="products-table">
+    <thead>
+      <tr>
+        <th class="non-rotate hidden"></th>
+        <th class="non-rotate">#</th>
+        <th class="non-rotate">Produit</th>
+        <th class="non-rotate">Prix</th>
+        <th class="non-rotate"></th>
+        <th class="non-rotate">Unité</th>
+        <th colspan="2" class="non-rotate qpp">Par carton</th>
+        <th colspan="2" class="non-rotate quota">Quota</th>
+        </th>
+        <th colspan="2" class="non-rotate">Quantum</th>
+        <th colspan="2" class="non-rotate">Poids</th>
+        <th class="non-rotate">Image</th>
+        <th class="rotate">
+          <div>
+            <div>Effacer ?</div>
+          </div>
+        </th>
+        <th class="rotate">
+          <div>
+            <div>Description ?</div>
+          </div>
+        </th>
       </tr>
-    </table>
+      <tr>
+        <td>&nbsp;</td>
+      </tr>
 
-    <div style="height: 50px;"></div>
+      <template>
+        <tr id="%">
+          <td class="hidden id">
+            <input name="%-id" type="hidden" />
+          </td>
+          <td class="place">
+            <button type="button" class="up">▲</button> % <button class="down" type="button">▼</button>
+            <input name="%-place" type="hidden" value="%" />
+          </td>
+          <td class="name"><input maxlength="64" name="%-name" type="text" /></td>
+          <td class="price"><input name="%-price" step="0.01" min="0" type="number" /></td>
+          <td>€/</td>
+          <td class="unit"><input maxlength="64" name="%-unit" type="text" /></td>
+          <td class="quantity_per_package"><input name="%-quantity_per_package" type="number" /></td>
+          <td class="unit-label">&nbsp;<span class="unit-mirror"></span><span class="if-unit-mirror">/ct</span></td>
+          <td class="quantity_limit"><input name="%-quantity_limit" min="0" type="number" /></td>
+          <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>
+          <td class="quantum"><input name="%-quantum" min="0" type="number" step="0.001" /></td>
+          <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>
+          <td class="unit_weight"><input name="%-unit_weight" min="0" step="0.001" type="number" /></td>
+          <td>kg</td>
+          <td class="image-upload">
+            <div>
+              <input name="%-image-modified" class="image-modified" type="hidden" value="0" />
+              <label class="image-display">
+                <img class="product-image" src="/media/none.png" />
+                <input name="%-image-upload" type="file" accept="image/*" onchange="reflect_image_change(%, event)" />
+              </label>
+            </div>
+          </td>
+          <td class="deleted">
+            <input name="%-deleted" value="%-deleted" onchange="reflect_deletion(%)" type="checkbox">
+          </td>
+          <td class="described">
+            <input name="%-described" value="%-described" onchange="reflect_description(%)" type="checkbox">
+          </td>
+        </tr>
+        <tr id="%-description">
+          <td></td>
+          <td class="description" colspan="15">
+            <textarea name="%-description" id="r%-description-editor" rows="5"></textarea>
+          </td>
+        </tr>
+      </template>
 
-    <h3>Description de la commande</h3>
-    <p>
-        <textarea name="dv-description" id="dv-description" rows="10"></textarea>
-    </p>
 
-    <table id="products-table">
-        <thead>
-            <tr>
-                <th class="non-rotate hidden"></th>
-                <th class="non-rotate">#</th>
-                <th class="non-rotate">Produit</th>
-                <th class="non-rotate">Prix</th>
-                <th class="non-rotate"></th>
-                <th class="non-rotate">Unité</th>
-                <th colspan="2" class="non-rotate qpp">Par carton</th>
-                <th colspan="2" class="non-rotate quota">Quota</th></th>
-                <th colspan="2" class="non-rotate">Quantum</th>
-                <th colspan="2" class="non-rotate">Poids</th>
-                <th class="non-rotate">Image</th>
-                <th class="rotate"><div><div>Effacer ?</div></div></th>
-                <th class="rotate"><div><div>Description ?</div></div></th>
-            </tr>
-            <tr><td>&nbsp;</td></tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-    <p>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <p>
 
-        <button type='button' onclick="add_blank_products();">Ajouter des produits</button>
-        <input type="submit" value="Sauvegarder et continuer" name="save_and_stay"/>
-        <input type="submit" value="Sauvegarder et quitter" name="save_and_leave"/>			
-        <input type='hidden' name='dv-id' id='dv-id' value='' />
-        <input type='hidden' name='n_rows' id="n_rows" value='0' />
-        {% csrf_token %}
-	</p>
+    <button type='button' onclick="add_blank_products();">Ajouter des produits</button>
+    <input type="submit" value="Sauvegarder et continuer" name="save_and_stay" />
+    <input type="submit" value="Sauvegarder et quitter" name="save_and_leave" />
+    <input type='hidden' name='dv-id' id='dv-id' value='' />
+    <input type='hidden' name='n_rows' id="n_rows" value='0' />
+    {% csrf_token %}
+  </p>
 </form>
 {% endblock %}

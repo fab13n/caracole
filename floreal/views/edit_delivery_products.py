@@ -70,6 +70,9 @@ def edit_delivery_products(request, delivery):
         vars.update(csrf(request))
         return render(request,'edit_delivery_products.html', vars)
 
+def float_i18n(s):
+    """Some browsers return French-style commas rather than dot-based floats".
+    return float(s.replace(",", "."))
 
 def _get_pd_fields(d, files, r_prefix):
     """Retrieve form fields representing a product."""
@@ -90,12 +93,12 @@ def _get_pd_fields(d, files, r_prefix):
     r = {'id': id,
          'name': raw['name'],
          'place': int(raw['place']),
-         'price': float(raw['price']),
+         'price': float_i18n(raw['price']),
          'quantity_per_package': int(qpp) if qpp else None,
          'unit': raw['unit'] or 'pièce',
          'quantity_limit': int(quota) if quota else None,
-         'quantum': float(quantum) if quantum else None,
-         'unit_weight': float(weight) if weight is not None else None,
+         'quantum': float_i18n(quantum) if quantum else None,
+         'unit_weight': float_i18n(weight) if weight is not None else None,
          'description': raw['description'] if raw['described'] else None,
          'deleted': "%s-deleted" % (r_prefix) in d,
     }

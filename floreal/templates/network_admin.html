@@ -1,4 +1,4 @@
-{% extends 'layout.html' %}
+{% extends 'layout_wide.html' %}
 {% load floreal_filters %}
 {% load static %}
 
@@ -59,7 +59,6 @@ tr:hover input[type=button] {visibility: visible;}
 
 <h2>Administration du réseau {{nw.name}}</h2>
 <ul>
-  <li><a href="{% url 'index' %}">Retour à la page principale</a> ↩</li>
   <li><a href="{% url 'list_delivery_models' network=nw.id %}">Créer une nouvelle commande {{nw.name}} <img src="{% static 'images/plus.png' %}"/></a></li>
   <li><a href="{% url 'edit_user_memberships' network=nw.id %}">Modifier la liste des membres <img src="{% static 'images/edit.png' %}"/></a></li>
   <li><a href="{% url 'edit_network_description' network=nw.id %}">Éditer la présentation du réseau <img src="{% static 'images/edit.png' %}"/></a></li>
@@ -104,9 +103,7 @@ tr:hover input[type=button] {visibility: visible;}
   {% if candidacies %}
   <p></p>
   <h2>Candidatures</h2>
-  <li><a href="{% url 'manage_candidacies' network=nw.id %}">Gérer toutes les candidatures</a></li>
   <ul>
-    <li><a href="{% url 'manage_candidacies' network=nw.id %}">Gérer toutes les candidatures</a></li>
     {% for cd in candidacies %}
     <li>{{cd.user.first_name}} {{cd.user.last_name}}
       <a href="mailto://{{cd.user.email}}">({{cd.user.email}})</a> pour le sous-groupe <b>{{cd.subgroup.name}}</b>:

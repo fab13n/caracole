@@ -40,7 +40,7 @@ def invoice_mail_form(request, network):
             'nw': nw,
             'user': request.user,
             'deliveries': deliveries,
-            'recipients': m.User.objects.filter(purchase__product__delivery__state=m.Delivery.FROZEN),
+            'recipients': m.User.objects.filter(purchase__product__delivery__state=m.Delivery.FROZEN, is_active=True),
             'subject': "Commande "+nw.name,
             'body': get_template('invoice_mail.txt').template.source
         }

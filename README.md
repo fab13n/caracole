@@ -7,51 +7,51 @@ centaines de consommateurs.
 Principes
 =========
 
-Un producteur--ou un collectif de producteurs--gère un _réseau_
+Un collectif de producteurs et de consommateurs gère un _réseau_
 (_network_), qui propose des _commandes_ (_deliveries_). Chaque
 livraison propose un ensemble de _produits_ (_products_), dotés d'un
 nom, un prix, une unité de mesure (kilogramme, bouteille, pièce...),
 éventuellement d'un conditionnement (par exemple 10kg/carton, 6
-bouteilles/carton...).
+bouteilles/carton...), qu'un quota (quantité totale disponible).
 
-Lorsqu'une commande est proposée à la vente par un réseau, les
+Lorsqu'une commande est proposée à la vente sur un réseau, les
 _membres_ (_users_) inscrits à ce réseau peuvent commander les
-produits correspondants. À tout moment, le producteur a accès à l'état
-de la commande : qui a commandé quoi, avec tous les totaux en
+produits correspondants. Certains membres sont également _référants_ 
+(_admins_), en charge du bon déroulement de la commande. Ils ont accès
+à l'état de la commande : qui a commandé quoi, avec tous les totaux en
 quantités, en prix, en poids. Ces informations sont accessibles sur
-une page web ainsi que dans un tableau Excel; à chaque fois qu'un
-membre modifie sa commande, tous les tableaux sont automatiquement mis
-à jour. Bien sûr, le producteur peu geler la commande pour arrêter les
-modifications avant livraison.
+une page web, dans un tableau Excel, et sous forme imprimable (PDF); 
+à chaque fois qu'un membre modifie sa commande, tous les tableaux sont
+automatiquement mis à jour. Bien sûr, le producteur peu geler la 
+commande pour arrêter les modifications avant livraison.
 
-Passé un certain nombre de membres, il n'est pas pratique de les gérer
+TODO: clarifier user, subroup_admin, network_admin, staff, superuser.
+Faire la distinction django/floreal.
+
+Passé un certain nombre de membres, il n'est plus pratique de les gérer
 de façon monolythique; les membres d'un réseau sont donc répartis en
 _sous-groupes_ (_subgroups_), qui correspondent généralement aux
 différents lieux de livraison d'une commande.
 
-Outre les membres normaux du réseau, certains membres ont la qualité
-d'_administrateur_ (_staff_) de sous-groupe et/ou de réseau. Les
-administrateurs de réseau peuvent :
+Les sous-groupes ont des référants de sous-groupes (_subgroup admins_),
+qui peuvent :
 
-* créer et modifier des commandes (lister les produits disponibles,
-  leur prix, poids, conditionnements) ;
+* voir les achats de leur sous-groupe ;
 
-* gérer les utilisateurs : les inscrire à leur réseau, les répartir dans les
-  sous-groupes.
+* passer ou modifier des achats au nom de leurs membres ;
 
-Les administrateurs de sous-groupes, eux, peuvent voir et modifier les
-commandes des membres de leur sous-groupe, et commander du rab au nom
-de ce sous-groupe. Ils sont responsables de la livraison pour leur
-sous-groupes : ils s'assurent que chacun à bien payé et reçu ce qu'il
-doit, éventuellement ils font des ajustements, notamment en proposant
-l'éventuel rab commandé pour faire des caisses entières. Après la
-livraison, ils doivent mettre à jour les achats sur le site, pour que
-la comptabilité tombe juste.
+* accepter ou refuser les candidatures de membres à leur sous-groupe.
+
+Ils sont responsables de la livraison pour leur sous-groupe :
+ils s'assurent que chacun à bien payé et reçu ce qu'il
+doit, éventuellement ils font des ajustements, notamment en gérant le rab
+commandé pour faire des caisses entières. Après la livraison, ils doivent
+mettre à jour les achats sur le site, pour que la comptabilité tombe juste.
 
 Le site tient le compte des sommes dues, mais ne gère pas directement
 d'argent : ça serait compliqué, ça demanderait un niveau de sécurité
 considérable, et ça rajouterait un intermédiaire qui nous ferait
-sortir de la définition légale d'un circuit court.
+sortir de la définition d'un circuit court.
 
 Création d'un réseau
 ====================

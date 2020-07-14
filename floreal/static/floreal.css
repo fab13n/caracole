@@ -1,0 +1,49 @@
+a, h1, h2, h3, h4, h5, h6 {
+  color: #811305;
+}
+
+td.blank { border: none !important; }
+th { color: #811305; padding-left: 10px; padding-right: 10px; }
+td { text-align: center; }
+th.left,td.left { text-align: right; padding-right: 5px; white-space: nowrap; }
+th.top,td.top { padding-bottom: 3px; padding-left: 3px; padding-right: 3px; text-align: center; vertical-align: bottom; }
+th.left.top,td.left.top { text-align: right; }
+
+th.rotate {
+    height: 140px;
+    white-space: nowrap;
+    border: 0px !important;
+    padding-left: 0px;
+}
+
+th.rotate > div {
+    transform: translate(3px, 70px) rotate(315deg);
+    width: 30px;
+}
+
+th.rotate > div > div {
+    border-top: 1px solid #a75a50;
+    padding: 5px 10px 5px 30px;
+    width: 150px;
+    text-align: left;
+}
+
+.yes { font-weight: bold; color: green !important; }
+.no  { font-weight: bold; color: red !important; }
+
+ul.horizontal li { display: inline; margin-right: 1em; }
+
+[type=submit], button.submit {
+  color:            white;
+  background-color: #811305;
+  font-weight:      bold;
+  border:           #a75a50;
+  cursor:           pointer;
+  margin:           3px 0 3px 0;
+}
+
+[type=submit]:disabled, button.submit:disabled {
+  color:            white;
+  background-color: #818181;
+  border-color:     #818181;
+}

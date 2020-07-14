@@ -1,6 +1,38 @@
-{% extends 'layout_semi_wide.html' %}
+{% extends 'layout_wide.html' %}
 {% load floreal_filters %}
 {% load static %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'index' %}">Accueil</a></li>
+{% endblock %}
+
+{% block document_ready %}
+
+  /* Turn plain inputs into Bootstrap inputs. */
+  $("input").addClass("form-control");
+
+  /* Add a tooltip when hovering the line-canceling button. */
+  $("td.reset")
+      .attr("data-toggle", "tooltip")
+      .attr("title", "Annuler l'achat");
+
+  /* For each line with a max quantity, add a tooltip displaying it. */
+  $("#products-table tr").each(function () {
+      var max = $(this).find("input").attr("max");
+      if (max) $(this)
+          .attr("data-toggle", "tooltip")
+          .attr("title", "maximum = " + max);
+  });
+
+  /* When a row is clicked, focus on input and select all of its content. */
+  $("tr").click(function() { $(this).find("input").select().focus(); })
+
+  /* Recompute totals after each change as well as after laoding. */
+  $("#products-table input").change(recompute);
+  recompute();
+
+{% endblock %}
+
 
 {% block head %}
   <script type='text/javascript'>
@@ -31,10 +63,6 @@
       recompute();
     }
 
-    $(document).ready(function() {
-      $("#products-table input").change(recompute);
-      recompute();
-    });
   </script>
   <style type="text/css">
 
@@ -51,7 +79,7 @@
     #products-table tr.total  { font-size: large; background-color: white !important; }
     #products-table tr.total th { border: none; text-align: right; }
     #products-table tr.total td { border: none; text-align: right; font-weight: bold;}
-    #products-table td input { margin: 0px; text-align: right; width: 50px; font-size: large; }
+    #products-table td input[type=number] { margin: 0px; text-align: right; width: 80px; font-size: large; }
     #products-table td.image img { width:125px; height: 125px; margin: 5px; }
     #products-table td.product-name { text-align: right; }
     #products-table td.unit-price { text-align: right; }
@@ -86,13 +114,7 @@
       </tr>
     </table>
     {% if delivery.description %}
-    <div style="height: 20px;"></div>
-    <table id="delivery-description-table"><tr><td>
-      <p id="dv-description">{{delivery.description|safe}}</p>
-    </td></tr></table>
-    <div style="height: 20px;"></div>
-    {% else %}
-    <div style="height: 20px;"></div>
+    <p id="dv-description">{{delivery.description|safe}}</p>
     {% endif %}
     <table id="products-table">
         <tr>
@@ -147,8 +169,12 @@
           <th>Poids total:</th><td class="total_cell"><span class="total_weight">{{order.weight|floatformat}}</span>&nbsp;kg</td>
           <td class="total-padding" colspan="{{total_padding_right_colspan}}"></td>
         </tr>
+        <tr>
+          <td colspan="{% if some_packaged %}8{% else %}7{% endif %}">
+            <input type="submit" value="Valider la commande" /> <a href="{% url 'index' %}">Annuler les modifications</a>            
+          </td>
+        </tr>
     </table>
-    <input type="submit" value="Valider la commande" /> <a href="{% url 'index' %}">Annuler les modifications</a>
     <input type='hidden' name='dv-id' value='{{delivery.id}}' />
     {% csrf_token %}
 </form>

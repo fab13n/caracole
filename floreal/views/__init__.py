@@ -9,7 +9,7 @@ from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpRespo
 from django.contrib.auth.decorators import login_required
 from django.utils import html
 from django.template.context_processors import csrf
-from django.db.models import Count
+from django.db.models import Count, Q
 
 from caracole import settings
 from .. import models as m
@@ -42,7 +42,7 @@ def index(request):
     SUBGROUP_ADMIN_ACTION_STATES = [m.Delivery.ORDERING_ADMIN, m.Delivery.REGULATING]
     USER_DISPLAY_STATES = [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN, m.Delivery.FROZEN]
 
-    vars = {'user': request.user, 'Delivery': m.Delivery, 'SubgroupState': m.SubgroupStateForDelivery}
+    vars = {'user': user, 'Delivery': m.Delivery, 'SubgroupState': m.SubgroupStateForDelivery}
     vars['has_phone'] = phone.has_number(request.user)
     user_subgroups = user.user_of_subgroup.all()
     user_networks = [sg.network for sg in user_subgroups]
@@ -50,7 +50,15 @@ def index(request):
     # Deliveries which need to be displayed, and maybe ordered on.
     # TODO Include order here rather then through filters
     vars['user_deliveries'] = m.Delivery.objects \
-        .filter(network__in=user_networks, state__in=USER_DISPLAY_STATES) \
+        .filter(network__in=user_networks) \
+        .filter(
+            Q(state=m.Delivery.ORDERING_ALL) |
+            Q(
+                state__in=[m.Delivery.ORDERING_ADMIN, m.Delivery.FROZEN],
+                product__purchase__user=user
+            )
+        ) \
+        .distinct() \
         .order_by('network', '-id')
 
     # Every network for which I'm admin
@@ -395,7 +403,7 @@ def journal(request):
 def all_deliveries(request, network, states):
     nw = get_network(network)
     deliveries = list(m.Delivery.objects.filter(network=nw, state__in=states))
-    users = m.User.objects.filter(user_of_subgroup__network=nw)
+    users = m.User.objects.filter(user_of_subgroup__network=nw, is_active=True)
 
     # u -> dv -> has_purchased
     users_with_purchases = {u: {dv: False for dv in deliveries} for u in users}

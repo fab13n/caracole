@@ -1,51 +1,38 @@
-{% extends 'layout.html' %}
+{% extends 'layout_narrow.html' %}
 {% load static %}
 {% load floreal_filters %}
 
-{% block head %}
-{% if user.is_staff %}
-<script type='text/javascript'>
-    // <![CDATA[
-    /* Demand confirmation through a dialog before following link. */
-    $(function(){
-        $("#create-network").on('click', function(x) {
-            var nw_name = window.prompt("Créer un nouveau réseau nommé :")
-            if( ! nw_name) return false;
-            var sg_name = window.prompt("Créer un premier sous-groupe du réseau " + nw_name +
-                " ? Pour un réseau sans sous-groupe, cliquez sur «Annuler».");
-            if( ! sg_name) { sg_name = nw_name; }
-            var url_scheme = "{% url 'create_network' nw_name='NW_NAME' sg_name='SG_NAME' %}";
-            window.location = url_scheme
-                    .replace('NW_NAME', encodeURI(nw_name))
-                    .replace('SG_NAME', encodeURI(sg_name));
-            return false;
-        })
-    })
-    // ]]>
-</script>
-{% endif %}
-{% if not has_phone %}
-<script type='text/javascript'>
-    // <![CDATA[
-    $(function() {
-        var phone = window.prompt(
-                "Bonjour,\n \n" +
-                "Le Civam a besoin de votre numéro te téléphone, si possible mobile, " +
-                "pour pouvoir vous joindre en cas de problème de distribution. " +
-                "Merci de le renseigner ici.\n \n" +
-                "Numéro de mobile de {{user.first_name}} {{user.last_name}}:");
-        if(phone) {
-            var url = "{% url 'add_phone_number' phone='PHONE' %}".replace('PHONE', phone);
-            $.ajax(url);
-        }
-    })
-    // ]]>
-</script>
-{% endif %}
-<style type="text/css">
-    li ul { margin-bottom: 0px; }
-    p.admin-message { font-weight: bold; }
-</style>
+{% block document_ready %}
+    {% if user.is_staff %}
+    $("#create-network").on('click', (x) => {
+        const nw_name = window.prompt("Créer un nouveau réseau nommé :")
+        if( ! nw_name) return false;
+        const sg_name = window.prompt(
+            "Créer un premier sous-groupe du réseau " + nw_name +
+            " ? Pour un réseau sans sous-groupe, cliquez sur «Annuler»."
+        );
+        if( ! sg_name) { sg_name = nw_name; }
+        const url_scheme = "{% url 'create_network' nw_name='NW_NAME' sg_name='SG_NAME' %}";
+        window.location = url_scheme
+            .replace('NW_NAME', encodeURI(nw_name))
+            .replace('SG_NAME', encodeURI(sg_name));
+        return false;
+    });
+    {% endif %}
+
+    {% if not has_phone %}
+    const phone = window.prompt(
+        "Bonjour,\n \n" +
+        "Le Civam a besoin de votre numéro te téléphone, si possible mobile, " +
+        "pour pouvoir vous joindre en cas de problème de distribution. " +
+        "Merci de le renseigner ici.\n \n" +
+        "Numéro de mobile de {{user.first_name}} {{user.last_name}}:");
+    if(phone) {
+        var url = "{% url 'add_phone_number' phone='PHONE' %}".replace('PHONE', phone);
+        $.ajax(url);
+    }
+    {% endif %}
+
 {% endblock %}
 
 {% block content %}
@@ -59,34 +46,44 @@
 {% endfor %}
 {% endif %}
 
-{% if deliveries %}
+{% if user_deliveries %}
 <h2>Commandes en cours</h2>
-Commander pour :
-<ul>
-    {% for dv in user_deliveries %}
-    {% with dv|order:user as order %}
-    {% if dv.state != Delivery.ORDERING_ALL %}
-    {% if order.price != 0 %}
-    <li><em>{{dv.network.name}} : {{dv.name}}</em>
-        {{order.price|price}} (non modifiable):
-        <ul>
-            {% for pc in order.purchases %}<li>{{pc}}</li>{% endfor %}
-        </ul>
-    </li>
-    {% endif %}
-    {% elif order.price == 0 %}
-    <li><a href="{% url 'edit_user_purchases' delivery=dv.id %}">{{dv.network.name}} : {{dv.name}}</a></li>
-    {% else %}
-    <li>Modifier <a href="{% url 'edit_user_purchases' delivery=dv.id %}">{{dv.network.name}} : {{dv.name}}</a>
-        ({{order.price|price}}):
-        <ul>
-            {% for pc in order.purchases %}<li>{{pc}}</li>{% endfor %}
-        </ul>
-    </li>
-    {% endif %}
-    {% endwith %}
-    {% endfor %}
-</ul>
+Commander pour
+{% regroup user_deliveries by network as nw_list %}
+{% if nw_list|length > 1 %}:<ul>{% endif %}
+
+    {% for g in nw_list %}
+        {% if nw_list|length > 1 %}<li>{% endif %}
+        {{g.grouper}} :
+        {% if g.list|length > 1 %} <ul> {% endif %}
+        {% for dv in g.list %}
+        {% if g.list|length > 1 %}<li>{% endif %}
+        {% with dv|order:user as order %}
+
+        {# Non-modifiable order #}
+        {% if order.price > 0 and dv.state != Delivery.ORDERING_ALL %}
+        <em>{{dv.name}}</em> {{order.price|price}} (non modifiable) :
+        <ul>{% for pc in order.purchases %}<li>{{pc}}</li>{% endfor %}</ul>
+
+        {# Modifiable order #}
+        {% elif order.price > 0 and dv.state == Delivery.ORDERING_ALL %}
+        <a href="{% url 'edit_user_purchases' delivery=dv.id %}">{{dv.name}}</a>
+        ({{order.price|price}}) :
+        <ul>{% for pc in order.purchases %}<li>{{pc}}</li>{% endfor %}</ul>
+
+        {# Order can be passed #}
+        {% elif dv.state == Delivery.ORDERING_ALL %}
+        <a href="{% url 'edit_user_purchases' delivery=dv.id %}">{{dv.name}}</a>
+        {% endif %}{# order may be passed, may be modified #}
+        {% endwith %}{# order #}
+        {% if g.list|length > 1 %}</li>{% endif %}
+        {% endfor %}{# g.list #}
+        {% if g.list|length > 1 %}</ul>{% endif %}
+    {% if nw_list|length > 1 %}</li>{% endif %}
+    {% endfor %}{# nw_list #}
+
+{% if nw_list|length > 1 %}</ul>{% endif %}
+
 {% else %}
 <h2>Aucune commande en cours</h2>
 {% endif %}

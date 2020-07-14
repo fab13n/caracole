@@ -1,17 +1,21 @@
-{% extends 'layout.html' %}
+{% extends 'layout_narrow.html' %}
 {% load static %}
 
 {% block head %}
-  <script type="text/javascript" src="{% static 'js/jquery-3.4.1.min.js' %}"></script>
-  <link href="{% static 'js/bootstrap.min.css' %}" rel="stylesheet">
-  <script type="text/javascript" src="{% static 'js/bootstrap.min.js' %}"></script>
-  <link href="{% static 'summernote/summernote.min.css' %}" rel="stylesheet">
-  <script type="text/javascript" src="{% static 'summernote/summernote.min.js' %}"></script>
-  <script type='text/javascript'>
-    $(document).ready(function() { $(".editor").summernote(); })
-  </script>
-  <style type="text/css">
-  </style>
+<script src="tinymce/tinymce.min.js"></script>
+<script src="tinymce/jquery.tinymce.min.js"></script>
+{% endblock %}
+
+{% block document_ready %}
+/* Turn plain textareas into TinyMCE WYSIWYG editors. */
+tinymce.init({
+    selector: 'textarea',
+    content_css: "{% static 'floreal.css' %}",
+    language: 'fr_FR'
+});
+
+/* Turn plain inputs into Bootstrap inputs. */
+$("input,select").addClass("form-control")
 {% endblock %}
 
 {% block content %}
