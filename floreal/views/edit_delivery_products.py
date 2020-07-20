@@ -40,22 +40,38 @@ def _serialize_product(pd):
 
 def delivery_products_json(request, delivery):
     dv = get_delivery(delivery)
+    if dv.network.staff.filter(id=request.user.id).exists():
+        producers = [["Aucun", 0]] + [[u.id, u.first_name+" "+u.last_name] for u in dv.network.producers.all()]
+    elif dv.producer_id == request.user.id:
+        u = dv.producer
+        producers = [[u.id, u.first_name+" "+u.last_name]]
+    else:
+        return HttpResponseForbidden("Admins and producers only")
+
     return JsonResponse({
         'id': dv.id,
         'name': dv.name,
         'state': dv.state,
         'description': dv.description,
+        'producers': producers,
+        'producer': dv.producer.id if dv.producer is not None else 0,
         'products': [_serialize_product(pd) for pd in dv.product_set.all()]
     })
 
-@nw_admin_required(lambda a: get_delivery(a['delivery']).network)
+
 def edit_delivery_products(request, delivery):
-    """Edit a delivery (name, state, products). Network staff only."""
+    """Edit a delivery (name, state, producer, products). Network staff only."""
+
+    # Check authorizations: reserved to this network's staff and producers    
 
     delivery = get_delivery(delivery)
+    is_producer = False
 
-    if request.user not in delivery.network.staff.all():
-        return HttpResponseForbidden('Réservé aux administrateurs du réseau '+delivery.network.name)
+    if not delivery.network.staff.filter(id=request.user.id).exists():
+        if delivery.producer_id == request.user.id:
+            is_producer = True
+        else:
+            return HttpResponseForbidden("Réservé aux admins ou au producteur")
 
     if request.method == 'POST':  # Handle submitted data
         _parse_form(request)
@@ -66,7 +82,7 @@ def edit_delivery_products(request, delivery):
             return redirect('edit_delivery_products', delivery.id)
 
     else:  # Create and populate forms to render
-        vars = {'user': request.user, 'delivery': delivery}
+        vars = {'user': request.user, 'delivery': delivery, 'is_producer': is_producer}
         vars.update(csrf(request))
         return render(request,'edit_delivery_products.html', vars)
 
@@ -153,6 +169,14 @@ def _parse_form(request):
     dv.state = d['dv-state']
     descr = d['dv-description'].strip()
     dv.description = descr or None
+
+    if dv.network.staff.filter(id=request.user.id).exists():
+        # Producer can only be changed by staff members
+        if d['producer'] == 0:
+            dv.producer_id = None
+        else:
+            dv.producer_id = int(d['producer'])
+
     dv.save()
 
     for r in range(int(d['n_rows'])):

@@ -164,47 +164,47 @@ function swap_rows(r0) {
 function add_row() {
   const r = Number($("#n_rows").val()) + 1;
   $("#n_rows").val(r);
-  $("#products-table tbody").append('\n\
-    <tr id="r%">\n\
-        <td class="hidden id">\n\
-          <input name="r%-id" type="hidden" />\n\
-        </td>\n\
-        <td class="place">\n\
-          <button type="button" class="up">▲</button> % <button class="down" type="button">▼</button>\n\
-          <input name="r%-place" type="hidden" value="%"/>\n\
-        </td>\n\
-        <td class="name"><input maxlength="64" name="r%-name" type="text" /></td>\n\
-        <td class="price"><input name="r%-price" step="0.01" min="0" type="number" /></td>\n\
-        <td>€/</td>\n\
-        <td class="unit"><input maxlength="64" name="r%-unit" type="text" /></td>\n\
-        <td class="quantity_per_package"><input name="r%-quantity_per_package" type="number" /></td>\n\
-        <td class="unit-label">&nbsp;<span class="unit-mirror"></span><span class="if-unit-mirror">/ct</span></td>\n\
-        <td class="quantity_limit"><input name="r%-quantity_limit" min="0" type="number"/></td>\n\
-          <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>\n\
-        <td class="quantum"><input name="r%-quantum" min="0" type="number" step="0.001"/></td>\n\
-        <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>\n\
-        <td class="unit_weight"><input name="r%-unit_weight" min="0" step="0.001" type="number"/></td><td>kg</td>\n\
-        <td class="image-upload"><div>\n\
-          <input name="r%-image-modified" class="image-modified" type="hidden" value="0"/>\n\
-          <label class="image-display">\n\
-            <img class="product-image" src="/media/none.png"/>\n\
-            <input name="r%-image-upload" type="file" accept="image/*"\n\
-                   onchange="reflect_image_change(%, event)"/>\n\
-          </label>\n\
-        </div></td>\n\
-        <td class="deleted">\n\
-          <input name="r%-deleted" value="r%-deleted" onchange="reflect_deletion(%)" type="checkbox">\n\
-        </td>\n\
-        <td class="described">\n\
-          <input name="r%-described" value="r%-described" onchange="reflect_description(%)" type="checkbox">\n\
-        </td>\n\
-    </tr>\n\
-    <tr id="r%-description">\n\
-      <td></td>\n\
-      <td class="description" colspan="15">\n\
-        <textarea name="r%-description" id="r%-description-editor" rows="5"></textarea>\n\
-      </td>\n\
-    </tr>'.replace(/%/g, r));
+  $("#products-table tbody").append(`
+    <tr id="r${r}">
+        <td class="hidden id">
+          <input name="r${r}-id" type="hidden" />
+        </td>
+        <td class="place">
+          <button type="button" class="up">▲</button> ${r} <button class="down" type="button">▼</button>
+          <input name="r${r}-place" type="hidden" value="${r}"/>
+        </td>
+        <td class="name"><input maxlength="64" name="r${r}-name" type="text" /></td>
+        <td class="price"><input name="r${r}-price" step="0.01" min="0" type="number" /></td>
+        <td>€/</td>
+        <td class="unit"><input maxlength="64" name="r${r}-unit" type="text" /></td>
+        <td class="quantity_per_package"><input name="r${r}-quantity_per_package" type="number" /></td>
+        <td class="unit-label">&nbsp;<span class="unit-mirror"></span><span class="if-unit-mirror">/ct</span></td>
+        <td class="quantity_limit"><input name="r${r}-quantity_limit" min="0" type="number"/></td>
+          <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>
+        <td class="quantum"><input name="r${r}-quantum" min="0" type="number" step="0.001"/></td>
+        <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>
+        <td class="unit_weight"><input name="r${r}-unit_weight" min="0" step="0.001" type="number"/></td><td>kg</td>
+        <td class="image-upload"><div>
+          <input name="r${r}-image-modified" class="image-modified" type="hidden" value="0"/>
+          <label class="image-display">
+            <img class="product-image" src="/media/none.png"/>
+            <input name="r${r}-image-upload" type="file" accept="image/*"
+                   onchange="reflect_image_change(${r}, event)"/>
+          </label>
+        </div></td>
+        <td class="deleted">
+          <input name="r${r}-deleted" value="r${r}-deleted" onchange="reflect_deletion(${r})" type="checkbox">
+        </td>
+        <td class="described">
+          <input name="r${r}-described" value="r${r}-described" onchange="reflect_description(${r})" type="checkbox">
+        </td>
+    </tr>
+    <tr id="r${r}-description">
+      <td></td>
+      <td class="description" colspan="15">
+        <textarea name="r${r}-description" id="r${r}-description-editor" rows="5"></textarea>
+      </td>
+    </tr>`);
 
   // disable last "down" button, re-enable before-last "down" button, which was previously last
   $("#r"+(r-1)+" td.place button.down").removeAttr("disabled");
@@ -284,9 +284,26 @@ function submit_if_valid() {
 
 $(document).ready(function() {
 
+    /* Turn plain inputs into Bootstrap inputs. */
+    $("input,select,button").addClass("form-control");
+
+    /* Turn plain textareas into TinyMCE WYSIWYG editors. */
+    tinymce.init({
+        selector: 'textarea',
+        content_css: "/static/floreal.css",
+        language: 'fr_FR'
+    });
+
     $.getJSON("products.json", function(dv) {
         $("#dv-id").val(dv.id);
         $("#dv-state").val(dv.state);
+        // TODO I should restrict allowed states when the delivery is producer-edited
+
+        dv.producers.forEach(([id, name]) => {
+          $("#producer").append(`<option value="${id}">${name}</option>`);
+        });
+        $("#producer").val(dv.producer);
+  
         /* Only fill the name for non-newly-created deliveries.
          * For new ones the user has to set it explicitly. */
         const url_params = new URLSearchParams(window.location.search);

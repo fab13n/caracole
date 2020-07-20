@@ -2,12 +2,32 @@
 
 {% block head %}
 <style type="text/css">
-    .errorlist { background-color: red; color:white; font-weight: bold; }
-    ul { margin: 5px; }
-    th { text-align: right; }
-    .helptext { display: none; }
-    input, select { width: 300px; }
-    select { height: 300px; }
+    .errorlist {
+        background-color: red;
+        color: white;
+        font-weight: bold;
+    }
+
+    ul {
+        margin: 5px;
+    }
+
+    th {
+        text-align: right;
+    }
+
+    .helptext {
+        display: none;
+    }
+
+    input,
+    select {
+        width: 300px;
+    }
+
+    select {
+        height: 300px;
+    }
 </style>
 {% endblock %}
 
@@ -27,8 +47,34 @@
 <form action="" method="post">
     <table>
         {{form}}
-    <tr><td></td><td><input type="submit" value="S'enregistrer" /></td></tr>
+        <tr>
+            <td></td>
+            <td><input type="submit" value="S'enregistrer" /></td>
+        </tr>
     </table>
     {% csrf_token %}
 </form>
+
+<h2>RGPD</h2>
+
+<p>Conformément à la RGPD, voici les informations que le site retiendra à votre propos, et les raisons pour lesquelles
+    il le fait. À l'exception de votre numéro de téléphone, ces informations sont indipensables au fonctionnement
+    du service.</p>
+
+<ul>
+    <li>Votre e-mail, pour vous authentifier et vous permettre de récupérer votre mot de passe en cas d'oubli.</li>
+    <li>Vos nom et prénom, pour produire les listings de commandes aux producteurs.</li>
+    <li>Votre numéro de téléphone, pour permettre aux organisateurs de vous prévenir, en cas de changement ou problème
+        urgent à propos d'une livraison, ou si vous oubliez de venir récupérer votre commande.</li>
+    <li>Le contenu des commandes (produits, quantités, dates) passées sur le site.</li>
+</ul>
+`
+<p>Nous ne faisons pas de prospection, nous ne cédons vos données à personne, ni gratuitement ni commercialement. Les
+    organisateurs ne vous contacteront que pour les nécessités de la vie du réseau. Les producteurs n'ont pas accès à
+    votre e-mail ni votre téléphone ; ils n'ont vos nom et prénom que sur les listings de commandes, et uniquement si
+    vous commandez chez eux.</p>
+
+<p>Vous avez le droit de demander la rectification des données vous concernant, ainsi qu'à être désincrit du site. Ces
+    procédures ne sont pas encore automatisées, il vous faut pour cela contacter l'administrateur [adresse].</p>
+
 {% endblock %}

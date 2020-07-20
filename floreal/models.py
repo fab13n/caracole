@@ -53,6 +53,7 @@ class Network(models.Model):
 
     name = models.CharField(max_length=256, unique=True)
     staff = models.ManyToManyField(User, related_name='staff_of_network')
+    producers = models.ManyToManyField(User, related_name='producer_of_network')
     auto_validate = models.BooleanField(default=False)
     description = models.TextField(null=True, blank=True, default=None)
 
@@ -156,6 +157,7 @@ class Delivery(models.Model):
     network = models.ForeignKey(Network, on_delete=models.CASCADE)
     state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=PREPARATION)
     description = models.TextField(null=True, blank=True, default=None)
+    producer = models.ForeignKey(User, null=True, default=None, on_delete=models.SET_NULL)
 
     def get_stateForSubgroup(self, sg):
         try:

@@ -45,6 +45,9 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
     :return:
     """
     extra_line = 1 if extra_line else 0  # Force int value for easy additions
+    if len(title) > 31:
+        # Excel sheet names can't be longer than 31 chars
+        title = title[:28] + "..."
     sheet = book.add_worksheet(title)
     if PROTECT_FORMULA_CELLS:
         sheet.protect()

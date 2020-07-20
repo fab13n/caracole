@@ -27,7 +27,7 @@
     {% endfor %}
     {% if all_networks %}
     <li><a href="{% url 'list_delivery_models' network=nw.id %}">Uniquement le réseau {{nw.name}}</a></li>
-    {% else %}
+    {% elif not producer %}
     <li><a href="{% url 'list_delivery_models_all_networks' network=nw.id %}">Lister tous les réseaux</a></li>
     {% endif %}
 </ul>

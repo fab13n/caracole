@@ -1,0 +1,343 @@
+{% extends 'layout_narrow.html' %}
+{% load static %}
+
+{% block head %}
+<link href="{% static 'bootstrap4-toggle/css/bootstrap4-toggle.min.css' %}" rel="stylesheet"/>
+<script src="{% static 'bootstrap4-toggle/js/bootstrap4-toggle.min.js' %}"></script>
+
+<script src="{% static 'bootstrap-select/js/bootstrap-select.min.js' %}"></script>
+<link href="{% static 'bootstrap-select/css/bootstrap-select.min.css' %}" rel="stylesheet"/>
+
+<style type="text/css">
+#user-form td:first-child {text-align: right;}
+.btn-primary {border-color: #811305; background-color: #811305;}
+.btn-primary:disabled {border-color: gray; background-color: gray;}
+</style>
+
+<script type='text/javascript'>
+
+let CURRENT_USER = null;
+let MODIFIED_USER = false;
+let USERS = {}; // id -> user record
+let NETWORKS = {}; // id -> network record
+let SUBGROUPS = {}; // id -> subgroup record
+
+function get_users() {
+  $.getJSON("{% url 'users_json' %}", data => {
+    const select = $("#users");
+    data.users.forEach(u => {
+      select.append(`
+        <option 
+          data-tokens="${u.email}"
+          data-subtext="${u.email}" 
+          value="${u.id}"">
+          ${u.first_name} ${u.last_name}
+        </option>`)
+      USERS[u.id] = u; 
+    });
+    data.networks.forEach(nw => {
+      NETWORKS[nw.id] = nw;
+      nw.subgroups.forEach(sg => {
+        SUBGROUPS[sg.id] = sg;
+        sg.network = nw.id; // Retrieve nw from sg
+      });
+    });
+    select.selectpicker(); // Force rendering of dynamically added picker
+    // Open the selection widget; mysteriously won't work synchronously,
+    // hence the async setTimeout()
+    setTimeout(() => $("#users").selectpicker("toggle"), 0);
+    select.on("change", (event) => {
+      const u = USERS[event.target.value];
+      if(MODIFIED_USER) {
+        if(confirm(
+          "Sauvegarder d'abord les modifications pour "+
+          CURRENT_USER.first_name + " " + CURRENT_USER.last_name + " ?"
+        )) {
+          // TODO wait for result?
+          save_changes();
+        }
+      }
+      render_user(u);
+      CURRENT_USER = u;
+      MODIFIED_USER = false;
+      $("#user-form").show(); 
+    })
+
+    const oui_non = (name) => `<input
+        class="user-modifier"
+        name="${name}" 
+        type="checkbox" 
+        data-toggle="toggle" 
+        data-on="Oui" 
+        data-off="Non"
+      />`;
+
+    let template = ``;
+    data.networks.map(nw => {
+
+      const multi_sg = nw.subgroups.length > 1;
+
+      template += `<tr><th colspan="2">Réseau ${nw.name} (${nw.id}/${nw.subgroups.map(sg=>sg.id).join(",")})</th></tr>`;
+
+      if(multi_sg){
+        // membership & sg_staff
+        const subgroup_options = nw.subgroups.map(sg => 
+          `<option value="${sg.id}">${sg.name}</option>`
+        ).join("\n");
+        template += `
+          <tr>
+            <td>Membre:</td>
+            <td>
+              <select 
+                class="form-control user-modifier sg-admin-enabler" 
+                name="sg-member-${nw.id}" 
+                id="sg-member-${nw.id}">
+                <option value="0">Non</option>
+                ${subgroup_options}
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Admin sous-groupe:</td>
+            <td>${oui_non("sg-staff-"+nw.id)}</td>
+          </tr>`;
+      } else {
+        // no sg_staff distinct from nw_staff for mono sg networks
+        template += `
+          <tr>
+            <td>Membre:</td>
+            <td>${oui_non("sg-member-"+nw.id)}</td>
+          </tr>`;
+      }
+
+      // nw_staff
+      template += `
+        <tr>
+          <td>Admin réseau:</td>
+          <td>${oui_non("nw-staff-"+nw.id)}</td>
+        </tr>`;
+      
+      // producer
+      template += `
+        <tr>
+          <td>Producteur:</td>
+          <td>${oui_non("nw-producer-"+nw.id)}</td>
+        </tr>`;
+
+    });
+
+    if(data.global_staff) {
+      template += `
+        <tr>
+          <th>Administrateur global?</th>
+          <td>${oui_non("global-staff")}</td>
+        </tr>
+        <tr><td colspan="2">
+          <button 
+            id="deactivate"
+            class="btn btn-block btn-danger">
+            Désactiver le compte
+          </button>
+        </td></tr>`;
+    }
+    template += `
+      <tr><td colspan="2">
+        <button id="save" type="button" class="btn btn-block btn-primary">Sauvegarder</button>
+      </td></tr>`;
+
+    // Insert and force bootstrap-style toggle look&feel
+    $("#user-form")
+      .append(template)
+      .hide(); // will be shown upon user selection
+    $("#user-form [type=checkbox]").bootstrapToggle();
+    $(".user-modifier").on('change', () => {
+      // Once modifications occurred, saving them to server becomes allowed
+      if(! MODIFIED_USER && CURRENT_USER) {
+        console.log(`user ${CURRENT_USER.id} is now modified`);
+        MODIFIED_USER = true;
+        $("#save").prop("disabled", false);
+      }
+    });
+    $("#save").on("click", (event) => {
+      // TODO spinner in button as feedback?
+      event.preventDefault();
+      save_changes();
+    });
+    $("#deactivate").on("click", () => {
+      if(confirm(
+        `Désactiver complètement et définitivement le compte de ` +
+        CURRENT_USER.first_name + " " + CURRENT_USER.last_name + " ?")) {
+        console.log("TODO deactivate, deselect user (from select + hide form)");
+        }
+    });
+    $(".sg-admin-enabler").on("change", (event) => {
+      const sgid = event.target.value;
+      const nwid = event.target.getAttribute("name").split("-")[1];
+      const sg_staff = $(`[name="sg-staff-${nwid}"]`);
+      if(sgid === "0") {
+        sg_staff.bootstrapToggle('off');
+        sg_staff.bootstrapToggle('disable');
+      } else {
+        sg_staff.bootstrapToggle('enable');   
+      }
+    });
+  });
+}
+
+/* Modify the HTML widgets so that they reflect user `u`'s state
+ * according to JSON DB. */
+function render_user(u) {
+  console.log("Rendering user ",u);
+  Object.values(NETWORKS).forEach(nw => {
+    const multi_sg = nw.subgroups.length > 1;
+
+    // sgid = subgroup this user might be member of
+    let sgid = u.sg_member.find(sgid => SUBGROUPS[sgid].network === nw.id);
+    if(sgid !== undefined) {
+      const sg = SUBGROUPS[sgid];
+      if(multi_sg) {
+        // member of a multi-sg network => membership as a <select>,
+        // allow to control sg_staff separately from nw_staff with a toggle.
+        $(`[name=sg-member-${nw.id}]`).selectpicker("val", sgid);
+        $(`[name=sg-staff-${nw.id}`).bootstrapToggle('enable');
+      } else {
+        // single subgroup in network => set checkbox to on
+        $(`[name=sg-member-${nw.id}]`).bootstrapToggle("on")
+      }
+    }  else { // non-member
+      if(multi_sg) {
+        $(`[name=sg-member-${nw.id}]`).selectpicker("val", 0);
+        // cannot be sg staff without being member
+        $(`[name=sg-staff-${nw.id}`).bootstrapToggle('off');
+        $(`[name=sg-staff-${nw.id}`).bootstrapToggle('disable');
+      } else { // non-member of multi-sg network
+        $(`[name=sg-member-${nw.id}]`).bootstrapToggle("off")
+      }
+    }
+
+    // sgid = subgroup this user might be *staff* of.
+    // In practice it's either undefined or the same as membership subgroup.
+    // In theory it could be not only different, but they might be sg_staff
+    // for several subgroups.
+    // I plan to change the representation of subgroups anyway,
+    // so there's no need to handle such corner cases.
+    sgid = u.sg_staff.find(sgid => SUBGROUPS[sgid].network === nw.id);
+    $(`[name=sg-staff-${nw.id}]`).bootstrapToggle(sgid === undefined ? "off" : "on");
+    $(`[name=nw-staff-${nw.id}]`).bootstrapToggle(u.nw_staff.includes(nw.id)? "on" : "off");
+    $(`[name=nw-producer-${nw.id}]`).bootstrapToggle(u.nw_producer.includes(nw.id) ? "on" : "off");
+    $("#save").prop("disabled", true); // will be re-enabled upon modification
+
+  })
+}
+
+/* Send current user modifications to server. */
+function save_changes() {
+  const add_spinner = () => {
+    $("#save").prop("disabled", true);
+    $("#save").html(
+      `<span id = "save-spinner" class="spinner-border spinner-border-sm"></span>
+      Sauvegarder ${CURRENT_USER.first_name} ${CURRENT_USER.last_name}`);
+  };
+  const remove_spinner = () =>
+    $("#save").html(`Sauvegarder`);
+
+  const data =  JSON.stringify(get_data());
+  console.log("Sending ", data);
+  add_spinner();
+  $.ajax({
+    url: 'users.json',
+    type: 'POST',
+    contentType: 'application/json; charset=utf-8',
+    data,
+    success: () => {
+      remove_spinner();
+      // TODO reflect changes form `data` to internal JSON DB,
+      // so that the user remains up-to-date if reloaded.
+    },
+    error: (result) => { 
+      alert("Failed, see the console");
+      console.log("Save request failed:", result);
+      remove_spinner(); 
+      $("#save").prop("disabled", false); 
+    }
+  });
+}
+
+/* Get data from HTML input, return it as a JSON object
+ * ready to be sent to server. */
+function get_data() {
+  if(CURRENT_USER === null || ! MODIFIED_USER) { return null; }
+
+  const get_number = (element) => {
+    const bits = element.getAttribute('name').split("-");
+    return Number(bits[bits.length - 1]);
+  }
+
+  const sg_member = [];
+  const sg_staff = [];
+  const nw_staff = [];
+  const nw_producer = [];
+
+  // membership and sg-staff
+  $(`select[name^=sg-member-]`).each((i, x) => {
+    const nwid = get_number(x);
+    const sgid = Number(x.value);
+    if(sgid !== 0) {
+      sg_member.push(sgid);
+      if($(`[name=sg-staff-${nwid}]`)[0].checked) {
+        sg_staff.push(sgid);
+      }
+    }
+  });
+  $(`input[name^=sg-member-]`).each((i, x) => {
+    const nwid = get_number(x);
+    const sgid = Number(NETWORKS[nwid].subgroups[0].id);
+    if(x.checked) {
+      sg_member.push(sgid);
+    }
+    if($(`[name=nw-staff-${nwid}]`)[0].checked) {
+      sg_staff.push(sgid);
+    }
+  });
+  $(`input[name^=nw-producer-]`).each((i, x) => {
+    if(x.checked) { nw_producer.push(get_number(x)); }
+  });
+  $(`input[name^=nw-staff-]`).each((i, x) => {
+    if(x.checked) { nw_staff.push(get_number(x)); }
+  });
+
+  const r = {
+    user: CURRENT_USER.id, 
+    sg_member,
+    sg_staff,
+    nw_staff,
+    nw_producer,
+  }
+
+  if($("[name=global-staff]").length > 0) {
+    r['global-staff'] = $("[name=global-staff]")[0].checked;
+  }
+
+  return r;
+}
+
+</script>  
+{% endblock %}
+
+{% block document_ready %}
+get_users();
+{% endblock %}
+
+{% block content %}
+<h1>Gestion des utilisateurs</h1>
+<p>
+  Sélectionnez un utilisateur à modifier: 
+  <select 
+    id="users" 
+    title="Choisir un utilisateur" 
+    data-live-search="true"
+    data-show-subtext="true">
+  </select>
+</p>
+<table id="user-form"></table>
+{% endblock %}

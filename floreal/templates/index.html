@@ -93,6 +93,7 @@ Commander pour
 {% if staffed_networks or user.is_staff %}
 <h2>Administrer les réseaux</h2>
 <ul>
+    <li><a href="{% url 'users_html' %}">Gérer les utilisateurs</a></li>
     <li><a href="{% url 'set_message' %}">Poster un message</a></li>
     {% if user.is_staff %}
     <li><a href="#" id="create-network">Créer un nouveau réseau</a></li>
@@ -200,6 +201,14 @@ Commander pour
 </ul>
 {% endif %}{# subgroup_action_deliveries #}
 
+{% if producer %}
+<h2>Administrer comme producteur</h2>
+<ul>
+    {% for p in producer %}
+    <li><a href="{% url 'producer' network=p.id %}">Le réseau {{p.name}}</a></li>
+    {% endfor %}
+</ul>
+{% endif %}{# producer #}
 
 {% if candidacies %}
 <h2>candidatures</h2>

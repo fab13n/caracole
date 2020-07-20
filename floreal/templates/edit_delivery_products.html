@@ -1,20 +1,6 @@
 {% extends 'layout_wide.html' %}
 {% load static %}
 
-{% block document_ready %}
-
-  /* Turn plain inputs into Bootstrap inputs. */
-  $("input,select,button").addClass("form-control");
-
-  /* Turn plain textareas into TinyMCE WYSIWYG editors. */
-  tinymce.init({
-    selector: 'textarea',
-    content_css: "{% static 'floreal.css' %}",
-    language: 'fr_FR'
-  });
-
-{% endblock %}
-
 {% block head %}
  
 <script type='text/javascript' src="{% static 'edit_delivery_products.js' %}"></script>
@@ -160,10 +146,14 @@
     <tr>
       <th><label for="dv-state">État de la livraison :</label></th>
       <td><select id="dv-state" name="dv-state">
-          {% for key, name in delivery.STATE_CHOICES.items %}
-          <option value="{{key}}" {% if delivery.state == key %}selected="selected" {% endif %}>{{name}}</option>
-          {% endfor %}
-        </select></td>
+        {% for key, name in delivery.STATE_CHOICES.items %}
+        <option value="{{key}}">{{name}}</option>
+        {% endfor %}
+    </select></td>
+    </tr>
+    <tr>
+      <th><label for="producer">Producteur :</label></th>
+      <td><select id="producer" name="producer"></select></td>
     </tr>
   </table>
 
@@ -203,53 +193,6 @@
       <tr>
         <td>&nbsp;</td>
       </tr>
-
-      <template>
-        <tr id="%">
-          <td class="hidden id">
-            <input name="%-id" type="hidden" />
-          </td>
-          <td class="place">
-            <button type="button" class="up">▲</button> % <button class="down" type="button">▼</button>
-            <input name="%-place" type="hidden" value="%" />
-          </td>
-          <td class="name"><input maxlength="64" name="%-name" type="text" /></td>
-          <td class="price"><input name="%-price" step="0.01" min="0" type="number" /></td>
-          <td>€/</td>
-          <td class="unit"><input maxlength="64" name="%-unit" type="text" /></td>
-          <td class="quantity_per_package"><input name="%-quantity_per_package" type="number" /></td>
-          <td class="unit-label">&nbsp;<span class="unit-mirror"></span><span class="if-unit-mirror">/ct</span></td>
-          <td class="quantity_limit"><input name="%-quantity_limit" min="0" type="number" /></td>
-          <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>
-          <td class="quantum"><input name="%-quantum" min="0" type="number" step="0.001" /></td>
-          <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>
-          <td class="unit_weight"><input name="%-unit_weight" min="0" step="0.001" type="number" /></td>
-          <td>kg</td>
-          <td class="image-upload">
-            <div>
-              <input name="%-image-modified" class="image-modified" type="hidden" value="0" />
-              <label class="image-display">
-                <img class="product-image" src="/media/none.png" />
-                <input name="%-image-upload" type="file" accept="image/*" onchange="reflect_image_change(%, event)" />
-              </label>
-            </div>
-          </td>
-          <td class="deleted">
-            <input name="%-deleted" value="%-deleted" onchange="reflect_deletion(%)" type="checkbox">
-          </td>
-          <td class="described">
-            <input name="%-described" value="%-described" onchange="reflect_description(%)" type="checkbox">
-          </td>
-        </tr>
-        <tr id="%-description">
-          <td></td>
-          <td class="description" colspan="15">
-            <textarea name="%-description" id="r%-description-editor" rows="5"></textarea>
-          </td>
-        </tr>
-      </template>
-
-
     </thead>
     <tbody></tbody>
   </table>

@@ -13,11 +13,13 @@ urlpatterns = [
     path('new-nw/<nw_name>/<sg_name>', views.create_network, name='create_network'),
     path('new-dv/nw-<network>/list', views.list_delivery_models, name='list_delivery_models'),
     path('new-dv/nw-<network>/list-all', views.list_delivery_models, kwargs={'all_networks': True}, name='list_delivery_models_all_networks'),
+    path('new-dv/nw-<network>/list-producer', views.list_delivery_models, kwargs={'producer': True}, name='list_delivery_models_producer'),
     path('new-dv/nw-<network>/dv-<dv_model>', views.create_delivery, name='create_delivery_copy'),
     path('new-dv/nw-<network>', views.create_delivery, kwargs={'dv_model': None}, name='create_empty_delivery'),
     path('new-sg/nw-<network>/<name>', views.create_subgroup, name='create_subgroup'),
 
     path('nw-<network>', views.network_admin, name='network_admin'),
+    path('nw-<network>/producer', views.producer, name='producer'),
     path('nw-<network>/archives', views.archived_deliveries, name='archived_deliveries'),
     path('nw-<network>/edit-users', views.edit_user_memberships, name='edit_user_memberships'),
     path('nw-<network>/edit-description', views.edit_network_description, name='edit_network_description'),
@@ -81,6 +83,11 @@ urlpatterns = [
     path('edit/<title>/<path:target>', views.editor, name='editor'),
     path('set-message', views.set_message, name='set_message'),
     path('unset-message/<int:id>', views.unset_message, name='unset_message'),
+
+    path("users.json", views.users_json, name='users_json'),
+    path("users.html", views.users_html,name='users_html')
+
+
 ]
 
 from django.conf import settings

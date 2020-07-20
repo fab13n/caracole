@@ -28,6 +28,7 @@ from .view_purchases import \
     view_purchases_html, view_purchases_latex, view_purchases_xlsx, view_cards_latex, get_archive, non_html_response
 from .candidacies import candidacy, cancel_candidacy, validate_candidacy, leave_network, create_candidacy, manage_candidacies
 from .invoice_mail import invoice_mail_form
+from .users import users_json, users_html, users_update
 
 from floreal.views import require_phone_number as phone
 
@@ -92,6 +93,8 @@ def index(request):
         {(str(sg), msg.message, msg.id) for sg in user_subgroups for msg in sg.adminmessage_set.all()}
     )
 
+    vars['producer'] = user.producer_of_network.all()
+
     return render(request,'index.html', vars)
 
 
@@ -105,6 +108,19 @@ def network_admin(request, network):
             'Delivery': m.Delivery}
     return render(request,'network_admin.html', vars)
 
+def producer(request, network):
+    vars = {
+        'Delivery': m.Delivery,
+        'deliveries': m.Delivery.objects.filter(
+            network_id=network,
+            state__in=
+              (m.Delivery.PREPARATION, m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN)),
+        'user': request.user,
+        'network': get_network(network)
+    }
+    if not vars['network'].producers.filter(id=vars['user'].id).exists():
+        raise ValueError("Forbidden")
+    return render(request, 'producer.html', vars)
 
 def _dv_has_no_purchase(dv):
     for pd  in dv.product_set.all():
@@ -199,7 +215,7 @@ def edit_delivery(request, delivery):
     return render(request,'edit_delivery.html', vars)
 
 
-def list_delivery_models(request, network, all_networks=False):
+def list_delivery_models(request, network, all_networks=False, producer=False):
     """Propose to create a delivery based on a previous delivery."""
     nw = m.Network.objects.get(id=network)
     if all_networks:
@@ -207,23 +223,23 @@ def list_delivery_models(request, network, all_networks=False):
         deliveries = m.Delivery.objects.filter(network__in=authorized_networks)
     else:
         deliveries =  m.Delivery.objects.filter(network=nw)
+    if producer:
+        # Producer can only use their own commands as templates 
+        deliveries = deliveries.filter(producer_id=request.user.id)
     vars = {
         'user': request.user,
         'nw': nw,
         'all_networks': all_networks,
+        'producer': producer,
         'deliveries': deliveries.order_by("network", "-id")
     }
     return render(request,'list_delivery_models.html', vars)
 
 
-@nw_admin_required()
 def create_delivery(request, network, dv_model=None):
 
     """Create a new delivery, then redirect to its edition page."""
     nw = get_network(network)
-    if request.user not in nw.staff.all():
-        # Vérifier qu'on est bien admin du bon réseau
-        return HttpResponseForbidden('Réservé aux administrateurs du réseau ' + nw.name)
 
     months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet',
               'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
@@ -234,15 +250,28 @@ def create_delivery(request, network, dv_model=None):
     while m.Delivery.objects.filter(network=nw, name=name).exists():
         n += 1
         name = fmt % n
-    new_dv = m.Delivery.objects.create(name=name, network=nw, state=m.Delivery.PREPARATION)
+    new_dv = m.Delivery.objects.create(
+        name=name,
+        network=nw,
+        state=m.Delivery.PREPARATION)
     if dv_model:
         dv_model = m.Delivery.objects.get(id=dv_model)
         new_dv.description = dv_model.description
+        new_dv.producer_id = dv_model.producer_id
         new_dv.save()
         for pd in dv_model.product_set.all():
             pd.pk = None
             pd.delivery_id=new_dv.id
             pd.save()  # Will duplicate because pk==None
+
+    if not nw.staff.filter(id=request.user.id).exists():
+        # I'm not staff, I must at least be producer of this network.
+        # And the created delivery will be mine.
+        if nw.producers.filter(id=request.user.id).exists():
+            new_dv.producer_id = request.user.id
+            new_dv.save()
+        else:
+            return HttpResponseForbidden("Must be admin or producer of this network")
 
     m.JournalEntry.log(request.user, "Created new delivery dv-%d %s in nw-%d %s", new_dv.id, name, nw.id, nw.name)
     return redirect(reverse('edit_delivery_products', kwargs={'delivery': new_dv.id})+"?new=true")

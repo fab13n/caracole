@@ -1,0 +1,53 @@
+{% extends 'layout_narrow.html' %}
+{% load static %}
+
+{% block head %}
+{% endblock %}
+
+{% block content %}
+<h1>Producteur du réseau {{network.name}}</h1>
+
+<ul>
+    <li><a href="{% url 'list_delivery_models_producer' network=network.id %}">
+        Créer une nouvelle commande <img src="{% static 'images/plus.png' %}"/>
+    </a></li>
+    {% for dv in deliveries %}
+    <li>Commande <em>{{dv.name}}</em> 
+        {% if dv.state == Delivery.PREPARATION %}(en préparation)
+        {% elif dv.state == Delivery.ORDERING_ALL %}(ouverte)
+        {% else %}(fermée){% endif %} :
+        <ul>
+            <li>
+                <a href="{% url 'edit_delivery_products' delivery=dv.id %}">
+                    Modifier les produits <img src="{% static 'images/edit.png' %}"/>
+                </a>
+            </li>
+            <li>
+                {% if dv.state == Delivery.ORDERING_ALL %}
+                <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.ORDERING_ADMIN %}">
+                    Bloquer les commandes <img src="{% static 'images/minus.png' %}"/>
+                </a>
+                {% elif dv.state == Delivery.ORDERING_ADMIN %}
+                <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.ORDERING_ALL %}">
+                    Réouvrir les commandes <img src="{% static 'images/purchase.png' %}"/>
+                </a>
+                {% else %}
+                <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.ORDERING_ALL %}">
+                    Ouvrir les commandes <img src="{% static 'images/purchase.png' %}"/>
+                </a>
+                {% endif %}
+            </li>
+            <li>
+                Consulter
+                <a href="{% url 'view_all_purchases_html' delivery=dv.id %}">en ligne <img src="{% static 'images/grid.png' %}"/></a>,
+                <a href="{% url 'view_all_purchases_xlsx' delivery=dv.id %}">en tableau Excel <img src="{% static 'images/excel.png' %}"/></a>,
+                <a href="{% url 'view_all_purchases_latex' delivery=dv.id %}">en table PDF <img src="{% static 'images/pdf.png' %}"/></a>,
+                <a href="{% url 'view_all_cards_latex' delivery=dv.id %}">en fiches individuelles <img src="{% static 'images/pdf.png' %}"/></a>
+            </li>
+        </ul>
+    </li>
+    {% endfor %}
+</ul>
+
+{% endblock %}
+
