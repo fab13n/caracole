@@ -69,7 +69,7 @@ def users_get(request):
             user_records[u["id"]]["nw_producer"].append(nw.id)
             
     return JsonResponse({
-        "global_staff": staff.is_staff,
+        "is_staff": staff.is_staff,
         "networks": sorted(network_records, key=lambda nw: nw['name']),
         "users": sorted(user_records.values(), key=lambda u: u['last_name'])
         # "users": dict(sorted(user_records.items(), key=lambda pair: pair[1]['last_name']))
@@ -81,7 +81,7 @@ def users_update(request):
     The incoming JSON answer to be parsed is an object with fields:
 
     * user: a user id
-    * global_staff: should the user be made a global staff?
+    * is_staff: should the user be made a global staff?
     * sg_member: a list of subgroup ids this user should be made member of
     * sg_staff: a list of subgroup ids this user should be made group-staff of
     * nw_staff: a list of network ids  this user should be made staff of
@@ -98,7 +98,7 @@ def users_update(request):
         sg_staff={u['id'] for u in user.staff_of_subgroup.all().values("id")},
         nw_staff={u['id'] for u in user.staff_of_network.all().values("id")},
         nw_producer={u['id'] for u in user.producer_of_network.all().values("id")},
-        global_staff = user.is_staff
+        is_staff = user.is_staff
     )
 
     # Get status goal
@@ -107,7 +107,7 @@ def users_update(request):
         sg_staff=set(data['sg_staff']),
         nw_staff=set(data['nw_staff']),
         nw_producer=set(data['nw_producer']),
-        global_staff=data.get('global_staff')
+        is_staff=data.get('is_staff')
     )
 
     if not staff.is_staff: # global staff users can do whatever they want
@@ -123,10 +123,11 @@ def users_update(request):
     user.staff_of_network.set(new["nw_staff"])
     user.producer_of_network.set(new["nw_producer"])
 
-    if (new['global_staff'] is not None and 
+    print(f"{old['is_staff']=} {new['is_staff']=}")
+    if (new['is_staff'] is not None and 
         staff.is_staff and 
-        old['global_staff'] != new['global_staff']):
-        user.is_staff = new['global_staff']
+        old['is_staff'] != new['is_staff']):
+        user.is_staff = new['is_staff']
         user.save()
 
     m.JournalEntry.log(staff, "Changed u-%d from %s to %s", user.id, old, new)

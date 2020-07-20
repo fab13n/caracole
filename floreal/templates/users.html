@@ -12,6 +12,7 @@
 #user-form td:first-child {text-align: right;}
 .btn-primary {border-color: #811305; background-color: #811305;}
 .btn-primary:disabled {border-color: gray; background-color: gray;}
+.toggle-off {background-color: lightgray; color: gray;}
 </style>
 
 <script type='text/javascript'>
@@ -22,7 +23,7 @@ let USERS = {}; // id -> user record
 let NETWORKS = {}; // id -> network record
 let SUBGROUPS = {}; // id -> subgroup record
 
-function get_users() {
+function load_users() {
   $.getJSON("{% url 'users_json' %}", data => {
     const select = $("#users");
     data.users.forEach(u => {
@@ -43,6 +44,7 @@ function get_users() {
       });
     });
     select.selectpicker(); // Force rendering of dynamically added picker
+    $("#loading-spinner").remove();
     // Open the selection widget; mysteriously won't work synchronously,
     // hence the async setTimeout()
     setTimeout(() => $("#users").selectpicker("toggle"), 0);
@@ -126,19 +128,19 @@ function get_users() {
 
     });
 
-    if(data.global_staff) {
+    if(data.is_staff) {
       template += `
         <tr>
           <th>Administrateur global?</th>
-          <td>${oui_non("global-staff")}</td>
+          <td>${oui_non("is-staff")}</td>
         </tr>
-        <tr><td colspan="2">
+        <!--<tr><td colspan="2">
           <button 
             id="deactivate"
             class="btn btn-block btn-danger">
             Désactiver le compte
           </button>
-        </td></tr>`;
+        </td></tr>-->`;
     }
     template += `
       <tr><td colspan="2">
@@ -159,7 +161,6 @@ function get_users() {
       }
     });
     $("#save").on("click", (event) => {
-      // TODO spinner in button as feedback?
       event.preventDefault();
       save_changes();
     });
@@ -225,9 +226,9 @@ function render_user(u) {
     $(`[name=sg-staff-${nw.id}]`).bootstrapToggle(sgid === undefined ? "off" : "on");
     $(`[name=nw-staff-${nw.id}]`).bootstrapToggle(u.nw_staff.includes(nw.id)? "on" : "off");
     $(`[name=nw-producer-${nw.id}]`).bootstrapToggle(u.nw_producer.includes(nw.id) ? "on" : "off");
-    $("#save").prop("disabled", true); // will be re-enabled upon modification
-
-  })
+  });
+  $(`[name=is-staff]`).bootstrapToggle(u.is_staff ? "on" : "off");
+  $("#save").prop("disabled", true); // will be re-enabled upon modification
 }
 
 /* Send current user modifications to server. */
@@ -241,18 +242,19 @@ function save_changes() {
   const remove_spinner = () =>
     $("#save").html(`Sauvegarder`);
 
-  const data =  JSON.stringify(get_data());
-  console.log("Sending ", data);
+  const data = get_data();
+  console.log("Sending ", JSON.stringify(data));
   add_spinner();
   $.ajax({
     url: 'users.json',
     type: 'POST',
     contentType: 'application/json; charset=utf-8',
-    data,
+    data: JSON.stringify(data),
     success: () => {
       remove_spinner();
-      // TODO reflect changes form `data` to internal JSON DB,
-      // so that the user remains up-to-date if reloaded.
+      // Reflect changes from `data` into local users table, in case it's reloaded.
+      Object.entries(data).forEach(([name, val]) => { console.log("save", name, val); CURRENT_USER[name] = val; })
+      MODIFIED_USER = false;
     },
     error: (result) => { 
       alert("Failed, see the console");
@@ -314,8 +316,8 @@ function get_data() {
     nw_producer,
   }
 
-  if($("[name=global-staff]").length > 0) {
-    r['global-staff'] = $("[name=global-staff]")[0].checked;
+  if($("[name=is-staff]").length > 0) {
+    r['is_staff'] = $("[name=is-staff]")[0].checked;
   }
 
   return r;
@@ -325,13 +327,14 @@ function get_data() {
 {% endblock %}
 
 {% block document_ready %}
-get_users();
+load_users();
 {% endblock %}
 
 {% block content %}
 <h1>Gestion des utilisateurs</h1>
 <p>
   Sélectionnez un utilisateur à modifier: 
+  <span id = "loading-spinner" class="spinner-border spinner-border-sm"></span>
   <select 
     id="users" 
     title="Choisir un utilisateur" 
