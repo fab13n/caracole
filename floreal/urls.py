@@ -23,7 +23,6 @@ urlpatterns = [
     path('nw-<network>/archives', views.archived_deliveries, name='archived_deliveries'),
     path('nw-<network>/edit-users', views.edit_user_memberships, name='edit_user_memberships'),
     path('nw-<network>/edit-description', views.edit_network_description, name='edit_network_description'),
-    path('nw-<network>/edit-users.json', views.json_memberships, name='json_memberships'),
     re_path(r'^nw-(?P<network>[^/]+)/all-deliveries/(?P<states>[A-Z]+)$', views.all_deliveries_html, name='all_deliveries_html'),
     re_path(r'^nw-(?P<network>[^/]+)/all-deliveries/(?P<states>[A-Z]+)\.pdf$', views.all_deliveries_latex, name='all_deliveries_latex'),
     path('nw-<network>/invoice-mail-form', views.invoice_mail_form, name='invoice_mail_form'),
@@ -46,7 +45,7 @@ urlpatterns = [
     path('new-cd/sg-<subgroup>', views.create_candidacy, name='create_candidacy'),
     path('candidacy/staff', views.manage_candidacies, name='manage_candidacies'),
 
-    re_path('^dv-(?P<delivery>[^./]+).html$', views.view_purchases_html, name='view_all_purchases_html'),
+    re_path(r'^dv-(?P<delivery>[^./]+).html$', views.view_purchases_html, name='view_all_purchases_html'),
     path('dv-<delivery>/table.pdf', views.view_purchases_latex, name='view_all_purchases_latex'),
     path('dv-<delivery>/cards.pdf', views.view_cards_latex, name='view_all_cards_latex'),
     path('dv-<delivery>.xlsx', views.view_purchases_xlsx, name='view_all_purchases_xlsx'),
