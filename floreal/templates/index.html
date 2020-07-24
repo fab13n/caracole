@@ -12,7 +12,7 @@
             " ? Pour un réseau sans sous-groupe, cliquez sur «Annuler»."
         );
         if( ! sg_name) { sg_name = nw_name; }
-        const url_scheme = "{% url 'create_network' nw_name='NW_NAME' sg_name='SG_NAME' %}";
+        const url_scheme = "{% url 'create_network' nw_name='NW_NAME' %}";
         window.location = url_scheme
             .replace('NW_NAME', encodeURI(nw_name))
             .replace('SG_NAME', encodeURI(sg_name));

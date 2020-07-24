@@ -19,7 +19,7 @@ from .decorators import nw_admin_required, regulator_required
 from .latex import delivery_table as latex_delivery_table, render_latex
 from .spreadsheet import spreadsheet
 
-from .edit_delivery_purchases import edit_delivery_purchases
+from .edit_network_purchases import edit_network_purchases
 from .edit_user_purchases import edit_user_purchases
 from .user_registration import user_register, user_register_post
 from .edit_delivery_products import edit_delivery_products, delivery_products_json
@@ -198,7 +198,7 @@ def edit_delivery_staff(request, delivery):
         'dv': dv,
         'networks': dv.networks.filter(staff__in=[request.user]),
         'Delivery': m.Delivery,
-        'steps': [{'s': s, 'text': m.Delivery.STATE_CHOICES[s], 'is_done': dv.state>=s, 'is_current': dv.state==s} for s in 'ABCDEF'],
+        'steps': [{'s': s, 'text': m.Delivery.STATE_CHOICES[s], 'is_done': dv.state>=s, 'is_current': dv.state==s} for s in 'ABCDE'],
         'CAN_EDIT_PURCHASES': dv.state in [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN],
         'CAN_EDIT_PRODUCTS': dv.state != m.Delivery.TERMINATED
     }

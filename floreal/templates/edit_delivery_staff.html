@@ -4,7 +4,9 @@
 
 {% block breadcrumbs %}
 <li class="breadcrumb-item"><a href="{% url 'index' %}">Accueil</a></li>
-<li class="breadcrumb-item"><a href="{% url 'network_admin' network=dv.network.id %}">Réseau {{dv.network.name}}</a></li>
+{% for nw in dv.networks.all %}{# TODO only if member of that nw #}
+<li class="breadcrumb-item"><a href="{% url 'network_admin' network=nw.id %}">Réseau {{nw.name}}</a></li>
+{% endfor %}
 {% endblock %}
 
 {% block head %}

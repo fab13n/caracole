@@ -39,8 +39,8 @@ def regulator_required(admin_getter=lambda a: a.get('network', None)):
             nw = get_network(admin_getter(kwargs))
             if nw:
                 if not (
-                    user.staff_of_network.filter(nw=nw).exists() or
-                    user.regulator_of_network.filter(nw=nw).exists()):
+                    user.staff_of_network.filter(id=nw.id).exists() or
+                    user.regulator_of_network.filter(id=nw.id).exists()):
                     return HttpResponseForbidden('Réservé aux régulateurs du réseau '+sg.network.name+'/'+sg.name)
             else:
                 if not (

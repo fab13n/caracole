@@ -7,12 +7,6 @@
 
   let DATA;
 
-  async function load_delivery_purchases() {
-    const res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id %}");
-    DATA = await res.json();
-    render();
-  }
-
   function render_price(price) {
     return price.toFixed(2) + "€";
   }
@@ -22,17 +16,8 @@
     return unit;
   }
 
-  function render() {
-
-    $(".dv-name").text(DATA.delivery.name);
-    $("#total-price").text(render_price(DATA.total.price));
-    $(".download-link").each((i, e) => {
-      const old_url = $(e).attr('href');
-      const new_url = old_url.replace('DVID', DATA.delivery.id);
-      $(e).attr('href', new_url);
-    });
-
-    DATA.products.forEach(pd => {
+  function render_products_header(products) {
+    products.forEach(pd => {
 
       /* Set product name */
       $("#product-names").append(
@@ -49,14 +34,14 @@
             <td>
               ${pd.total.quantity} = <br/>
               ${pd.total.packages} × ${pd.quantity_per_package}${render_unit(pd.unit)} <br/>
-              <span class="out_of_packages"> + ${pd.total.out_of_package}${render_unit(pd.unit)}</span>
+              <span class="out-of-packages"> + ${pd.total.out_of_package}${render_unit(pd.unit)}</span>
             </td>`);
         } else {
           // packaged product, no loose item
           $("#packaging").append(`
             <td>
               ${pd.total.quantity} = <br/>
-              <span class="nothing_out_of_package">
+              <span class="nothing-out-of-package">
                 ${pd.total.packages} × ${pd.quantity_per_package}${render_unit(pd.unit)}
               </span>
             </td>`);
@@ -66,69 +51,104 @@
         $("#quantity-per-package").append(`<td> - </td>`);
         $("#packaging").append(`
           <td>
-            <span class="nothing_out_of_package">${pd.total.quantity}</span>${render_unit(pd.unit)}</span>
+            <span class="nothing_out_of_package">${pd.total.quantity}${render_unit(pd.unit)}</span>
           </td>`);
       }
-    });
-
-    /* Fill network rows */
-    DATA.networks.forEach(nw => {
-
-      /* Only display network summary line if there are several networks. */
-      if(DATA.networks.length > 1) {
-        /* Name and total price for network. */
-        $("#purchases").append(`
-          <tr class="nw-row" id="nw-row-${nw.network.id}">
-            <th class="left">${nw.network.name}</th>
-            <td>${render_price(nw.total.price)}</td>
-          </tr>`);
-
-        /* Network total quantities. */
-        const $nw_row = $(`#nw-row-${nw.network.id}`); 
-        nw.products.forEach(pd =>
-          $nw_row.append(
-            pd.total.quantity ?
-            `<td>${pd.total.quantity}</td` :
-            `<td>-</td>`         
-          )
-        )
-      }
-      /* Individual user quantities. */
-      nw.purchases.forEach((row, i) => {
-        const u = nw.users[i];
-        const cycle = ['one', 'two', 'three', 'four'][i%4];
-        $("#purchases").append(`
-          <tr class="u-row nw-row-${nw.network.id}-user ${cycle}" id="u-row-${u.id}">
-            <th class"left">${u.first_name} ${u.last_name}</th>
-            <td class="price">${render_price(u.total.price)}</td>
-          </tr>
-        `);
-        const $u_row = $(`#u-row-${u.id}`);
-        row.forEach(pc => 
-          $u_row.append(pc ? `<td>${pc.quantity}</td>` : `<td>-</td>`)
-        );
       });
-
-      /* Toggle individual users' visibility when the network row is clicked. */
-      /* In a function call to prevent variable sharing between closures. */
-      (nw_id =>
-        $(`#nw-row-${nw_id}`).click(
-          () => $(`.nw-row-${nw_id}-user`).toggle()
-        )
-      )(nw.network.id); 
-    });
-
-    /* Start with user rows hidden when there are several networks. */
-    if(DATA.networks.length > 1) {
-      $(".u-row").toggle();
-    }
   }
 
-  $(document).ready(load_delivery_purchases);
+  function render_network_line(nw) {
+    /* Create line */
+    $("#purchases").append(`
+      <tr class="nw-row" id="nw-row-${nw.network.id}">
+        <th class="left">${nw.network.name}</th>
+        <td>${render_price(nw.total.price)}</td>
+      </tr>`);
+
+    /* Fill with product quantities. */
+    const $nw_row = $(`#nw-row-${nw.network.id}`); 
+    nw.products.forEach(pd =>
+      $nw_row.append(
+        pd.total.quantity ?
+        `<td>${pd.total.quantity}</td` :
+        `<td>-</td>`         
+      )
+    );
+  }
+
+  function render_network_users(nw) {
+    /* Individual user quantities. */
+    nw.purchases.forEach((row, i) => {
+      const u = nw.users[i];
+      const cycle = ['one', 'two', 'three', 'four'][i%4];
+      $("#purchases").append(`
+        <tr class="u-row nw-row-${nw.network.id}-user ${cycle}" id="u-row-${u.id}">
+          <th class"left">${u.first_name} ${u.last_name}</th>
+          <td class="price">${render_price(u.total.price)}</td>
+        </tr>
+      `);
+      const $u_row = $(`#u-row-${u.id}`);
+      row.forEach(pc => 
+        $u_row.append(pc ? `<td>${pc.quantity}</td>` : `<td>-</td>`)
+      );
+    });
+  }
+
+  {% if network %}
+
+  function render_single_network(nw) {
+
+    $(".dv-name").text(nw.delivery.name + " " + nw.network.name);
+    $("#total-price").text(render_price(nw.total.price));
+    $("#download-xlsx").attr("href", `/nw-${nw.network.id}-dv-${nw.delivery.id}.xlsx`);
+    $("#download-pdf").attr("href", `/nw-${nw.network.id}-dv-${nw.delivery.id}.pdf`);
+
+    render_products_header(nw.products);
+    render_network_users(nw);
+  }
+
+  async function load_network() {
+    const res = await fetch("{% url 'view_network_purchases_json' network=network.id delivery=delivery.id %}");
+    DATA = await res.json();
+    render_single_network(DATA);
+  }
+
+  $(document).ready(load_network);
+
+  {% else %}
+
+  function render_multiple_networks(dv) {
+
+    $(".dv-name").text(dv.delivery.name);
+    $("#total-price").text(render_price(dv.total.price));
+    $("#download-xlsx").attr("href", `/dv-${dv.delivery.id}.xlsx`);
+    $("#download-pdf").attr("href", `/dv-${dv.delivery.id}.pdf`);  
+
+    render_products_header(dv.products);
+    dv.networks.forEach(nw => {
+      render_network_line(nw);
+      render_network_users(nw);
+      const toggle = () => $(`.nw-row-${nw.network.id}-user`).toggle();
+      $(`#nw-row-${nw.network.id}`).click(toggle);
+    })
+    if(dv.networks.length > 1) { $(".u-row").toggle(); }
+  }
+
+  async function load_delivery() {
+    const res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id %}");
+    DATA = await res.json();
+    render_multiple_networks(DATA);
+  }
+
+  $(document).ready(load_delivery);
+
+  {% endif %}
+
 </script>
 <style type="text/css">
   .nw-row, .nw-row th { color: white; background-color: #a75a50; font-weight: bold; }
-  .one  { background-color: #d5b1ac; }
+  .nw-row:hover { cursor: pointer; }
+  .four  { background-color: #d5b1ac; }
   .blank  { text-align: left; }
   table { margin-top: 30px; }
 </style>
@@ -145,10 +165,10 @@
           {# no product in user name and total columns #}
           Télécharger:
           <ul>
-            <li><a class="download-link" href="{% url 'view_delivery_purchases_xlsx' delivery='DVID' %}">
+            <li><a id="download-xlsx" href="#">
               Excel&nbsp;<img src="{% static 'images/excel.png' %}"/>
             </a></li>
-            <li><a class="download-link" href="{% url 'view_delivery_purchases_latex' delivery='DVID' %}">
+            <li><a id="download-pdf" href="#">
               fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/>
             </a></li>
           </ul>

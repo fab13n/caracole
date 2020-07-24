@@ -1,0 +1,224 @@
+{% extends "layout_wide.html" %}
+{% load floreal_filters %}
+{% load static %}
+
+{% block head %}
+<script type='text/javascript'>
+
+  let DATA;
+
+  function update_totals(pd_id, u_id) {
+    const pd = DATA.products.find(pd => pd.id == pd_id);
+    const u  = DATA.users.find(u => u.id == u_id);
+
+    $(`[name=pd-${pd.id}-u-${u.id}]`).addClass("modified");
+
+    /* Update product column. */
+    let pd_quantity = 0;
+    DATA.users.forEach(u => {
+      const q = Number($(`[name=pd-${pd.id}-u-${u.id}]`).val());
+      pd_quantity += q;
+    });
+    $(`#product-prices .pd-${pd.id}`).text(pd_quantity * pd.price);
+    $(`td.pd-${pd.id} .quantity`).text(pd_quantity);
+    if(pd.quantity_per_package) {
+      const packages = Math.trunc(pd_quantity / pd.quantity_per_package);
+      const out_of_package = pd_quantity - packages * pd.quantity_per_package;
+      $(`td.pd-${pd.id} .packages`).text(packages);
+      $(`td.pd-${pd.id} .out-of-package`).text(out_of_package);
+      $(`td.pd-${pd.id} .if-out-of-package`).toggle(out_of_package !== 0);
+    }
+
+    /* Update user row. */
+    let u_price = 0;
+    DATA.products.forEach(pd => {
+      const q = Number($(`[name=pd-${pd.id}-u-${u.id}]`).val());
+      u_price += q * pd.price;
+    });
+    $(`#u-row-${u.id} .price`).text(u_price);
+
+    /* Update grand total. */
+    let price = 0;
+    // Recompute from product prices, might have been user prices as well
+    $("#product-prices .price").each((_, td) => {
+      price += Number($(td).text());
+    });
+    $("#total-price").text(price.toFixed(2));
+
+    console.log(`Changed ${pd.name} for ${u.first_name} ${u.last_name}: user price=${u_price}, pd quantity=${pd_quantity}, total=${price}`)
+
+  }
+
+  function render_unit(unit) {
+    // TODO add "×" when starting with a number
+    return unit;
+  }
+
+  function render_products_header(products) {
+    products.forEach(pd => {
+
+      /* Set product name */
+      $("#product-names").append(
+        `<th class="class="pd-${pd.id} rotate"><div><div>${pd.name}</div></div></th>`
+      );
+
+      /* Set product name */
+      $("#product-prices").append(
+        `<td><span class="price pd-${pd.id}">${pd.total.price.toFixed(2)}</span>€</td>`
+      );
+
+      /* Fill total product quantities, and package + loose break-up */
+      if(pd.quantity_per_package) {
+        // packaged product
+        $("#quantity-per-package").append(`
+          <td class="pd-${pd.id}">${pd.quantity_per_package}${render_unit(pd.unit)}</td>`)
+        $("#packaging").append(`
+          <td class="pd-${pd.id}">
+            <span class="quantity">${pd.total.quantity}</span> = <br/>
+            <span class="packages">${pd.total.packages}</span> × ${pd.quantity_per_package}${render_unit(pd.unit)} <br/>
+            <span class="if-out-of-package">+ <span class="out-of-package">${pd.total.out_of_package}</span>${render_unit(pd.unit)}</span>
+          </td>`);
+          if(pd.total.out_of_package === 0) {
+            $(`.pd-${pd.id} .if-out-of-package`).hide();
+          }
+      } else {
+        // unpackaged product
+        $("#quantity-per-package").append(`<td> - </td>`);
+        $("#packaging").append(`
+          <td class="$pd-{pd.id}">
+            <span class="quantity">${pd.total.quantity}</span>${render_unit(pd.unit)}
+          </td>`);
+      }
+    });
+  }
+
+  function render_network_users(nw) {
+    /* Individual user quantities. */
+    nw.purchases.forEach((row, i) => {
+      const u = nw.users[i];
+      const cycle = ['one', 'two', 'three', 'four'][i%4];
+      $("#purchases").append(`
+        <tr class="u-row nw-row-${nw.network.id}-user ${cycle}" id="u-row-${u.id}">
+          <th class"left">${u.first_name} ${u.last_name}</th>
+          <td><span class="price">${u.total.price.toFixed(2)}</span>€</td>
+        </tr>
+      `);
+      const $u_row = $(`#u-row-${u.id}`);
+      row.forEach((pc, j) => {
+        let pd = nw.products[j];
+        let is_extra = u.first_name == 'extra';
+        let quantity = pc ? pc.quantity : 0;
+        let quantum = pc ? pc.quantum : 1;
+        let min = is_extra ? "" : `min="0"`;
+
+        $u_row.append(`
+          <td class="quantity">
+            <input
+              type="number"
+              name="pd-${pd.id}-u-${u.id}"
+              value="${quantity}"
+              step="${quantum}"
+              ${min}
+              onchange="update_totals(${pd.id}, ${u.id})"/>
+          </td>`);
+      });
+    });
+  }
+
+  function render_single_network(nw) {
+
+    $(".dv-name").text(nw.delivery.name + " " + nw.network.name);
+    $("#total-price").text(nw.total.price.toFixed(2));
+
+    render_products_header(nw.products);
+    render_network_users(nw);
+  }
+
+  async function load_network() {
+    const res = await fetch("{% url 'view_network_purchases_json' network=network.id delivery=delivery.id %}");
+    DATA = await res.json();
+    render_single_network(DATA);
+  }
+
+  /* Cancel all orders of a product, presumably not delivered. */
+  function cancel_pd(pd_id) {
+    const pd = DATA.products.find(pd => pd.id === pd_id );
+    if(confirm(`Annuler toutes les commandes de ${pd.name} pour le réseau ?`)) {
+      DATA.users.forEach(u =>
+        $(`input[name="pd-${pd.id}-u-${u.id}"]`).val(0) // attr("value", "0");
+      );
+      DATA.users.forEach(u => update_totals(pd.id, u.id));
+    }
+  }
+
+  /* Cancel all orders from a user. */
+  function cancel_u(u_id) {
+    const u = DATA.products.find(u => u.id === u_id );
+    if(confirm(`Annuler toutes les commandes de ${u.first_name} ${u.last_name} ?`)) {
+      DATA.products.forEach(pd =>
+        $(`input[name="pd-${pd.id}-u-${u.id}"]`).val(0) // attr("value", "0");
+      );
+      DATA.products.forEach(pd => update_totals(pd.id, u.id));
+    }
+  }
+
+  /* Disable unmodified inputs before submit, so that they're not sent. */
+  function disable_unmodified_inputs() {
+    $("input[type=number]:not(.modified").prop("disabled", "true");
+  }
+
+  $(document).ready(load_network);
+
+</script>
+<style type="text/css">
+  .nw-row, .nw-row th { color: white; background-color: #a75a50; font-weight: bold; }
+  .nw-row:hover { cursor: pointer; }
+  .four  { background-color: #d5b1ac; }
+  .blank  { text-align: left; }
+  table { margin-top: 30px; /*table-layout: fixed;*/ }
+  td.quantity { border: none; width: 50px; }
+  tr.extra, tr.extra input[type=number] {  background-color: #c08982; border: 1px solid #811305; }
+  .if-out-of-package { font-weight: bold;}
+  input[type=number] { 
+    border: 1px solid #c08982;
+    text-align: right;
+    height: 100%;
+    width: calc(100% - 3px);
+    padding:0px; 
+  }
+  input[type=number].modified {
+    font-weight: bold;
+    color:       #811305;
+    border:      3px solid #811305 !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Commande « <span class="dv-name">...</span> »</h1>
+
+<form method="post" action="">
+  <table class="with-border" id="purchases">
+
+      <tr id="product-names">
+          <td class="blank" colspan="2"></td>
+      </tr>
+
+      <tr id="quantity-per-package">
+          <th class="left" colspan="2">Quantité par carton</th>
+      </tr>
+
+      <tr id="packaging">
+          <th class="left" colspan="2">Packaging</th>
+      </tr>
+
+      <tr id="product-prices">
+          <th class="left">Total</th>
+          <td><span id="total-price">...</span>€</td>
+      </tr>
+  </table>
+  <input type="submit" value="Sauvegarder" onclick="disable_unmodified_inputs()"/>
+  {% csrf_token %}
+</form>
+{% endblock %}

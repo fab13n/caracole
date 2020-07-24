@@ -51,7 +51,13 @@ def get_description(request, delivery, network):
 
 def view_purchases_html(request, delivery, network=None):
     """View purchases for a given delivery, possibly restricted to a subgroup. (subgroup) staff only."""
-    return render(request,'view_purchases.html', {'user': request.user, 'delivery': get_delivery(delivery)})
+    if network:
+        network = get_network(network)
+    return render(request,'view_purchases.html', {
+        'user': request.user,
+        'delivery': get_delivery(delivery),
+        'network': network
+    })
 
 @login_required()
 def view_purchases_xlsx(request, delivery, network=None):

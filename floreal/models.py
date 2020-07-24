@@ -83,7 +83,7 @@ class Delivery(models.Model):
     ORDERING_ALL   = 'B'
     ORDERING_ADMIN = 'C'
     FROZEN         = 'D'
-    TERMINATED     = 'F'
+    TERMINATED     = 'E'
     STATE_CHOICES = {
         PREPARATION:    "En préparation",
         ORDERING_ALL:   "Ouverte",
