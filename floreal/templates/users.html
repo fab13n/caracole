@@ -21,7 +21,6 @@ let CURRENT_USER = null;
 let MODIFIED_USER = false;
 let USERS = {}; // id -> user record
 let NETWORKS = {}; // id -> network record
-let SUBGROUPS = {}; // id -> subgroup record
 
 function load_users() {
   $.getJSON("{% url 'users_json' %}", data => {
@@ -38,10 +37,6 @@ function load_users() {
     });
     data.networks.forEach(nw => {
       NETWORKS[nw.id] = nw;
-      nw.subgroups.forEach(sg => {
-        SUBGROUPS[sg.id] = sg;
-        sg.network = nw.id; // Retrieve nw from sg
-      });
     });
     select.selectpicker(); // Force rendering of dynamically added picker
     $("#loading-spinner").remove();
@@ -74,65 +69,35 @@ function load_users() {
         data-off="Non"
       />`;
 
-    let template = ``;
-    data.networks.map(nw => {
-
-      const multi_sg = nw.subgroups.length > 1;
-
-      template += `<tr><th colspan="2">Réseau ${nw.name} (${nw.id}/${nw.subgroups.map(sg=>sg.id).join(",")})</th></tr>`;
-
-      if(multi_sg){
-        // membership & sg_staff
-        const subgroup_options = nw.subgroups.map(sg => 
-          `<option value="${sg.id}">${sg.name}</option>`
-        ).join("\n");
-        template += `
-          <tr>
-            <td>Membre:</td>
-            <td>
-              <select 
-                class="form-control user-modifier sg-admin-enabler" 
-                name="sg-member-${nw.id}" 
-                id="sg-member-${nw.id}">
-                <option value="0">Non</option>
-                ${subgroup_options}
-              </select>
-            </td>
-          </tr>
-          <tr>
-            <td>Admin sous-groupe:</td>
-            <td>${oui_non("sg-staff-"+nw.id)}</td>
-          </tr>`;
-      } else {
-        // no sg_staff distinct from nw_staff for mono sg networks
-        template += `
-          <tr>
-            <td>Membre:</td>
-            <td>${oui_non("sg-member-"+nw.id)}</td>
-          </tr>`;
-      }
-
-      // nw_staff
-      template += `
+    let template = data.networks.map(nw => `
+        <tr>
+          <th colspan="2">Réseau ${nw.name} (${nw.id})</th>
+        </tr>
+        <tr>
+          <td>Membre:</td>
+          <td>${oui_non("member-"+nw.id)}</td>
+        </tr>
         <tr>
           <td>Admin réseau:</td>
-          <td>${oui_non("nw-staff-"+nw.id)}</td>
-        </tr>`;
-      
-      // producer
-      template += `
+          <td>${oui_non("staff-"+nw.id)}</td>
+        </tr>
         <tr>
           <td>Producteur:</td>
-          <td>${oui_non("nw-producer-"+nw.id)}</td>
-        </tr>`;
-
-    });
+          <td>${oui_non("producer-"+nw.id)}</td>
+        </tr>
+        <tr>
+          <td>Régulateur:</td>
+          <td>${oui_non("regulator-"+nw.id)}</td>
+        </tr>`).join("\n");
 
     if(data.is_staff) {
       template += `
         <tr>
-          <th>Administrateur global?</th>
-          <td>${oui_non("is-staff")}</td>
+          <th colspan="2">Administrateur global?</th>
+        </tr>
+        <tr>
+          <td></td>
+          <td>${oui_non("is_staff")}</td>
         </tr>
         <!--<tr><td colspan="2">
           <button 
@@ -171,17 +136,6 @@ function load_users() {
         console.log("TODO deactivate, deselect user (from select + hide form)");
         }
     });
-    $(".sg-admin-enabler").on("change", (event) => {
-      const sgid = event.target.value;
-      const nwid = event.target.getAttribute("name").split("-")[1];
-      const sg_staff = $(`[name="sg-staff-${nwid}"]`);
-      if(sgid === "0") {
-        sg_staff.bootstrapToggle('off');
-        sg_staff.bootstrapToggle('disable');
-      } else {
-        sg_staff.bootstrapToggle('enable');   
-      }
-    });
   });
 }
 
@@ -189,45 +143,12 @@ function load_users() {
  * according to JSON DB. */
 function render_user(u) {
   console.log("Rendering user ",u);
-  Object.values(NETWORKS).forEach(nw => {
-    const multi_sg = nw.subgroups.length > 1;
-
-    // sgid = subgroup this user might be member of
-    let sgid = u.sg_member.find(sgid => SUBGROUPS[sgid].network === nw.id);
-    if(sgid !== undefined) {
-      const sg = SUBGROUPS[sgid];
-      if(multi_sg) {
-        // member of a multi-sg network => membership as a <select>,
-        // allow to control sg_staff separately from nw_staff with a toggle.
-        $(`[name=sg-member-${nw.id}]`).selectpicker("val", sgid);
-        $(`[name=sg-staff-${nw.id}`).bootstrapToggle('enable');
-      } else {
-        // single subgroup in network => set checkbox to on
-        $(`[name=sg-member-${nw.id}]`).bootstrapToggle("on")
-      }
-    }  else { // non-member
-      if(multi_sg) {
-        $(`[name=sg-member-${nw.id}]`).selectpicker("val", 0);
-        // cannot be sg staff without being member
-        $(`[name=sg-staff-${nw.id}`).bootstrapToggle('off');
-        $(`[name=sg-staff-${nw.id}`).bootstrapToggle('disable');
-      } else { // non-member of multi-sg network
-        $(`[name=sg-member-${nw.id}]`).bootstrapToggle("off")
-      }
-    }
-
-    // sgid = subgroup this user might be *staff* of.
-    // In practice it's either undefined or the same as membership subgroup.
-    // In theory it could be not only different, but they might be sg_staff
-    // for several subgroups.
-    // I plan to change the representation of subgroups anyway,
-    // so there's no need to handle such corner cases.
-    sgid = u.sg_staff.find(sgid => SUBGROUPS[sgid].network === nw.id);
-    $(`[name=sg-staff-${nw.id}]`).bootstrapToggle(sgid === undefined ? "off" : "on");
-    $(`[name=nw-staff-${nw.id}]`).bootstrapToggle(u.nw_staff.includes(nw.id)? "on" : "off");
-    $(`[name=nw-producer-${nw.id}]`).bootstrapToggle(u.nw_producer.includes(nw.id) ? "on" : "off");
-  });
-  $(`[name=is-staff]`).bootstrapToggle(u.is_staff ? "on" : "off");
+  Object.values(NETWORKS).forEach(nw =>
+    ["member", "staff", "producer", "regulator"].forEach(field =>
+      $(`[name=${field}-${nw.id}]`).bootstrapToggle(u[field].includes(nw.id) ? "on" : "off")
+    )
+  );
+  $(`[name=is_staff]`).bootstrapToggle(u.is_staff ? "on" : "off");
   $("#save").prop("disabled", true); // will be re-enabled upon modification
 }
 
@@ -275,52 +196,24 @@ function get_data() {
     return Number(bits[bits.length - 1]);
   }
 
-  const sg_member = [];
-  const sg_staff = [];
-  const nw_staff = [];
-  const nw_producer = [];
+  const result = {
+    user: CURRENT_USER.id
+  };
 
-  // membership and sg-staff
-  $(`select[name^=sg-member-]`).each((i, x) => {
-    const nwid = get_number(x);
-    const sgid = Number(x.value);
-    if(sgid !== 0) {
-      sg_member.push(sgid);
-      if($(`[name=sg-staff-${nwid}]`)[0].checked) {
-        sg_staff.push(sgid);
+  ['member', 'staff', 'producer', 'regulator'].forEach(field =>  {
+    result[field] = [];
+    $(`input[name^=${field}-]`).each((_, x) => {
+      if(x.checked) {
+        result[field].push(get_number(x));
       }
-    }
-  });
-  $(`input[name^=sg-member-]`).each((i, x) => {
-    const nwid = get_number(x);
-    const sgid = Number(NETWORKS[nwid].subgroups[0].id);
-    if(x.checked) {
-      sg_member.push(sgid);
-    }
-    if($(`[name=nw-staff-${nwid}]`)[0].checked) {
-      sg_staff.push(sgid);
-    }
-  });
-  $(`input[name^=nw-producer-]`).each((i, x) => {
-    if(x.checked) { nw_producer.push(get_number(x)); }
-  });
-  $(`input[name^=nw-staff-]`).each((i, x) => {
-    if(x.checked) { nw_staff.push(get_number(x)); }
+    })
   });
 
-  const r = {
-    user: CURRENT_USER.id, 
-    sg_member,
-    sg_staff,
-    nw_staff,
-    nw_producer,
+  if($("[name=is_staff]").length > 0) {
+    result['is_staff'] = $("[name=is_staff]")[0].checked;
   }
 
-  if($("[name=is-staff]").length > 0) {
-    r['is_staff'] = $("[name=is-staff]")[0].checked;
-  }
-
-  return r;
+  return result;
 }
 
 </script>  

@@ -24,15 +24,15 @@
             </li>
             <li>
                 {% if dv.state == Delivery.ORDERING_ALL %}
-                <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.ORDERING_ADMIN %}">
+                <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.ORDERING_ADMIN %}?next={% url 'producer' %}">
                     Bloquer les commandes <img src="{% static 'images/minus.png' %}"/>
                 </a>
                 {% elif dv.state == Delivery.ORDERING_ADMIN %}
-                <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.ORDERING_ALL %}">
+                <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.ORDERING_ALL %}?next={% url 'producer' %}">
                     Réouvrir les commandes <img src="{% static 'images/purchase.png' %}"/>
                 </a>
                 {% else %}
-                <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.ORDERING_ALL %}">
+                <a href="{% url 'set_delivery_state' delivery=dv.id state=Delivery.ORDERING_ALL %}?next={% url 'producer' %}">
                     Ouvrir les commandes <img src="{% static 'images/purchase.png' %}"/>
                 </a>
                 {% endif %}

@@ -53,7 +53,10 @@ class Network(models.Model):
 
     name = models.CharField(max_length=256, unique=True)
     staff = models.ManyToManyField(User, related_name='staff_of_network')
+    regulators = models.ManyToManyField(User, related_name='regulator_of_network')
     producers = models.ManyToManyField(User, related_name='producer_of_network')
+    members = models.ManyToManyField(User, related_name='member_of_network')
+    candidates = models.ManyToManyField(User, related_name='candidate_of_network')
     auto_validate = models.BooleanField(default=False)
     description = models.TextField(null=True, blank=True, default=None)
 
@@ -66,70 +69,6 @@ class Network(models.Model):
     @property
     def description_text(self):
         return html2text(self.description)
-
-class Subgroup(models.Model):
-    """Subgroup of a network. Each subgroup has a set of regular users, and a set of staff
-    users. Staff users are allowed to modify the commands of their group users' purchases,
-    even if the delivery is closed (but not if it's already delivered). Staff users are
-    typically also regular users, but this is not mandatory.
-
-    Each subgroup has an 'Extra' user; staff users can order on behalf of the extra user,
-    so that the subgroup's order sums up to entire boxes, if network staff wishes so.
-    Extra users are allowed to order a negative quantity of products."""
-
-    name = models.CharField(max_length=256)
-    network = models.ForeignKey(Network, on_delete=models.CASCADE)
-    extra_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
-    # Users might only be staff of one subgroup per network
-    staff = models.ManyToManyField(User, related_name='staff_of_subgroup')
-    users = models.ManyToManyField(User, related_name='user_of_subgroup')
-    candidates = models.ManyToManyField(User, related_name='candidate_of_subgroup', through='Candidacy')
-    auto_validate = models.BooleanField(default=False)
-
-    class Meta:
-        unique_together = (('network', 'name'),)
-        ordering = ('name',)
-
-    def __str__(self):
-        return "%s/%s" % (self.network.name, self.name)
-
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        """If the extra user is missing, create it before saving."""
-        if not self.extra_user:
-            missing_extra = True
-            extra_username = "extra-%s" % self.name.lower()
-            if User.objects.filter(username=extra_username).exists():
-                extra_username = "extra-%s-%s" % (self.network.name.lower(), self.name.lower())
-            # TODO: doesn't necessarily end in gmail.com!
-            extra_email = settings.EMAIL_HOST_USER.replace("@gmail.com", "+" + extra_username + "@gmail.com")
-            self.extra_user = User.objects.create(username=extra_username,
-                                                  email=extra_email,
-                                                  first_name="extra",
-                                                  last_name=self.name.capitalize(),
-                                                  last_login=datetime.now())
-        else:
-            missing_extra = False
-        super(Subgroup, self).save(force_insert=force_insert, force_update=force_update,
-                                   using=using, update_fields=update_fields)
-        if missing_extra:
-            self.users.add(self.extra_user)
-
-    @property
-    def sorted_users(self):
-        if not self.extra_user:
-            raise ValueError("Subgroup "+self.network.name+"/"+self.name+" has no extra user")
-        normal_users = [u for u in self.users.all() if u != self.extra_user]
-        normal_users.sort(key=lambda u: (u.last_name.lower(), u.first_name.lower()))
-        return [self.extra_user] + normal_users
-
-
-class Candidacy(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
-    message = models.TextField(null=True, blank=True)  # Currently unused, might be used to communicate with admins
-
-    class Meta:
-        verbose_name_plural = "Candidacies"
 
 
 class Delivery(models.Model):
@@ -144,37 +83,21 @@ class Delivery(models.Model):
     ORDERING_ALL   = 'B'
     ORDERING_ADMIN = 'C'
     FROZEN         = 'D'
-    REGULATING     = 'E'
     TERMINATED     = 'F'
     STATE_CHOICES = {
         PREPARATION:    "En préparation",
         ORDERING_ALL:   "Ouverte",
         ORDERING_ADMIN: "Admins",
         FROZEN:         "Gelée",
-        REGULATING:     "Régularisation",
         TERMINATED:     "Terminée" }
     name = models.CharField(max_length=256)
-    network = models.ForeignKey(Network, on_delete=models.CASCADE)
+    networks = models.ManyToManyField(Network)
     state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=PREPARATION)
     description = models.TextField(null=True, blank=True, default=None)
     producer = models.ForeignKey(User, null=True, default=None, on_delete=models.SET_NULL)
 
-    def get_stateForSubgroup(self, sg):
-        try:
-            return self.subgroupstatefordelivery_set.get(delivery=self, subgroup=sg).state
-        except models.ObjectDoesNotExist:
-            return SubgroupStateForDelivery.DEFAULT
-
-    def set_stateForSubgroup(self, sg, state):
-        try:
-            x = self.subgroupstatefordelivery_set.get(delivery=self, subgroup=sg)
-            x.state = state
-            x.save()
-        except models.ObjectDoesNotExist:
-            SubgroupStateForDelivery.objects.create(delivery=self, subgroup=sg, state=state)
-
     def __str__(self):
-        return "%s/%s" % (self.network.name, self.name)
+        return self.name
 
     def state_name(self):
         return self.STATE_CHOICES.get(self.state, 'Invalid state '+self.state)
@@ -192,21 +115,7 @@ class Delivery(models.Model):
 
     class Meta:
         verbose_name_plural = "Deliveries"
-        unique_together = (('network', 'name'),)
         ordering = ('-id',)
-
-class SubgroupStateForDelivery(models.Model):
-    INITIAL              = 'X'
-    READY_FOR_DELIVERY   = 'Y'
-    READY_FOR_ACCOUNTING = 'Z'
-    DEFAULT = INITIAL
-    STATE_CHOICES = {
-        INITIAL:              "Non validé",
-        READY_FOR_DELIVERY:   "Commande validée",
-        READY_FOR_ACCOUNTING: "Compta validée"}
-    state = models.CharField(max_length=1, choices=list(STATE_CHOICES.items()), default=DEFAULT)
-    delivery = models.ForeignKey(Delivery, on_delete=models.CASCADE)
-    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
 
 
 class Product(models.Model):
@@ -287,6 +196,16 @@ class Purchase(models.Model):
         return self.quantity * self.product.unit_weight
 
     @property
+    def packages(self):
+        qpp = self.product.quantity_per_package
+        return self.quantity // qpp if qpp else None
+
+    @property
+    def out_of_package(self):
+        packages = self.packages
+        return self.quantity - packages if packages else self.quantity
+
+    @property
     def max_quantity(self):
         """What's the current max quantity allowed for this order,
         assuming its current quantity is saved in DB so that product.left is accurate."""
@@ -307,94 +226,6 @@ class Purchase(models.Model):
         if specify_user:
             result += " pour %s %s" % (self.user.first_name, self.user.last_name)
         return result
-
-
-class Order(object):
-    """Sum-up of what a given user has ordered in a given delivery. Fields:
-     * `purchases`: iterable on `Purchase` objects, possibly dummy purchase objects when total is 0.
-     * `user`
-     * `price`
-     * `weight`
-    """
-
-    class DummyPurchase(object):
-        """"Dummy purchase, to be used as a stand-in in purchas tables when a product
-        hasn't been purchased by a user."""
-        def __init__(self, product, user):
-            self.product = product
-            self.user = user
-            self.price = 0
-            self.weight = 0
-            self.quantity = 0
-
-        def __bool__(self):
-            return False
-        
-        @property
-        def left(self):
-            return self.product.left
-        
-        @property
-        def max_quantity(self):
-            return self.product.left
-
-    def __init__(self, user, delivery, purchases=None, with_dummies=False):
-        """Create the order sum-up.
-        :param user: who ordered
-        :param delivery: when
-        :param purchases: if the list of purchases is passed, it isn't extracted from delivery and user.
-            Intended for internal use.
-        :return: an instance with fields `user`, `delivery`, `price` and `purchases`
-        (an iterable of relevant `Purchase` instances)."""
-
-        self.user = user
-        self.delivery = delivery
-        if purchases:
-            self.purchases = purchases
-            self.price = None
-            self.weight = None
-        else:
-            self.purchases = Purchase.objects.filter(product__delivery=delivery, user=user)#.select_related()
-            self.price = sum(p.price for p in self.purchases)
-            self.weight = sum(p.weight for p in self.purchases)
-        
-        if with_dummies:
-            by_pd_id = {pc.product_id: pc for pc in self.purchases}
-            self.purchases = [
-                by_pd_id[pd.id] if pd.id in by_pd_id else self.DummyPurchase(pd, user) 
-                for pd in delivery.product_set.all()]
-
-    @classmethod
-    def by_user_and_product(cls, delivery, users, products=None):
-        """Compute a dict of orders, for several users, more efficiently than by performing `len(users)` DB queries.
-        Purchases are in a list, sorted according to the list `product` if passed, by product name otherwise.
-        If a product hasn't been purchased by a user, `None` is used as a placeholder in the purchases list.
-
-        :param delivery: for which delivery
-        :param users: iterable over users
-        :param products: ordered list of products; normally, the products available in `delivery`.
-        :return: a user -> orders_list_indexed_as_products dictionary for all `users`."""
-
-        if not products:
-            products = delivery.product_set.all().select_related()
-        product_index = {pd.id: i for (i, pd) in enumerate(products)}
-        purchases_by_user_id_and_pd_idx = {u.id: [cls.DummyPurchase(pd, u) for pd in products] for u in users}
-        prices = {u.id: 0 for u in users}
-        weights = {u.id: 0 for u in users}
-
-        all_purchases = Purchase.objects.filter(product__delivery=delivery, user__in=users).select_related("user", "product")
-
-        # TODO SQL compute sums in Order.__init__
-        for pc in all_purchases:
-            purchases_by_user_id_and_pd_idx[pc.user_id][product_index[pc.product_id]] = pc
-            prices[pc.user_id] += pc.price
-            weights[pc.user_id] += pc.weight
-
-        orders = {u: Order(u, delivery, purchases=purchases_by_user_id_and_pd_idx[u.id]) for u in users}
-        for u in users:
-            orders[u].price = prices[u.id]
-            orders[u].weight = weights[u.id]
-        return orders
 
 
 class JournalEntry(models.Model):
@@ -420,52 +251,9 @@ class JournalEntry(models.Model):
         n = self.user.email if self.user else "?"
         return (", ".join((n, self.date.isoformat(), self.action)))
 
-class ProductDiscrepancy(models.Model):
-    """Log of an accounting discrepancy between what's been ordered and what's actually been paid for in a given subgroup.
-    """
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    amount = models.DecimalField(decimal_places=3, max_digits=9)
-    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
-    reason = models.CharField(max_length=256)
-
-    def __str__(self):
-        return "%s/%s: %+g %s of %s for %s: %s" % (
-            self.product.delivery.network.name,
-            self.product.delivery.name,
-            self.amount,
-            self.product.unit,
-            self.product.name,
-            self.subgroup.name,
-            self.reason
-        )
-
-    class Meta:
-        verbose_name_plural = "Product Discrepancies"
-
-class DeliveryDiscrepancy(models.Model):
-    """Log of an accounting discrepancy that cannot be attributed to a specific product."""
-    delivery = models.ForeignKey(Delivery, on_delete=models.CASCADE)
-    amount = models.DecimalField(decimal_places=2, max_digits=9)
-    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
-    reason = models.CharField(max_length=256)
-
-    def __unicode__(self):
-        return u"%s/%s: %+g€ for %s: %s" % (
-            self.delivery.network.name,
-            self.delivery.name,
-            self.amount,
-            self.subgroup.name,
-            self.reason
-        )
-
-    class Meta:
-        verbose_name_plural = "Delivery Discrepancies"
-
-
 class AdminMessage(models.Model):
     everyone = models.BooleanField(default=False)
     network = models.ForeignKey(Network, null=True, blank=True, default=None, on_delete=models.CASCADE)
-    subgroup = models.ForeignKey(Subgroup, null=True, blank=True, default=None, on_delete=models.CASCADE)
     message = models.TextField()
 
     def __str__(self):

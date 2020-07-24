@@ -48,41 +48,42 @@
 
 {% if user_deliveries %}
 <h2>Commandes en cours</h2>
+{% with several_nw=user_deliveries|several %}
 Commander pour
-{% regroup user_deliveries by network as nw_list %}
-{% if nw_list|length > 1 %}:<ul>{% endif %}
+{% if several_nw %}:<ul>{% endif %}
 
-    {% for g in nw_list %}
-        {% if nw_list|length > 1 %}<li>{% endif %}
-        {{g.grouper}} :
-        {% if g.list|length > 1 %} <ul> {% endif %}
-        {% for dv in g.list %}
-        {% if g.list|length > 1 %}<li>{% endif %}
-        {% with dv|order:user as order %}
+    {% for nd in user_deliveries %}
+        {% if several_nw %}<li>{% endif %}
+        {{nd.nw.name}} :
+        {% with several_dv=nd.deliveries|several %}
+        {% if several_dv %} <ul> {% endif %}
+        {% for d in nd.deliveries %}
+        {% if several_dv %}<li>{% endif %}
 
         {# Non-modifiable order #}
-        {% if order.price > 0 and dv.state != Delivery.ORDERING_ALL %}
-        <em>{{dv.name}}</em> {{order.price|price}} (non modifiable) :
-        <ul>{% for pc in order.purchases %}<li>{{pc}}</li>{% endfor %}</ul>
+        {% if d.purchases|length > 0 and d.dv.state != Delivery.ORDERING_ALL %}
+        <em>{{d.dv.name}}</em> {{d.price|price}} (non modifiable) :
+        <ul>{% for pc in d.purchases %}<li>{{pc}}</li>{% endfor %}</ul>
 
         {# Modifiable order #}
-        {% elif order.price > 0 and dv.state == Delivery.ORDERING_ALL %}
-        <a href="{% url 'edit_user_purchases' delivery=dv.id %}">{{dv.name}}</a>
-        ({{order.price|price}}) :
-        <ul>{% for pc in order.purchases %}<li>{{pc}}</li>{% endfor %}</ul>
+        {% elif d.purchases|length > 0 and d.dv.state == Delivery.ORDERING_ALL %}
+        <a href="{% url 'edit_user_purchases' delivery=d.dv.id %}">{{d.dv.name}}</a>
+        ({{d.price|price}}) :
+        <ul>{% for pc in d.purchases %}<li>{{pc}}</li>{% endfor %}</ul>
 
         {# Order can be passed #}
-        {% elif dv.state == Delivery.ORDERING_ALL %}
-        <a href="{% url 'edit_user_purchases' delivery=dv.id %}">{{dv.name}}</a>
+        {% elif d.dv.state == Delivery.ORDERING_ALL %}
+        <a href="{% url 'edit_user_purchases' delivery=d.dv.id %}">{{d.dv.name}}</a>
         {% endif %}{# order may be passed, may be modified #}
-        {% endwith %}{# order #}
-        {% if g.list|length > 1 %}</li>{% endif %}
+        {% if several_dv %}</li>{% endif %}
         {% endfor %}{# g.list #}
-        {% if g.list|length > 1 %}</ul>{% endif %}
-    {% if nw_list|length > 1 %}</li>{% endif %}
+        {% if several_dv %}</ul>{% endif %}
+        {% endwith %}{# several_dv #}
+    {% if several_nw %}</li>{% endif %}
     {% endfor %}{# nw_list #}
 
-{% if nw_list|length > 1 %}</ul>{% endif %}
+{% if several_nw %}</ul>{% endif %}
+{% endwith %}{# several_nw #}
 
 {% else %}
 <h2>Aucune commande en cours</h2>
@@ -90,6 +91,7 @@ Commander pour
 
 <p><a href="{% url 'view_history' %}">Historique de vos anciennes commandes</a></p>
 
+{% with staffed_networks=user.staff_of_network.all %}
 {% if staffed_networks or user.is_staff %}
 <h2>Administrer les réseaux</h2>
 <ul>
@@ -106,101 +108,9 @@ Commander pour
     {% endfor %}{# staffed_networks #}
 </ul>
 {% endif %}{# staffed_networks or user.is_staff #}
+{% endwith %}{# staffed_networks #}
 
-{% if staffed_subgroups %}
-<h2>Administrer les sous-groupes</h2>
-<ul>
-    <li><a href="{% url 'set_message' %}">Poster un message</a></li>
-    {% for ssg in staffed_subgroups %}
-    {% with sg=ssg.subgroup %}
-    <li>
-        {% if sg.name == sg.network.name %}
-        {{sg.name}}
-        {% else %} Sous-groupe {{sg.name}} de {{sg.network.name}}{% endif %} :
-        <ul>
-            <li><a href="{% url 'emails_subgroup' subgroup=sg.id %}">e-mails <img src="{% static 'images/email.png' %}"/></a> et
-                <a href="{% url 'phones_subgroup' subgroup=sg.id %}">téléphones</a> ☎ des membres.</li>
-            {% for dv in ssg.deliveries %}
-            <li>Commande <em>{{dv.name}}</em> ({{dv.state_name}}):
-                <ul class="horizontal">
-                    {% if sg.id|subgroup_has_purchases:dv.id %}
-                    <li>Voir:</li>
-                    <li><a href="{% url 'view_subgroup_purchases_html' delivery=dv.id subgroup=sg.id %}">en ligne <img src="{% static 'images/grid.png' %}"/</a></li>
-                    <li><a href="{% url 'view_subgroup_purchases_xlsx' delivery=dv.id subgroup=sg.id  %}">sous MS-Excel <img src="{% static 'images/excel.png' %}"/></a></li>
-                    <li><a href="{% url 'view_subgroup_purchases_latex' delivery=dv.id subgroup=sg.id  %}">en tableau PDF <img src="{% static 'images/pdf.png' %}"/></a></li>
-                    <li><a href="{% url 'view_subgroup_cards_latex' delivery=dv.id subgroup=sg.id  %}">en cartes PDF <img src="{% static 'images/pdf.png' %}"/></a></li>
-                    {% else %}
-                    <li>(Aucun achat)</li>
-                    {% endif %}
-                    {% if dv.state == Delivery.ORDERING_ALL or dv.state == Delivery.ORDERING_ADMIN %}
-                    <li><a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id%}">
-                        Modifier <img src="{% static 'images/edit.png' %}"/></a></li>
-                    {% endif %}
-                </ul>
-            </li>   
-            {% endfor %}{# deliveries #}
-        </ul>
-    {% endwith %}{# sg #}
-    {% endfor %}{# staffed_subgroups #}
-</ul>
-{% endif %}{# staffed_subgroups #}
-
-{% if subgroup_action_deliveries %}
-<h2>Régulariser</h2>
-<ul>
-    {% for action in subgroup_action_deliveries %}
-    {% for dv in action.deliveries %}
-    {% with sg=action.subgroup %}
-    <li>{{dv.name}} ({{dv.state_name}}):
-        <ul>
-            {% if dv.state == Delivery.ORDERING_ADMIN %}
-            {% if sg|subgroup_state:dv < SubgroupState.READY_FOR_DELIVERY %}
-            <li>
-                <a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id%}">
-                    Modifier<img src="{% static 'images/edit.png' %}"/></a>
-            </li>
-            <li>
-                <a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.READY_FOR_DELIVERY %}?next=/">
-                    <span class="no">Valider la commande du sous-groupe {{sg.name}}</span>
-                </a>✔
-            </li>
-            {% else %}{# subgroup_state == READY_FOR_DELIVERY #}
-            <li>
-                <span class="yes">Commande validée pour le sous-groupe {{sg.name}}</span>
-                (<a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.INITIAL %}?next=/">
-                    annuler
-                </a>✘)
-            </li>
-            {% endif %}{# subgroup_state == READY_FOR_DELIVERY #}
-            {% else %}{# delivery.state == REGULATING #}
-            {% if sg|subgroup_state:dv < SubgroupState.READY_FOR_ACCOUNTING %}
-            <li>
-                <a href="{% url 'edit_subgroup_purchases' delivery=dv.id subgroup=sg.id%}">
-                    Modifier<img src="{% static 'images/edit.png' %}"/>
-                </a>
-            </li>
-            <li>
-                <a href="{% url 'subgroup_regulation' subgroup=sg.id delivery=dv.id %}">
-                    <span class="no">Régulariser la comptabilité du sous-groupe {{sg.name}}</span>
-                </a>✔
-            </li>
-            {% else %}{# subgroup_state == READY_FOR_ACCOUNTING #}
-            <li>
-                <span class="yes">Comptabilité validée pour le sous-groupe {{sg.name}}</span>
-                (<a href="{% url 'set_subgroup_state_for_delivery' subgroup=sg.id delivery=dv.id state=SubgroupState.READY_FOR_DELIVERY %}?next=/">
-                    annuler
-                </a>✘)
-            </li>
-            {% endif %}{# subgroup_State == READY_FOR_ACCOUNTING #}
-            {% endif %}{# delivery.state == REGULATING #}
-        </ul>
-    </li>
-    {% endwith %}{# sg dv #}
-    {% endfor %}{# action.deliveries #}
-    {% endfor %}{# subgroup_action_deliveries #}
-</ul>
-{% endif %}{# subgroup_action_deliveries #}
-
+{% with producer=user.producer_of_network.all %}
 {% if producer %}
 <h2>Administrer comme producteur</h2>
 <ul>
@@ -209,6 +119,7 @@ Commander pour
     {% endfor %}
 </ul>
 {% endif %}{# producer #}
+{% endwith %}
 
 {% if candidacies %}
 <h2>candidatures</h2>

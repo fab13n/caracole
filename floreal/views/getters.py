@@ -22,7 +22,5 @@ def model_getter(cls, field_names=None):
 
 
 get_network = model_getter(m.Network, ['name'])
-get_subgroup = model_getter(m.Subgroup, ['network__name', 'name'])
 get_delivery = model_getter(m.Delivery, ['network__name', 'name'])
-get_candidacy = model_getter(m.Candidacy)
 

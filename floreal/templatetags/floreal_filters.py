@@ -9,6 +9,10 @@ from floreal import francais
 register = template.Library()
 
 @register.filter
+def several(x):
+    return len(x) > 1
+
+@register.filter
 def forced_sign(f):
     return "%+g" % f
 
@@ -53,10 +57,6 @@ def subgroup_has_purchases(sg, dv):
 @register.filter
 def is_admin_of(u, nw_or_sg):
     return nw_or_sg.staff.filter(id=u.id).exists()
-
-@register.filter
-def order(dv, u):
-    return m.Order(u, dv)
 
 @register.filter
 def sort(collection):

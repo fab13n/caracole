@@ -5,13 +5,15 @@
 {% block head %}
 {% endblock head %}
 
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'index' %}">Accueil</a></li>
+<li class="breadcrumb-item"><a href="{% url 'network_admin' network=nw.id %}">Réseau {{nw.name}}</a></li>
+{% endblock %}
+
+
 {% block content %}
 
 <h2>Livraisons archivées du réseau {{nw.name}}</h2>
-<ul>
-    <li><a href="{% url 'network_admin' network=nw.id %}">Retour à l'administration du réseau {{nw.name}}</a> ↩</li>
-    <li><a href="{% url 'index' %}">Retour à la page principale</a> ↩↩</li>
-</ul>
 <ul>
     {% for dv in deliveries %}
     <li><a href="{% url 'edit_delivery' delivery=dv.id %}">{{dv.name}} <img src="{% static 'images/edit.png' %}"/></a>

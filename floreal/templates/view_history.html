@@ -7,10 +7,10 @@
 {% block content %}
 <h2>Historique des commandes de {{user.first_name}} {{user.last_name}}</h2>
 <ul>
-  {% for nw, od in orders %}
-  <li>{{nw.name}}, {{od.delivery.name}}, {{od.price|price}}:
+  {% for x in deliveries %}
+  <li>{{x.network.name}}, {{x.delivery.name}}, {{x.price|price}}:
     <ul>
-      {% for pc in od.purchases %}
+      {% for pc in x.purchases %}
       <li>{{pc}}</li>
       {% endfor %}
     </ul>

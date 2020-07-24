@@ -102,11 +102,11 @@
     <table id="delivery-table">
       <tr>
         <th>Livraison :</th>
-        <td>{{delivery.network.name}} / {{delivery.name}}</td>
+        <td>{{delivery.name}}</td>
       </tr>
       <tr>
-        <th>Sous-groupe :</th>
-        <td>{{subgroup.name}}</td>
+        <th>Réseau :</th>
+        <td>{{network.name}}</td>
       </tr>
       <tr>
         <th>Membre :</th>
@@ -125,7 +125,7 @@
             {% if some_packaged %}<th>Cartons</th>{% endif %}
             <th></th>
         </tr>
-        {% for pc in order.purchases %}
+        {% for pc in purchases %}
         {% with pd=pc.product %}
         <tr class="product-row" id="pd{{pd.id}}">
           {% if pc.described %}

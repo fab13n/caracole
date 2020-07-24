@@ -1,18 +1,18 @@
 #!/usr/bin/python3
 
 import os
-
-from django.http import HttpResponse, HttpResponseForbidden
+from django.db.models import Q
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 
 from caracole import settings
 from .decorators import nw_admin_required
-from .getters import get_delivery, get_subgroup
+from .getters import get_delivery, get_network
 from . import latex
 from .spreadsheet import spreadsheet
 from .delivery_description import delivery_description
-
+from floreal.views.dd2 import DeliveryDescription, NetworkDeliveryDescription
 
 MIME_TYPE = {
     'pdf': "application/pdf",
@@ -29,24 +29,32 @@ def non_html_response(name_bits, name_extension, content):
     return response
 
 
-@login_required()
-def view_purchases_html(request, delivery, subgroup=None):
-    """View purchases for a given delivery, possibly restricted to a subgroup. (subgroup) staff only."""
+def get_description(request, delivery, network):
+    """Retrieve the delivery description associated with those url params if permissions allow.
+    Return (True, description) upon success, (False, response) upon failure."""
+    u = request.user
     dv = get_delivery(delivery)
-    if subgroup:
-        sg = get_subgroup(subgroup)
-        if request.user not in sg.staff.all() and request.user not in sg.network.staff.all():
-            return HttpResponseForbidden("Réservé aux admins")
-        subgroups = [sg]
+    if network is not None:
+        nw = get_network(network)
+        if not (
+            nw.staff.filter(id__in=[u.id]).exists() or
+            nw.regulators.filter(id__in=[u.id]).exists()):
+            return False, HttpResponseForbidden("Réservé aux admins")
+        else:
+            return True, NetworkDeliveryDescription(dv, nw)
     else:
-        if request.user not in dv.network.staff.all():
-            return HttpResponseForbidden("Réservé aux admins")
-        subgroups = dv.network.subgroup_set.all()
-    return render(request,'view_purchases.html', delivery_description(dv, subgroups))
+        networks = dv.networks.filter(Q(staff__in=[u])|Q(regulators__in=[u])).distinct()
+        if len(networks) == 0:
+            return False, HttpResponseForbidden("Réservé aux admins")
+        else:
+            return True, DeliveryDescription(dv)
 
+def view_purchases_html(request, delivery, network=None):
+    """View purchases for a given delivery, possibly restricted to a subgroup. (subgroup) staff only."""
+    return render(request,'view_purchases.html', {'user': request.user, 'delivery': get_delivery(delivery)})
 
 @login_required()
-def view_purchases_xlsx(request, delivery, subgroup=None):
+def view_purchases_xlsx(request, delivery, network=None):
     """View purchases for a given delivery as an MS-Excel spreadsheet, possibly restricted to a subgroup.
     (subgroup) staff only."""
     dv = get_delivery(delivery)
@@ -63,7 +71,7 @@ def view_purchases_xlsx(request, delivery, subgroup=None):
 
 
 @login_required()
-def view_purchases_latex(request, delivery, subgroup=None):
+def view_purchases_latex(request, delivery, network=None):
     """View purchases for a given delivery as a PDF table, generated through LaTeX, possibly restricted to a subgroup.
     (subgroup) staff only."""
     dv = get_delivery(delivery)
@@ -82,7 +90,7 @@ def view_purchases_latex(request, delivery, subgroup=None):
 
 
 @login_required()
-def view_cards_latex(request, delivery, subgroup=None):
+def view_purchases_cards(request, delivery, network=None):
     """View purchases for a given delivery as a PDF table, generated through LaTeX, possibly restricted to a subgroup.
     Subgroups are presented as ready-to-cut tables, whole deliveries as list per subgroup. (subgroup) staff only."""
     dv = get_delivery(delivery)
@@ -96,6 +104,11 @@ def view_cards_latex(request, delivery, subgroup=None):
         content = latex.delivery_cards(dv)
         name_bits = (dv.network.name, dv.name)
     return non_html_response(name_bits, "pdf", content)
+
+# TODO access control!
+def view_purchases_json(request, delivery, network=None):
+    success, dd = get_description(request, delivery, network)
+    return JsonResponse(dd.to_json()) if success else dd
 
 
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)

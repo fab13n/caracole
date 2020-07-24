@@ -3,6 +3,7 @@
 from datetime import datetime
 import os
 import re
+from collections import defaultdict
 
 from django.shortcuts import render, redirect, reverse
 from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpResponse
@@ -13,22 +14,21 @@ from django.db.models import Count, Q
 
 from caracole import settings
 from .. import models as m
-from .getters import get_network, get_subgroup, get_delivery, get_candidacy
-from .decorators import nw_admin_required, sg_admin_required
+from .getters import get_network, get_delivery
+from .decorators import nw_admin_required, regulator_required
 from .latex import delivery_table as latex_delivery_table, render_latex
 from .spreadsheet import spreadsheet
 
-from .edit_subgroup_purchases import edit_subgroup_purchases
+from .edit_delivery_purchases import edit_delivery_purchases
 from .edit_user_purchases import edit_user_purchases
 from .user_registration import user_register, user_register_post
 from .edit_delivery_products import edit_delivery_products, delivery_products_json
-from .edit_user_memberships import edit_user_memberships, json_memberships
-from .regulation import adjust_subgroup
 from .view_purchases import \
-    view_purchases_html, view_purchases_latex, view_purchases_xlsx, view_cards_latex, get_archive, non_html_response
+    view_purchases_html, view_purchases_latex, view_purchases_xlsx, view_purchases_cards, view_purchases_json, get_archive, non_html_response
 from .candidacies import candidacy, cancel_candidacy, validate_candidacy, leave_network, create_candidacy, manage_candidacies
 from .invoice_mail import invoice_mail_form
 from .users import users_json, users_html, users_update
+from floreal.views.dd2 import DeliveryDescription
 
 from floreal.views import require_phone_number as phone
 
@@ -39,62 +39,74 @@ def index(request):
 
     user = request.user
 
-    SUBGROUP_ADMIN_STATES = [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN, m.Delivery.FROZEN, m.Delivery.REGULATING]
-    SUBGROUP_ADMIN_ACTION_STATES = [m.Delivery.ORDERING_ADMIN, m.Delivery.REGULATING]
-    USER_DISPLAY_STATES = [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN, m.Delivery.FROZEN]
-
-    vars = {'user': user, 'Delivery': m.Delivery, 'SubgroupState': m.SubgroupStateForDelivery}
+    vars = {'user': user, 'Delivery': m.Delivery}
     vars['has_phone'] = phone.has_number(request.user)
-    user_subgroups = user.user_of_subgroup.all()
-    user_networks = [sg.network for sg in user_subgroups]
 
     # Deliveries which need to be displayed, and maybe ordered on.
-    # TODO Include order here rather then through filters
-    vars['user_deliveries'] = m.Delivery.objects \
-        .filter(network__in=user_networks) \
+    # TODO Include order here rather than through filters
+
+    member_of_networks = user.member_of_network.all()
+
+    active_deliveries =(m.Delivery.objects
+        .filter(networks__in=member_of_networks)
         .filter(
             Q(state=m.Delivery.ORDERING_ALL) |
             Q(
                 state__in=[m.Delivery.ORDERING_ADMIN, m.Delivery.FROZEN],
                 product__purchase__user=user
             )
-        ) \
-        .distinct() \
-        .order_by('network', '-id')
+        ).distinct()
+    )
 
-    # Every network for which I'm admin
-    vars['staffed_networks'] = user.staff_of_network.all()
+    # Purchases by this user in an active delivery.
+    # Gathered with a single SQL query, reorganized by network/delivery
+    # in Python. TODO fetch_related: this request is performed for every
+    # request of the landing page!
+    purchases = m.Purchase.objects.filter(
+        user=user, 
+        product__delivery__in=active_deliveries)
 
-    # Subgroups and ctive deliveries for which I'm subgroup admin but not network-admin
-    vars['staffed_subgroups'] = [
-        {'subgroup': sg, 
-         'deliveries': sg.network.delivery_set.filter(state__in=SUBGROUP_ADMIN_STATES)
-        } for sg in user.staff_of_subgroup.exclude(network__staff__in=[user])
+    # Reorganize deliveries and purchases: network -> deliveries -> purchases
+    networks_by_id = {nw.id: nw for nw in member_of_networks}  # nw.id -> nw
+    deliveries_by_id = {dv.id: dv for dv in active_deliveries}
+    deliveries_by_network = defaultdict(list)  # nw.id -> [dv+]
+    for dv in active_deliveries:
+        # Find a nw asociated with both user and delivery TODO values("id")?
+        nw = (dv.networks.all() & member_of_networks)[0]
+        deliveries_by_network[nw.id].append(dv)
+    purchases_by_delivery = {dv.id: [] for dv in active_deliveries}  # dv.id -> [pc*]
+    for pc in purchases:
+        purchases_by_delivery[pc.product.delivery_id].append(pc)
+    vars['user_deliveries'] = [
+        {
+            'nw': networks_by_id[nw_id],
+            'deliveries': [
+                {
+                    'dv': deliveries_by_id[dv.id],
+                    'purchases': purchases_by_delivery[dv.id],
+                    'price': sum(pc.price for pc in purchases_by_delivery[dv.id])
+                }
+                for dv in deliveries
+            ]
+        }
+        for nw_id, deliveries in deliveries_by_network.items()
     ]
 
-    # Every pending candidacy for which I'm network or subgroup admin
-    vars['candidacies'] = (
-        m.Candidacy.objects.filter(subgroup__network__staff__in=[user]) |
-        m.Candidacy.objects.filter(subgroup__staff__in=[user])
-    ).distinct()
-
-    # Every delivery for which I'm subgroup admin and an action is expected
-    actions = [
-        {'subgroup': sg, 
-         'deliveries': sg.network.delivery_set.filter(state__in=SUBGROUP_ADMIN_ACTION_STATES)
-        } for sg in user.staff_of_subgroup.all()
+    # Every pending candidacy for which I'm network staff
+    vars['candidacies'] = [
+        (u, nw)
+        for nw in user.staff_of_network.all()
+        for u in nw.candidates.all()
     ]
-    vars['subgroup_action_deliveries'] = [a for a in actions if a['deliveries']]
     
     # Admin messages to display
     vars['messages'] = (
         {("Message général", msg.message, msg.id) for msg in m.AdminMessage.objects.filter(everyone=True)} |
-        {(nw.name, msg.message, msg.id) for nw in user_networks for msg in nw.adminmessage_set.all()} |
-        {(str(sg), msg.message, msg.id) for sg in user_subgroups for msg in sg.adminmessage_set.all()}
+        {(nw.name, msg.message, msg.id) for nw in member_of_networks for msg in nw.adminmessage_set.all()}
     )
 
-    vars['producer'] = user.producer_of_network.all()
-
+    import json
+    print("\n\nvars:\n", vars)
     return render(request,'index.html', vars)
 
 
@@ -103,8 +115,7 @@ def network_admin(request, network):
     user = request.user
     nw = get_network(network)
     vars = {'user': user, 'nw': nw,
-            'deliveries': m.Delivery.objects.filter(network=nw).exclude(state=m.Delivery.TERMINATED),
-            'candidacies': m.Candidacy.objects.filter(subgroup__network=nw),
+            'deliveries': m.Delivery.objects.filter(networks__in=[nw]).exclude(state=m.Delivery.TERMINATED),
             'Delivery': m.Delivery}
     return render(request,'network_admin.html', vars)
 
@@ -133,8 +144,8 @@ def archived_deliveries(request, network):
     user = request.user
     nw = get_network(network)
     vars = {'user': user, 'nw': nw}
-    vars['deliveries'] = m.Delivery.objects.filter(network=nw, state=m.Delivery.TERMINATED)
-    vars['empty_deliveries'] = [dv for dv in vars['deliveries'] if _dv_has_no_purchase(dv)]
+    vars['deliveries'] = m.Delivery.objects.filter(networks__in=[nw], state=m.Delivery.TERMINATED)
+    vars['empty_deliveries'] = vars['deliveries'].filter(product__purchase__isnull=True).distinct()
     return render(request,'archived_deliveries.html', vars)
 
 
@@ -162,18 +173,6 @@ def delete_all_archived_deliveries(request, network):
     return redirect('archived_deliveries', network)
 
 
-@nw_admin_required()
-def create_subgroup(request, network, name):
-    # name = urllib.unquote(name)
-    nw = get_network(network)
-    if nw.subgroup_set.filter(name=name).exists():
-        return HttpResponseBadRequest(u"Il y a déjà un sous-groupe de ce nom dans "+nw.name)
-    sg = m.Subgroup.objects.create(name=name, network=nw)
-    m.JournalEntry.log(request.user, "Created subgroup sg-%d %s in nw-%d %s", sg.id, name, nw.id, nw.name)
-    return redirect('edit_user_memberships', network=nw.id)
-
-
-@login_required()
 def create_network(request, nw_name, sg_name):
     user = request.user
     if not user.is_staff:
@@ -181,38 +180,29 @@ def create_network(request, nw_name, sg_name):
     if m.Network.objects.filter(name__iexact=nw_name).exists():
         return HttpResponseBadRequest("Il y a déjà un réseau nommé "+nw_name)
     nw = m.Network.objects.create(name=nw_name)
-    sg = m.Subgroup.objects.create(name=sg_name, network=nw)
     nw.staff.add(user)
-    sg.staff.add(user)
-    sg.users.add(user)
+    nw.members.add(user)
     target = request.GET.get('next', False)
-    m.JournalEntry.log(user, "Created network nw-%d %s with subgroup sg-%d %s", nw.id, nw_name, sg.id, sg_name)
+    m.JournalEntry.log(user, "Created network nw-%d: %s", nw.id, nw_name)
     return redirect(target) if target else redirect('network_admin', network=nw.id)
 
 
-@nw_admin_required(lambda a: get_delivery(a['delivery']).network)
-def edit_delivery(request, delivery):
+def edit_delivery_staff(request, delivery):
     """Edit a delivery as a full network admin: act upon its lifecycle, control which subgroups have been validated,
     change the products characteristics, change other users' orders."""
     dv = m.Delivery.objects.get(id=delivery)
-    if dv.network.staff.filter(id=request.user.id).exists():
-        # All subgroups in the network for network admins
-        subgroups = dv.network.subgroup_set.all()
-    else:
-        # Only subgroups in which user in subgroup-admin
-        subgroups = dv.network.subgroup_set.filter(staff=request.user)
+    if not dv.networks.filter(staff__in=[request.user]).exists():
+        HttpResponseForbidden("Réservé aux admins")
     vars = {
         'user': request.user,
         'dv': dv,
-        'subgroups': subgroups,
+        'networks': dv.networks.filter(staff__in=[request.user]),
         'Delivery': m.Delivery,
-        'SubgroupState': m.SubgroupStateForDelivery,
         'steps': [{'s': s, 'text': m.Delivery.STATE_CHOICES[s], 'is_done': dv.state>=s, 'is_current': dv.state==s} for s in 'ABCDEF'],
-        'CAN_EDIT_PURCHASES': dv.state in [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN, m.Delivery.REGULATING],
-        'CAN_EDIT_PRODUCTS': dv.state != m.Delivery.TERMINATED,
-        'multi_sg': dv.network.subgroup_set.count() > 1
+        'CAN_EDIT_PURCHASES': dv.state in [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN],
+        'CAN_EDIT_PRODUCTS': dv.state != m.Delivery.TERMINATED
     }
-    return render(request,'edit_delivery.html', vars)
+    return render(request,'edit_delivery_staff.html', vars)
 
 
 def list_delivery_models(request, network, all_networks=False, producer=False):
@@ -277,23 +267,24 @@ def create_delivery(request, network, dv_model=None):
     return redirect(reverse('edit_delivery_products', kwargs={'delivery': new_dv.id})+"?new=true")
 
 
-@nw_admin_required(lambda a: get_delivery(a['delivery']).network)
 def set_delivery_state(request, delivery, state):
     """Change a delivery's state."""
     dv = get_delivery(delivery)
-    if request.user not in dv.network.staff.all():
+    if not dv.networks.filter(staff__in=[request.user]).exists():
         return HttpResponseForbidden('Réservé aux administrateurs du réseau '+dv.network.name)
     if state not in m.Delivery.STATE_CHOICES:
         return HttpResponseBadRequest(state+" n'est pas un état valide.")
-    must_save = dv.state <= m.Delivery.REGULATING < state \
+    must_save = dv.state < m.Delivery.TERMINATED == state \
                 and m.Purchase.objects.filter(product__delivery=dv).exists()
     dv.state = state
     dv.save()
     if must_save:
         save_delivery(dv)
-    m.JournalEntry.log(request.user, "Set delivery dv-%d %s/%s in state %s",
-                       dv.id, dv.network.name, dv.name, m.Delivery.STATE_CHOICES[state])
-    return redirect('edit_delivery', delivery=dv.id)
+    m.JournalEntry.log(request.user, "Set delivery dv-%d in state %s",
+                       dv.id, m.Delivery.STATE_CHOICES[state])
+    
+    target = request.GET.get('next', False)
+    return redirect(target) if target else HttpResponse("")
 
 @nw_admin_required(lambda a: get_delivery(a['delivery']).network)
 def set_delivery_name(request, delivery, name):
@@ -310,24 +301,10 @@ def save_delivery(dv):
     """Save an Excel spreadsheet and a PDF table of a delivery that's just been completed."""
     file_name_xlsx = os.path.join(settings.DELIVERY_ARCHIVE_DIR, "dv-%d.xlsx" % dv.id)
     with open(file_name_xlsx, 'wb') as f:
-        f.write(spreadsheet(dv, dv.network.subgroup_set.all()))
+        f.write(spreadsheet(dv, [dv.network]))
     # file_name_pdf = os.path.join(settings.DELIVERY_ARCHIVE_DIR, "dv-%d.pdf" % dv.id)
     # with open(file_name_pdf, 'wb') as f:
     #     f.write(latex_delivery_table(dv))
-
-
-@sg_admin_required()
-def set_subgroup_state_for_delivery(request, subgroup, delivery, state):
-    """Change the state of a subgroup/delivery combo."""
-    dv = get_delivery(delivery)
-    sg = get_subgroup(subgroup)
-    if sg.network != dv.network:
-        return HttpResponseBadRequest("Ce sous-groupe ne participe pas à cette livraison.")
-    dv.set_stateForSubgroup(sg, state)
-    target = request.GET.get('next', False)
-    m.JournalEntry.log(request.user, "In nw-%d %s, set subgroup sg-%d %s in state %s for delivery dv-%d %s",
-                       dv.network.id, dv.network.name, sg.id, sg.name, state, dv.id, dv.name)
-    return redirect(target) if target else redirect('edit_delivery', delivery=dv.id)
 
 
 @nw_admin_required()
@@ -336,66 +313,47 @@ def view_emails_pdf(request, network):
     return latex.emails(nw)
 
 @login_required()
-def view_emails(request, network=None, subgroup=None):
+def view_emails(request, network):
     user = request.user
     vars = {'user': user}
-    if network:
-        nw = get_network(network)
-        vars['network'] = nw
-        if user not in nw.staff.all():
-            return HttpResponseForbidden("Réservé aux admins")
-    if subgroup:
-        sg = get_subgroup(subgroup)
-        vars['subgroups'] = [sg]
-        if not network:
-            vars['network'] = sg.network
-        if user not in sg.staff.all() and user not in sg.network.staff.all():
-            return HttpResponseForbidden("Réservé aux admins")
-    elif network:
-        vars['subgroups'] = m.Subgroup.objects.filter(network_id=network)
-    else:
-        return HttpResponseForbidden("Préciser un réseau ou un sous-groupe")
+    nw = get_network(network)
+    vars['network'] = nw
+    if user not in nw.staff.all():
+        return HttpResponseForbidden("Réservé aux admins")
     return render(request,'emails.html', vars)
 
 
 @login_required()
-def view_phones(request, network=None, subgroup=None):
+def view_phones(request, network):
     user = request.user
-    vars = {'user': user, 'subgroups': []}
-    if network:
-        nw = get_network(network)
-        if user not in nw.staff.all():
-            return HttpResponseForbidden("Réservé aux admins")
-        subgroups = nw.subgroup_set.order_by('name')
-    if subgroup:
-        sg = get_subgroup(subgroup)
-        nw = sg.network
-        subgroups = [sg]
-        if not network:
-            vars['network'] = sg.network
-        if user not in sg.staff.all() and user not in nw.staff.all():
-            return HttpResponseForbidden("Réservé aux admins")
+    vars = {'user': user}
+    nw = get_network(network)
+    if user not in nw.staff.all():
+        return HttpResponseForbidden("Réservé aux admins")
     vars['nw'] = nw
-    vars['nw_admin'] = nw.staff.order_by('last_name', 'first_name')
-    nw_staff_id = set(u.id for u in vars['nw_admin'])
-    for sg in subgroups:
-        rec = {'sg': sg}
-        rec['sg_admin'] = sg.staff.exclude(id__in=nw_staff_id).order_by('last_name', 'first_name')
-        sg_staff_id = set(u.id for u in rec['sg_admin']) | nw_staff_id
-        rec['sg_user'] = sg.users.exclude(id__in=sg_staff_id).exclude(id=sg.extra_user.id).order_by('last_name', 'first_name')
-        vars['subgroups'].append(rec)
-    vars['subgroups'].sort(key=lambda rec: rec['sg'].name)
+    vars['staff'] = nw.staff.order_by('last_name', 'first_name')
+    vars['regulators'] = nw.regulators.exclude(id__in={u.id for u in vars['staff']})
+    vars['members'] = nw.regulators.exclude(id__in={u.id for u in vars[x] for x in ['staff', 'regulators']})
+    vars['producers'] = nw.producers.all()
     return render(request,'phones.html', vars)
 
 
 @login_required()
 def view_history(request):
-    # TODO SQL single request!
-    orders = [(nw, m.Order(request.user, dv))
-              for nw in m.Network.objects.all()
-              for dv in nw.delivery_set.all()]
-    orders = [(nw, od) for (nw, od) in orders if od.price > 0]  # Filter out empty orders
-    vars = {'user': request.user, 'orders': orders}
+    # Deliveries in which the current user has purchased something
+    deliveries = [
+        {
+            'delivery': dv,
+            'network': dv.networks.filter(members__in=[request.user]).first(),
+            'purchases': m.Purchase.objects.filter(product__delivery=dv, user=request.user)
+        }
+        for dv in m.Delivery.objects.filter(
+            product__purchase__user__in=[request.user]
+        )
+    ]
+    for x in deliveries:
+        x['price'] = sum(y.price for y in x['purchases'])
+    vars = {'user': request.user, 'deliveries': deliveries}
     return render(request,"view_history.html", vars)
 
 
@@ -432,7 +390,7 @@ def journal(request):
 def all_deliveries(request, network, states):
     nw = get_network(network)
     deliveries = list(m.Delivery.objects.filter(network=nw, state__in=states))
-    users = m.User.objects.filter(user_of_subgroup__network=nw, is_active=True)
+    users = m.User.objects.filter(member_of_network=nw, is_active=True)
 
     # u -> dv -> has_purchased
     users_with_purchases = {u: {dv: False for dv in deliveries} for u in users}
@@ -476,7 +434,7 @@ def editor(request, target=None, title='Éditer', template="editor.html", conten
     ctx.update(csrf(request))
     return render(request, template, ctx)
 
-@sg_admin_required()
+@nw_admin_required()
 def set_message(request):
     if request.method == "POST":
         P = request.POST
@@ -486,8 +444,6 @@ def set_message(request):
             dest = {'everyone': True}
         elif d[0] == 'nw':
             dest = {'network_id': int(d[1])}
-        elif d[0] == 'sg':
-            dest = {'subgroups_id': int(d[1])}
         else:
             assert False
         text = P['editor']
@@ -501,11 +457,7 @@ def set_message(request):
         u = request.user
         options = \
             [('Tout le monde', 'everyone')] + \
-            [('Sous-groupe %s'%sg.name, 'sg-%d' % sg.id) \
-                for sg in u.staff_of_subgroup \
-                .annotate(nsg=Count('network__subgroup')) \
-                .filter(nsg__gt=1)] + \
-            [('Réseau %s'%nw.name, 'nw-%d' % nw.id) \
+                [('Réseau %s'%nw.name, 'nw-%d' % nw.id) \
                 for nw in u.staff_of_network.all()]
         return editor(request,
                   title="Message administrateur",
@@ -514,7 +466,7 @@ def set_message(request):
                   options=options)
 
 
-@sg_admin_required()
+@nw_admin_required()
 def unset_message(request, id):
     # TODO check that user is allowed for that message
     # To be done in a m.Message method

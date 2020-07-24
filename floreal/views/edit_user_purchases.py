@@ -29,15 +29,15 @@ def edit_user_purchases(request, delivery):
             # TODO: display errors in template
             return redirect("edit_user_purchases", delivery=delivery.id)
     else:
-        order = m.Order(user, delivery, with_dummies=True)
-        some_packaged = any(pc.product.quantity_per_package is not None for pc in order.purchases)
-        for pc in order.purchases:
+        purchases = m.Purchase.objects.filter(product__delivery=delivery, user=user)
+        some_packaged = any(pc.product.quantity_per_package is not None for pc in purchases)
+        for pc in purchases:
             pc.described = (pc.product.description or pc.product.image) and pc.max_quantity != 0
         vars = {
             'user': user,
             'delivery': delivery,
-            'subgroup': delivery.network.subgroup_set.get(users__in=[user]),
-            'order': order,
+            'network': delivery.networks.filter(members__in=[user]).first(),
+            'purchases': purchases,
             'some_packaged': some_packaged,
             'out_of_stock_colspan': 6 if some_packaged else 5,
             'total_padding_right_colspan': 2 if some_packaged else 1,

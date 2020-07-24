@@ -7,7 +7,7 @@ from django.http import HttpResponse
 from django.core.mail import send_mail, send_mass_mail
 from django.conf import settings
 from django.shortcuts import redirect, render
-from .getters import get_network, get_subgroup, get_candidacy
+from .getters import get_network
 from django.template.context_processors import csrf
 from django.template.base import Template
 from django.template.context import Context

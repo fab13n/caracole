@@ -10,29 +10,28 @@ from django.http import HttpResponseForbidden
 
 from .. import models as m
 from ..penury import set_limit
-from .delivery_description import delivery_description
-from .getters import get_subgroup, get_delivery
-from .decorators import sg_admin_required
+from .getters import get_network, get_delivery
+from .decorators import regulator_required
+from floreal.views.dd2 import DeliveryDescription
 
-
-@sg_admin_required()
-def edit_subgroup_purchases(request, delivery, subgroup):
+@regulator_required()
+def edit_delivery_purchases(request, delivery, network):
     """Allows to change the purchases of user's subgroup. Subgroup staff only."""
-    delivery = get_delivery(delivery)
     user = request.user
-    subgroup = get_subgroup(subgroup)
+    dv = get_delivery(delivery)
+    nw = get_network(network)
 
-    if user not in subgroup.staff.all() and user not in delivery.network.staff.all():
-        return HttpResponseForbidden('Réservé aux administrateurs du réseau ' + delivery.network.name + \
-                                     ' ou du sous-groupe '+subgroup.name)
+
+    if nw.staff.filter(id=user.id).exists() or nw.regulators.filter(id=user.id).exists():
+        return HttpResponseForbidden(f"Réservé aux admins et régulateure du réseau {nw.name}")
 
     if request.method == 'POST':
         _parse_form(request)
-        return redirect("view_subgroup_purchases_html", delivery=delivery.id, subgroup=subgroup.id)
+        return redirect("view_delivery_purchases_html", delivery=delivery.id, network=network)
     else:
-        vars = delivery_description(delivery, [subgroup], user=user)
+        vars = {'dd': DeliveryDescription(dv, networks=[nw])}
         vars.update(csrf(request))
-        return render(request,'edit_subgroup_purchases.html', vars)
+        return render(request,'edit_delivery_purchases.html', vars)
 
 
 def _parse_form(request):

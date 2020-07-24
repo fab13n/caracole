@@ -34,39 +34,31 @@ def users_get(request):
         # Only access to network you are staff of, and their users
         networks = user.staff_of_network.all()
         users = (
-            m.User.objects.filter(user_of_subgroup__network__in=my_networks) |
+            m.User.objects.filter(member_of_network__in=my_networks) |
             m.User.objects.filter(producer_of_network__in=my_networks) |
-            m.User.objects.filter(staff_of_network__in=my_networks)
+            m.User.objects.filter(staff_of_network__in=my_networks) |
+            m.User.objects.filter(regulator_of_network__in=my_networks)
         ).filter(is_active=True)
-    # Global staff members can move users across all networks as they see fit.
-    # Network staff only move people within (or kick out of) their networks
-    # Subgroup staff don't get to this page.
 
-    # id -> {id,first_name, last_name, email, member, nw_staff, sg_staff, producer}
-    # member and sg_staff are lists of subgroup ids.
-    # nw_staff and producer are lists of network ids
     user_records = { 
-        u['id']: dict(u, sg_member=[], nw_staff=[], sg_staff=[], nw_producer=[])
+        u['id']: dict(u, member=[], staff=[], regulator=[], producer=[])
         for u in users.values('id', 'first_name', 'last_name', 'email', 'is_staff')
     }
 
     network_records = []
 
     for nw in networks:
-        nw_rec = {"id": nw.id, "name": nw.name, "subgroups": []}
+        nw_rec = {"id": nw.id, "name": nw.name}
         network_records.append(nw_rec)
-        subgroups = nw.subgroup_set.all()
-        for sg in subgroups:
-            nw_rec["subgroups"].append({"id": sg.id, "name": sg.name})
-            for u in sg.users.filter(is_active=True).values("id"):
-                user_records[u["id"]]["sg_member"].append(sg.id)
-            for u in sg.staff.filter(is_active=True).values("id"):
-                user_records[u["id"]]["sg_staff"].append(sg.id)
-        
+
+        for u in nw.members.filter(is_active=True).values("id"):
+            user_records[u["id"]]["member"].append(nw.id)
         for u in nw.staff.filter(is_active=True).values("id"):
-            user_records[u["id"]]["nw_staff"].append(nw.id)
+            user_records[u["id"]]["staff"].append(nw.id)
+        for u in nw.regulators.filter(is_active=True).values("id"):
+            user_records[u["id"]]["regulator"].append(nw.id)
         for u in nw.producers.filter(is_active=True).values("id"):
-            user_records[u["id"]]["nw_producer"].append(nw.id)
+            user_records[u["id"]]["producer"].append(nw.id)
             
     return JsonResponse({
         "is_staff": staff.is_staff,
@@ -82,10 +74,9 @@ def users_update(request):
 
     * user: a user id
     * is_staff: should the user be made a global staff?
-    * sg_member: a list of subgroup ids this user should be made member of
-    * sg_staff: a list of subgroup ids this user should be made group-staff of
-    * nw_staff: a list of network ids  this user should be made staff of
-    * nw_producer: a list of network ids  this user should be made producer of
+    * member: a list of network ids this user should be made member of
+    * staff: a list of network ids  this user should be made staff of
+    * producer: a list of network ids  this user should be made producer of
     """
 
     staff = request.user
@@ -94,36 +85,33 @@ def users_update(request):
 
     # Get current user status
     old = dict(
-        sg_member={u['id'] for u in user.user_of_subgroup.all().values("id")},
-        sg_staff={u['id'] for u in user.staff_of_subgroup.all().values("id")},
-        nw_staff={u['id'] for u in user.staff_of_network.all().values("id")},
-        nw_producer={u['id'] for u in user.producer_of_network.all().values("id")},
+        member={u['id'] for u in user.member_of_network.all().values("id")},
+        staff={u['id'] for u in user.staff_of_network.all().values("id")},
+        roducer={u['id'] for u in user.producer_of_network.all().values("id")},
+        regulator={u['id'] for u in user.regulator_of_network.all().values("id")},
         is_staff = user.is_staff
     )
 
     # Get status goal
     new = dict(
-        sg_member=set(data['sg_member']),
-        sg_staff=set(data['sg_staff']),
-        nw_staff=set(data['nw_staff']),
-        nw_producer=set(data['nw_producer']),
+        member=set(data['member']),
+        staff=set(data['staff']),
+        producer=set(data['producer']),
+        regulator=set(data['regulator']),
         is_staff=data.get('is_staff')
     )
 
     if not staff.is_staff: # global staff users can do whatever they want
         # Otherwise, staff must be network admin of all the networks and subgroups mentionned
-        networks = new['nw_producer'] | new["nw_staff"] | old["nw_producer"] | old["nw_staff"]
-        subgroups = new["sg_member"] | new["sg_staff"] | old["sg_member"] | old["sg_staff"]
-        networks |= {sg.network_id for sg in m.Subgroup.objects.filter(id__in=subgroups)}
-        if any(staff not in nw.staff.all() for nw in networks):
+        network_ids = new['producer'] | new["staff"] | new["regulator"] |\
+                      old["producer"] | old["staff"] | old["regulator"]
+        if any(staff not in m.Network.objects.filter(id=nw_id, staff__in=[staff]) for nw_id in networks):
             return HttpResponseForbidden("Not enough admin rights")
 
-    user.user_of_subgroup.set(new["sg_member"])
-    user.staff_of_subgroup.set(new["sg_staff"])
-    user.staff_of_network.set(new["nw_staff"])
-    user.producer_of_network.set(new["nw_producer"])
+    user.staff_of_network.set(new["staff"])
+    user.producer_of_network.set(new["producer"])
+    user.regulator_of_network.set(new["producer"])
 
-    print(f"{old['is_staff']=} {new['is_staff']=}")
     if (new['is_staff'] is not None and 
         staff.is_staff and 
         old['is_staff'] != new['is_staff']):

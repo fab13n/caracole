@@ -9,12 +9,11 @@ tr:hover input[type=button] {visibility: visible;}
 </style>
 
 <script type='text/javascript'>
-    // <![CDATA[
 
-    var STATE_NAMES = { {% for it in Delivery.STATE_CHOICES.items %}{{it.0}}: "{{it.1}}", {% endfor %}"pending": "⌛" };
+    const STATE_NAMES = { {% for it in Delivery.STATE_CHOICES.items %}{{it.0}}: "{{it.1}}", {% endfor %}"pending": "⌛" };
 
     function set_delivery_state(dv_id, state) {
-        var url = "{% url 'set_delivery_state' delivery='DVID' state='STATE' %}".replace('DVID', dv_id).replace('STATE', state);
+        const url = "{% url 'set_delivery_state' delivery='DVID' state='STATE' %}".replace('DVID', dv_id).replace('STATE', state);
         function display_state(state){
             $("#dv-"+dv_id+"-state-display").text(STATE_NAMES[state]);
         }
@@ -24,34 +23,17 @@ tr:hover input[type=button] {visibility: visible;}
         } });
     }
 
-    function create_subgroup() {
-        if( confirm("Êtes-vous sûr de vouloir créer un nouveau sous-groupe d'utilisateurs dans le réseau {{nw.name}} ?")) {
-            var name = window.prompt("Créer un nouveau sous-groupe nommé :")
-            var url_scheme = "{% url 'create_subgroup' network=nw.id name='NAME' %}";
-            if (name) {
-                window.location = url_scheme.replace('NAME', encodeURI(name));
-            }
-        }
-        return false;
-    }
-
     function goto_delivery(dv_id) {
         window.location = "{% url 'edit_delivery' delivery='DV_ID' %}".replace('DV_ID', dv_id);
     }
 
     function rename_delivery(dv_id, dv_name) {
-        var new_name = window.prompt("Renommer la commande "+dv_name+" :", dv_name);
+        var new_name = window.prompt(`Renommer la commande ${dv_name} :`, dv_name);
         var url = "{% url 'set_delivery_name' delivery='DVID' name='NAME' %}".replace('DVID', dv_id).replace('NAME', new_name);
         if (new_name) {
             $.ajax(url, {success: function() { window.location.reload(); }});
         }
     }
-
-    /* Demand confirmation through a dialog before following link. */
-    $(function(){
-        $("#create-subgroup").on('click', create_subgroup);
-    })
-    // ]]>
 </script>
 {% endblock head %}
 

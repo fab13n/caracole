@@ -3,166 +3,166 @@
 {% load static %}
 
 {% block head %}
-{% if table|length > 1 %}
-    <script type='text/javascript'>
-      var DISPLAYED_SUBGROUPS = [ {% for sgr in table %}{{sgr.subgroup.id}}, {% endfor %}];
-      function attach_visibility_toggle(id) {
-        $('#group_header_'+id).click(function() { $('.group_content_'+id).toggle(); })
-      }
-      $(document).ready(function() {
-        for(var i=0; i<DISPLAYED_SUBGROUPS.length; i++) { attach_visibility_toggle(DISPLAYED_SUBGROUPS[i]); }
-        attach_visibility_toggle('discrepancies');
-        $('.content_row').toggle()
-      })
-    </script>
+<script type='text/javascript'>
 
-{% endif %}
-    <style type="text/css">
-      tr.group_header, tr.group_header th { color: white; background-color: #a75a50; font-weight: bold; }
-      tr.one  { background-color: #d5b1ac; }
-      .blank  { text-align: left; }
-      table { margin-top: 30px; }
-    </style>
+  let DATA;
+
+  async function load_delivery_purchases() {
+    const res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id %}");
+    DATA = await res.json();
+    render();
+  }
+
+  function render_price(price) {
+    return price.toFixed(2) + "€";
+  }
+
+  function render_unit(unit) {
+    // TODO add "×" when starting with a number
+    return unit;
+  }
+
+  function render() {
+
+    $(".dv-name").text(DATA.delivery.name);
+    $("#total-price").text(render_price(DATA.total.price));
+    $(".download-link").each((i, e) => {
+      const old_url = $(e).attr('href');
+      const new_url = old_url.replace('DVID', DATA.delivery.id);
+      $(e).attr('href', new_url);
+    });
+
+    DATA.products.forEach(pd => {
+
+      /* Set product name */
+      $("#product-names").append(
+        `<th class="rotate"><div><div>${pd.name}</div></div></th>`
+      );
+
+      /* Fill total product quantities, and package + loose break-up */
+      if(pd.quantity_per_package) {
+        $("#quantity-per-package").append(
+          `<td>${pd.quantity_per_package}${render_unit(pd.unit)}</td>`)
+        if(pd.total.out_of_package) {
+          // packaged product, some loose items
+          $("#packaging").append(`
+            <td>
+              ${pd.total.quantity} = <br/>
+              ${pd.total.packages} × ${pd.quantity_per_package}${render_unit(pd.unit)} <br/>
+              <span class="out_of_packages"> + ${pd.total.out_of_package}${render_unit(pd.unit)}</span>
+            </td>`);
+        } else {
+          // packaged product, no loose item
+          $("#packaging").append(`
+            <td>
+              ${pd.total.quantity} = <br/>
+              <span class="nothing_out_of_package">
+                ${pd.total.packages} × ${pd.quantity_per_package}${render_unit(pd.unit)}
+              </span>
+            </td>`);
+        }
+      } else {
+        // unpackaged product
+        $("#quantity-per-package").append(`<td> - </td>`);
+        $("#packaging").append(`
+          <td>
+            <span class="nothing_out_of_package">${pd.total.quantity}</span>${render_unit(pd.unit)}</span>
+          </td>`);
+      }
+    });
+
+    /* Fill network rows */
+    DATA.networks.forEach(nw => {
+
+      /* Only display network summary line if there are several networks. */
+      if(DATA.networks.length > 1) {
+        /* Name and total price for network. */
+        $("#purchases").append(`
+          <tr class="nw-row" id="nw-row-${nw.network.id}">
+            <th class="left">${nw.network.name}</th>
+            <td>${render_price(nw.total.price)}</td>
+          </tr>`);
+
+        /* Network total quantities. */
+        const $nw_row = $(`#nw-row-${nw.network.id}`); 
+        nw.products.forEach(pd =>
+          $nw_row.append(
+            pd.total.quantity ?
+            `<td>${pd.total.quantity}</td` :
+            `<td>-</td>`         
+          )
+        )
+      }
+      /* Individual user quantities. */
+      nw.purchases.forEach((row, i) => {
+        const u = nw.users[i];
+        const cycle = ['one', 'two', 'three', 'four'][i%4];
+        $("#purchases").append(`
+          <tr class="u-row nw-row-${nw.network.id}-user ${cycle}" id="u-row-${u.id}">
+            <th class"left">${u.first_name} ${u.last_name}</th>
+            <td class="price">${render_price(u.total.price)}</td>
+          </tr>
+        `);
+        const $u_row = $(`#u-row-${u.id}`);
+        row.forEach(pc => 
+          $u_row.append(pc ? `<td>${pc.quantity}</td>` : `<td>-</td>`)
+        );
+      });
+
+      /* Toggle individual users' visibility when the network row is clicked. */
+      /* In a function call to prevent variable sharing between closures. */
+      (nw_id =>
+        $(`#nw-row-${nw_id}`).click(
+          () => $(`.nw-row-${nw_id}-user`).toggle()
+        )
+      )(nw.network.id); 
+    });
+
+    /* Start with user rows hidden when there are several networks. */
+    if(DATA.networks.length > 1) {
+      $(".u-row").toggle();
+    }
+  }
+
+  $(document).ready(load_delivery_purchases);
+</script>
+<style type="text/css">
+  .nw-row, .nw-row th { color: white; background-color: #a75a50; font-weight: bold; }
+  .one  { background-color: #d5b1ac; }
+  .blank  { text-align: left; }
+  table { margin-top: 30px; }
+</style>
 {% endblock %}
 
 {% block content %}
 
-<h1>Commandes {{delivery.network.name}} / {{delivery.name}}</h1>
+<h1>Commande « <span class="dv-name">...</span> »</h1>
 
-<table class="with-border">
+<table class="with-border" id="purchases">
 
-    {# Product names #}
-    <tr>
+    <tr id="product-names">
         <td class="blank" colspan="2">
           {# no product in user name and total columns #}
           Télécharger:
-          {% if table|length > 1 %}
-            <ul>
-              <li><a href="{% url 'view_all_purchases_xlsx' delivery=delivery.id %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
-              <li><a href="{% url 'view_all_purchases_latex' delivery=delivery.id %}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
-            </ul>
-          {% else %}
-            <ul>
-              <li><a href="{% url 'view_subgroup_purchases_xlsx' delivery=delivery.id subgroup=table.0.subgroup.id %}">Excel&nbsp;<img src="{% static 'images/excel.png' %}"/></a></li>
-              <li><a href="{% url 'view_subgroup_purchases_latex' delivery=delivery.id subgroup=table.0.subgroup.id %}">fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/></a></li>
-            </ul>
-          {% endif %}
+          <ul>
+            <li><a class="download-link" href="{% url 'view_delivery_purchases_xlsx' delivery='DVID' %}">
+              Excel&nbsp;<img src="{% static 'images/excel.png' %}"/>
+            </a></li>
+            <li><a class="download-link" href="{% url 'view_delivery_purchases_latex' delivery='DVID' %}">
+              fiches&nbsp;PDF&nbsp;<img src="{% static 'images/pdf.png' %}"/>
+            </a></li>
+          </ul>
         </td>
-        {% for pd in products %}
-        <th class="rotate"><div><div>{{pd.name}}</div></div></th>
-        {% endfor %}
     </tr>
 
-
-    {# Product quantities per package, if applicable #}
-    <tr>
+    <tr id="quantity-per-package">
         <th class="left" colspan="2">Quantité par carton</th>
-        {% for pd in products %}
-        {% if pd.quantity_per_package %}
-        <td>{{pd.quantity_per_package}}{{pd.unit|unit_multiple}}</td>
-        {% else %}
-        <td>-</td>
-        {% endif %}
-        {% endfor %}
     </tr>
 
     {# Total quantities per product; is it an exact number of packages? #}
-    <tr>
+    <tr id="packaging">
         <th class="left">Total</th>
-        <td>{{price|price}}</td>
-        {% for pt in product_totals %}
-        <td>
-            {% if pt.out_of_packages %}{# Some loose items #}
-            {{pt.quantity|floatformat}} = <br/>
-            {{pt.full_packages}} × {{pt.product.quantity_per_package}}{{pt.product.unit|unit_multiple}} <br/>
-            <span class="out_of_packages"> + {{pt.out_of_packages|floatformat}}{{pt.product.unit|unit_multiple}}</span>
-            {% elif pt.full_packages %}{# round number of packages, no loose item. #}
-            {{pt.quantity|floatformat}} = <br/>
-            <span class="nothing_out_of_package">
-                {{pt.full_packages}} × {{pt.product.quantity_per_package}}{{pt.product.unit|unit_multiple}}
-            </span>
-            {% else %}{# unpackaged items #}
-            <span class="nothing_out_of_package">{{pt.quantity|floatformat}}</span>{{pt.product.unit|unit_multiple}}
-            {% endif %}
-        </td>
-        {% endfor %}{# grand total by product #}
+        <td id="total-price"></td>
     </tr>
-
-    {% comment %}
-     # table: subgroup_idx -> { "subgroup": subgroup,
-     #                          "totals": product_idx -> { "product": product,
-     #                                                     "quantity": number,
-     #                                                     "full_packages": number,
-     #                                                     "out_of_packages": number,
-     #                                                     "discrepancy": number,
-     #                                                     "discrepancy_reason": string}.
-     #                          "users": user_idx -> { "user": user,
-     #                                                 "orders": product_idx -> order.
-     #                                                 "price": number,
-     #                                                 "has_ordered": boolean },
-     #                          "price": number }
-    {% endcomment %}
-    {% for sgr in table %}
-    {% if table|length > 1 %}
-    <tr class="group_header" id="group_header_{{sgr.subgroup.id}}">
-        <th class="left">{{sgr.subgroup.name}}</th>
-        <td>{{sgr.price|price}}</td>
-        {% for t in sgr.totals %}
-        <td>{% if t.quantity %}{{t.quantity|floatformat}}{% else %}-{% endif %}</td>
-        {% endfor %}
-    </tr>
-    {% endif %}
-
-    {% if sgr.price != 0 %}{# if there is at least one purchase for that subgroup #}
-    {% for ur in sgr.users %}{# each subgroup user's row #}
-    {# first user is extra user: it may have negative commands causing a total of 0. #}
-    {% if ur.price != 0 or forloop.counter0 == 0 %}{# this user made some purchases #}
-    <tr class="content_row group_content_{{sgr.subgroup.id}} {% cycle 'one' 'two' 'three' 'four' %}">
-        <th class="left">{{ur.user.first_name}} {{ur.user.last_name}}</th>
-        <td class="price">{{ur.price|price}}</td>
-        {% for pc in ur.orders.purchases %}
-        {% if not pc %}
-        <td>-</td>
-        {% else %}
-        <td>{{pc.quantity|floatformat}}</td>
-        {% endif %}{# unsatisfied #}
-        {% endfor %}{# purchase #}
-    </tr>
-    {% endif %}{# price == 0, no purchase by this user #}
-    {% endfor %}{# users within subgroup #}
-    {% else %}{# no purchase for this subgroup #}
-    <tr class="content_row group_content_{{sgr.subgroup.id}}">
-      <th></th><td>-</td><td colspan="{{sgr.totals|length}}">aucun achat pour le sous-groupe {{sgr.subgroup.name}}</td>
-    </tr>
-    {% endif %}
-    {% endfor %}{# subgroup #}
-
-    {% if delivery.state >= delivery.REGULATING %}
-    <tr class="group_header" id="group_header_discrepancies">
-        <th class="left">Écarts livraison</th>
-        <td>{{price_discrepancy|price}}</td>
-        {% for t in product_totals %}
-        {% if t.discrepancy %}
-        <td>{{t.discrepancy|forced_sign}}</td>
-        {% else %}
-        <td>-</td>
-        {% endif %}
-        {% endfor %}
-    </tr>
-    {% for sgr in table %}
-    <tr class="content_row group_content_discrepancies">
-        <th class="left">{{sgr.subgroup.name}}</th>
-        <td>{{sgr.price_discrepancy|price}}</td>
-        {% for t in sgr.totals %}
-        {% if t.discrepancy %}
-        <td class="tooltip">{{t.discrepancy|forced_sign}}<span class="tooltiptext">{{t.discrepancy_reason}}</span></td>
-        {% else %}
-        <td>-</td>
-        {% endif %}
-        {% endfor %}
-    </tr>
-    {% endfor %}
-    {% endif %}
-
 </table>
 {% endblock %}
