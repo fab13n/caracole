@@ -6,7 +6,8 @@
 from io import BytesIO
 import xlsxwriter as xls
 
-from .delivery_description import delivery_description
+
+from floreal.views.dd2 import DeliveryDescription, NetworkDeliveryDescription
 
 DATABASE_UTF8_ENABLED = True
 PROTECT_FORMULA_CELLS = False
@@ -33,7 +34,7 @@ COL_OFFSET =  2
 V_CYCLE_LENGTH = 5
 H_CYCLE_LENGTH = 5
 
-def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=None, recopy_products):
+def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls, recopy_products):
     """
     Insert one sheet of (buyer, product) -> purchase matrix in an Excel book,
     with custom purchase values and formulae (Excel needs both). Optionally,
@@ -57,8 +58,7 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
     sheet.set_column(1, 1, 12)
     sheet.set_row(0, 75)
     sheet.set_row(2, 50)
-    sheet.merge_range('A1:J1', "Achats du réseau %s:\n%s pour %s" % (
-        products[0].delivery.network.name, title, products[0].delivery.name), fmt['title'])
+    sheet.merge_range('A1:J1', products[0].delivery.name, fmt['title'])
     sheet.freeze_panes(ROW_OFFSET, COL_OFFSET)
     for row, title in enumerate(["Prix unitaire", "Poids unitaire", "Nombre par carton",
                                  "Nombre de pièces", "Nombre de cartons", "Nombre en complément",
@@ -77,9 +77,9 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
             # 3/4: Unit price
             # 4/5: Unit weight
             # 5/6: per package
-            # 6/7: # units
-            # 7/8: # full packages
-            # 8/9: # loose units
+            # 6/7: number of units
+            # 7/8: number of packages
+            # 8/9: number loose units
             # 9/10: total weight
             # 10/11: total price (1 cell)
             sheet.write(2, c+COL_OFFSET, _u8(pd.name), fmt['pd_name'])
@@ -104,7 +104,6 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
     weight_product = [0] * n_products
 
     # Generate buyer names column.
-    # TODO support a recopy_users option, for "Écarts" and "Livraison"
     for r, name in enumerate(buyers):
         fmt_u = fmt['user_name_cycle'] if r % V_CYCLE_LENGTH == V_CYCLE_LENGTH-1 else fmt['user_name']
         sheet.write(r+ROW_OFFSET, 0, _u8(name), fmt_u)
@@ -133,7 +132,7 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
                 weight_buyer[r] += w
                 weight_product[c] += w
 
-    # Total price per buyer, plus accounting columns cheque / especes / avoir / du
+    # Total price per buyer
     for r in range(n_buyers):
         fml = "=SUMPRODUCT(" \
               "%(firstcol)s$%(u_price_row)s:%(lastcol)s$%(u_price_row)s," \
@@ -144,10 +143,16 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
                'qty_row': r+ROW_OFFSET+1}
         fmt_p = fmt['hdr_user_price_cycle'] if r % V_CYCLE_LENGTH == V_CYCLE_LENGTH-1 else fmt['hdr_user_price']
         sheet.write(r+ROW_OFFSET, COL_OFFSET-1, fml, fmt_p, price_buyer[r])
-        fmt_p = fmt['price_h_cycle'] if r % V_CYCLE_LENGTH == V_CYCLE_LENGTH-1 else fmt['price']
 
     # TODO conditional formatting, make zero values less conspicious (light gray, smaller font...)
     # TODO https://xlsxwriter.readthedocs.io/working_with_conditional_formats.html
+    purchase_cells = f"{_col_name(COL_OFFSET)}{ROW_OFFSET+1}:{_col_name(COL_OFFSET+n_products-1)}{ROW_OFFSET+n_buyers}"
+    sheet.conditional_format(purchase_cells, {
+        'type': 'cell',
+        'criteria': '==',
+        'value': 0,
+        'format': fmt['zero']
+    })
 
     # Total price for all users
     fml = "=SUM(%%(sumcol)s%(firstrow)s:%%(sumcol)s%(lastrow)s)" % \
@@ -199,7 +204,7 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls=Non
 
 
 
-def spreadsheet(delivery, subgroups):
+def spreadsheet(delivery, network=None):
     bytes_buffer = BytesIO()  # Generate in a string rather than a file
     book = xls.Workbook(bytes_buffer, {'in_memory': True})
     def _red(n):
@@ -233,6 +238,8 @@ def spreadsheet(delivery, subgroups):
         'user_name': book.add_format({'bold': True, 'font_color': red1, 'bg_color': red3, 'align': 'right'}),
         'user_name_cycle': book.add_format({'bold': True, 'font_color': red1, 'bg_color': red2, 'align': 'right'}),
         'pd_name': book.add_format({'font_size': 10, 'bg_color': red2, 'font_color': 'white', 'align': 'center', 'valign': 'bottom', 'text_wrap': True}),
+
+        'zero': book.add_format({'font_color': '#c0c0c0'}),
     }
     # Everything but raw quantities is protected, i.e. everything with a style other than "qty_*"
     if PROTECT_FORMULA_CELLS:
@@ -240,51 +247,47 @@ def spreadsheet(delivery, subgroups):
             if name[0:2] == 'qty':
                 f.set_locked(False)
 
-    x = delivery_description(delivery, subgroups)
+    if network is not None:
+        single_network = True
+    elif len(networks := delivery.networks.all()) == 1:
+        network = networks[0]
+        single_network = True
+    else:
+        single_network = False
 
-    one_group = len(subgroups) == 1
-    if not one_group:
-        # There will be several subgroups, let's put a recap page summing them up.
+    if single_network:
+        network_descriptions = [NetworkDeliveryDescription(delivery, network)]
+    else:
+        # There are several networks, they will have one page each, plus the recap
+        dd = DeliveryDescription(delivery)
+        network_descriptions = dd.network_descriptions
 
-        buyers = [sg['subgroup'].name for sg in x['table']]
-        def purchases(sg_idx, pd_idx):
-            return x['table'][sg_idx]['totals'][pd_idx]['quantity']
-        def purchase_fmls(sg_idx, pd_idx):
-            return "=%(subgroup)s!%(colname)s$7" % {
-                'subgroup':x['table'][sg_idx]['subgroup'].name,
-                'colname':_col_name(pd_idx+COL_OFFSET)}
+        buyers = [nwd.network.name for nwd in dd.network_descriptions]
+        def purchases(nw_idx, pd_idx):
+            pc = dd.columns[nw_idx].purchases[pd_ix]
+            return pc.quantity if pc is not None else 0
+            # return x['table'][sg_idx]['totals'][pd_idx]['quantity']
+        def purchase_fmls(nw_idx, pd_idx):
+            nw = dd.network_descriptions[nw_idx].network.name
+            col = col_name(pd_idx + COL_OFFSET)
+            return f"={nw}!{col}$7"
+            # return "=%(subgroup)s!%(colname)s$7" % {
+            #     'subgroup':x['table'][sg_idx]['subgroup'].name,
+            #     'colname':_col_name(pd_idx+COL_OFFSET)}
 
         _make_sheet(book, "Commande", fmt, buyers, x['products'], purchases, purchase_fmls,
                     recopy_products=False)
 
-        if delivery.state >= delivery.REGULATING:
-
-            # 1 - Add discrepancies sheet
-            def purchases(sg_idx, pd_idx):
-                return x['table'][sg_idx]['totals'][pd_idx]['discrepancy']
-            _make_sheet(book, "Ecarts", fmt, buyers, x['products'], purchases, 
-                        recopy_products=True)
-
-            # 2 - Add final count sheet
-            def purchases(sg_idx, pd_idx):
-                t = x['table'][sg_idx]['totals'][pd_idx]
-                return t['quantity'] + t['discrepancy']
-            def purchase_fmls(sg_idx, pd_idx):
-                return "=Commande!%(colname)s%(rowname)s+Ecarts!%(colname)s%(rowname)s" % {
-                    'rowname': sg_idx + ROW_OFFSET + 1,
-                    'colname': _col_name(pd_idx+COL_OFFSET)}
-            _make_sheet(book, "Livraison", fmt, buyers, x['products'], purchases, purchase_fmls,
-                        recopy_products=True)
-
-    # Each subgroup has its sheet
-    for sg in x['table']:
-        title = _u8(sg['subgroup'].name)
-        buyers = [u['user'].first_name + " " + u['user'].last_name for u in sg['users']]
+    # Each network has its sheet
+    for ndd in network_descriptions:
+        title = _u8(ndd.network.name)
+        buyers = [u.first_name + " " + u.last_name for u in ndd.users]
         def purchases(u_idx, pd_idx):
-            pc = sg['users'][u_idx]['orders'].purchases[pd_idx]
+            pc = ndd.columns[pd_idx].purchases[u_idx]
             return pc.quantity if pc is not None else 0
-        _make_sheet(book, title, fmt, buyers, x['products'], purchases,
-                    recopy_products=not one_group)
+        _make_sheet(book, title, fmt, buyers, ndd.products, 
+                    purchases, purchase_fmls=None,
+                    recopy_products=not single_network)
 
     book.close()
     return bytes_buffer.getvalue()
