@@ -17,7 +17,7 @@ from .getters import get_delivery
 
 @login_required()
 def edit_user_purchases(request, delivery):
-    """Let user order for himself, or modified an order on an open delivery."""
+    """Let user order for himself, or modify an order on an open delivery."""
     delivery = get_delivery(delivery)
     user = request.user
     if delivery.state != delivery.ORDERING_ALL:
@@ -29,19 +29,8 @@ def edit_user_purchases(request, delivery):
             # TODO: display errors in template
             return redirect("edit_user_purchases", delivery=delivery.id)
     else:
-        purchases = m.Purchase.objects.filter(product__delivery=delivery, user=user)
-        some_packaged = any(pc.product.quantity_per_package is not None for pc in purchases)
-        for pc in purchases:
-            pc.described = (pc.product.description or pc.product.image) and pc.max_quantity != 0
         vars = {
-            'user': user,
             'delivery': delivery,
-            'network': delivery.networks.filter(members__in=[user]).first(),
-            'purchases': purchases,
-            'some_packaged': some_packaged,
-            'out_of_stock_colspan': 6 if some_packaged else 5,
-            'total_padding_right_colspan': 2 if some_packaged else 1,
-            'description_colspan': 7 if some_packaged else 6,
         }
         vars.update(csrf(request))
         return render(request,'edit_user_purchases.html', vars)
@@ -53,27 +42,38 @@ def _parse_form(request):
     :param request:
     :return:
     """
-    d = request.POST
-    dv = m.Delivery.objects.get(pk=int(d['dv-id']))
-    od = m.Order(request.user, dv, with_dummies=True)
-    prev_purchases = {pc.product: pc for pc in od.purchases}
+    d = request.POST.dict()
+    dv = m.Delivery.objects.get(id=int(d['delivery-id']))
+    quantities = { } # pd.id -> quantity
+    for name, val in d.items():
+        bits = name.split("-")
+        if bits[0] == "pd" and bits[1].isdigit():
+            quantities[int(bits[1])] = float(val)
+            # TODO check quantum
+    previous_purchases = {
+        pc.product.id: pc
+        for pc in m.Purchase.objects.filter(product__delivery=dv, user=request.user)
+    }
+
     for pd in dv.product_set.all():
-        try:
-            ordered = float(d.get("pd%s" % pd.id, "0"))
-        except ValueError:  # Field present, didn't contain a valid float
+        ordered = quantities.get(pd.id)
+        if ordered is None:  # Typically because pd was out of order
             continue
-        pc = prev_purchases[pd]
-        if pc.quantity == ordered:  # No change
-            pass
-        elif ordered == 0:  # Cancel existing purchase
-            pc.delete()
-        elif pc.quantity == 0:  # Create a non-dummy purchase
+
+        pc = previous_purchases.get(pd.id)
+   
+        if ordered == 0 and pc is None:  # Still not ordered
+            continue
+        elif pc is None: # New order
             pc = m.Purchase.objects.create(user=request.user, product=pd, quantity=ordered)
-            set_limit(pd, last_pc=pc)  # In case of penury
-        else:  # Update existing purchase quantity
+        elif ordered == pc.quantity:  # Unchanged order
+            continue
+        elif ordered == 0:  # Cancelled order
+            pc.delete()
+        else:  # Modified order
             pc.quantity = ordered
             pc.save()
-            set_limit(pd, last_pc=pc)  # In case of penury
+        set_limit(pd, last_pc=pc)
 
-    m.JournalEntry.log(request.user, "Modified their purchases for dv-%d %s/%s", dv.id, dv.network.name, dv.name)
+    m.JournalEntry.log(request.user, "Modified their purchases for dv-%d", dv.id)
     return True  # true == no error

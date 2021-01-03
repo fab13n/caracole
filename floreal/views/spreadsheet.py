@@ -7,7 +7,7 @@ from io import BytesIO
 import xlsxwriter as xls
 
 
-from floreal.views.dd2 import DeliveryDescription, NetworkDeliveryDescription
+from floreal.views.delivery_description import FlatDeliveryDescription
 
 DATABASE_UTF8_ENABLED = True
 PROTECT_FORMULA_CELLS = False
@@ -203,63 +203,63 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls, re
     sheet.write(9, COL_OFFSET-1, fml, fmt['hdr_weight'], sum(weight_product))
 
 
+def _red(n):
+    return "#"+''.join(('%02x'%(255-(255-x)//n) for x in (0x81, 0x13, 0x05)))
+RED1, RED2, RED3, RED4 = _red(1), _red(2), _red(3), _red(10)
 
-def spreadsheet(delivery, network=None):
+
+FORMATS = {
+        'hdr_title': {'bold': True, 'bg_color': RED2, 'font_color': 'white', 'align': 'center'},
+        'hdr_title_right': {'bold': True, 'bg_color': RED2, 'font_color': 'white', 'align': 'right'},
+        'hdr_price': {'num_format': '0.00€', 'bold': True, 'bg_color': RED3},
+        'hdr_user_price': {'num_format': '0.00€', 'bold': True},
+        'hdr_user_price_cycle': {'num_format': '0.00€', 'bold': True, 'bg_color': RED4},
+        'hdr_weight': {'num_format': '0.###"kg"', 'bold': True, 'bg_color': RED3, 'align': 'right'},
+        'hdr_qty': {'bold': True, 'bg_color': RED3, 'align': 'right'},
+        'hdr_user_qty': {'bold': True, 'bg_color': RED3},
+        'hdr_user_qty_cycle': {'bold': True, 'bg_color': RED3},
+        'hdr_blank': {'bg_color': RED3},
+
+        'title': {'bold': True, 'align': 'vjustify', 'font_color': RED1, 'font_size': 24},
+        'price': {'num_format': '0.00€'},
+        'price_h_cycle': {'num_format': '0.00€', 'bg_color': RED4},
+        'weight': {'num_format': '0.###"kg"'},
+        'qty': {},
+        'qty_v_cycle': {'bg_color': RED4},
+        'qty_h_cycle': {'bg_color': RED4},
+        'qty_vh_cycle': {},
+        'f_qty': {},
+        'f_qty_v_cycle': {'bg_color': RED4},
+        'f_qty_h_cycle': {'bg_color': RED4},
+        'f_qty_vh_cycle': {},
+
+        'user_name': {'bold': True, 'font_color': RED1, 'bg_color': RED3, 'align': 'right'},
+        'user_name_cycle': {'bold': True, 'font_color': RED1, 'bg_color': RED2, 'align': 'right'},
+        'pd_name': {'font_size': 10, 'bg_color': RED2, 'font_color': 'white', 'align': 'center', 'valign': 'bottom', 'text_wrap': True},
+
+        'zero': {'font_color': '#c0c0c0'},
+    }
+
+
+def spreadsheet(dd):
+    """Takes either a DeliveryDescription or a NetworkDeliveryDescription.
+    DD with only one network will be simplified into NDD."""
     bytes_buffer = BytesIO()  # Generate in a string rather than a file
     book = xls.Workbook(bytes_buffer, {'in_memory': True})
-    def _red(n):
-        return "#"+''.join(('%02x'%(255-(255-x)//n) for x in (0x81, 0x13, 0x05)))
-    red1, red2, red3, red4 = _red(1), _red(2), _red(3), _red(10)
-    fmt = {
-        'hdr_title': book.add_format({'bold': True, 'bg_color': red2, 'font_color': 'white', 'align': 'center'}),
-        'hdr_title_right': book.add_format({'bold': True, 'bg_color': red2, 'font_color': 'white', 'align': 'right'}),
-        'hdr_price': book.add_format({'num_format': '0.00€', 'bold': True, 'bg_color': red3}),
-        'hdr_user_price': book.add_format({'num_format': '0.00€', 'bold': True}),
-        'hdr_user_price_cycle': book.add_format({'num_format': '0.00€', 'bold': True, 'bg_color': red4}),
-        'hdr_weight': book.add_format({'num_format': '0.###"kg"', 'bold': True, 'bg_color': red3, 'align': 'right'}),
-        'hdr_qty': book.add_format({'bold': True, 'bg_color': red3, 'align': 'right'}),
-        'hdr_user_qty': book.add_format({'bold': True, 'bg_color': red3}),
-        'hdr_user_qty_cycle': book.add_format({'bold': True, 'bg_color': red3}),
-        'hdr_blank': book.add_format({'bg_color': red3}),
-
-        'title': book.add_format({'bold': True, 'align': 'vjustify', 'font_color': red1, 'font_size': 24}),
-        'price': book.add_format({'num_format': '0.00€'}),
-        'price_h_cycle': book.add_format({'num_format': '0.00€', 'bg_color': red4}),
-        'weight': book.add_format({'num_format': '0.###"kg"'}),
-        'qty': book.add_format({}),
-        'qty_v_cycle': book.add_format({'bg_color': red4}),
-        'qty_h_cycle': book.add_format({'bg_color': red4}),
-        'qty_vh_cycle': book.add_format({}),
-        'f_qty': book.add_format({}),
-        'f_qty_v_cycle': book.add_format({'bg_color': red4}),
-        'f_qty_h_cycle': book.add_format({'bg_color': red4}),
-        'f_qty_vh_cycle': book.add_format({}),
-
-        'user_name': book.add_format({'bold': True, 'font_color': red1, 'bg_color': red3, 'align': 'right'}),
-        'user_name_cycle': book.add_format({'bold': True, 'font_color': red1, 'bg_color': red2, 'align': 'right'}),
-        'pd_name': book.add_format({'font_size': 10, 'bg_color': red2, 'font_color': 'white', 'align': 'center', 'valign': 'bottom', 'text_wrap': True}),
-
-        'zero': book.add_format({'font_color': '#c0c0c0'}),
-    }
+    fmt = {k: book.add_format(v) for k, v in FORMATS.items()}
     # Everything but raw quantities is protected, i.e. everything with a style other than "qty_*"
     if PROTECT_FORMULA_CELLS:
         for name, f in fmt.items():
             if name[0:2] == 'qty':
                 f.set_locked(False)
 
-    if network is not None:
-        single_network = True
-    elif len(networks := delivery.networks.all()) == 1:
-        network = networks[0]
-        single_network = True
-    else:
-        single_network = False
+    single_network = isinstance(dd, FlatDeliveryDescription)
 
     if single_network:
-        network_descriptions = [NetworkDeliveryDescription(delivery, network)]
+        network_descriptions = [dd]
     else:
+        raise NotImplementedError("TODO grouped delivery descriptions")
         # There are several networks, they will have one page each, plus the recap
-        dd = DeliveryDescription(delivery)
         network_descriptions = dd.network_descriptions
 
         buyers = [nwd.network.name for nwd in dd.network_descriptions]

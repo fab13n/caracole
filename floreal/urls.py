@@ -39,8 +39,10 @@ urlpatterns = [
     path('nw-<id:network>/invoice-mail-form', views.invoice_mail_form, name='invoice_mail_form'),
 
     path('dv-<id:delivery>', views.edit_user_purchases, name='edit_user_purchases'),
+    path('dv-<id:delivery>-u.json', views.view_purchases_json, kwargs={"user": True}, name='user_purchases_json'),
+
     path('dv-<id:delivery>/staff', views.edit_delivery_staff, name='edit_delivery_staff'),
-    path('dv-<id:delivery>/staff/purchases/nw-<id:network>', views.edit_network_purchases, name='edit_delivery_purchases'),
+    path('dv-<id:delivery>/staff/purchases', views.edit_delivery_purchases, name='edit_delivery_purchases'),
     path('dv-<id:delivery>/staff/products', views.edit_delivery_products, name='edit_delivery_products'),
     path('dv-<id:delivery>/staff/products.json', views.delivery_products_json, name='delivery_json'),
     
@@ -55,18 +57,12 @@ urlpatterns = [
     path('new-cd/nw-<id:network>', views.create_candidacy, name='create_candidacy'),
     path('candidacy/staff', views.manage_candidacies, name='manage_candidacies'),
 
-    path('nw-<id:network>-dv-<id:delivery>.html', views.view_purchases_html, name='view_network_purchases_html'),
-    path('nw-<id:network>-dv-<id:delivery>.pdf', views.view_purchases_latex, name='view_network_purchases_latex'),
-    path('nw-<id:network>-dv-<id:delivery>-cards.pdf', views.view_purchases_cards, name='view_network_purchases_cards'),
-    path('nw-<id:network>-dv-<id:delivery>.xlsx', views.view_purchases_xlsx, name='view_network_purchases_xlsx'),
-    path('nw-<id:network>-dv-<id:delivery>.json', views.view_purchases_json, name='view_network_purchases_json'),
-
     path('dv-<id:delivery>.html', views.view_purchases_html, name='view_delivery_purchases_html'),
-    path('dv-<id:delivery>.pdf', views.view_purchases_latex, name='view_delivery_purchases_latex'),
-    path('dv-<id:delivery>-cards.pdf', views.view_purchases_cards, name='view_delivery_purchases_cards'),
+    path('dv-<id:delivery>.pdf', views.view_purchases_latex_table, name='view_delivery_purchases_latex'),
+    path('dv-<id:delivery>-cards.pdf', views.view_purchases_latex_cards, name='view_delivery_purchases_cards'),
     path('dv-<id:delivery>.xlsx', views.view_purchases_xlsx, name='view_delivery_purchases_xlsx'),
     path('dv-<id:delivery>.json', views.view_purchases_json, name='view_delivery_purchases_json'),
-    
+
     path('dv-<id:delivery>/delete', views.delete_archived_delivery, name='delete_archived_delivery'),
     path('nw-<id:network>/delete-empty-archives', views.delete_all_archived_deliveries, name='delete_all_archived_deliveries'),
 

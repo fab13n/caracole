@@ -13,6 +13,7 @@
 
   function render_unit(unit) {
     // TODO add "×" when starting with a number
+    // TODO abbreviate "pièce(s)"
     return unit;
   }
 
@@ -57,18 +58,18 @@
       });
   }
 
-  function render_network_line(nw) {
+  function render_group_line(sg) {
     /* Create line */
     $("#purchases").append(`
-      <tr class="nw-row" id="nw-row-${nw.network.id}">
-        <th class="left">${nw.network.name}</th>
-        <td>${render_price(nw.total.price)}</td>
+      <tr class="sg-row" id="sg-row-${sg.subgroup.id}">
+        <th class="left">${sg.subgroup.name}</th>
+        <td>${render_price(sg.total.price)}</td>
       </tr>`);
 
     /* Fill with product quantities. */
-    const $nw_row = $(`#nw-row-${nw.network.id}`); 
-    nw.products.forEach(pd =>
-      $nw_row.append(
+    const $sg_row = $(`#sg-row-${sg.subgroup.id}`); 
+    sg.products.forEach(pd =>
+      $sg_row.append(
         pd.total.quantity ?
         `<td>${pd.total.quantity}</td` :
         `<td>-</td>`         
@@ -76,13 +77,14 @@
     );
   }
 
-  function render_network_users(nw) {
+  function render_users(g) {
     /* Individual user quantities. */
-    nw.purchases.forEach((row, i) => {
-      const u = nw.users[i];
+    g.purchases.forEach((row, i) => {
+      const u = g.users[i];
       const cycle = ['one', 'two', 'three', 'four'][i%4];
+      const subgroup_class = g.subgroup ? `sg-row-${g.subgroup.id}-user`: ``;
       $("#purchases").append(`
-        <tr class="u-row nw-row-${nw.network.id}-user ${cycle}" id="u-row-${u.id}">
+        <tr class="u-row ${subgroup_class} ${cycle}" id="u-row-${u.id}">
           <th class"left">${u.first_name} ${u.last_name}</th>
           <td class="price">${render_price(u.total.price)}</td>
         </tr>
@@ -94,60 +96,53 @@
     });
   }
 
-  {% if network %}
+  function render_flat(dd) {
 
-  function render_single_network(nw) {
+    $(".dv-name").text(dd.delivery.name + " " + dd.network.name);
+    $("#total-price").text(render_price(dd.total.price));
+    $("#download-xlsx").attr("href", `/dv-${dd.delivery.id}.xlsx`);
+    $("#download-pdf").attr("href", `/dv-${dd.delivery.id}.pdf`);
 
-    $(".dv-name").text(nw.delivery.name + " " + nw.network.name);
-    $("#total-price").text(render_price(nw.total.price));
-    $("#download-xlsx").attr("href", `/nw-${nw.network.id}-dv-${nw.delivery.id}.xlsx`);
-    $("#download-pdf").attr("href", `/nw-${nw.network.id}-dv-${nw.delivery.id}.pdf`);
-
-    render_products_header(nw.products);
-    render_network_users(nw);
+    render_products_header(dd.products);
+    render_users(dd);
   }
 
-  async function load_network() {
-    const res = await fetch("{% url 'view_network_purchases_json' network=network.id delivery=delivery.id %}");
-    DATA = await res.json();
-    render_single_network(DATA);
-  }
+  function render_grouped(dd) {
+    $(".dv-name").text(dd.delivery.name);
+    $("#total-price").text(render_price(dd.total.price));
+    $("#download-xlsx").attr("href", `/dv-${dd.delivery.id}.xlsx`);
+    $("#download-pdf").attr("href", `/dv-${dd.delivery.id}.pdf`);  
 
-  $(document).ready(load_network);
-
-  {% else %}
-
-  function render_multiple_networks(dv) {
-
-    $(".dv-name").text(dv.delivery.name);
-    $("#total-price").text(render_price(dv.total.price));
-    $("#download-xlsx").attr("href", `/dv-${dv.delivery.id}.xlsx`);
-    $("#download-pdf").attr("href", `/dv-${dv.delivery.id}.pdf`);  
-
-    render_products_header(dv.products);
-    dv.networks.forEach(nw => {
-      render_network_line(nw);
-      render_network_users(nw);
-      const toggle = () => $(`.nw-row-${nw.network.id}-user`).toggle();
-      $(`#nw-row-${nw.network.id}`).click(toggle);
+    render_products_header(dd.products);
+    dd.subgroups.forEach(sg => {
+      render_group_line(sg);
+      render_users(sg);
+      const toggle = () => $(`.sg-row-${sg.subgroup.id}-user`).toggle();
+      $(`#sg-row-${sg.subgroup.id}`).click(toggle);
     })
-    if(dv.networks.length > 1) { $(".u-row").toggle(); }
+    if(dd.subgroups.length > 1) { $(".u-row").toggle(); }
   }
 
   async function load_delivery() {
+    {% if subgroup %}
+    const res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id subgroup=subgroup.id %}");
+    {% else %}
     const res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id %}");
+    {% endif %}
     DATA = await res.json();
-    render_multiple_networks(DATA);
+    if(DATA.subgroups) {
+      render_grouped(DATA);
+    } else {
+      render_flat(DATA);
+    }
   }
 
   $(document).ready(load_delivery);
-
-  {% endif %}
-
 </script>
+
 <style type="text/css">
-  .nw-row, .nw-row th { color: white; background-color: #a75a50; font-weight: bold; }
-  .nw-row:hover { cursor: pointer; }
+  .sg-row, .sg-row th { color: white; background-color: #a75a50; font-weight: bold; }
+  .sg-row:hover { cursor: pointer; }
   .four  { background-color: #d5b1ac; }
   .blank  { text-align: left; }
   table { margin-top: 30px; }

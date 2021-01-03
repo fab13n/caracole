@@ -12,24 +12,22 @@ from .. import models as m
 from ..penury import set_limit
 from .getters import get_network, get_delivery
 from .decorators import regulator_required
-from floreal.views.dd2 import DeliveryDescription, NetworkDeliveryDescription
 
-def edit_network_purchases(request, delivery, network):
+def edit_delivery_purchases(request, delivery):
     """Allows to change the purchases of user's subgroup. Subgroup staff only."""
     user = request.user
     dv = get_delivery(delivery)
-    nw = get_network(network)
 
-    if not (nw.staff.filter(id=user.id).exists() or nw.regulators.filter(id=user.id).exists()):
-        return HttpResponseForbidden(f"Réservé aux admins et régulateurs du réseau {nw.name}")
+    if user not in dv.network.staff and user not in dv.network.producers:
+        return HttpResponseForbidden(f"Réservé aux admins et producteurs du réseau {dv.network.name}")
 
     if request.method == 'POST':
         _parse_form(request, dv, nw)
-        return redirect("view_network_purchases_html", delivery=dv.id, network=nw.id)
+        return redirect("view_delivery_purchases_html", delivery=dv.id, network=nw.id)
     else:
-        vars = {'user': user, 'network': nw, 'delivery': dv}
+        vars = {'user': user, 'delivery': dv}
         vars.update(csrf(request))
-        return render(request,'edit_network_purchases.html', vars)
+        return render(request,'edit_delivery_purchases.html', vars)
 
 
 def _parse_form(request, dv, nw):

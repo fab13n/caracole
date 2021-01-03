@@ -15,13 +15,11 @@ def nw_admin_required(admin_getter=lambda a: a.get('network', None)):
             user = request.user
             if not user.is_authenticated:
                 return HttpResponseForbidden('Réservé aux administrateurs')
+            if user.is_staff:
+                return f(request, *args, **kwargs)
             nw = get_network(admin_getter(kwargs))
-            if nw:
-                if user not in nw.staff.all():
+            if not m.NetworkMembership.objects.filter(user=user, network=nw, is_staff=True).exists():
                     return HttpResponseForbidden('Réservé aux administrateurs du réseau '+nw.name)
-            else:
-                if not m.Network.objects.filter(staff__in=[user]).exists():
-                    return HttpResponseForbidden('Réservé aux administrateurs de réseau')
             return f(request, *args, **kwargs)
         return g
     return decorator

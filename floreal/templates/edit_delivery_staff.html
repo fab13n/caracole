@@ -79,50 +79,33 @@
         Modifier les produits proposés <img src="{% static 'images/edit.png' %}"/>
     </a></li>
     {% endif %}
+
     {% if CAN_EDIT_PURCHASES %}
-    {% if networks|length > 1 %}
-    <li>Modifier les achats <img src="{% static 'images/edit.png' %}"/>
-        <ul>
-            {% for nw in networks %}
-            <li>
-                <a href="{% url 'edit_delivery_purchases' delivery=dv.id network=nw.id %}">
-                    Pour {{nw.name}}
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
-    </li>
-    {% else %}{# one network #}
-    <li><a href="{% url 'edit_delivery_purchases' delivery=dv.id network=networks.0.id %}">
+    <li><a href="{% url 'edit_delivery_purchases' delivery=dv.id %}">
         Modifier les achats <img src="{% static 'images/edit.png' %}"/>
     </a></li>
-    {% endif %}{# 1 or several networks #}
-    {% endif %}{# CAN_EDIT_XXX #}
+    {% endif %}{# CAN_EDIT_PURCHAES #}
 
     {### VIEW AND EDIT PURCHASES ###}
     {% if dv.state != Delivery.TERMINATED %}
-    {% if networks|length == 0 %}
-    <!-- Aucun sous-groupe visualisable -->
-    {% elif networks|length == 1 %}
-    {% with networks.0 as nw %}
+    {% if "NO_SUBGROUPS" %}
     <li>Voir les commandes :
         <ul>
             <li>
-                <a href="{% url 'view_network_purchases_html' delivery=dv.id network=nw.id %}">en ligne <img src="{% static 'images/grid.png' %}"/></a>,
+                <a href="{% url 'view_delivery_purchases_html' delivery=dv.id %}">en ligne <img src="{% static 'images/grid.png' %}"/></a>,
             </li>
             <li>
-                <a href="{% url 'view_network_purchases_xlsx' delivery=dv.id network=nw.id %}">en tableau Excel <img src="{% static 'images/excel.png' %}"/></a>,
+                <a href="{% url 'view_delivery_purchases_xlsx' delivery=dv.id %}">en tableau Excel <img src="{% static 'images/excel.png' %}"/></a>,
             </li>
             <li>
-                <a href="{% url 'view_network_purchases_latex' delivery=dv.id network=nw.id %}">en table PDF <img src="{% static 'images/pdf.png' %}"/></a>,
+                <a href="{% url 'view_delivery_purchases_latex' delivery=dv.id %}">en table PDF <img src="{% static 'images/pdf.png' %}"/></a>,
             </li>
             <li>
-                <a href="{% url 'view_network_purchases_cards' delivery=dv.id network=nw.id %}">en fiches individuelles <img src="{% static 'images/pdf.png' %}"/></a>
+                <a href="{% url 'view_delivery_purchases_cards' delivery=dv.id %}">en fiches individuelles <img src="{% static 'images/pdf.png' %}"/></a>
             </li>
         </ul>
     </li>
-    {% endwith %}
-    {% else %}{# networks|length > 1 #}
+    {% else %}{# TODO GROUPED NETWORK #}
     <li>Voir {%if CAN_EDIT_PURCHASES%} ou modifier {% endif %} les commandes :</li>
     <table>
         <tr><td></td><th>En ligne</th><th>Excel</th><th>PDF</th><th>Fiches</th>
@@ -131,14 +114,14 @@
         {% for nw in networks %}
         <tr>
             <th class="left">Sous-groupe {{sg.name}}</th>
-            <td><a href="{% url 'view_network_purchases_html' delivery=dv.id network=nw.id %}"><img src="{% static 'images/grid.png' %}"/</a></td>
-            <td><a href="{% url 'view_network_purchases_xlsx' delivery=dv.id network=nw.id  %}"><img src="{% static 'images/excel.png' %}"/></a></td>
-            <td><a href="{% url 'view_network_purchases_latex' delivery=dv.id network=nw.id  %}"><img src="{% static 'images/pdf.png' %}"/></a></td>
-            <td><a href="{% url 'view_network_purchases_cards' delivery=dv.id network=nw.id  %}"><img src="{% static 'images/pdf.png' %}"/></a></td>
+            <td><a href="{% url 'view_network_purchases_html' delivery=dv.id %}"><img src="{% static 'images/grid.png' %}"/</a></td>
+            <td><a href="{% url 'view_network_purchases_xlsx' delivery=dv.id %}"><img src="{% static 'images/excel.png' %}"/></a></td>
+            <td><a href="{% url 'view_network_purchases_latex' delivery=dv.id %}"><img src="{% static 'images/pdf.png' %}"/></a></td>
+            <td><a href="{% url 'view_network_purchases_cards' delivery=dv.id %}"><img src="{% static 'images/pdf.png' %}"/></a></td>
             {% if CAN_EDIT_PURCHASES %}
             {% for nw in networks %}
             <!-- Non! ca rallonge le tableau ! -->
-            <td><a href="{% url 'edit_delivery_purchases' delivery=dv.id network=nw.id %}"><img src="{%  static 'images/edit.png'%}"/></a></td>
+            <td><a href="{% url 'edit_delivery_purchases' delivery=dv.id %}"><img src="{%  static 'images/edit.png'%}"/></a></td>
             {% endfor %}
             {% endif %}
         </tr>
@@ -152,7 +135,7 @@
             {%if CAN_EDIT_PURCHASES%}<td><!-- pas d'edition pour tout le reseau --> - </td>{%endif%}
         </tr>
     </table>
-    {% endif %}{# networks.length > 1#}
+    {% endif %}{# Grouped network #}
     {% endif %}{# ! Delivery.TERMINATED #}
 </ul>
 {% endblock %}

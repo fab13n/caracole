@@ -1,161 +1,541 @@
-#!/usr/bin/python3
-# -*- coding: utf-8 -*-
+"""
+Draft of a new delivery description system. Typed.
 
+Should be optimized for monogroup dv, but consolidable
+in case of multiple networks on the same dv.
+
+need to iterate in different ways:
+* by user
+* by product
+* enumerated or not
+"""
+
+from typing import (
+    NamedTuple,
+    Optional,
+    List,
+    TypeVar,
+    Generic,
+    Union,
+    Any,
+    Sequence,
+    Dict,
+    Tuple,
+)
+from collections import defaultdict
 from .. import models as m
+from abc import ABC, abstractmethod
+from functools import cached_property
+from django.db.models import QuerySet
+from decimal import Decimal
+
+T = TypeVar("T")
 
 
-def delivery_description(delivery, subgroups, only_buyers=True, **kwargs):
-    """Generate a description of the purchases performed by users in `subgroups`
-    for `delivery`. The resulting dictionary is used to render HTML as well as
-    PDF and MS-Excel views. It's used both to display the complete order to network staff,
-    and their subgroup's purchases to subgroup staff (in this case `subgroups` is expected
-    to have only one element).
-
-    The resulting dictionary is structured as follows, with many data organized by numeric
-    indexes rather than hashtables in order to ease tabular rendering:
-
-        { "delivery": delivery,
-          "products": product_idx -> product,
-          "table": subgroup_idx -> { "subgroup": subgroup,
-                                     "totals": product_idx -> { "product": product,
-                                                                "quantity": number,
-                                                                "full_packages": number,
-                                                                "out_of_packages": number,
-                                                                "weight": number,
-                                                                "price": number,
-                                                                "discrepancy": number?,
-                                                                "discrepancy_reason": string?},
-                                     "users": user_idx -> { "user": user,
-                                                            "orders": product_idx -> order,
-                                                            "price": number,
-                                                            "weight": number},
-                                     "price_discrepancy": number?,
-                                     "price": number,
-                                     "weight": number},
-          "product_totals": product_idx -> { "product": product,
-                                             "quantity": number,
-                                             "full_packages": number,
-                                             "out_of_packages": number,
-                                             "discrepancy": number?
-                                             "price_discrepancy": number?},
-          "price_discrepancy": number?,
-          "price": number }
+class SubgroupPurchase(object):
     """
-    # List of products, ordered by name
-    # TODO SQL check if select_Related helps
-    products = delivery.product_set.all().select_related()
-    # Iterable of all users in subgroups
-    users = m.User.objects.filter(user_of_subgroup__in=subgroups, is_active=True).select_related()
-    if only_buyers:
-        q = m.Purchase.objects.filter(product__delivery=delivery).values('user').distinct()
-        buyer_ids = {r['user'] for r in q} | {sg.extra_user_id for sg in subgroups}
-        users = users.filter(id__in=buyer_ids) 
+    Total purchase of a given product by users of a given network subgroup.
+    Intentionally matches a subset of models.Purchase's interface.
+    """
 
-    # Dictionary user -> list of orders, indexed as products
-    orders = m.Order.by_user_and_product(delivery, users, products)
+    def __init__(
+        self, subgroup: m.NetworkSubgroup, product: m.Product, quantity=Decimal(0)
+    ):
+        self.subgroup_id = subgroup.id
+        self.subgroup = subgroup
+        self.product_id = product.id
+        self.product = product
+        self.quantity = quantity
 
-    # Compute totals per product per subgroup 1: initialize
-    # Dictionary subgroup -> product -> { product, quantity }
-    sg_pd_totals = {
-        sg: {
-            pd: {
-                'product': pd,
-                'quantity': 0,
-            } for pd in products
-        } for sg in subgroups
-    }
+    def add(self, pc: m.Purchase):
+        self.quantity += pc.quantity  # TODO make quantity a decimal, rather
 
-    # Generate user->subgroup dict, helper to compute totals per subgroup
-    user_to_subgroup = {}
-    for sg in subgroups:
-        for u in sg.users.iterator():
-            user_to_subgroup[u] = sg
+    @cached_property
+    def out_of_package(self) -> float:
+        if self.product.quantity_per_package is None:
+            return self.quantity
+        else:
+            return self.quantity - self.packages * self.product.quantity_per_package
 
-    # Sum quantities per subgroup and per product;
-    for od in orders.values():
-        sg = user_to_subgroup[od.user]
-        for pc in od.purchases:
-            if pc:
-                sg_pd_totals[sg][pc.product]['quantity'] += pc.quantity
+    @cached_property
+    def packages(self) -> Optional[int]:
+        if self.product.quantity_per_package is None:
+            return None
+        else:
+            return self.quantity // self.product.quantity_per_package
 
-    # Break up quantities in packages + loose items, compute price, gather discrepancies
-    for sg, pd_totals in sg_pd_totals.items():
-        for pd, totals in pd_totals.items():
-            qty = totals['quantity']
-            qpp = pd.quantity_per_package
-            totals['price'] = qty * totals['product'].price
-            totals['weight'] = qty * totals['product'].unit_weight
-            if qpp:
-                totals['full_packages'] = qty // qpp
-                totals['out_of_packages'] = qty % qpp
-            if delivery.state >= delivery.REGULATING:
-                q = m.ProductDiscrepancy.objects.filter(product=pd, subgroup=sg)
-                if q.exists():
-                    totals['discrepancy'] = q[0].amount
-                    totals['discrepancy_reason'] = q[0].reason
-                else:
-                    totals['discrepancy'] = 0
+    @cached_property
+    def weight(self) -> float:
+        return self.product.unit_weight * self.quantity
+
+    @cached_property
+    def price(self) -> float:
+        return self.product.price * self.quantity
+
+
+PurchaseType = Union[m.Purchase, SubgroupPurchase]
+
+
+class BaseRow(object):
+    """Rows can be indexed by user or by subgroup.
+    Their purchases can therefore be of type m.Purchase or NetworkPurchase,
+    but both types share a mostly common interface."""
+
+    def __init__(self, purchases: List[Optional[PurchaseType]]):
+        self.purchases = purchases
+
+    @cached_property
+    def packages(self) -> int:
+        return sum(
+            pc.packages
+            for pc in self.purchases
+            if pc is not None and pc.product.quantity_per_package is not None
+        )
+
+    @cached_property
+    def weight(self) -> float:
+        return sum(pc.weight for pc in self.purchases if pc is not None)
+
+    @cached_property
+    def price(self) -> float:
+        return sum(pc.price for pc in self.purchases if pc is not None)
+
+
+class UserRow(BaseRow):
+    def __init__(self, user: m.User, purchases: List[Optional[m.Purchase]]):
+        self.user_id = user.id
+        self.user = user
+        super().__init__(purchases)
+
+
+class SubgroupRow(BaseRow):
+    def __init__(
+        self, subgroup: m.NetworkSubgroup, purchases: List[Optional[SubgroupPurchase]]
+    ):
+        self.subgroup_id = subgroup.id
+        self.subgroup = subgroup
+        super().__init__(purchases)
+
+
+class Column(object):
+    """
+    All purchases of a given product,
+    either each user or each subgroup of a network.
+    """
+
+    def __init__(self, product: m.Product, purchases: List[Optional[PurchaseType]]):
+
+        assert all(pc.product_id == product.id for pc in purchases if pc is not None)
+        self.product = product
+        self.purchases = purchases
+
+    @cached_property
+    def quantity(self) -> float:
+        return sum(pc.quantity for pc in self.purchases if pc is not None)
+
+    @cached_property
+    def out_of_package(self) -> float:
+        if self.product.quantity_per_package is None:
+            return self.quantity
+        else:
+            return self.quantity - self.packages * self.product.quantity_per_package
+
+    @cached_property
+    def packages(self) -> Optional[int]:
+        if self.product.quantity_per_package is None:
+            return None
+        else:
+            return self.quantity // self.product.quantity_per_package
+
+    @cached_property
+    def weight(self) -> float:
+        return sum(pc.weight for pc in self.purchases if pc is not None)
+
+    @cached_property
+    def price(self) -> float:
+        return sum(pc.price for pc in self.purchases if pc is not None)
+
+
+def _num(n):
+    return None if n is None else float(n)
+
+
+class FlatDeliveryDescription(object):
+    """
+    Detailed description of the purchases of each member of a network
+    for a given delivery. Might be created standalone, or as a part of
+    a multi-network delivery description of type `GroupedDeliveryDescription`.
+    """
+
+    def __init__(
+        self,
+        dv: m.Delivery,
+        subgroup: Optional[m.NetworkSubgroup] = None,
+        products: Optional[List[m.Product]] = None,
+        matrix: Optional[Dict[Tuple[int, int], m.Purchase]] = None,
+        users: Optional[List[m.User]] = None,
+        empty_products=False,
+        empty_users=False,
+    ):
+
+        self.delivery = dv
+        self.network = dv.network
+        self.subgroup = subgroup
+
+        # Remove users who aren't in the selected network / subgroup
+        if users is not None:
+            self.users = users
+        else:
+            if subgroup is None:
+                self.users = dv.network.buyers
             else:
-                totals['discrepancy'] = 0
+                self.users = subgroup.buyers
+            # Remove those who didn't order
+            if not empty_users:
+                self.users = self.users.filter(
+                    purchase__product__delivery__in=[dv]
+                ).distinct()
+            # Sort what's left
+            self.users = self.users.order_by("last_name", "first_name")
 
-    # Sum up grand total (all subgroups together) per product
-    product_totals = []
-    for i, pd in enumerate(products):
-        qty = sum(sg_pd_totals[sg][pd]['quantity'] for sg in subgroups)
-        qpp = pd.quantity_per_package
-        total = {'product': pd, 'quantity': qty}
-        total['discrepancy'] = sum(sg_pd_totals[sg][pd]['discrepancy'] for sg in subgroups)
-        total['price_discrepancy'] = total['discrepancy'] * total['product'].price
-        if qpp:
-            total['full_packages'] = qty // qpp
-            total['out_of_packages'] = qty % qpp
-        product_totals.append(total)
+        if products:
+            self.products = products
+        elif empty_products:
+            self.products = dv.product_set.all().order_by("place")
+        else:
+            self.products = (
+                m.Product.objects.filter(purchase__product__delivery__in=[dv])
+                .distinct()
+                .order_by("place")
+            )
 
-    # Convert dictionaries into ordered lists in `table`:
-    # subgroup_idx -> { "subgroup": subgroup,
-    #                   "totals": product_idx -> { "product": product,
-    #                                              "quantity": number,
-    #                                              "full_packages": number,
-    #                                              "out_of_packages": number,
-    #                                              "price": number},
-    #                   "users": user_idx -> { "user": user,
-    #                                          "orders": product_idx -> order,
-    #                                          "price": number,
-    #                                          "weight": number },
-    #                   "price": number,
-    #                   "weight": number }
-    table = []
-    for i, sg in enumerate(subgroups):
-        pd_totals = sg_pd_totals[sg]
-        pd_totals_list = []
-        user_records = []
-        # Get and order users alphabetically, except for the extra user which gets last
-        sg_item = {'subgroup': sg, 'totals': pd_totals_list, 'users': user_records}
-        table.append(sg_item)
-        for j, pd in enumerate(products):
-            pd_totals_list.append(pd_totals[pd])
-        for k, u in enumerate(sg.sorted_users):
-            if u not in users:
+        # matrix: {tuple(user_id, product_id) -> m.Purchase}
+        # When called from a GroupedDeliveryDescription, the matrix is pre-computed by the caller
+        if matrix is None:
+            matrix = defaultdict(lambda: None)
+            # Thanks to defaultdict, access to absent purchases will return None
+            for pd in self.products:
+                for pc in m.Purchase.objects.filter(product=pd):
+                    matrix[(pc.user_id, pc.product_id)] = pc
+
+        # Reference by rows (user or nested description)
+        self.rows: List[UserRow] = [
+            UserRow(u, [matrix[(u.id, pd.id)] for pd in self.products])
+            for u in self.users
+        ]
+
+        # Reference by columns (products)
+        self.columns: List[Column] = [
+            Column(pd, [matrix[(u.id, pd.id)] for u in self.users])
+            for pd in self.products
+        ]
+
+    @cached_property
+    def packages(self) -> int:
+        return sum(c.packages or 0 for c in self.columns)
+
+    @cached_property
+    def weight(self) -> float:
+        return sum(c.weight for c in self.columns)
+
+    @cached_property
+    def price(self) -> int:
+        return sum(c.price for c in self.columns)
+
+    def to_json(self, nested=False):
+        r = {
+            "delivery": {"id": self.delivery.id, "name": self.delivery.name},
+            "network": {"id": self.network.id, "name": self.network.name},
+            "subgroup": None
+            if self.subgroup is None
+            else {"id": self.subgroup.id, "name": self.subgroup.name},
+            "products": [
+                {
+                    "id": col.product.id,
+                    "name": col.product.name,
+                    "quantity_per_package": _num(col.product.quantity_per_package),
+                    "unit_weight": _num(col.product.unit_weight),
+                    "unit": col.product.unit,
+                    "price": _num(col.product.price),
+                    "total": {
+                        "quantity": _num(col.quantity),
+                        "packages": _num(col.packages),
+                        "out_of_package": _num(col.out_of_package),
+                        "price": _num(col.price),
+                        "weight": _num(col.weight),
+                    },
+                }
+                for col in self.columns
+            ],
+            "users": [
+                {
+                    "id": row.user.id,
+                    "first_name": row.user.first_name,
+                    "last_name": row.user.last_name,
+                    "email": row.user.email,
+                    "total": {
+                        "packages": _num(row.packages),
+                        "price": _num(row.price),
+                        "weight": _num(row.weight),
+                    },
+                }
+                for row in self.rows
+            ],
+            "total": {
+                "packages": _num(self.packages),
+                "price": _num(self.price),
+                "weight": _num(self.weight),
+            },
+            "purchases": [
+                [
+                    {
+                        "user": pc.user_id,
+                        "product": pc.product_id,
+                        "quantity": _num(pc.quantity),
+                        "packages": _num(pc.packages)
+                        if pc.packages is not None
+                        else None,
+                        "out_of_package": _num(pc.out_of_package),
+                        "price": _num(pc.price),
+                        "weight": _num(pc.weight),
+                    }
+                    if pc is not None
+                    else None
+                    for pc in row.purchases
+                ]
+                for row in self.rows
+            ],
+        }
+        return r
+
+
+# TODO: convert into subgrouped-dd
+class GroupedDeliveryDescription(object):
+    def __init__(self, dv: m.Delivery, empty_products=False, empty_users=False):
+
+        self.delivery = dv
+
+        if empty_products:
+            self.products = dv.product_set.all()
+        else:
+            self.products = m.Product.objects.filter(
+                purchase__product__delivery__in=[dv]
+            ).distinct()
+        self.products = list(
+            self.products.prefetch_related("purchase_set").order_by("place")
+        )
+
+        subgroups = dv.network.networksubgroup_set.all()
+
+        subgroup_users: Dict[int, List[m.User]] = defaultdict(list)  # sgid -> [User*]
+        user_subgroup: Dict[int, int] = {}  # user_id -> subgroup_id
+        for nm in (
+            m.NetworkMembership.objects.filter(network_id=dv.network_id, is_buyer=True)
+            .select_related("user")
+            .order_by("user__last_name", "user__first_name")
+        ):
+            sg_id = nm.subgroup_id
+            if sg_id is not None:
+                subgroup_users[sg_id].append(nm.user)
+                user_subgroup[nm.user_id] = sg_id
+
+        # {subgroup_id -> {tuple(user_id, product_id) -> purchase}}
+        user_matrices: Dict[
+            int, Dict[Tuple[int, int], Optional[m.Purchase]]
+        ] = defaultdict(lambda: defaultdict(lambda: None))
+
+        # {tuple(subgroup_id, product_id) -> subgroup_purchase}
+        subgroup_matrix: Dict[Tuple[int, int], SubgroupPurchase] = {
+            (sg.id, pd.id): SubgroupPurchase(sg, pd)
+            for sg in subgroups
+            for pd in self.products
+        }
+
+        # {sg_id -> [SubgroupPurchase*]}
+        subgroup_purchases: Dict[int, List[SubgroupPurchase]] = {
+            sg.id: [SubgroupPurchase(sg, pd) for pd in self.products]
+            for sg in subgroups
+        }
+
+        product_index = {pd.id: i for (i, pd) in enumerate(self.products)}
+
+        # Prefetch products, needed to compute purchase prices, weights etc.
+        for pc in m.Purchase.objects.filter(product__delivery_id=dv.id).select_related("product"):
+            sg_id = user_subgroup.get(pc.user_id)
+            pd_id = pc.product_id
+            u_id = pc.user_id
+            if sg_id is None:
+                # print(f"Warning: {pc.user.username} left {dv.network.name}")
                 continue
-            order = orders[u]
-            user_records.append({
-                'user': u,
-                'orders': order,
-                'price': sum(pc.price for pc in order.purchases if pc),
-                'weight': sum(pc.weight for pc in order.purchases if pc)})
-        sg_item['price'] = sum(uo['price'] for uo in user_records)
-        sg_item['weight'] = sum(uo['weight'] for uo in user_records)
-        sg_item['price_discrepancy'] = sum(pt['product'].price * pt['discrepancy'] for pt in pd_totals_list)
+            user_matrices[sg_id][(u_id, pd_id)] = pc
+            subgroup_matrix[(sg_id, pd_id)].add(pc)
+            subgroup_purchases[sg_id][product_index[pd_id]].add(pc)
 
-    price = sum(x['price'] for x in table)
+        self.subgroup_descriptions: List[FlatDeliveryDescription] = [
+            FlatDeliveryDescription(
+                dv,
+                subgroup=sg,
+                products=self.products,
+                users=subgroup_users[sg.id],
+                matrix=user_matrices[sg.id],
+                empty_users=empty_users,
+            )
+            for sg in subgroups
+        ]
 
-    result = {
-        'delivery': delivery,
-        'products': products,
-        'product_totals': product_totals,
-        'table': table,
-        'price': price,
-        'price_discrepancy': sum(pt['price_discrepancy'] for pt in product_totals)
-    }
-    result.update(kwargs)
-    return result
+        # Reference by rows (user or nested description)
+        self.rows: List[SubgroupRow] = [
+            SubgroupRow(sg, subgroup_purchases[sg.id]) for sg in subgroups
+        ]
+
+        # Reference by columns (products)
+        self.columns: List[Column] = [
+            Column(pd, [subgroup_matrix[(sg.id, pd.id)] for sg in subgroups])
+            for pd in self.products
+        ]
+
+    @cached_property
+    def packages(self) -> int:
+        return sum(c.packages or 0 for c in self.columns)
+
+    @cached_property
+    def weight(self) -> float:
+        return sum(c.weight for c in self.columns)
+
+    @cached_property
+    def price(self) -> int:
+        return sum(c.price for c in self.columns)
+
+    def to_json(self):
+        return {
+            "delivery": {"id": self.delivery.id, "name": self.delivery.name},
+            "network": {
+                "id": self.delivery.network.id,
+                "name": self.delivery.network.name,
+            },
+            "products": [
+                {
+                    "id": col.product.id,
+                    "name": col.product.name,
+                    "quantity_per_package": _num(col.product.quantity_per_package),
+                    "unit_weight": _num(col.product.unit_weight),
+                    "unit": col.product.unit,
+                    "price": _num(col.product.price),
+                    "total": {
+                        "quantity": _num(col.quantity),
+                        "packages": _num(col.packages),
+                        "out_of_package": _num(col.out_of_package),
+                        "price": _num(col.price),
+                        "weight": _num(col.weight),
+                    },
+                }
+                for col in self.columns
+            ],
+            "subgroups": [
+                self.subgroup_descriptions[i].to_json()
+                for i, row in enumerate(self.rows)
+            ],
+            "total": {
+                "packages": _num(self.packages),
+                "price": _num(self.price),
+                "weight": _num(self.weight),
+            },
+            "purchases": [
+                [
+                    {
+                        "product": pc.product_id,
+                        "subgroup": row.subgroup_id,
+                        "quantity": _num(pc.quantity),
+                        "packages": _num(pc.packages),
+                        "out_of_package": _num(pc.out_of_package),
+                        "price": _num(pc.price),
+                        "weight": _num(pc.weight),
+                    }
+                    if pc.quantity > 0
+                    else None
+                    for pc in row.purchases
+                ]
+                for row in self.rows
+            ],
+        }
+
+
+class UserDeliveryDescription(object):
+    def __init__(self, dv: m.Delivery, u: m.User, empty_products=False):
+
+        self.user = u
+        self.delivery = dv
+        self.network = dv.network
+
+        purchases_by_pd_id = {
+            pc.product_id: pc
+            for pc in m.Purchase.objects.filter(product__delivery=dv, user=u).order_by(
+                "product__place"
+            )
+        }
+
+        if empty_products:
+            # All products
+            self.products = dv.product_set.all().order_by("place")
+        else:
+            # Only products with a purchase by this user
+            self.products = [pc.product for pc in purchases_by_pd_id.values()]
+
+        self.purchases = [purchases_by_pd_id.get(pd.id) for pd in self.products]
+
+    def to_json(self):
+        return {
+            "user": {
+                "id": self.user.id,
+                "first_name": self.user.first_name,
+                "last_name": self.user.last_name,
+                "email": self.user.email,
+            },
+            "delivery": {
+                "id": self.delivery.id,
+                "name": self.delivery.name,
+                "description": self.delivery.description,
+            },
+            "network": {"id": self.network.id, "name": self.network.name},
+            "products": [
+                {
+                    "id": pd.id,
+                    "name": pd.name,
+                    "quantity_per_package": _num(pd.quantity_per_package),
+                    "unit_weight": _num(pd.unit_weight),
+                    "unit": pd.unit,
+                    "price": _num(pd.price),
+                    "quantum": _num(pd.quantum),
+                    "image": pd.image.url if pd.image else None,
+                    "description": pd.description,
+                    "purchase": {
+                        "id": pc.id,
+                        "quantity": _num(pc.quantity),
+                        "packages": _num(pc.packages),
+                        "out_of_package": _num(pc.out_of_package),
+                        "price": _num(pc.price),
+                        "weight": _num(pc.weight),
+                        "max_quantity": _num(pd.left - pc.quantity)
+                        if pd.left is not None
+                        else None,
+                    }
+                    if pc is not None
+                    else {
+                        "id": None,
+                        "quantity": 0,
+                        "packages": 0 if pd.quantity_per_package is not None else None,
+                        "out_of_package": 0,
+                        "price": 0,
+                        "weight": 0,
+                        "max_quantity": _num(
+                            None
+                            if pd.left is None
+                            else pd.left
+                            if pc is None
+                            else pd.left - pc.quantity
+                        ),
+                    },
+                }
+                for pd, pc in zip(self.products, self.purchases)
+            ],
+        }

@@ -6,62 +6,170 @@
 <li class="breadcrumb-item"><a href="{% url 'index' %}">Accueil</a></li>
 {% endblock %}
 
-{% block document_ready %}
-
-  /* Turn plain inputs into Bootstrap inputs. */
-  $("input").addClass("form-control");
-
-  /* Add a tooltip when hovering the line-canceling button. */
-  $("td.reset")
-      .attr("data-toggle", "tooltip")
-      .attr("title", "Annuler l'achat");
-
-  /* For each line with a max quantity, add a tooltip displaying it. */
-  $("#products-table tr").each(function () {
-      var max = $(this).find("input").attr("max");
-      if (max) $(this)
-          .attr("data-toggle", "tooltip")
-          .attr("title", "maximum = " + max);
-  });
-
-  /* When a row is clicked, focus on input and select all of its content. */
-  $("tr").click(function() { $(this).find("input").select().focus(); })
-
-  /* Recompute totals after each change as well as after laoding. */
-  $("#products-table input").change(recompute);
-  recompute();
-
-{% endblock %}
-
 
 {% block head %}
   <script type='text/javascript'>
 
+    let DATA;
+    let PRODUCTS = {}; // id -> product record
+    let SOME_PACKAGED = false;
+    let SOME_WEIGHTED = false;
+
+    let OUT_OF_STOCK_COLSPAN = 5;
+    let DESCRIPTION_COLSPAN = 6;
+    let TOTAL_PADDING_RIGHT_COLSPAN = 1;
+    let SUBMIT_PADDING_COLSPAN = 7;
+
+    async function load_purchases() {
+      const res = await fetch("{% url 'user_purchases_json' delivery=delivery.id %}");
+      DATA = await res.json();
+      SOME_PACKAGED = DATA.products.find(pd => pd.quantity_per_package !== null) !== undefined;
+      SOME_WEIGHTED = DATA.products.find(pd => pd.unit_weight !== 0) !== undefined;
+      DATA.products.forEach(pd => { PRODUCTS[pd.id] = pd; })
+    }
+
+    function render_unit(u) { return u; }
+
+    function render() {
+      $("#delivery-name").text(DATA.delivery.name);
+      $("#delivery-id").val(DATA.delivery.id);
+      $("#network-name").text(DATA.network.name);
+      $("#user-name").text(DATA.user.first_name + " " + DATA.user.last_name);
+      if(DATA.delivery.description) {
+        $("#delivery-description").html(DATA.delivery.description);
+      }
+
+      if(SOME_PACKAGED) {
+        OUT_OF_STOCK_COLSPAN++;
+        DESCRIPTION_COLSPAN++;
+        TOTAL_PADDING_RIGHT_COLSPAN++;
+        SUBMIT_PADDING_COLSPAN++;
+      } else {
+        $(".if-some-packages").remove();
+      }
+      if(SOME_WEIGHTED) {
+        // TODO
+      }
+
+      $("td.total-padding-right").attr("colspan", TOTAL_PADDING_RIGHT_COLSPAN);
+      $("td.submit-padding").attr("colspan", SUBMIT_PADDING_COLSPAN);
+      
+
+      let rows = ``;
+      DATA.products.forEach((pd, i) => {
+        const pc = pd.purchase;
+        const parity = i%2 ? "odd" : "even";
+        let input;
+        if(pc.max_quantity === 0) {
+          input = `<td colspan="${OUT_OF_STOCK_COLSPAN}" class="out-of-stock">(Produit épuisé)</td>`;
+        } else {
+          input = `
+            <td>
+              <input name="pd-${pd.id}" 
+                     class="quantity"
+                     type="number" 
+                     step="${pd.quantum||1}"
+                     min="0"
+                     ${pc.max_quantity ? "max="+pc.max_quantity : ""}
+                     value="${pc.quantity}" />
+            </td>
+            <td class="product-unit">
+              ${render_unit(pd.unit)}
+            </td>
+            <td class="unit-price">
+              <span class="unit_price">${pd.price.toFixed(2)}</span> €/${pd.unit}
+            </td>
+            <td class="price">
+              <span class="price">${pc.price.toFixed(2)}</span> €
+            </td>`;
+            if(SOME_PACKAGED && pd.quantity_per_package) {
+              input += `
+                <td class="qpp">
+                  ${pd.quantity_per_package}${render_unit(pd.unit)}/carton
+                </td>`;
+            } else if(SOME_PACKAGED) {  
+              input += `<td class="qpp"> - </td>`  
+            }
+            input += `<td class="reset" onclick="reset_order(${pd.id})"><span>✘</span></td>`;
+        }
+
+        if(pd.description || pd.image) {
+          rows += `
+            <tr class="product-row ${parity}" id="pd-${pd.id}">
+              <td class="image" rowspan=2><img src="${pd.image || 'media/none.png'}"/></td>
+              <td class="product-name">${pd.name}</td>
+              ${input}
+            </tr>
+            <tr class="${parity}">
+              <td colspan="${DESCRIPTION_COLSPAN}" class="description">
+                <hr/>
+                <div>${pd.description ||"—"}</div>
+              </td>
+            </tr>`;                    
+        } else {
+          // no description no image => compact line
+          rows += `
+            <tr class="product-row  ${parity}" id="pd-${pd.id}">
+              <td class="product-name" colspan=2>${pd.name}</td>
+              ${input}
+            </tr>
+            <tr class="${parity}">
+              <td colspan="${DESCRIPTION_COLSPAN}" class="description"></td>
+            </tr>`;
+        }
+      });
+      $("#products-table tbody").append(rows);
+    }
+
     function recompute() {
       var total_price = 0;
       var total_weight = 0;
-      $("tr.product-row").each(function(i, e) {
-        var row = $(e);
-        if(row.find(".out-of-stock").length) { return; }
-        var unit_price = parseFloat(row.find("span.unit_price").text());
-        var unit_weight = parseFloat(row.find("span.unit_weight").text());
-        var quantity = parseFloat(row.find("td.quantity input").val());
-        var price = quantity * unit_price;
-        row.find("td.quantity input").val(quantity);  // Remove useless decimals
-        row.find("span.price").text(price.toFixed(2));
-        row.find("td.reset span").css("display", quantity ? "inline" : "none");
+      $("input.quantity").each(function(i, e) {
+        const id = Number($(e).attr('name').split("-")[1]);
+        const q = Number($(e).val());
+        const pd = PRODUCTS[id];
+        const pc = pd.purchase;
+        const price = q * pd.price; 
+        $(`#pd-${id} span.price`).text(price.toFixed(2));
         total_price += price;
-        total_weight += quantity * unit_weight;
-
+        total_weight += q * pd.unit_weight;
       });
-      $(".total_price").text(total_price.toFixed(2));
-      $(".total_weight").text(total_weight.toFixed(0));
+      $("#total-price").text(total_price.toFixed(2));
+      $("#total-weight").text(total_weight.toFixed(0));
     }
 
     function reset_order(id) {
-      $("#pd"+id+" td.quantity input").val(0);
+      $(`[name=pd-${id}]`).val(0);
       recompute();
     }
+
+    $(document).ready(async () => {
+      /* Turn plain inputs into Bootstrap inputs. */
+      await load_purchases();
+      render();
+
+      $("input").addClass("form-control");
+
+      /* Add a tooltip when hovering the line-canceling button. */
+      $("td.reset")
+          .attr("data-toggle", "tooltip")
+          .attr("title", "Annuler l'achat");
+
+      /* For each line with a max quantity, add a tooltip displaying it. */
+      $("#products-table tr").each(function () {
+          var max = $(this).find("input").attr("max");
+          if (max) $(this)
+              .attr("data-toggle", "tooltip")
+              .attr("title", "maximum = " + max);
+      });
+
+      /* When a row is clicked, focus on input and select all of its content. */
+      $("tr").click(function() { $(this).find("input").select().focus(); })
+
+      /* Recompute totals after each change as well as after laoding. */
+      $("#products-table input").change(recompute);
+      recompute();
+    });
 
   </script>
   <style type="text/css">
@@ -86,8 +194,8 @@
     #products-table td.price { text-align: right; }
     #products-table td.reset { text-align: center; color: red; cursor: pointer; }
     #products-table td.out-of-stock { text-align: center !important; font-style: italic; }
-    #products-table tr:nth-child(4n) {background-color: #fff0e0; }
-    #products-table tr:nth-child(4n+1) {background-color: #fff0e0; }
+    #products-table tr.odd {background-color: white; }
+    #products-table tr.even {background-color: #fff0e0; }
     #products-table td.description { text-align: center; }
     #products-table td.description:empty { display: none; }
     #products-table td.description div { text-align: left; display: inline-block; font-style: italic; font-size: small; white-space: pre-wrap; }
@@ -102,80 +210,50 @@
     <table id="delivery-table">
       <tr>
         <th>Livraison :</th>
-        <td>{{delivery.name}}</td>
+        <td id="delivery-name">...</td>
       </tr>
       <tr>
         <th>Réseau :</th>
-        <td>{{network.name}}</td>
+        <td id="network-name">...</td>
       </tr>
       <tr>
         <th>Membre :</th>
-        <td>{{user.first_name}} {{user.last_name}}</td>
+        <td id="user-name">...</td>
       </tr>
     </table>
-    {% if delivery.description %}
-    <p id="dv-description">{{delivery.description|safe}}</p>
-    {% endif %}
+    <!-- TODO hide if null -->
+    <div id="dv-description"></div>
     <table id="products-table">
-        <tr>
-            <th colspan="2">Produit</th>
-            <th colspan="2">Quantité</th>
-            <th>Prix unitaire</th>
-            <th>Prix</th>
-            {% if some_packaged %}<th>Cartons</th>{% endif %}
-            <th></th>
-        </tr>
-        {% for pc in purchases %}
-        {% with pd=pc.product %}
-        <tr class="product-row" id="pd{{pd.id}}">
-          {% if pc.described %}
-          <td class="image" rowspan=2><img src="{% if pd.image %}{{pd.image.url}}{% else %}/media/none.png{% endif %}"/></td>
-          <td class="product-name">{{pd.name}}</td>
-          {% else %}
-          <td class="product-name" colspan=2>{{pd.name}}</td>
-          {% endif %}
-          {% if pc.max_quantity == 0 %}
-          <td colspan="{{out_of_stock_colspan}}" class="out-of-stock">(Produit épuisé)</td>
-          {% else %}{# out-of-stock #}
-          <td class="quantity">
-            <input name="pd{{pd.id}}" 
-                   type="number" 
-                   step="{{pd.quantum|default_if_none:1}}"
-                   min="0"
-                   {% if pc.max_quantity is not None %}max="{{pc.max_quantity}}"{% endif %}
-                   value="{{pc.quantity}}" />
-          </td>
-          <td class="product-unit">{{pd.unit|unit_multiple}}{% if pd.unit != 'kg' and pd.unit_weight %} ({{pd.unit_weight|weight}}){% endif %}<span class='hidden unit_weight'>{{pd.unit_weight}}</span></td>
-          <td class="unit-price"><span class="unit_price">{{pd.price|floatformat:2}}</span> €/{{pd.unit}}</td>
-          <td class="price"><span class="price">{{pc.price|floatformat:2}}</span> €</td>
-          {% if some_packaged %}
-          <td class="qpp">{% if pd.quantity_per_package %}{{pd.quantity_per_package}}{{pd.unit|unit_multiple}}/carton{% else %} - {% endif %}</td>
-          {% endif %}
-          <td class="reset" onclick="reset_order({{pd.id}})"><span>✘</span></td>
-          {% endif %}{# out-of-stock #}
-        </tr>
-        <tr><td colspan="{{description_colspan}}" class="description">
-          {% if pc.described %}<hr/><div>{{pd.description|default_if_none:"—"|safe}}</div>{% endif %}
-        </td></tr>
-        {% endwith %}{# pd #}
-        {% endfor %}{# pc #}
-        <tr class="total">
-          <td class="total-padding" colspan="4"></td>
-          <th>Prix total:</th><td class="total_cell"><span class="total_price">{{order.price|floatformat:2}}</span>&nbsp;€</td>
-          <td class="total-padding" colspan="{{total_padding_right_colspan}}"></td>
-        </tr>
-        <tr class="total" class="total">
-          <td class="total-padding"   colspan="4"></td>
-          <th>Poids total:</th><td class="total_cell"><span class="total_weight">{{order.weight|floatformat}}</span>&nbsp;kg</td>
-          <td class="total-padding" colspan="{{total_padding_right_colspan}}"></td>
-        </tr>
-        <tr>
-          <td colspan="{% if some_packaged %}8{% else %}7{% endif %}">
-            <input type="submit" value="Valider la commande" /> <a href="{% url 'index' %}">Annuler les modifications</a>            
-          </td>
-        </tr>
+        <thead>
+          <tr>
+              <th colspan="2">Produit</th>
+              <th colspan="2">Quantité</th>
+              <th>Prix unitaire</th>
+              <th>Prix</th>
+              <th class="if-some-packages">Cartons</th>
+              <th><!-- delete buttons --></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr class="total">
+            <td class="total-padding" colspan="4"></td>
+            <th>Prix total:</th><td class="total-cell"><span id="total-price">...</span>&nbsp;€</td>
+            <td class="total-padding-right" colspan="..."></td>
+          </tr>
+          <tr class="total" id="total-weight-row">
+            <td class="total-padding" colspan="4"></td>
+            <th>Poids total:</th><td class="total-cell"><span id="total-weight">...</span>&nbsp;kg</td>
+            <td class="total-padding-right" colspan="..."></td>
+          </tr>
+          <tr>
+            <td class="submit-padding" colspan="...">
+              <input type="submit" value="Valider la commande" /> <a href="/">Annuler les modifications</a>            
+            </td>
+          </tr>
+        </tfoot>
     </table>
-    <input type='hidden' name='dv-id' value='{{delivery.id}}' />
+    <input type='hidden' id='delivery-id' name='delivery-id' value='...' />
     {% csrf_token %}
 </form>
 {% endblock %}

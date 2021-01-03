@@ -3,6 +3,9 @@
 
 {% block head %}
  
+<script src="{% static 'bootstrap-select/js/bootstrap-select.min.js' %}"></script>
+<link href="{% static 'bootstrap-select/css/bootstrap-select.min.css' %}" rel="stylesheet"/>
+
 <script type='text/javascript' src="{% static 'edit_delivery_products.js' %}"></script>
 
 <style type="text/css">
@@ -145,11 +148,13 @@
     </tr>
     <tr>
       <th><label for="dv-state">État de la livraison :</label></th>
-      <td><select id="dv-state" name="dv-state">
-        {% for key, name in delivery.STATE_CHOICES.items %}
-        <option value="{{key}}">{{name}}</option>
-        {% endfor %}
-    </select></td>
+      <td>
+        <select id="dv-state" name="dv-state">
+          {% for key, name in delivery.STATE_CHOICES.items %}
+          <option value="{{key}}">{{name}}</option>
+          {% endfor %}
+        </select>
+      </td>
     </tr>
     <tr>
       <th><label for="producer">Producteur :</label></th>
@@ -197,12 +202,12 @@
     <tbody></tbody>
   </table>
   <p>
-
     <button type='button' onclick="add_blank_products();">Ajouter des produits</button>
-    <input type="submit" value="Sauvegarder et continuer" name="save_and_stay" />
-    <input type="submit" value="Sauvegarder et quitter" name="save_and_leave" />
+    <button type="button" onclick="submit_if_valid(false);" >Sauver &amp; continuer</button>
+    <button type="button" onclick="submit_if_valid(true);">Sauver &amp; quitter</button>
     <input type='hidden' name='dv-id' id='dv-id' value='' />
     <input type='hidden' name='n_rows' id="n_rows" value='0' />
+    <input type='hidden' name='then_leave' id="then_leave" value='' />
     {% csrf_token %}
   </p>
 </form>

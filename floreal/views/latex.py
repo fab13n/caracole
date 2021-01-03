@@ -5,14 +5,22 @@ import subprocess
 from tempfile import NamedTemporaryFile
 
 from django.template.loader import get_template
-from .delivery_description import delivery_description
+from .delivery_description import FlatDeliveryDescription
+
 
 LATEX_RUN_TIMEOUT = 30  # seconds
+
+
 RERUN_LATEX_IF = [
     b"Package longtable Warning: Table widths have changed. Rerun LaTeX."
 ]
+
+
 def render_latex(template_name, ctx):
-        
+    """Render a TeX source from a template name + context, then runs it through PDF LaTeX
+    until it reached a fixpoint (tables tend to need several runs until they find a proper layout).
+    Return the PDF content as a binary string.
+    """    
     t = get_template(template_name)
     tex_unicode = t.render(ctx)
     tex_string = tex_unicode.encode('utf8')
@@ -51,30 +59,17 @@ def render_latex(template_name, ctx):
     return pdf_string
 
 
-def cards(dv, sg):
-    descr = delivery_description(dv, [sg])
-    # Maximum number of purchase lines in the delivery description
-    # TODO: won't work with multiple subgroups (multiple elements in ['table'])
-    descr['max_order_size'] = max(len([pc for pc in ur['orders'].purchases if pc]) for ur in descr['table'][0]['users'])
-    return render_latex("subgroup-cards.tex", {'d': descr})
+def table(dd):
+    template = "delivery-table.tex" if isinstance(dd, FlatDeliveryDescription) else "subgroup-table.tex"
+    orientation = "landscape" if len(dd['products'])>20 else "portrait"
+    return render_latex(template, {'dd': dd, 'orientation': orientation})
 
 
-def subgroup(dv, sg):
-    descr = delivery_description(dv, [sg])
-    orientation = "landscape" if len(descr['products'])>20 else "portrait"
-    return render_latex("subgroup-table.tex", {'d': descr, 'orientation': orientation})
+def cards(dd):
+    max_order_size = max(len([pc for pc in ur['orders'].purchases if pc]) for ur in descr['table'][0]['users'])
+    template = "delivery-cards.tex" if isinstance(dd, FlatDeliveryDescription) else "subgroup-cards.tex"
+    return render_latex(template, {'dd': dd, 'orientation': orientation})
 
-
-def delivery_cards(dv):
-    descr = delivery_description(dv, dv.network.subgroup_set.all())
-    return render_latex("delivery-cards.tex", {'d': descr})
-
-
-def delivery_table(dv):
-    descr = delivery_description(dv, dv.network.subgroup_set.all())
-    # TODO untested, only relevant for multi-group deliveries
-    orientation = "landscape" if len(descr['products'])>20 else "portrait"
-    return render_latex("delivery-table.tex", {'d': descr, 'orientation': orientation})
 
 def emails(nw):
     return render_latex("emails.tex", {"nw": nw})

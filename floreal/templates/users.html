@@ -74,8 +74,8 @@ function load_users() {
           <th colspan="2">Réseau ${nw.name} (${nw.id})</th>
         </tr>
         <tr>
-          <td>Membre:</td>
-          <td>${oui_non("member-"+nw.id)}</td>
+          <td>Acheteur:</td>
+          <td>${oui_non("buyer-"+nw.id)}</td>
         </tr>
         <tr>
           <td>Admin réseau:</td>
@@ -144,7 +144,7 @@ function load_users() {
 function render_user(u) {
   console.log("Rendering user ",u);
   Object.values(NETWORKS).forEach(nw =>
-    ["member", "staff", "producer", "regulator"].forEach(field =>
+    ["buyer", "staff", "producer", "regulator"].forEach(field =>
       $(`[name=${field}-${nw.id}]`).bootstrapToggle(u[field].includes(nw.id) ? "on" : "off")
     )
   );
@@ -197,10 +197,11 @@ function get_data() {
   }
 
   const result = {
-    user: CURRENT_USER.id
+    user: CURRENT_USER.id,
+    networks: Object.keys(NETWORKS).map(Number)
   };
 
-  ['member', 'staff', 'producer', 'regulator'].forEach(field =>  {
+  ['buyer', 'staff', 'producer', 'regulator'].forEach(field =>  {
     result[field] = [];
     $(`input[name^=${field}-]`).each((_, x) => {
       if(x.checked) {

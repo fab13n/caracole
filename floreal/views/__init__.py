@@ -16,19 +16,18 @@ from caracole import settings
 from .. import models as m
 from .getters import get_network, get_delivery
 from .decorators import nw_admin_required, regulator_required
-from .latex import delivery_table as latex_delivery_table, render_latex
-from .spreadsheet import spreadsheet
 
-from .edit_network_purchases import edit_network_purchases
+from .edit_delivery_purchases import edit_delivery_purchases
 from .edit_user_purchases import edit_user_purchases
 from .user_registration import user_register, user_register_post
 from .edit_delivery_products import edit_delivery_products, delivery_products_json
 from .view_purchases import \
-    view_purchases_html, view_purchases_latex, view_purchases_xlsx, view_purchases_cards, view_purchases_json, get_archive, non_html_response
+    view_purchases_html, view_purchases_latex_table, view_purchases_xlsx, view_purchases_latex_cards, view_purchases_json, \
+    get_archive, all_deliveries_html, all_deliveries_latex
+from .spreadsheet import spreadsheet
 from .candidacies import candidacy, cancel_candidacy, validate_candidacy, leave_network, create_candidacy, manage_candidacies
 from .invoice_mail import invoice_mail_form
-from .users import users_json, users_html, users_update
-from floreal.views.dd2 import DeliveryDescription
+from .users import users_json, users_html
 
 from floreal.views import require_phone_number as phone
 
@@ -48,7 +47,7 @@ def index(request):
     member_of_networks = user.member_of_network.all()
 
     active_deliveries =(m.Delivery.objects
-        .filter(networks__in=member_of_networks)
+        .filter(network__in=member_of_networks)
         .filter(
             Q(state=m.Delivery.ORDERING_ALL) |
             Q(
@@ -71,9 +70,7 @@ def index(request):
     deliveries_by_id = {dv.id: dv for dv in active_deliveries}
     deliveries_by_network = defaultdict(list)  # nw.id -> [dv+]
     for dv in active_deliveries:
-        # Find a nw asociated with both user and delivery TODO values("id")?
-        nw = (dv.networks.all() & member_of_networks)[0]
-        deliveries_by_network[nw.id].append(dv)
+        deliveries_by_network[dv.network.id].append(dv)
     purchases_by_delivery = {dv.id: [] for dv in active_deliveries}  # dv.id -> [pc*]
     for pc in purchases:
         purchases_by_delivery[pc.product.delivery_id].append(pc)
@@ -101,7 +98,7 @@ def index(request):
     
     # Admin messages to display
     vars['messages'] = (
-        {("Message général", msg.message, msg.id) for msg in m.AdminMessage.objects.filter(everyone=True)} |
+        {("Message général", msg.message, msg.id) for msg in m.AdminMessage.objects.filter(network=None)} |
         {(nw.name, msg.message, msg.id) for nw in member_of_networks for msg in nw.adminmessage_set.all()}
     )
 
@@ -115,7 +112,7 @@ def network_admin(request, network):
     user = request.user
     nw = get_network(network)
     vars = {'user': user, 'nw': nw,
-            'deliveries': m.Delivery.objects.filter(networks__in=[nw]).exclude(state=m.Delivery.TERMINATED),
+            'deliveries': m.Delivery.objects.filter(network=nw).exclude(state=m.Delivery.TERMINATED),
             'Delivery': m.Delivery}
     return render(request,'network_admin.html', vars)
 
@@ -144,7 +141,7 @@ def archived_deliveries(request, network):
     user = request.user
     nw = get_network(network)
     vars = {'user': user, 'nw': nw}
-    vars['deliveries'] = m.Delivery.objects.filter(networks__in=[nw], state=m.Delivery.TERMINATED)
+    vars['deliveries'] = m.Delivery.objects.filter(network=nw, state=m.Delivery.TERMINATED)
     vars['empty_deliveries'] = vars['deliveries'].filter(product__purchase__isnull=True).distinct()
     return render(request,'archived_deliveries.html', vars)
 
@@ -164,7 +161,7 @@ def delete_archived_delivery(request, delivery):
 def delete_all_archived_deliveries(request, network):
     nw = get_network(network)
     deliveries = m.Delivery.objects.filter(network=nw, state=m.Delivery.TERMINATED)
-    ids = []  # For loggin purposes
+    ids = []  # For logging purposes
     for dv in deliveries:
         if _dv_has_no_purchase(dv):
             ids.append(dv.id)
@@ -191,12 +188,12 @@ def edit_delivery_staff(request, delivery):
     """Edit a delivery as a full network admin: act upon its lifecycle, control which subgroups have been validated,
     change the products characteristics, change other users' orders."""
     dv = m.Delivery.objects.get(id=delivery)
-    if not dv.networks.filter(staff__in=[request.user]).exists():
+    if not m.NetworkMembership.objects.filter(user=request.user, network=dv.network, is_staff=True).exists():
         HttpResponseForbidden("Réservé aux admins")
     vars = {
         'user': request.user,
         'dv': dv,
-        'networks': dv.networks.filter(staff__in=[request.user]),
+        'network': dv.network,
         'Delivery': m.Delivery,
         'steps': [{'s': s, 'text': m.Delivery.STATE_CHOICES[s], 'is_done': dv.state>=s, 'is_current': dv.state==s} for s in 'ABCDE'],
         'CAN_EDIT_PURCHASES': dv.state in [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN],
@@ -270,7 +267,7 @@ def create_delivery(request, network, dv_model=None):
 def set_delivery_state(request, delivery, state):
     """Change a delivery's state."""
     dv = get_delivery(delivery)
-    if not dv.networks.filter(staff__in=[request.user]).exists():
+    if not m.NetworkMembership.objects.filter(user=request.user, network=dv.network, is_staff=True).exists():
         return HttpResponseForbidden('Réservé aux administrateurs du réseau '+dv.network.name)
     if state not in m.Delivery.STATE_CHOICES:
         return HttpResponseBadRequest(state+" n'est pas un état valide.")
@@ -333,7 +330,7 @@ def view_phones(request, network):
     vars['nw'] = nw
     vars['staff'] = nw.staff.order_by('last_name', 'first_name')
     vars['regulators'] = nw.regulators.exclude(id__in={u.id for u in vars['staff']})
-    vars['members'] = nw.regulators.exclude(id__in={u.id for u in vars[x] for x in ['staff', 'regulators']})
+    vars['members'] = nw.regulators.exclude(id__in={u.id for x in ['staff', 'regulators'] for u in vars[x]})
     vars['producers'] = nw.producers.all()
     return render(request,'phones.html', vars)
 
@@ -344,7 +341,7 @@ def view_history(request):
     deliveries = [
         {
             'delivery': dv,
-            'network': dv.networks.filter(members__in=[request.user]).first(),
+            'network': dv.network,
             'purchases': m.Purchase.objects.filter(product__delivery=dv, user=request.user)
         }
         for dv in m.Delivery.objects.filter(
@@ -386,44 +383,6 @@ def journal(request):
     return render(request,"journal.html", {'user': request.user, 'days': days})
 
 
-@nw_admin_required()
-def all_deliveries(request, network, states):
-    nw = get_network(network)
-    deliveries = list(m.Delivery.objects.filter(network=nw, state__in=states))
-    users = m.User.objects.filter(member_of_network=nw, is_active=True)
-
-    # u -> dv -> has_purchased
-    users_with_purchases = {u: {dv: False for dv in deliveries} for u in users}
-
-    for dv in deliveries:
-        for u in users.filter(purchase__product__delivery=dv).distinct():
-            users_with_purchases[u][dv] = True
-
-    # Remove network users with no purchases in any delivery
-    users_with_purchases = {
-        u: dv_pc
-        for u, dv_pc in users_with_purchases.items()
-        if any(v for v in dv_pc.values())
-    }
-            
-    # t: List[Tuple[m.User, List[Tuple[m.Delivery, bool]]]]
-    t = [(u, [(dv, dv_pc[dv]) for dv in deliveries]) for u, dv_pc in users_with_purchases.items()]
-    t.sort(key=lambda x: (x[0].last_name, x[0].first_name))
-
-    return {'states': states, 'network': nw, 'table': t}
-
-
-def all_deliveries_html(request, network, states):
-    ctx = all_deliveries(request, network, states)
-    return render(request,"all_deliveries.html", ctx)
-
-
-def all_deliveries_latex(request, network, states):
-    ctx = all_deliveries(request, network, states)
-    content = render_latex("all_deliveries.tex", ctx)
-    name_bits = [get_network(network).name, "active_deliveries", datetime.now().strftime("%Y-%m-%d")]
-    return non_html_response(name_bits, "pdf", content)
-
 def editor(request, target=None, title='Éditer', template="editor.html", content=None, **kwargs):
     ctx = dict(
         title=title,
@@ -441,9 +400,9 @@ def set_message(request):
         d = P['destination'].split('-')
         # TODO: check that user has the admin rights suitable for the destination
         if d[0] == 'everyone':
-            dest = {'everyone': True}
+            network_id = None
         elif d[0] == 'nw':
-            dest = {'network_id': int(d[1])}
+            network_id = int(d[1])
         else:
             assert False
         text = P['editor']
@@ -451,7 +410,7 @@ def set_message(request):
             text = text[3:]
             if text.endswith("</p>"):
                 text = text[:-4]
-        msg = m.AdminMessage.objects.create(message=text, **dest)
+        msg = m.AdminMessage.objects.create(message=text, network_id=network_id)
         return redirect("index")
     else:
         u = request.user

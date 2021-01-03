@@ -15,7 +15,7 @@ from PIL import Image
 
 from .getters import get_delivery
 from .decorators import nw_admin_required
-from ..models import Product, Delivery, JournalEntry
+from .. import models as m
 from ..penury import set_limit
 from django.http import JsonResponse
 
@@ -40,11 +40,24 @@ def _serialize_product(pd):
 
 def delivery_products_json(request, delivery):
     dv = get_delivery(delivery)
-    if dv.network.staff.filter(id=request.user.id).exists():
-        producers = [["Aucun", 0]] + [[u.id, u.first_name+" "+u.last_name] for u in dv.network.producers.all()]
+    
+    if request.user in dv.network.staff:
+        # If I'm staff, I can choose any producer I want
+        dv_producers = dv.network.producers
+        producers = (
+            [{"id": 0, "name": "Aucun"}] +
+            [{"id": u.id, "name": u.first_name+" "+u.last_name} for u in dv_producers])
+        if dv.producer is None:
+            producers[0]["selected"] = True
+        else:
+            for item in producers:
+                if item['id'] == dv.producer_id:
+                    item["selected"] = True
+                    break
     elif dv.producer_id == request.user.id:
+        # If I'm not staff but I'm the producer, I can't change the choice
         u = dv.producer
-        producers = [[u.id, u.first_name+" "+u.last_name]]
+        producers = [{"id": u.id, "name": u.first_name+" "+u.last_name, "selected": True}]
     else:
         return HttpResponseForbidden("Admins and producers only")
 
@@ -64,31 +77,32 @@ def edit_delivery_products(request, delivery):
 
     # Check authorizations: reserved to this network's staff and producers    
 
-    delivery = get_delivery(delivery)
+    dv = get_delivery(delivery)
     is_producer = False
 
-    if not delivery.network.staff.filter(id=request.user.id).exists():
-        if delivery.producer_id == request.user.id:
-            is_producer = True
-        else:
-            return HttpResponseForbidden("Réservé aux admins ou au producteur")
+    if (is_staff := request.user in dv.network.staff):
+        pass
+    elif dv.producer_id == request.user.id:
+        is_producer = True
+    else:
+        return HttpResponseForbidden("Réservé aux admins ou au producteur")
 
     if request.method == 'POST':  # Handle submitted data
-        _parse_form(request)
-        JournalEntry.log(request.user, "Edited products for delivery dv-%d %s/%s", delivery.id, delivery.network.name, delivery.name)
-        if 'save_and_leave' in request.POST:
-            return redirect('edit_delivery', delivery.id)
+        _parse_form(request, is_staff)
+        m.JournalEntry.log(request.user, "Edited products for delivery dv-%d", dv.id)
+        if request.POST['then_leave'].lower() == 'true':
+            return redirect('edit_delivery_staff', dv.id)
         else:
-            return redirect('edit_delivery_products', delivery.id)
+            return redirect('edit_delivery_products', dv.id)  # TODO retrieve URL from request?
 
     else:  # Create and populate forms to render
-        vars = {'user': request.user, 'delivery': delivery, 'is_producer': is_producer}
+        vars = {'user': request.user, 'delivery': dv, 'is_producer': is_producer}
         vars.update(csrf(request))
         return render(request,'edit_delivery_products.html', vars)
 
 def float_i18n(s):
     """Some browsers return French-style commas rather than dot-based floats."""
-    return float(s.replace(",", "."))
+    return float(s.replace(",", ".")) if isinstance(s, str) else s
 
 def _get_pd_fields(d, files, r_prefix):
     """Retrieve form fields representing a product."""
@@ -159,10 +173,10 @@ def _convert_image(pd):
     pd.image.name = name
 
 
-def _parse_form(request):
+def _parse_form(request, is_staff):
     """Parse a delivery edition form and update DB accordingly."""
     d = request.POST
-    dv = Delivery.objects.get(pk=int(d['dv-id']))
+    dv = m.Delivery.objects.get(id=int(d['dv-id']))
 
     # Edit delivery name and state
     dv.name = d['dv-name']
@@ -170,19 +184,18 @@ def _parse_form(request):
     descr = d['dv-description'].strip()
     dv.description = descr or None
 
-    if dv.network.staff.filter(id=request.user.id).exists():
+    if is_staff:
         # Producer can only be changed by staff members
-        if d['producer'] == 0:
+        if int(d['producer']) == 0:
             dv.producer_id = None
         else:
             dv.producer_id = int(d['producer'])
-
     dv.save()
 
     for r in range(int(d['n_rows'])):
         fields = _get_pd_fields(d, request.FILES, 'r%d' % r)
         if fields.get('id'):
-            pd = Product.objects.get(pk=fields['id'])
+            pd = m.Product.objects.get(id=fields['id'])
             if pd.delivery == dv:
                 if fields['deleted']:  # Delete previously existing product
                     #print("Deleting product",  pd)
@@ -210,16 +223,17 @@ def _parse_form(request):
                 pass
         else:  # Parse products created from blank lines
             # print("Adding new product from line #%d" % r)
-            pd = Product.objects.create(name=fields['name'],
-                                        description=fields['description'],
-                                        price=fields['price'],
-                                        place=fields['place'],
-                                        quantity_per_package=fields['quantity_per_package'],
-                                        quantity_limit=fields['quantity_limit'],
-                                        unit=fields['unit'],
-                                        unit_weight=fields['unit_weight'],
-                                        delivery=dv,
-                                        image=fields.get('image'))
+            pd = m.Product.objects.create(
+                name=fields['name'],
+                description=fields['description'],
+                price=fields['price'],
+                place=fields['place'],
+                quantity_per_package=fields['quantity_per_package'],
+                quantity_limit=fields['quantity_limit'],
+                unit=fields['unit'],
+                unit_weight=fields['unit_weight'],
+                delivery=dv,
+                image=fields.get('image'))
             pd.save()
 
     # In case of change in quantity limitations, adjust granted quantities for purchases

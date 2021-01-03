@@ -24,7 +24,7 @@ tr:hover input[type=button] {visibility: visible;}
     }
 
     function goto_delivery(dv_id) {
-        window.location = "{% url 'edit_delivery' delivery='DV_ID' %}".replace('DV_ID', dv_id);
+        window.location = "{% url 'edit_delivery_staff' delivery='DV_ID' %}".replace('DV_ID', dv_id);
     }
 
     function rename_delivery(dv_id, dv_name) {
@@ -65,13 +65,12 @@ tr:hover input[type=button] {visibility: visible;}
           <th class="rotate"><div><div>Ouverte</div></div></th>
           <th class="rotate"><div><div>Admins</div></div></th>
           <th class="rotate"><div><div>Gelée</div></div></th>
-          <th class="rotate"><div><div>Régularisation</div></div></th>
           <th class="rotate"><div><div>Terminée</div></div></th>
       </tr>
       <tr><td>&nbsp;</td></tr>
       {% for dv in deliveries %}
       <tr>
-          <td class="left"><a href="{% url 'edit_delivery' delivery=dv.id %}">{{dv.name}} <img src="{% static 'images/edit.png' %}"/></a></td>
+          <td class="left"><a href="{% url 'edit_delivery_staff' delivery=dv.id %}">{{dv.name}} <img src="{% static 'images/edit.png' %}"/></a></td>
           <td id="dv-{{dv.id}}-state-display">{{dv.state_name}}</td>
           {% for S in dv.STATE_CHOICES.keys|sort %}
           <td><input type="radio" name="dv-{{dv.id}}-state" value="dv-{{dv.id}}-state-{{S}}"

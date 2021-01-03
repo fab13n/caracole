@@ -250,18 +250,21 @@ function add_blank_products() {
   }
 }
 
-function submit_if_valid() {
+function submit_if_valid(then_leave) {
+
     /* Check that delivery has been named */
     if($("#dv-name").val().trim() == "") {
         alert("Avant de pouvoir sauvegarder, il faut donner un nom à la livraison, en haut du formulaire !");
         return;
     }
+  
     /* Check that non-deleted products have a unique name and a valid price. */
     const n_rows = Number($("#n_rows").val());
     for(let i=1; i<=n_rows; i++) {
       /* Don't check deleted products */
       if($("[name=r"+i+"-deleted]").is(":checked")) { continue; }
-      const name_i = $("input[name=r"+j+"-name]").val().trim();
+      const name_i = $("input[name=r"+i+"-name]").val().trim();
+      if(name_i === "") { continue; }
       /* Check for duplicate non-deleted names. */
       for(let j=1; j<i; j++) {
         if($("[name=r"+j+"-deleted]").is(":checked")) { continue; }
@@ -278,9 +281,12 @@ function submit_if_valid() {
       }
     }
 
+    $("[name=then_leave]").val(then_leave);
+
     /* All sanity checks passed: submit the form */
     $("#form").submit()
 }
+
 
 $(document).ready(function() {
 
@@ -299,11 +305,14 @@ $(document).ready(function() {
         $("#dv-state").val(dv.state);
         // TODO I should restrict allowed states when the delivery is producer-edited
 
-        dv.producers.forEach(([id, name]) => {
-          $("#producer").append(`<option value="${id}">${name}</option>`);
+        dv.producers.forEach(p => {
+          $("#producer").append(`<option value="${p.id}" ${p.selected?"selected":""}>${p.name}</option>`);
         });
         $("#producer").val(dv.producer);
-  
+
+        /* Upgrade widgets to bootstrap-select. */
+        $("select").selectpicker;
+
         /* Only fill the name for non-newly-created deliveries.
          * For new ones the user has to set it explicitly. */
         const url_params = new URLSearchParams(window.location.search);

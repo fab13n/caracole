@@ -16,7 +16,7 @@
 <h2>Livraisons archivées du réseau {{nw.name}}</h2>
 <ul>
     {% for dv in deliveries %}
-    <li><a href="{% url 'edit_delivery' delivery=dv.id %}">{{dv.name}} <img src="{% static 'images/edit.png' %}"/></a>
+    <li><a href="{% url 'edit_delivery_staff' delivery=dv.id %}">{{dv.name}} <img src="{% static 'images/edit.png' %}"/></a>
         ({{dv.state_name}})</li>
     {% empty %}
     <li>(aucune commande)</li>

@@ -2,19 +2,36 @@
 import re
 from datetime import datetime
 
+from caracole import settings
+from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Sum
-from django.contrib.auth.models import User
-
-from floreal.francais import articulate, plural, Plural
-from caracole import settings
-
 from html2text import html2text
 
+from floreal.francais import Plural, articulate, plural
 
-class UserPhones(models.Model):
+
+def _user_network_getter(**kwargs):
+    @property
+    def user_of_network(self):
+        return Network.objects.filter(
+            networkmembership__in=NetworkMembership.objects.filter(user=self, **kwargs)
+        )
+
+    return user_of_network
+
+
+User.staff_of_network = _user_network_getter(is_staff=True)
+User.buyer_of_network = _user_network_getter(is_buyer=True)
+User.producer_of_network = _user_network_getter(is_producer=True)
+User.candidate_of_network = _user_network_getter(is_candidate=True)
+User.regulator_of_network = _user_network_getter(is_regulator=True)
+
+
+class UserPhone(models.Model):
     """Associate one or several phone numbers to each user."""
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     phone = models.CharField(max_length=20)
 
     def __str__(self):
@@ -22,23 +39,86 @@ class UserPhones(models.Model):
 
     @property
     def display_number(self):
-        if not hasattr(self, '_display_number'):
+        if not hasattr(self, "_display_number"):
             n = "".join(k for k in self.phone if k.isdigit())
             if len(n) == 10:
-                self._display_number = " ".join(n[i:i+2] for i in range(0, len(n), 2)) 
+                self._display_number = " ".join(
+                    n[i : i + 2] for i in range(0, len(n), 2)
+                )
             else:
                 self._display_number = self.phone
         return self._display_number
 
     @property
     def uri(self):
-        if not hasattr(self, '_uri'):
+        if not hasattr(self, "_uri"):
             n = "".join(k for k in self.phone if k.isdigit())
             if len(n) == 10:
                 self._uri = "tel:+33" + n[1:]
             else:
                 self._uri = None
         return self._uri
+
+
+class NetworkSubgroup(models.Model):
+    network = models.ForeignKey("Network", on_delete=models.CASCADE)
+    name = models.CharField(max_length=32)
+
+    def _filtered_members(self, **kwargs):
+        ids = (
+            nm["user_id"]
+            for nm in self.networkmembership_set.filter(**kwargs).values("user_id")
+        )
+        return User.objects.filter(id__in=ids)
+
+    @property
+    def buyers(self):
+        return self._filtered_members(is_buyer=True)
+
+    @property
+    def staff(self):
+        return self._filtered_members(is_subgroup_staff=True)
+
+    class meta:
+        pass
+        # unique network*name
+
+
+class NetworkMembership(models.Model):
+    network = models.ForeignKey("Network", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    subgroup = models.ForeignKey(
+        NetworkSubgroup, null=True, default=None, on_delete=models.CASCADE
+    )
+    is_staff = models.BooleanField(default=False)
+    is_subgroup_staff = models.BooleanField(default=False)
+    is_producer = models.BooleanField(default=False)
+    is_buyer = models.BooleanField(default=True)
+    is_regulator = models.BooleanField(default=False)
+    is_candidate = models.BooleanField(default=False)
+
+    def __str__(self):
+        r = self.user.username + " ∈ " + self.network.name
+        if self.subgroup is not None:
+            r += "/" + self.subgroup.name
+        roles = [
+            q
+            for q in (
+                "staff",
+                "subgroup_staff",
+                "producer",
+                "buyer",
+                "regulator",
+                "candidate",
+            )
+            if getattr(self, "is_" + q)
+        ]
+        r += " as " + "+".join(roles)
+        return r
+
+    class meta:
+        pass
+        # TODO unique network*user
 
 
 class Network(models.Model):
@@ -52,23 +132,52 @@ class Network(models.Model):
     subgroup they belong to."""
 
     name = models.CharField(max_length=256, unique=True)
-    staff = models.ManyToManyField(User, related_name='staff_of_network')
-    regulators = models.ManyToManyField(User, related_name='regulator_of_network')
-    producers = models.ManyToManyField(User, related_name='producer_of_network')
-    members = models.ManyToManyField(User, related_name='member_of_network')
-    candidates = models.ManyToManyField(User, related_name='candidate_of_network')
+    members = models.ManyToManyField(
+        User, related_name="member_of_network", through=NetworkMembership
+    )
     auto_validate = models.BooleanField(default=False)
     description = models.TextField(null=True, blank=True, default=None)
 
     class Meta:
-        ordering = ('name',)
+        ordering = ("name",)
 
     def __str__(self):
         return self.name
 
+    def _filtered_members(self, **kwargs):
+        return User.objects.filter(
+            networkmembership__in=NetworkMembership.objects.filter(
+                network=self, **kwargs
+            )
+        )
+
+    @property
+    def staff(self):
+        return self._filtered_members(is_staff=True)
+
+    @property
+    def buyers(self):
+        return self._filtered_members(is_buyer=True)
+
+    @property
+    def producers(self):
+        return self._filtered_members(is_producer=True)
+
+    @property
+    def candidates(self):
+        return self._filtered_members(is_candidate=True)
+
+    @property
+    def regulators(self):
+        return self._filtered_members(is_regulator=True)
+
     @property
     def description_text(self):
         return html2text(self.description)
+
+    @property
+    def grouped(self):
+        return self.networksubgroup_set.exists()
 
 
 class Delivery(models.Model):
@@ -79,35 +188,29 @@ class Delivery(models.Model):
     closed (only subgroup staff members can modify purchases), or
     delivered (nobody can modify it)."""
 
-    PREPARATION    = 'A'
-    ORDERING_ALL   = 'B'
-    ORDERING_ADMIN = 'C'
-    FROZEN         = 'D'
-    TERMINATED     = 'E'
+    (PREPARATION, ORDERING_ALL, ORDERING_ADMIN, FROZEN, TERMINATED) = "ABCDE"
     STATE_CHOICES = {
-        PREPARATION:    "En préparation",
-        ORDERING_ALL:   "Ouverte",
+        PREPARATION: "En préparation",
+        ORDERING_ALL: "Ouverte",
         ORDERING_ADMIN: "Admins",
-        FROZEN:         "Gelée",
-        TERMINATED:     "Terminée" }
+        FROZEN: "Gelée",
+        TERMINATED: "Terminée",
+    }
     name = models.CharField(max_length=256)
-    networks = models.ManyToManyField(Network)
-    state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=PREPARATION)
+    network = models.ForeignKey(Network, on_delete=models.CASCADE)
+    state = models.CharField(
+        max_length=1, choices=STATE_CHOICES.items(), default=PREPARATION
+    )
     description = models.TextField(null=True, blank=True, default=None)
-    producer = models.ForeignKey(User, null=True, default=None, on_delete=models.SET_NULL)
+    producer = models.ForeignKey(
+        User, null=True, default=None, on_delete=models.SET_NULL
+    )
 
     def __str__(self):
         return self.name
 
     def state_name(self):
-        return self.STATE_CHOICES.get(self.state, 'Invalid state '+self.state)
-
-    def subgroupMinState(self):
-        states = self.subgroupstatefordelivery_set
-        if states.count() < self.network.subgroup_set.count():
-            return SubgroupStateForDelivery.DEFAULT  # Some unset subgroups
-        else:
-            return min(s.state for s in states.all())
+        return self.STATE_CHOICES.get(self.state, "Etat Invalide " + self.state)
 
     @property
     def description_text(self):
@@ -115,7 +218,7 @@ class Delivery(models.Model):
 
     class Meta:
         verbose_name_plural = "Deliveries"
-        ordering = ('-id',)
+        ordering = ("-id",)
 
 
 class Product(models.Model):
@@ -130,7 +233,9 @@ class Product(models.Model):
     quantity_per_package = models.IntegerField(null=True, blank=True)
     unit = models.CharField(max_length=256, null=True, blank=True)
     quantity_limit = models.IntegerField(null=True, blank=True)
-    unit_weight = models.DecimalField(decimal_places=3, max_digits=6, default=0.0, blank=True)
+    unit_weight = models.DecimalField(
+        decimal_places=3, max_digits=6, default=0.0, blank=True
+    )
     quantum = models.DecimalField(decimal_places=2, max_digits=3, default=1, blank=True)
     description = models.TextField(null=True, blank=True, default=None)
     place = models.PositiveSmallIntegerField(null=True, blank=True, default=True)
@@ -142,23 +247,34 @@ class Product(models.Model):
         # Moreover, in a future evolution, we'll want to allow several products with the same name but
         # different quantities, and a dedicated UI rendering for them.
         # unique_together = (('delivery', 'name'),)
-        ordering = ('place', '-quantity_per_package', 'name',)
+        ordering = (
+            "place",
+            "-quantity_per_package",
+            "name",
+        )
 
     def __str__(self):
         return self.name
 
-    # Auto-fix frequent mis-usages    
+    # Auto-fix frequent mis-usages
     UNIT_AUTO_TRANSLATE = {
-        "1": "pièce", "piece": "pièce", "1kg": "kg", "kilo": "kg", "unité": "pièce", "unite": "pièce"
+        "1": "pièce",
+        "piece": "pièce",
+        "1kg": "kg",
+        "kilo": "kg",
+        "unité": "pièce",
+        "unite": "pièce",
     }
 
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+    def save(
+        self, force_insert=False, force_update=False, using=None, update_fields=None
+    ):
         if self.unit is None:
             self.unit = "pièce"
         else:
             self.unit = self.UNIT_AUTO_TRANSLATE.get(self.unit.lower(), self.unit)
-        if self.unit == 'kg':
-            self.unit_weight = 1.
+        if self.unit == "kg":
+            self.unit_weight = 1.0
         super(Product, self).save(force_insert, force_update, using, update_fields)
 
     @property
@@ -167,7 +283,7 @@ class Product(models.Model):
         if self.quantity_limit is None:
             return None
         else:
-            quantity_ordered = self.purchase_set.aggregate(t=Sum('quantity'))['t'] or 0
+            quantity_ordered = self.purchase_set.aggregate(t=Sum("quantity"))["t"] or 0
             return self.quantity_limit - quantity_ordered
 
     @property
@@ -185,7 +301,7 @@ class Purchase(models.Model):
     quantity = models.DecimalField(decimal_places=3, max_digits=6)
 
     class Meta:
-        unique_together = (('product', 'user'), )
+        unique_together = (("product", "user"),)
 
     @property
     def price(self):
@@ -216,12 +332,12 @@ class Purchase(models.Model):
         fmt = "%(quantity)g%(mult)s%(unit)s %(prod_name)s à %(price).2f€"
         unit = self.product.unit
         result = fmt % {
-            'mult': '×'if len(unit)>0 and unit[0].isdigit() else ' ',
-            'quantity': self.quantity,
-            'unit': plural(self.product.unit, self.quantity),
-            'prod_name': articulate(self.product.name, self.quantity),
-            'price': self.quantity * self.product.price,
-            'user_name': self.user.__str__()
+            "mult": "×" if len(unit) > 0 and unit[0].isdigit() else " ",
+            "quantity": self.quantity,
+            "unit": plural(self.product.unit, self.quantity),
+            "prod_name": articulate(self.product.name, self.quantity),
+            "price": self.quantity * self.product.price,
+            "user_name": self.user.__str__(),
         }
         if specify_user:
             result += " pour %s %s" % (self.user.first_name, self.user.last_name)
@@ -231,6 +347,7 @@ class Purchase(models.Model):
 class JournalEntry(models.Model):
     """Record of a noteworthy action by an admin, for social debugging purposes: changing delivery statuses,
     moving users around."""
+
     user = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
     date = models.DateTimeField(default=datetime.now)
     action = models.CharField(max_length=1024)
@@ -249,20 +366,15 @@ class JournalEntry(models.Model):
 
     def __str__(self):
         n = self.user.email if self.user else "?"
-        return (", ".join((n, self.date.isoformat(), self.action)))
+        return ", ".join((n, self.date.isoformat(), self.action))
+
 
 class AdminMessage(models.Model):
-    everyone = models.BooleanField(default=False)
-    network = models.ForeignKey(Network, null=True, blank=True, default=None, on_delete=models.CASCADE)
+    network = models.ForeignKey(
+        Network, null=True, default=None, on_delete=models.CASCADE
+    )
     message = models.TextField()
 
     def __str__(self):
-        d = []
-        if self.everyone:
-            d += ["Tout le monde"]
-        if self.network is not None:
-            d += ["Réseau "+self.network.name]
-        if self.subgroup is not None:
-            d += ["Sous-groupe "+self.subgroup.name]
-        return ", ".join(d) + ": " + self.message
-    
+        who = "Tout le monde" if self.network is None else "Réseau " + self.network.name
+        return who + " : " + self.message

@@ -100,12 +100,31 @@ Commander pour
     {% if user.is_staff %}
     <li><a href="#" id="create-network">Créer un nouveau réseau</a></li>
     {% endif %}
+    {# out-of-group networks #}
     {% for nw in staffed_networks %}
+    {% if not nw.group %}
     <li>
         Administrer le réseau
         <a href="{% url 'network_admin' network=nw.id %}">{{nw.name}}.</a>
     </li>
-    {% endfor %}{# staffed_networks #}
+    {% endif %}
+    {% endfor %}
+
+    {% regroup staffed_networks by group as network_groups %}
+    {% for nwg in network_groups %}
+    {% if nwg.grouper %}
+    <li>Réseaux {{nwg.grouper.name}} :
+        <ul>
+            {% for nw in nwg.list %}
+            <li>
+                Administrer le réseau
+                <a href="{% url 'network_admin' network=nw.id %}">{{nw.name}}.</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </li>
+    {% endif %}
+    {% endfor %}
 </ul>
 {% endif %}{# staffed_networks or user.is_staff #}
 {% endwith %}{# staffed_networks #}
