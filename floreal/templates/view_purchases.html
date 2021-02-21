@@ -12,9 +12,13 @@
   }
 
   function render_unit(unit) {
-    // TODO add "×" when starting with a number
-    // TODO abbreviate "pièce(s)"
-    return unit;
+    if("1" <= unit[0] && unit[0] <= "9") {
+      return "×"+unit;
+    } else if(["pièce", "piece", "pièces", "piece"].includes(unit.toLowerCase())) {
+      return "pc";
+    } else {
+      return unit;
+    }
   }
 
   function render_products_header(products) {

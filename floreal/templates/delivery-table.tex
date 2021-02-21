@@ -2,40 +2,40 @@
 {% load latex %}
 {% block documentclassparams %}a4paper,french,10pt,{{orientation}}{% endblock %}
 {% block content %}
-\begin{longtable}{|r|{% for _ in d.products %}l|{% endfor %}}
+\begin{longtable}{|r|{% for _ in dd.products %}l|{% endfor %}}
 \hline
 
-{% for pd in d.products %} & \rb{ {{pd.name}} } {% endfor %} \\ \hline
+{% for pd in dd.products %} & \rb{ {{pd.name}} } {% endfor %} \\ \hline
 \endhead
 {\bf Total}
-{% for totals in d.product_totals %} &
-{% if not totals.quantity %}
+{% for col in dd.columns %} &
+{% if not col.quantity %}
 \nope
-{% elif totals.full_packages == None %}
-{\bf {{totals.quantity|qty}}{{totals.product.unit|short_unit}} }
+{% elif col.packages == None %}
+{\bf {{col.quantity|qty}}{{col.product.unit|short_unit}} }
 {% else%}
-{\bf {{totals.full_packages|qty}}\ct
-{% if totals.out_of_packages %} + {{totals.out_of_packages|qty}}{{totals.product.unit|short_unit}}{% endif %}
+{\bf {{col.packages|qty}}\ct
+{% if col.out_of_package %} + {{col.out_of_package|qty}}{{col.product.unit|short_unit}}{% endif %}
 }
-{% endif %}{# packaged #}
-{% endfor %}{# totals #}
+{% endif %}{# packages #}
+{% endfor %}{# columns #}
 \\ \hline
 
-{% for table in d.table %}
-{% if table.price %}
-{% cycle '\rowcolor{lightgray}'  '' as color_cycle %} {{table.subgroup.name}}
-{% for totals in table.totals %} &
-{% if not totals.quantity %}
+{% for row in dd.rows %}
+{% if row.price %}
+{% cycle '\rowcolor{lightgray}'  '' as color_cycle %} {{row.subgroup.name}}
+{% for pc in row.purchases %} &
+{% if not pc.quantity %}
 \nope
-{% elif totals.full_packages == None %}
-{{totals.quantity|qty}}{{totals.product.unit|short_unit}}
+{% elif pc.packages == None %}
+{{pc.quantity|qty}}{{pc.product.unit|short_unit}}
 {% else%}
-{{totals.full_packages|qty}}\ct
-{% if totals.out_of_packages %} + {{totals.out_of_packages|qty}}{{totals.product.unit|short_unit}}{% endif %}
-{% endif %}{# packaged #}
-{% endfor %}{# totals #} \\
-{% endif %}{# price #}
-{% endfor %}{# table #}
+{{pc.packages|qty}}\ct
+{% if pc.packages %} + {{pc.out_of_package|qty}}{{pc.product.unit|short_unit}}{% endif %}
+{% endif %}{# packagec #}
+{% endfor %}{# purchases #} \\
+{% endif %}{# quantity>0 #}
+{% endfor %}{# rows #}
 \hline
 \end{longtable}
 {% endblock %}

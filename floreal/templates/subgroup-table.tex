@@ -2,23 +2,21 @@
 {% load latex %}
 {% block documentclassparams %}a4paper,french,10pt,{{orientation}}{% endblock %}
 {% block content %}
-{% with d.table.0 as t %}
-\begin{longtable}{|r|c|{% for _ in d.products %}l|{% endfor %}}
+\begin{longtable}{|r|c|{% for _ in dd.products %}l|{% endfor %}}
 \hline
-& \rb{Total} {% for pd in d.products %} & \rb{ {{pd.name|tex_safe}} } {% endfor %} \\
+& \rb{Total} {% for pd in dd.products %} & \rb{ {{pd.name|tex_safe}} } {% endfor %} \\
 \hline
-Prix unitaire& {{t.price|price}} {% for pd in d.products %} & {{pd.price|price}} {% endfor %}\\
+Prix unitaire& {{dd.price|price}} {% for pd in dd.products %} & {{pd.price|price}} {% endfor %}\\
 \hline
 \endhead
-{% for ur in t.users %}
-{% if ur.orders.price %}
+{% for row in dd.rows %}
+{% if row.price %}
 {% cycle '\rowcolor{lightgray}'  '' as color_cycle %}
-{{ur.user.first_name|tex_safe}} & {% for pc in ur.orders.purchases %} & {% if pc.quantity %} {{pc.quantity|qty}} {% else %} \nope {% endif %}{% endfor %} \\
+{{row.user.first_name|tex_safe}} & {% for pc in row.purchases %} & {% if pc.quantity %} {{pc.quantity|qty}} {% else %} \nope {% endif %}{% endfor %} \\
 {{ color_cycle }}
-{{ur.user.last_name|tex_safe}} & {{ur.orders.price|price}} {% for pc in ur.orders.purchases %} & {% if pc.price %}{{pc.price|price}} {% else %}\nope{% endif %} {% endfor %} \\
+{{row.user.last_name|tex_safe}} & {{row.price|price}} {% for pc in row.purchases %} & {% if pc.price %}{{pc.price|price}} {% else %}\nope{% endif %} {% endfor %} \\
 {% endif %}
 {% endfor %}
-{% endwith %}
 \hline
 \end{longtable}
 {% endblock %}

@@ -213,10 +213,8 @@ class FlatDeliveryDescription(object):
         # When called from a GroupedDeliveryDescription, the matrix is pre-computed by the caller
         if matrix is None:
             matrix = defaultdict(lambda: None)
-            # Thanks to defaultdict, access to absent purchases will return None
-            for pd in self.products:
-                for pc in m.Purchase.objects.filter(product=pd):
-                    matrix[(pc.user_id, pc.product_id)] = pc
+            for pc in m.Purchase.objects.filter(product__delivery_id=dv.id).select_related("product"):
+                matrix[(pc.user_id, pc.product_id)] = pc
 
         # Reference by rows (user or nested description)
         self.rows: List[UserRow] = [

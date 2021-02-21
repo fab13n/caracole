@@ -10,9 +10,9 @@
 \usepackage[empty,cm]{fullpage}
 \newlength{\orderheight}
 % max_order_size = {{d.max_order_size}}
-{% if d.max_order_size > 16 %}
+{% if max_order_size > 16 %}
 \setlength{\orderheight}{180mm}  % One order per column
-{% elif d.max_order_size > 10 %}
+{% elif max_order_size > 10 %}
 \setlength{\orderheight}{85mm}  % Two orders per column
 {% else %}
 \setlength{\orderheight}{58mm}  % Three orders per column
@@ -22,19 +22,18 @@
 
 {% block content %}
 \begin{multicols}{2}
-{% with d.table.0 as t %}
-{% for ur in t.users %}
-{% if ur.orders.price %}
+{% for row in dd.rows %}
+{% if row.price %}
 % product | unit price | ordered qty | ordered price | granted qty | granted price
 {# minipage=[alignment][height]{width} #}
 \begin{adjustbox}{minipage=[c][\orderheight]{13cm}}
 \begin{tabular}[c]{|R{7cm}|l|rl|r|p{1cm}|p{1cm}|}
 \cline{3-7}
-\multicolumn{2}{c|}{\bf {{ur.user.first_name|tex_safe}} {{ur.user.last_name|tex_safe}}}&
+\multicolumn{2}{c|}{\bf {{row.user.first_name|tex_safe}} {{row.user.last_name|tex_safe}}}&
 \multicolumn{3}{c|}{Commandés}&
 \multicolumn{2}{c|}{Livrés}\\
 \hline
-{% for pc in ur.orders.purchases %}{% if pc.quantity %}
+{% for pc in row.purchases %}{% if pc.quantity %}
 {{pc.product.name|tex_safe}} &
 {{pc.product.price|price}}/{{pc.product.unit|tex_safe}} &
 {{pc.quantity|qty}} &
@@ -42,23 +41,22 @@
 {{pc.price|price}} & & \\
 {% endif %}{%endfor %}
 \hline \hline
-\multicolumn{1}{|r}{\hspace{40mm}Total} && {{ur.weight|qty}} & kg & {\bf {{ur.price|price}}} &&\\
+\multicolumn{1}{|r}{\hspace{40mm}Total} && {{row.weight|qty}} & kg & {\bf {{row.price|price}}} &&\\
 \hline
 \end{tabular}
 
-{\scriptsize\em Circuit court {{t.subgroup.network.name|tex_safe}},
- sous-groupe {{t.subgroup.name|tex_safe}},
- commande {{d.delivery.name|tex_safe}} }
+{\scriptsize\em Circuit court {{dd.network.name|tex_safe}},
+ {% if dd.subgroup %}sous-groupe {{dd.subgroup.name|tex_safe}},
+ {% endif %} commande {{dd.delivery.name|tex_safe}} }
 \end{adjustbox}
-{% if d.max_order_size > 16 %}
+{% if max_order_size > 16 %}
 {# One order per column #}
-{% elif d.max_order_size > 10 %}
+{% elif max_order_size > 10 %}
 {% cycle "\hrule" "" %} {# Two orders per column #}
 {% else %}
 {% cycle "\hrule" "\hrule" "" %} {# Three orders per column #}
 {% endif %}
 {% endif %}
 {% endfor %}
-{% endwith %}
 \end{multicols}
 {% endblock %}

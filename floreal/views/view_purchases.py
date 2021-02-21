@@ -82,7 +82,7 @@ def view_purchases_latex_table(request, delivery, subgroup=None):
     (subgroup) staff only."""
     return render_description(
         request=request, delivery=delivery,
-        renderer=latex.table, extension='xlsx'
+        renderer=latex.table, extension='pdf'
     )
 
 def view_purchases_latex_cards(request, delivery, subgroup=None):
@@ -90,7 +90,7 @@ def view_purchases_latex_cards(request, delivery, subgroup=None):
     (subgroup) staff only."""
     return render_description(
         request=request, delivery=delivery,
-        renderer=latex.cards, extension='xslx'
+        renderer=latex.cards, extension='pdf'
     )
 
 
@@ -100,7 +100,6 @@ def view_purchases_json(request, delivery, subgroup=None, user: bool = False):
         request=request, delivery=delivery, user=user,
         renderer=lambda dd: json.dumps(dd.to_json()), extension='json'
     )
-
 
 
 @nw_admin_required()

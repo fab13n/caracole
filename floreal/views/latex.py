@@ -60,15 +60,15 @@ def render_latex(template_name, ctx):
 
 
 def table(dd):
-    template = "delivery-table.tex" if isinstance(dd, FlatDeliveryDescription) else "subgroup-table.tex"
-    orientation = "landscape" if len(dd['products'])>20 else "portrait"
+    template = "subgroup-table.tex" if isinstance(dd, FlatDeliveryDescription) else "delivery-table.tex"
+    orientation = "landscape" if len(dd.products) > 18 else "portrait"
     return render_latex(template, {'dd': dd, 'orientation': orientation})
 
 
 def cards(dd):
-    max_order_size = max(len([pc for pc in ur['orders'].purchases if pc]) for ur in descr['table'][0]['users'])
-    template = "delivery-cards.tex" if isinstance(dd, FlatDeliveryDescription) else "subgroup-cards.tex"
-    return render_latex(template, {'dd': dd, 'orientation': orientation})
+    max_order_size = max(len([pc for pc in row.purchases if pc]) for row in dd.rows)
+    template = "subgroup-cards.tex" if isinstance(dd, FlatDeliveryDescription) else "delivery-cards.tex"
+    return render_latex(template, {'dd': dd, 'max_order_size': max_order_size})
 
 
 def emails(nw):
