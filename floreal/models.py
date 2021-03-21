@@ -136,7 +136,10 @@ class Network(models.Model):
         User, related_name="member_of_network", through=NetworkMembership
     )
     auto_validate = models.BooleanField(default=False)
+    visible =models.BooleanField(default=True)
     description = models.TextField(null=True, blank=True, default=None)
+    short_description = models.TextField(null=True, blank=True, default=None)
+    image_description = models.ImageField(null=True, blank=True, default=None)
 
     class Meta:
         ordering = ("name",)
@@ -179,6 +182,10 @@ class Network(models.Model):
     def grouped(self):
         return self.networksubgroup_set.exists()
 
+    def active_deliveries(self):
+        return self.delivery_set.filter(state__in="BCD")
+
+
 
 class Delivery(models.Model):
     """A command of products, for a given network. It's referenced by product
@@ -205,6 +212,9 @@ class Delivery(models.Model):
     producer = models.ForeignKey(
         User, null=True, default=None, on_delete=models.SET_NULL
     )
+    freeze_date = models.DateField(null=True, blank=True, default=None)
+    distribution_date = models.DateField(null=True, blank=True, default=None)
+    visible = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name

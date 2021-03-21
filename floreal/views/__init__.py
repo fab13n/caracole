@@ -28,11 +28,63 @@ from .spreadsheet import spreadsheet
 from .candidacies import candidacy, cancel_candidacy, validate_candidacy, leave_network, create_candidacy, manage_candidacies
 from .invoice_mail import invoice_mail_form
 from .users import users_json, users_html
+from . import delivery_description as dd
 
 from floreal.views import require_phone_number as phone
 
-@login_required()
+
 def index(request):
+    if request.user.is_anonymous:
+        vars = {
+            'networks': m.Network.objects.exclude(visible=False)
+        }
+        vars.update(csrf(request))
+        return render(request,'index_unlogged.html', vars)
+    else:
+        vars = {
+            'user': request.user,
+            'memberships': m.NetworkMembership.objects.filter(user=request.user),
+            'unsubscribed': m.Network.objects.exclude(members=request.user).exclude(visible=False)
+        }
+        return render(request,'index_logged.html', vars)
+
+@login_required()
+def admin(request):
+    vars = {
+        'messages': m.AdminMessage.objects.all(),  # TODO only those I administrate
+        'user': request.user,
+        'memberships': m.NetworkMembership.objects.filter(user=request.user)
+    }
+    return render(request,'admin.html', vars)
+
+@login_required()
+def orders(request):
+    networks = [
+        mb.network 
+        for mb in m.NetworkMembership.objects
+            .filter(user=request.user, is_buyer=True)
+            .only('network')]
+    vars = {
+        'user': request.user,
+        'delivery_descriptions': [
+            dd.UserDeliveryDescription(dv, request.user).to_json()
+            for dv in m.Delivery.objects.filter(
+                state__in = (m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN, m.Delivery.FROZEN),
+                network__in=networks)
+        ]
+    }
+    return render(request, 'orders.html',vars)
+
+@login_required()
+def order(request):
+    vars = {
+
+    }
+    return render(request, 'order.html',vars)
+
+
+@login_required()
+def xxx_index(request):
     """Main page: list deliveries open for ordering as a user, networks for which the user is full admin,
      and orders for which he has subgroup-admin actions to take."""
 

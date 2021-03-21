@@ -22,6 +22,10 @@ register_converter(Identifier, "id")
 
 urlpatterns = [
     path('', views.index, name='index'),
+    path('admin.html', views.admin, name='admin'),
+    path('orders.html', views.orders, name='orders'),
+    path('dv-<id:delivery>/buy.html', views.edit_user_purchases, name='edit_user_purchases'),
+    path('dv-<id:delivery>/buy.json', views.view_purchases_json, kwargs={"user": True}, name='user_purchases_json'),
 
     path('new-nw/<path:nw_name>', views.create_network, name='create_network'),
     path('new-dv/nw-<id:network>/list', views.list_delivery_models, name='list_delivery_models'),
@@ -38,8 +42,8 @@ urlpatterns = [
     re_path(r'^nw-(?P<network>[0-9]+)/all-deliveries/(?P<states>[A-Z]+)\.pdf$', views.all_deliveries_latex, name='all_deliveries_latex'),
     path('nw-<id:network>/invoice-mail-form', views.invoice_mail_form, name='invoice_mail_form'),
 
-    path('dv-<id:delivery>', views.edit_user_purchases, name='edit_user_purchases'),
-    path('dv-<id:delivery>-u.json', views.view_purchases_json, kwargs={"user": True}, name='user_purchases_json'),
+    # path('dv-<id:delivery>', views.edit_user_purchases, name='edit_user_purchases'),
+    # path('dv-<id:delivery>-u.json', views.view_purchases_json, kwargs={"user": True}, name='user_purchases_json'),
 
     path('dv-<id:delivery>/staff', views.edit_delivery_staff, name='edit_delivery_staff'),
     path('dv-<id:delivery>/staff/purchases', views.edit_delivery_purchases, name='edit_delivery_purchases'),

@@ -459,6 +459,7 @@ class GroupedDeliveryDescription(object):
 
 
 class UserDeliveryDescription(object):
+
     def __init__(self, dv: m.Delivery, u: m.User, empty_products=False):
 
         self.user = u
@@ -480,6 +481,10 @@ class UserDeliveryDescription(object):
             self.products = [pc.product for pc in purchases_by_pd_id.values()]
 
         self.purchases = [purchases_by_pd_id.get(pd.id) for pd in self.products]
+        self.price = sum(pc.price for pc in purchases_by_pd_id.values())
+        self.weight = sum(pc.weight for pc in purchases_by_pd_id.values())
+
+        # TODO Check SQL logs, probably a lack of select_related on purchase->product
 
     def to_json(self):
         return {
@@ -536,4 +541,9 @@ class UserDeliveryDescription(object):
                 }
                 for pd, pc in zip(self.products, self.purchases)
             ],
+            "total": {
+                "price": _num(self.price),
+                "weight": _num(self.weight),
+            },
+
         }

@@ -1,0 +1,90 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load floreal_filters %}
+
+{% block document_ready %}
+{% endblock %}
+
+{% block content %}
+<section class="container margetopXl margebot">
+    <h1>Administration</h1>
+
+    <div id="messagerie-admin" class="margetop">
+        <h2>Messages des administrateurs</h2>
+        {% for msg in messages %}
+        <p class="admin-message">
+            {% if msg.network %}
+            <strong>Réseau {{msg.network.name}} :</strong>
+            {% endif %}
+            {{msg.message|safe}}
+        </p>
+        <a href="{% url 'unset_message' id=msg.id %}"><span class="no">Supprimer le message ✘</span></a>
+        {% empty %}
+        <p>Aucun message</p>
+        {% endfor %}
+    </div>
+
+    <ul>
+        <li><a href="/set-message">Poster un nouveau message administrateur</a></li>
+
+        {% if user.is_staff %}
+        <li><a href="">Usurper une identité</a></li>
+        {% endif %}
+
+        <!-- Pour chaque circuit -->
+        {% for mb in memberships %}
+        {% with nw=mb.network %}
+        <div class="divider acces-rapide couleur-sec">
+            <h5 class="center divider couleur-sec">Administrer <span class="couleur-prim">{{nw.name}}</span></h5>
+            <ul>
+                <li class="circuit"><a href="{% url 'network_admin' network=nw.id %}" href="#nw-{{mb.network.id}}">
+                    <strong>Administration avancée</strong> de {{nw.name}}
+                </a></li>
+                <li><a href="{% url 'emails_network' network=nw.id %}"><strong>Annuaire</strong> des membres</a></li>
+            </ul>
+
+            <!-- Pour chaque commande -->
+            {% for dv in nw.active_deliveries %}
+
+            {% if forloop.first %}
+            <h5 class="txt-left couleur-sec margebotS">Commandes en cours</h5>
+            {% endif %}
+
+            <div class="commande-cours">
+                <p><strong>
+                    {% if dv.freeze_date %}
+                    {{dv.freeze_date|date:"SHORT_DATE_FORMAT"}} | 
+                    {% elif dv.distribution_date %}
+                    {{dv.distribution_date|date:"SHORT_DATE_FORMAT"}} | 
+                    {% endif %}
+                    {{dv.name }}
+                    {% if dv.producer %}
+                    - {{dv.producer.first_name}} {{dv.producer.last_name}}
+                    {% endif %}
+                </strong> | Statut : <i>{{dv.state_name}}</i></p>
+                <div>
+                    <a class="button modif" href="{% url 'edit_delivery_products' delivery=dv.id %}">Modifier la commande</a>
+                    <a class="button modif" href="{% url 'edit_delivery_purchases' delivery=dv.id %}">Modifier les achats</a>
+                </div>
+                <div>
+                    <a class="button admin" href="{% url 'view_delivery_purchases_html' delivery=dv.id %}">Voir en ligne</a>
+                    <a class="button admin" href="{% url 'view_delivery_purchases_xlsx' delivery=dv.id %}">MS-Excel</a>
+                    <a class="button admin" href="{% url 'view_delivery_purchases_latex' delivery=dv.id %}">Tableau PDF</a>
+                    <a class="button admin" href="{% url 'view_delivery_purchases_cards' delivery=dv.id %}">Cartes PDF</a>
+                </div>
+            </div>
+            {% empty %}
+            Aucune commande en cours
+            {% endfor %}
+            <!-- end commande-->
+
+        </div>
+        <!-- end circuit -->
+        {% endwith %}
+        {% endfor %}
+        <li> <a id="create-network" class="couleur-prim" href="#">Créer un nouveau circuit</a> </li>
+    </ul>
+</section>
+
+
+{% endblock %}

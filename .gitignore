@@ -1,9 +1,11 @@
 *.pyc
 *.bak
 *~
+.#*
+\#*
 .idea
-db.sqlite3
-database.sqlite3
+*.sqlite3*
+*-dump*.json
 venv*/
 /volumes/
 /static/

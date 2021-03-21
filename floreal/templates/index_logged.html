@@ -1,0 +1,88 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load floreal_filters %}
+
+{% block document_ready %}
+{% endblock %}
+
+{% block content %}
+<section class="header-accueil">
+    <div class="container">
+      <div class="row">
+        <div class="col">
+          <h1>Circuits Courts Civam</h1>
+          <p>Gestion associative de commandes en circuits courts</p>
+        </div>
+      </div>
+  </section>
+
+  <section id="intro">
+    <div class="container">
+      <div class="row top">
+        <div class="col">
+          <h2 class="margetop">Comment ça marche ?</h2>
+          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean condimentum ipsum leo, nec consectetur nisi placerat viverra. Nulla lobortis mi et elit luctus, vulputate fermentum justo interdum. In nec rhoncus purus. Curabitur maximus
+            mauris sed suscipit ornare. Nulla facilisi. Aenean id efficitur elit. Vestibulum eu ultricies neque. Aenean quis ultricies nisl. Integer est lectus, elementum ac posuere nec, imperdiet vel diam. Mauris cursus enim a ante tincidunt,
+            lacinia pulvinar tortor suscipit. Sed et mauris quis est accumsan posuere. Maecenas sed pulvinar lorem. </p>
+        </div>
+        <div class="col50">
+          <img src="{% static 'images/index-intro.jpg' %}" alt="">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="circuits" class=" container margetop">
+    <h2>Les circuits</h2>
+    <div class="row infini">
+      {% for mb in memberships %}
+      <div class="col33">
+        {% with img=mb.network.image_description %}
+        <a href="circuit.html">
+          <div class="circuits-image" 
+               style="background-image: url('{% if img %}{{img.url}}{% else %}{% static  'images/image-circuit.jpg' %}{% endif %}'); 
+                      background-size: cover; 
+                      background-position: center;"></div>
+        </a>
+        {% endwith %}
+        <a href="circuit.html"><h3>{{mb.network.name}}</h3></a>
+        {{mb.network.short_description}}
+        <div class="row">
+            {% if mb.is_staff or mb.is_subgroup_staff or is_producer or is_regulator or mb.user.is_staff %}
+            <!--
+            <a href="circuit.html" class="button admin">Administrer</a>
+            {% endif %}
+            -->
+            {% if mb.is_buyer %}
+            <a href="circuit.html" class="button inscrit">Inscrit</a>
+            <a href="#" class="button quitter">Quitter</a>
+            {% elif mb.is_candidate %}
+            <a href="circuit.html" class="button attente">En attente</a>
+            <a href="#" class="button quitter">Quitter</a>
+            {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      {% for nw in unsubscribed %}
+      <div class="col33">
+        <a href="circuit.html">
+          <div class="circuits-image" 
+               style="background-image: url('{% if img %}{{img.url}}{% else %}{% static  'images/image-circuit.jpg' %}{% endif %}'); 
+                      background-size: cover; 
+                      background-position: center;"></div>
+        </a>
+        <a href="circuit.html"><h3>{{nw.name}}</h3></a>
+        {{nw.description}}
+        <div class="row">
+            <!--
+            {% if user.is_staff %}
+            <a href="circuit.html" class="button admin">Administrer</a>
+            {% endif %}
+            -->
+            <a href="circuit.html" class="button button-primary">Rejoindre</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

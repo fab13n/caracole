@@ -1,0 +1,40 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load floreal_filters %}
+
+{% block document_ready %}
+{% endblock %}
+
+{% block content %}
+<section class="container margetopXl margebot">
+    <h1>Commandes</h1>
+
+    <div class="container slim margetop">
+      {% for dd in delivery_descriptions %}
+      <p class="commandes-entete"><span>Commande</span> Distribution</p>
+      <ul class="commandes">
+        <li> <span class="jours">J - X</span>
+          <a href="{% url 'edit_user_purchases' delivery=dd.delivery.id %}">
+            01/01/1970 <span class="couleur-prim">| {{dd.network.name}} |</span> {{dd.delivery.name}} </a> 
+        </li>
+          <ul>
+            {% for pd in pd.products %}
+            {% with pc=pd.purchase %}
+            <li><strong>{{pc.quantity}}</strong> {{pd.unit}} de <strong>{{pd.name</strong></li>
+            {% endwith %}
+            {% endfor %}
+            {% if dd.total.price %} <span class="prix">{{dd.total.price}} €</span> {% endif %}
+          </ul>
+      </ul>
+      {% endfor %}
+    </div>
+
+    <div class="container slim margetop">
+      <ul>
+        <li> <a href="#">Historique des commandes passées</a> </li>
+      </ul>
+    </div>
+
+  </section>
+
+{% endblock %}

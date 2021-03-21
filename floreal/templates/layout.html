@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+
+  <!-- Basic Page Needs
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta charset="utf-8">
+  <title>Solalim - Gestion associative de commandes en circuits courts</title>
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!-- Mobile Specific Metas
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- FONT
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,500,900&display=swap" rel="stylesheet">
+
+
+  <!-- CSS
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="stylesheet" href="static/css/normalize.css">
+  <link rel="stylesheet" href="static/css/style.css">
+  <link rel="stylesheet" href="static/css/hamburgers.css">
+
+  <!-- JQUERY
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+
+  <script src="static/js/jquery.min.js"></script>
+  <script src="static/js/script.js"></script>
+
+  <!-- Favicon
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="icon" type="image/png" href="static/images/favicon.png">
+
+</head>
+
+<body>
+
+  <!-- Primary Page Layout
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+
+  <header id="header " class="headroom">
+    <nav id="navigation">
+      <div class="hamburger hamburger--spin" tabindex="0" aria-label="Menu" role="button" aria-controls="navigation">
+        <div class="hamburger-box">
+          <div class="hamburger-inner"></div>
+        </div>
+      </div>
+      <ul>
+        {% block header_items %}
+        <li class="current_page_item"><a href="index.html">Accueil</a></li>
+        <li><a href="#circuits">Les circuits</a></li>
+        <li><a href="orders.html">Commandes</a></li>
+	      {% endblock %}
+	
+        {% if not user.is_anonymous %}
+        <li><a href="user.html">Mon compte<span class="loggedin"> : {{user.first_name}}{{user.last_name}}</span></a></li>
+        {% if user.is_staff %}{# TODO also producer, subgroup admin etc. #}
+        <!-- admin - à afficher pour les comptes admins connectés -->
+        <li class="lienSupNav"><a href="admin.html">Administration</a></li>
+        <!-- end admin -->
+        {% endif %}
+        {% endif %}
+
+      </ul>
+    </nav>
+  </header>
+
+  <!-- End Header
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+
+{% block content %}
+  <section class="container margetopXl margebot">
+    <h1>Contenu</h1>
+    <p>Lorem ipsum</p>
+  </section>
+{% endblock %}
+
+
+
+  <!-- Footer
+      –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <footer>
+    <div class="container">
+      <div class="row">
+        <div class="col">
+          <ul>
+            <li><a href="#"></a></li>
+            <li><a href="#"></a></li>
+          </ul>
+        </div>
+        <div class="col">
+          <div class="col">
+            <ul>
+              <li><a href="#"></a></li>
+              <li><a href="#"></a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="center">
+        <p style="margin:0;">© Solalim 2021 - Tous droits réservés - Design : <a href="http://raf.pm" target="_blank">RAF</a></p>
+        <p><a href="mentions-legales.html">Mentions légales</a></p>
+      </div>
+  </footer>
+
+</body>
+
+</html>

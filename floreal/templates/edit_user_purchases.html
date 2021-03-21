@@ -1,259 +1,185 @@
-{% extends 'layout_wide.html' %}
-{% load floreal_filters %}
-{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
 
-{% block breadcrumbs %}
-<li class="breadcrumb-item"><a href="{% url 'index' %}">Accueil</a></li>
-{% endblock %}
+<head>
+
+  <!-- Basic Page Needs
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta charset="utf-8">
+  <title>Solalim - Gestion associative de commandes en circuits courts</title>
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!-- Mobile Specific Metas
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- FONT
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,500,900&display=swap" rel="stylesheet">
 
 
-{% block head %}
-  <script type='text/javascript'>
+  <!-- CSS
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="stylesheet" href="/static/css/normalize.css">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/hamburgers.css">
 
-    let DATA;
-    let PRODUCTS = {}; // id -> product record
-    let SOME_PACKAGED = false;
-    let SOME_WEIGHTED = false;
+  <!-- JQUERY
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
 
-    let OUT_OF_STOCK_COLSPAN = 5;
-    let DESCRIPTION_COLSPAN = 6;
-    let TOTAL_PADDING_RIGHT_COLSPAN = 1;
-    let SUBMIT_PADDING_COLSPAN = 7;
+  <script src="/static/js/jquery.min.js"></script>
+  <script src="/static/js/script.js"></script>
 
-    async function load_purchases() {
-      const res = await fetch("{% url 'user_purchases_json' delivery=delivery.id %}");
-      DATA = await res.json();
-      SOME_PACKAGED = DATA.products.find(pd => pd.quantity_per_package !== null) !== undefined;
-      SOME_WEIGHTED = DATA.products.find(pd => pd.unit_weight !== 0) !== undefined;
-      DATA.products.forEach(pd => { PRODUCTS[pd.id] = pd; })
-    }
+  <!-- Favicon
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="icon" type="image/png" href="/static/images/favicon.png">
 
-    function render_unit(u) { return u; }
+</head>
 
-    function render() {
-      $("#delivery-name").text(DATA.delivery.name);
-      $("#delivery-id").val(DATA.delivery.id);
-      $("#network-name").text(DATA.network.name);
-      $("#user-name").text(DATA.user.first_name + " " + DATA.user.last_name);
-      if(DATA.delivery.description) {
-        $("#delivery-description").html(DATA.delivery.description);
-      }
+<body>
 
-      if(SOME_PACKAGED) {
-        OUT_OF_STOCK_COLSPAN++;
-        DESCRIPTION_COLSPAN++;
-        TOTAL_PADDING_RIGHT_COLSPAN++;
-        SUBMIT_PADDING_COLSPAN++;
-      } else {
-        $(".if-some-packages").remove();
-      }
-      if(SOME_WEIGHTED) {
-        // TODO
-      }
+  <!-- Primary Page Layout
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
 
-      $("td.total-padding-right").attr("colspan", TOTAL_PADDING_RIGHT_COLSPAN);
-      $("td.submit-padding").attr("colspan", SUBMIT_PADDING_COLSPAN);
-      
+  <header id="header " class="headroom">
+    <nav id="navigation">
+      <div class="hamburger hamburger--spin" tabindex="0" aria-label="Menu" role="button" aria-controls="navigation">
+        <div class="hamburger-box">
+          <div class="hamburger-inner"></div>
+        </div>
+      </div>
+      <ul>
+        <li><a href="index.html">Accueil</a></li>
+        <li><a href="index.html#circuits">Les circuits</a></li>
+        <li><a href="commandes.html">Commandes</a></li>
+        <li><a href="mon-compte.html">Mon compte<span class="loggedin"> : Prénom Nom</span></a></li>
 
-      let rows = ``;
-      DATA.products.forEach((pd, i) => {
-        const pc = pd.purchase;
-        const parity = i%2 ? "odd" : "even";
-        let input;
-        if(pc.max_quantity === 0) {
-          input = `<td colspan="${OUT_OF_STOCK_COLSPAN}" class="out-of-stock">(Produit épuisé)</td>`;
-        } else {
-          input = `
-            <td>
-              <input name="pd-${pd.id}" 
-                     class="quantity"
-                     type="number" 
-                     step="${pd.quantum||1}"
-                     min="0"
-                     ${pc.max_quantity ? "max="+pc.max_quantity : ""}
-                     value="${pc.quantity}" />
-            </td>
-            <td class="product-unit">
-              ${render_unit(pd.unit)}
-            </td>
-            <td class="unit-price">
-              <span class="unit_price">${pd.price.toFixed(2)}</span> €/${pd.unit}
-            </td>
-            <td class="price">
-              <span class="price">${pc.price.toFixed(2)}</span> €
-            </td>`;
-            if(SOME_PACKAGED && pd.quantity_per_package) {
-              input += `
-                <td class="qpp">
-                  ${pd.quantity_per_package}${render_unit(pd.unit)}/carton
-                </td>`;
-            } else if(SOME_PACKAGED) {  
-              input += `<td class="qpp"> - </td>`  
-            }
-            input += `<td class="reset" onclick="reset_order(${pd.id})"><span>✘</span></td>`;
-        }
+        <!-- admin - à afficher pour les comptes admins connectés -->
+        <li class="lienSupNav"><a href="administration.html">Administration</a></li>
+        <!-- end admin -->
 
-        if(pd.description || pd.image) {
-          rows += `
-            <tr class="product-row ${parity}" id="pd-${pd.id}">
-              <td class="image" rowspan=2><img src="${pd.image || 'media/none.png'}"/></td>
-              <td class="product-name">${pd.name}</td>
-              ${input}
-            </tr>
-            <tr class="${parity}">
-              <td colspan="${DESCRIPTION_COLSPAN}" class="description">
-                <hr/>
-                <div>${pd.description ||"—"}</div>
-              </td>
-            </tr>`;                    
-        } else {
-          // no description no image => compact line
-          rows += `
-            <tr class="product-row  ${parity}" id="pd-${pd.id}">
-              <td class="product-name" colspan=2>${pd.name}</td>
-              ${input}
-            </tr>
-            <tr class="${parity}">
-              <td colspan="${DESCRIPTION_COLSPAN}" class="description"></td>
-            </tr>`;
-        }
-      });
-      $("#products-table tbody").append(rows);
-    }
+      </ul>
+    </nav>
+  </header>
 
-    function recompute() {
-      var total_price = 0;
-      var total_weight = 0;
-      $("input.quantity").each(function(i, e) {
-        const id = Number($(e).attr('name').split("-")[1]);
-        const q = Number($(e).val());
-        const pd = PRODUCTS[id];
-        const pc = pd.purchase;
-        const price = q * pd.price; 
-        $(`#pd-${id} span.price`).text(price.toFixed(2));
-        total_price += price;
-        total_weight += q * pd.unit_weight;
-      });
-      $("#total-price").text(total_price.toFixed(2));
-      $("#total-weight").text(total_weight.toFixed(0));
-    }
+  <!-- End Header
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
 
-    function reset_order(id) {
-      $(`[name=pd-${id}]`).val(0);
-      recompute();
-    }
+  <section class="container margetopXl margebot">
+    <h1 class=" h2-like couleur-prim">01/01/1970 | Produit - Producteur</h1>
+    <h3>Nom du circuit</h3>
 
-    $(document).ready(async () => {
-      /* Turn plain inputs into Bootstrap inputs. */
-      await load_purchases();
-      render();
+    <div class="container margetop row stretch cent">
+      <p class="commandes-detail-intro">
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean condimentum ipsum leo, nec consectetur nisi placerat viverra. Nulla lobortis mi et elit luctus, vulputate fermentum justo interdum. In nec rhoncus purus. Curabitur maximus mauris
+        sed suscipit ornare. Nulla facilisi. Aenean id efficitur elit. Vestibulum eu ultricies neque. Aenean quis ultricies nisl. Integer est lectus, elementum ac posuere nec, imperdiet vel diam. Mauris cursus enim a ante tincidunt, lacinia pulvinar
+        tortor suscipit. Sed et
+      </p>
+      <!-- Ne faire apparaitre que s'il y a une photo -->
+      <div class="photo-producteur" style="background-image:url('images/solalim-intro.jpg')";></div>
+      <!-- end -->
+    </div>
 
-      $("input").addClass("form-control");
+    <div class="container">
 
-      /* Add a tooltip when hovering the line-canceling button. */
-      $("td.reset")
-          .attr("data-toggle", "tooltip")
-          .attr("title", "Annuler l'achat");
 
-      /* For each line with a max quantity, add a tooltip displaying it. */
-      $("#products-table tr").each(function () {
-          var max = $(this).find("input").attr("max");
-          if (max) $(this)
-              .attr("data-toggle", "tooltip")
-              .attr("title", "maximum = " + max);
-      });
+      <table id="products-table">
+        <tbody>
 
-      /* When a row is clicked, focus on input and select all of its content. */
-      $("tr").click(function() { $(this).find("input").select().focus(); })
-
-      /* Recompute totals after each change as well as after laoding. */
-      $("#products-table input").change(recompute);
-      recompute();
-    });
-
-  </script>
-  <style type="text/css">
-
-    #delivery-description-table { border: 1px solid #811305; font-size: larger; margin-left: auto; margin-right: auto; }
-    #delivery-description-table td { text-align: left; }
-    #delivery-table { border: 1px solid #811305; font-size: larger; }
-    #delivery-table th { text-align: right; background-color: #fff0e0; }
-    #delivery-table td { text-align: left; }
-
-    #dv-description {white-space: pre-wrap; }
-
-    #products-table { white-space: nowrap; font-size: medium; border: 1px solid #811305; margin-left: auto; margin-right: auto;}
-    #products-table th { text-align: center; border: 1px solid #811305;}
-    #products-table tr.total  { font-size: large; background-color: white !important; }
-    #products-table tr.total th { border: none; text-align: right; }
-    #products-table tr.total td { border: none; text-align: right; font-weight: bold;}
-    #products-table td input[type=number] { margin: 0px; text-align: right; width: 80px; font-size: large; }
-    #products-table td.image img { width:125px; height: 125px; margin: 5px; }
-    #products-table td.product-name { text-align: right; }
-    #products-table td.unit-price { text-align: right; }
-    #products-table td.price { text-align: right; }
-    #products-table td.reset { text-align: center; color: red; cursor: pointer; }
-    #products-table td.out-of-stock { text-align: center !important; font-style: italic; }
-    #products-table tr.odd {background-color: white; }
-    #products-table tr.even {background-color: #fff0e0; }
-    #products-table td.description { text-align: center; }
-    #products-table td.description:empty { display: none; }
-    #products-table td.description div { text-align: left; display: inline-block; font-style: italic; font-size: small; white-space: pre-wrap; }
-    #products-table td.description hr { margin-left: 30px; margin-right: 30px; }
-
-    .hidden { display: none !important; }
-  </style>
-{% endblock %}
-
-{% block content %}
-<form method="POST">
-    <table id="delivery-table">
-      <tr>
-        <th>Livraison :</th>
-        <td id="delivery-name">...</td>
-      </tr>
-      <tr>
-        <th>Réseau :</th>
-        <td id="network-name">...</td>
-      </tr>
-      <tr>
-        <th>Membre :</th>
-        <td id="user-name">...</td>
-      </tr>
-    </table>
-    <!-- TODO hide if null -->
-    <div id="dv-description"></div>
-    <table id="products-table">
-        <thead>
           <tr>
-              <th colspan="2">Produit</th>
-              <th colspan="2">Quantité</th>
-              <th>Prix unitaire</th>
-              <th>Prix</th>
-              <th class="if-some-packages">Cartons</th>
-              <th><!-- delete buttons --></th>
+            <th></th>
+            <th>Produit</th>
+            <th colspan="2">Quantité</th>
+            <th>Prix unitaire</th>
+            <th>Sous-Total</th>
           </tr>
-        </thead>
-        <tbody></tbody>
-        <tfoot>
+
+          <tr id="row-10941" class="row-produit">
+            <td rowspan="2" class="product-image"><img src="images/image-produit.jpg" /></td>
+            <td class="product-name">Produit</td>
+            <td class="quantity"><input id="pd10941-ordered_quantity" maxlength="64" name="pd10941" type="number" step="1.00" min="0" value="0"></td>
+            <td class="product-unit"> unité(s)</td>
+            <td class="unit-price"><span id="pd10941-unit_price">50.00</span> € / unité</td>
+            <td class="price"><span class="pd10941-ordered_price">0.00</span> €</td>
+          </tr>
+
+          <tr id="row-txt-10941" class="texte-produit">
+            <td colspan="5">
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean condimentum ipsum leo, nec consectetur nisi placerat viverra. Nulla lobortis mi et elit luctus, vulputate fermentum justo.
+            </td>
+          </tr>
+
+          <tr id="row-10941" class="row-produit">
+            <td rowspan="2" class="product-image"></td>
+            <td class="product-name">Produit</td>
+            <td class="quantity"><input id="pd10941-ordered_quantity" maxlength="64" name="pd10941" type="number" step="1.00" min="0" value="0"></td>
+            <td class="product-unit">unité(s)</td>
+            <td class="unit-price"><span id="pd10941-unit_price">50.00</span> € / unité</td>
+            <td class="price"><span class="pd10941-ordered_price">0.00</span> €</td>
+          </tr>
+
+          <tr id="row-txt-10941" class="texte-produit">
+            <td colspan="5">
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean condimentum ipsum leo, nec consectetur nisi placerat viverra. Nulla lobortis mi et elit luctus, vulputate fermentum justo.
+            </td>
+          </tr>
+
+
           <tr class="total">
-            <td class="total-padding" colspan="4"></td>
-            <th>Prix total:</th><td class="total-cell"><span id="total-price">...</span>&nbsp;€</td>
-            <td class="total-padding-right" colspan="..."></td>
+            <td colspan="4"></td>
+            <td class="total-padding">Total</td>
+            <td class="total_cell"><span class="total_price">0.00</span>&nbsp;€</td>
           </tr>
-          <tr class="total" id="total-weight-row">
-            <td class="total-padding" colspan="4"></td>
-            <th>Poids total:</th><td class="total-cell"><span id="total-weight">...</span>&nbsp;kg</td>
-            <td class="total-padding-right" colspan="..."></td>
+
+          <tr class="total-padding">
+            <td colspan="4"></td>
+            <td>Poid total</td>
+            <td class="total_cell"><span class="total_weight">0</span>&nbsp;kg</td>
           </tr>
-          <tr>
-            <td class="submit-padding" colspan="...">
-              <input type="submit" value="Valider la commande" /> <a href="/">Annuler les modifications</a>            
-            </td>
-          </tr>
-        </tfoot>
-    </table>
-    <input type='hidden' id='delivery-id' name='delivery-id' value='...' />
-    {% csrf_token %}
-</form>
-{% endblock %}
+
+        </tbody>
+      </table>
+
+      <div class="row container xslim">
+        <input class="button-primary" type="submit" value="Valider la commande">
+        <a class="button retour" href="javascript:history.back()">Retour</a>
+      </div>
+
+    </div>
+
+  </section>
+
+
+
+
+
+  <!-- Footer
+      –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <footer>
+    <div class="container">
+      <div class="row">
+        <div class="col">
+          <ul>
+            <li><a href="#"></a></li>
+            <li><a href="#"></a></li>
+          </ul>
+        </div>
+        <div class="col">
+          <div class="col">
+            <ul>
+              <li><a href="#"></a></li>
+              <li><a href="#"></a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="center">
+        <p style="margin:0;">© Solalim 2021 - Tous droits réservés - Design : <a href="http://raf.pm" target="_blank">RAF</a></p>
+        <p><a href="mentions-legales.html">Mentions légales</a></p>
+      </div>
+  </footer>
+
+</body>
+
+</html>
