@@ -7,15 +7,36 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Sum
 from html2text import html2text
+from django.utils import timezone
 
 from floreal.francais import Plural, articulate, plural
 
+def _mnemonic(obj):
+    """
+    Generate a mnemonic name for something that might be referred to in a URL.
+    Must be unique within its class, all lowercase letters/numbers.
+    Use pk numbers if the natural name is already taken: admins can always change
+    it if they dislike it.
+
+    My guess is, the default is the letters in the name, lowercased, all other
+    characters ignored.
+    """
 
 def _user_network_getter(**kwargs):
+    """
+    Users of a network are listed by a ManyToMany+through relationship,
+    which makes it cumbersome to retrive them with default Django accessors.
+    This helper allows to add ``<quality>_of_network()`` accessors to auth
+    user objects.
+    """
     @property
     def user_of_network(self):
+        now = timezone.now()
         return Network.objects.filter(
-            networkmembership__in=NetworkMembership.objects.filter(user=self, **kwargs)
+            networkmembership__in=NetworkMembership.objects
+                .filter(user=self, **kwargs)
+                .exclude(valid_from__gt=now)
+                .exclude(valid_until__lt=now)
         )
 
     return user_of_network
@@ -28,14 +49,18 @@ User.candidate_of_network = _user_network_getter(is_candidate=True)
 User.regulator_of_network = _user_network_getter(is_regulator=True)
 
 
-class UserPhone(models.Model):
-    """Associate one or several phone numbers to each user."""
+class FlorealUser(models.Model):
+    """
+    Associate a phone number to each user.
+    """
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    phone = models.CharField(max_length=20)
+    phone = models.CharField(max_length=20, null=True, blank=True, default=None)
+    description = models.TextField(null=True, blank=True, default=None)
+    image_description = models.ImageField(null=True, blank=True, default=None)
 
     def __str__(self):
-        return "%s %s: %s" % (self.user.first_name, self.user.last_name, self.phone)
+        return f"{self.user.first_name} {self.user.last_name}: {self.display_number}"
 
     @property
     def display_number(self):
@@ -85,6 +110,13 @@ class NetworkSubgroup(models.Model):
 
 
 class NetworkMembership(models.Model):
+    """
+    Relationship between a user and a network. Users can belong to a network
+    under different qualities (buyer, staff, candidate etc) not mutually exclusive.
+    Optionally they can belong through a subgroup. Partitionning a group into
+    subgroups is an effective way to handle large, self-organized distributions.
+    More on that (in French) in an upcoming guide.
+    """
     network = models.ForeignKey("Network", on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     subgroup = models.ForeignKey(
@@ -96,6 +128,9 @@ class NetworkMembership(models.Model):
     is_buyer = models.BooleanField(default=True)
     is_regulator = models.BooleanField(default=False)
     is_candidate = models.BooleanField(default=False)
+
+    valid_from = models.DateTimeField(default=timezone.now)
+    valid_until = models.DateTimeField(default=None, null=True, blank=True)
 
     def __str__(self):
         r = self.user.username + " ∈ " + self.network.name
@@ -122,14 +157,12 @@ class NetworkMembership(models.Model):
 
 
 class Network(models.Model):
-    """One distribution network. Deliveries are passed for a whole network,
+    """
+    One distribution network. Deliveries are passed for a whole network,
     then broken up into subgroups.
     The network has staff users, in charge of allowing, forbidding and pricing products
     in commands.
-
-    Staff users are often also users allowed to order, but this isn't mandatory.
-    Regular users are not stored diretly in the network: they're stored in the network's
-    subgroup they belong to."""
+    """
 
     name = models.CharField(max_length=256, unique=True)
     members = models.ManyToManyField(
