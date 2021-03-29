@@ -7,15 +7,27 @@
 
 {% block content %}
 <section class="container margetopXl margebot">
-    <h1>Commandes</h1>
+    <h1>Commandes en cours</h1>
 
     <div class="container slim margetop">
       {% for dd in delivery_descriptions %}
       <p class="commandes-entete"><span>Commande</span> Distribution</p>
       <ul class="commandes">
-        <li> <span class="jours">J - X</span>
+        <li>
+          <span class="jours">
+            {% if dd.freeze_days >= 0 %}
+            J - {{ff.freeze_days }}
+            {% else %}
+            &nbsp;
+            {% endif %}          
+          </span>
           <a href="{% url 'edit_user_purchases' delivery=dd.delivery.id %}">
-            01/01/1970 <span class="couleur-prim">| {{dd.network.name}} |</span> {{dd.delivery.name}} </a> 
+            <span class="couleur-prim">
+            {% if dd.delivery_date %}{{dd.delivery_date}}{% else %}—{% endif %}
+            | {{dd.network.name}} |
+            </span>
+            {{dd.delivery.name}} 
+          </a>
         </li>
           <ul>
             {% for pd in pd.products %}

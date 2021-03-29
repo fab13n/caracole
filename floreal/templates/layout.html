@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 
@@ -21,9 +22,9 @@
 
   <!-- CSS
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
-  <link rel="stylesheet" href="static/css/normalize.css">
-  <link rel="stylesheet" href="static/css/style.css">
-  <link rel="stylesheet" href="static/css/hamburgers.css">
+  <link rel="stylesheet" href="{% static 'css/normalize.css' %}">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'css/hamburgers.css' %}">
 
   <!-- JQUERY
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
@@ -33,7 +34,10 @@
 
   <!-- Favicon
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
-  <link rel="icon" type="image/png" href="static/images/favicon.png">
+  <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+
+  {% block head %}
+  {% endblock %}
 
 </head>
 
@@ -57,7 +61,7 @@
 	      {% endblock %}
 	
         {% if not user.is_anonymous %}
-        <li><a href="user.html">Mon compte<span class="loggedin"> : {{user.first_name}}{{user.last_name}}</span></a></li>
+        <li><a href="user.html">Mon compte<span class="loggedin"> : {{user.first_name}} {{user.last_name}}</span></a></li>
         {% if user.is_staff %}{# TODO also producer, subgroup admin etc. #}
         <!-- admin - à afficher pour les comptes admins connectés -->
         <li class="lienSupNav"><a href="admin.html">Administration</a></li>

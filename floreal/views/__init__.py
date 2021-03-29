@@ -69,7 +69,8 @@ def orders(request):
         'delivery_descriptions': [
             dd.UserDeliveryDescription(dv, request.user).to_json()
             for dv in m.Delivery.objects.filter(
-                state__in = (m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN, m.Delivery.FROZEN),
+                state=m.Delivery.ORDERING_ALL,
+                # state__in = (m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN, m.Delivery.FROZEN),
                 network__in=networks)
         ]
     }

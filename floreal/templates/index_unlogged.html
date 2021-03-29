@@ -59,10 +59,12 @@
       {% for nw in networks %}
       <div class="col33">
         <a href="circuit.html">
+          {% with img=nw.image_description %}
           <div class="circuits-image" 
                style="background-image: url('{% if img %}{{img.url}}{% else %}{% static 'images/image-circuit.jpg' %}{% endif %}'); 
                       background-size: cover; 
                       background-position: center;"></div>
+          {% endwith %}
         </a>
         <a href="circuit.html"><h3>{{nw.name}}</h3></a>
         {{nw.description}}

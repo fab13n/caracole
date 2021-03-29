@@ -1,6 +1,6 @@
-{% extends 'layout_wide.html' %}
-{% load floreal_filters %}
+{% extends 'layout.html' %}
 {% load static %}
+{% load floreal_filters %}
 
 {% block head %}
 <style type="text/css">
@@ -38,8 +38,9 @@ tr:hover input[type=button] {visibility: visible;}
 {% endblock head %}
 
 {% block content %}
+<section class="container margetopXl margebot">
 
-<h2>Administration du réseau {{nw.name}}</h2>
+<h1>Administration du réseau {{nw.name}}</h1>
 <ul>
   <li><a href="{% url 'list_delivery_models' network=nw.id %}">Créer une nouvelle commande {{nw.name}} <img src="{% static 'images/plus.png' %}"/></a></li>
   {# TODO restrict user edition to this network? #}
@@ -96,4 +97,5 @@ tr:hover input[type=button] {visibility: visible;}
     {% endfor %}
   </ul>
   {% endif %}
+</section>
 {% endblock content %}

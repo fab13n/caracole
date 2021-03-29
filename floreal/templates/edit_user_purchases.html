@@ -1,83 +1,164 @@
-<!DOCTYPE html>
-<html lang="fr">
-
-<head>
-
-  <!-- Basic Page Needs
-  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
-  <meta charset="utf-8">
-  <title>Solalim - Gestion associative de commandes en circuits courts</title>
-  <meta name="description" content="">
-  <meta name="author" content="">
-
-  <!-- Mobile Specific Metas
-  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- FONT
-  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
-  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,500,900&display=swap" rel="stylesheet">
+{% extends 'layout.html' %}
+{% load static %}
+{% load floreal_filters %}
 
 
-  <!-- CSS
-  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
-  <link rel="stylesheet" href="/static/css/normalize.css">
-  <link rel="stylesheet" href="/static/css/style.css">
-  <link rel="stylesheet" href="/static/css/hamburgers.css">
+{% block head %}
+  <script type='text/javascript'>
 
-  <!-- JQUERY
-  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    let DATA;
+    //let PRODUCTS = {}; // id -> product record
+    //let SOME_PACKAGED = false;
+    //let SOME_WEIGHTED = false;
 
-  <script src="/static/js/jquery.min.js"></script>
-  <script src="/static/js/script.js"></script>
+    //let OUT_OF_STOCK_COLSPAN = 5;
+    //let DESCRIPTION_COLSPAN = 6;
+    //let TOTAL_PADDING_RIGHT_COLSPAN = 1;
+    //let SUBMIT_PADDING_COLSPAN = 7;
 
-  <!-- Favicon
-  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
-  <link rel="icon" type="image/png" href="/static/images/favicon.png">
+    /* Load products, delivery, and saved purchases description */
+    async function load_purchases() {
+      const res = await fetch("{% url 'user_purchases_json' delivery=delivery.id %}");
+      DATA = await res.json();
+      //SOME_PACKAGED = DATA.products.find(pd => pd.quantity_per_package !== null) !== undefined;
+      //SOME_WEIGHTED = DATA.products.find(pd => pd.unit_weight !== 0) !== undefined;
+      DATA.products.forEach(pd => { PRODUCTS[pd.id] = pd; })
+    }
 
-</head>
+    /* TODO: add multiplication/pluralization when applicable. */
+    function render_unit(u) { return u; }
 
-<body>
+    /* Reflect the content of `DATA` into widgets. */
+    function render() {
+      $("#delivery-name").text(DATA.delivery.name);
+      $("#delivery-id").val(DATA.delivery.id);
+      $("#network-name").text(DATA.network.name);
+      $("#user-name").text(DATA.user.first_name + " " + DATA.user.last_name);
+      if(DATA.delivery.description) {
+        $("#delivery-description").html(DATA.delivery.description);
+      }
 
-  <!-- Primary Page Layout
-  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+      //if(SOME_PACKAGED) {
+      //  OUT_OF_STOCK_COLSPAN++;
+      //  DESCRIPTION_COLSPAN++;
+      //  TOTAL_PADDING_RIGHT_COLSPAN++;
+      //  SUBMIT_PADDING_COLSPAN++;
+      //} else {
+      //  $(".if-some-packages").remove();
+      //}
+      //if(SOME_WEIGHTED) {
+      //  // TODO
+      //}
 
-  <header id="header " class="headroom">
-    <nav id="navigation">
-      <div class="hamburger hamburger--spin" tabindex="0" aria-label="Menu" role="button" aria-controls="navigation">
-        <div class="hamburger-box">
-          <div class="hamburger-inner"></div>
-        </div>
-      </div>
-      <ul>
-        <li><a href="index.html">Accueil</a></li>
-        <li><a href="index.html#circuits">Les circuits</a></li>
-        <li><a href="commandes.html">Commandes</a></li>
-        <li><a href="mon-compte.html">Mon compte<span class="loggedin"> : Prénom Nom</span></a></li>
+      //$("td.total-padding-right").attr("colspan", TOTAL_PADDING_RIGHT_COLSPAN);
+      //$("td.submit-padding").attr("colspan", SUBMIT_PADDING_COLSPAN);
+      
 
-        <!-- admin - à afficher pour les comptes admins connectés -->
-        <li class="lienSupNav"><a href="administration.html">Administration</a></li>
-        <!-- end admin -->
+      let rows = ``;
+      DATA.products.forEach((pd, i) => {
+        const pc = pd.purchase;
+        //const parity = i%2 ? "odd" : "even";
+        let input;
+        if(pc.max_quantity === 0) {
+          rows += `<tr><td colspan="5" class="out-of-stock">(Produit épuisé)</td></tr>`;
+        } else {
+          rows += `
+            <tr id="row-${pd.id}" class="row-produit">
+              <td rowspan="2" class="product-image"><img src="${pd.image}" /></td>
+              <td class="product-name">${pd.name}</td>
+              <td class="quantity">
+                <input
+                  class="ordered_quantity"
+                  maxlength="64"
+                  name="pd${pd.id}"
+                  type="number"
+                  step="${pd.quantum}"
+                  min="0"
+                  value="0"
+                />
+              </td>
+              <td class="product-unit"> ${render_unit(pd.unit)}</td>
+              <td class="unit-price">${pd.price.toFixed(2)} € / ${pd.unit}</td>
+              <td class="price">${pc.price.toFixed(2)} €</td>
+            </tr>`;
+          if(pd.description) rows += `
+            <tr class="texte-produit">
+              <td colspan="5">
+                ${pd.description}
+              </td>
+            </tr>`;
+      $("#products-table tbody").append(rows);
+    }
 
-      </ul>
-    </nav>
-  </header>
+    function recompute() {
+      var total_price = 0;
+      var total_weight = 0;
+      $("input.quantity").each(function(i, e) {
+        const id = Number($(e).attr('name').split("-")[1]);
+        const q = Number($(e).val());
+        const pd = PRODUCTS[id];
+        const pc = pd.purchase;
+        const price = q * pd.price; 
+        $(`#pd-${id} span.price`).text(price.toFixed(2));
+        total_price += price;
+        total_weight += q * pd.unit_weight;
+      });
+      $("#total-price").text(total_price.toFixed(2));
+      $("#total-weight").text(total_weight.toFixed(0));
+    }
 
-  <!-- End Header
-    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    function reset_order(id) {
+      $(`[name=pd-${id}]`).val(0);
+      recompute();
+    }
 
-  <section class="container margetopXl margebot">
-    <h1 class=" h2-like couleur-prim">01/01/1970 | Produit - Producteur</h1>
-    <h3>Nom du circuit</h3>
+    $(document).ready(async () => {
+      /* Turn plain inputs into Bootstrap inputs. */
+      await load_purchases();
+      render();
+
+      $("input").addClass("form-control");
+
+      /* Add a tooltip when hovering the line-canceling button. */
+      $("td.reset")
+          .attr("data-toggle", "tooltip")
+          .attr("title", "Annuler l'achat");
+
+      /* For each line with a max quantity, add a tooltip displaying it. */
+      $("#products-table tr").each(function () {
+          var max = $(this).find("input").attr("max");
+          if (max) $(this)
+              .attr("data-toggle", "tooltip")
+              .attr("title", "maximum = " + max);
+      });
+
+      /* When a row is clicked, focus on input and select all of its content. */
+      $("tr").click(function() { $(this).find("input").select().focus(); })
+
+      /* Recompute totals after each change as well as after laoding. */
+      $("#products-table input").change(recompute);
+      recompute();
+    });
+
+  </script>
+{% endblock %}
+
+
+{% block content %}
+<section class="container margetopXl margebot">
+    <h1 class=" h2-like couleur-prim"><span id='devlivery-date'>—</span> | <span id='delivery-name'>...</span></h1>
+    <h3><span id='network-name'>...</span></h3>
 
     <div class="container margetop row stretch cent">
-      <p class="commandes-detail-intro">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean condimentum ipsum leo, nec consectetur nisi placerat viverra. Nulla lobortis mi et elit luctus, vulputate fermentum justo interdum. In nec rhoncus purus. Curabitur maximus mauris
-        sed suscipit ornare. Nulla facilisi. Aenean id efficitur elit. Vestibulum eu ultricies neque. Aenean quis ultricies nisl. Integer est lectus, elementum ac posuere nec, imperdiet vel diam. Mauris cursus enim a ante tincidunt, lacinia pulvinar
-        tortor suscipit. Sed et
+      <p class="commandes-detail-intro" id="delivery-description">
+        Lorem Ipsum
       </p>
       <!-- Ne faire apparaitre que s'il y a une photo -->
-      <div class="photo-producteur" style="background-image:url('images/solalim-intro.jpg')";></div>
+      <div class="photo-producteur" 
+           id="producer-image" 
+           style="background-image:url('/static/images/index-intro.jpg');
+                  background-size: cover; 
+                  background-position: center;"></div>
       <!-- end -->
     </div>
 
@@ -149,37 +230,4 @@
     </div>
 
   </section>
-
-
-
-
-
-  <!-- Footer
-      –––––––––––––––––––––––––––––––––––––––––––––––––– -->
-  <footer>
-    <div class="container">
-      <div class="row">
-        <div class="col">
-          <ul>
-            <li><a href="#"></a></li>
-            <li><a href="#"></a></li>
-          </ul>
-        </div>
-        <div class="col">
-          <div class="col">
-            <ul>
-              <li><a href="#"></a></li>
-              <li><a href="#"></a></li>
-            </ul>
-          </div>
-        </div>
-      </div>
-      <div class="center">
-        <p style="margin:0;">© Solalim 2021 - Tous droits réservés - Design : <a href="http://raf.pm" target="_blank">RAF</a></p>
-        <p><a href="mentions-legales.html">Mentions légales</a></p>
-      </div>
-  </footer>
-
-</body>
-
-</html>
+{% endblock %}

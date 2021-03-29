@@ -9,8 +9,19 @@
 <section class="container margetopXl margebot">
     <h1>Administration</h1>
 
+    {% if user.is_staff %}
+    <div id="staff-admin" class="margetop">
+        <h2>Administration globale</h2>
+        <ul>
+            <li><a href="">Accès à la base de donnée</a></li>
+            <li><a href="">Usurper une identité</a></li>
+            <li><a href="">Journal des actions utilisateur</a></li>
+        </ul>
+    </div>
+    {% endif %}
+
     <div id="messagerie-admin" class="margetop">
-        <h2>Messages des administrateurs</h2>
+        <h2>Messagerie des administrateurs</h2>
         {% for msg in messages %}
         <p class="admin-message">
             {% if msg.network %}
@@ -26,10 +37,6 @@
 
     <ul>
         <li><a href="/set-message">Poster un nouveau message administrateur</a></li>
-
-        {% if user.is_staff %}
-        <li><a href="">Usurper une identité</a></li>
-        {% endif %}
 
         <!-- Pour chaque circuit -->
         {% for mb in memberships %}
