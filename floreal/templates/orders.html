@@ -30,9 +30,9 @@
           </a>
         </li>
           <ul>
-            {% for pd in pd.products %}
+            {% for pd in dd.products %}
             {% with pc=pd.purchase %}
-            <li><strong>{{pc.quantity}}</strong> {{pd.unit}} de <strong>{{pd.name</strong></li>
+            <li><strong>{{pc.quantity|floatformat}}</strong> {{pd.unit}} de <strong>{{pd.name}}</strong></li>
             {% endwith %}
             {% endfor %}
             {% if dd.total.price %} <span class="prix">{{dd.total.price}} €</span> {% endif %}

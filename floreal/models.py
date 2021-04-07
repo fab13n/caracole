@@ -64,6 +64,8 @@ class FlorealUser(models.Model):
 
     @property
     def display_number(self):
+        if self.phone is None:
+            return None
         if not hasattr(self, "_display_number"):
             n = "".join(k for k in self.phone if k.isdigit())
             if len(n) == 10:

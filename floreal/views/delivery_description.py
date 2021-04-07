@@ -499,7 +499,15 @@ class UserDeliveryDescription(object):
                 "name": self.delivery.name,
                 "description": self.delivery.description,
             },
-            "network": {"id": self.network.id, "name": self.network.name},
+            "network": {
+                "id": self.network.id,
+                "name": self.network.name,
+                "description": self.network.description
+            },
+            "producer": {
+                "name": prod.first_name + " " + prod.last_name,
+                "description": prod.florealuser.description
+            } if (prod := self.delivery.producer) else None,
             "products": [
                 {
                     "id": pd.id,

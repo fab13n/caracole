@@ -4,166 +4,165 @@
 
 
 {% block head %}
-  <script type='text/javascript'>
+<style type="text/css">
+  td.product-image img {
+    object-fit: contain;
+    object-position: center;
+    width: 93px;
+    height: 93px;
+  }
+</style>
+ 
+<script type='text/javascript'>
 
-    let DATA;
-    //let PRODUCTS = {}; // id -> product record
-    //let SOME_PACKAGED = false;
-    //let SOME_WEIGHTED = false;
+  let DATA;
+  let PRODUCTS = {}; // id -> product record
 
-    //let OUT_OF_STOCK_COLSPAN = 5;
-    //let DESCRIPTION_COLSPAN = 6;
-    //let TOTAL_PADDING_RIGHT_COLSPAN = 1;
-    //let SUBMIT_PADDING_COLSPAN = 7;
+  /* Load products, delivery, and saved purchases description */
+  async function load_purchases() {
+    const res = await fetch("{% url 'user_purchases_json' delivery=delivery.id %}");
+    DATA = await res.json();
+    //SOME_PACKAGED = DATA.products.find(pd => pd.quantity_per_package !== null) !== undefined;
+    //SOME_WEIGHTED = DATA.products.find(pd => pd.unit_weight !== 0) !== undefined;
+    DATA.products.forEach(pd => { PRODUCTS[pd.id] = pd; })
+  }
 
-    /* Load products, delivery, and saved purchases description */
-    async function load_purchases() {
-      const res = await fetch("{% url 'user_purchases_json' delivery=delivery.id %}");
-      DATA = await res.json();
-      //SOME_PACKAGED = DATA.products.find(pd => pd.quantity_per_package !== null) !== undefined;
-      //SOME_WEIGHTED = DATA.products.find(pd => pd.unit_weight !== 0) !== undefined;
-      DATA.products.forEach(pd => { PRODUCTS[pd.id] = pd; })
+  /* TODO: add multiplication/pluralization when applicable. */
+  function render_unit(u) { return u; }
+
+  /* Reflect the content of `DATA` into widgets. */
+  function render() {
+    $("#delivery-name").text(DATA.delivery.name);
+    $("#delivery-id").val(DATA.delivery.id);
+    $("#network-name").text(DATA.network.name);
+    $("#user-name").text(DATA.user.first_name + " " + DATA.user.last_name);
+    if (DATA.delivery.description) {
+      $("#delivery-description").html(DATA.delivery.description);
     }
 
-    /* TODO: add multiplication/pluralization when applicable. */
-    function render_unit(u) { return u; }
-
-    /* Reflect the content of `DATA` into widgets. */
-    function render() {
-      $("#delivery-name").text(DATA.delivery.name);
-      $("#delivery-id").val(DATA.delivery.id);
-      $("#network-name").text(DATA.network.name);
-      $("#user-name").text(DATA.user.first_name + " " + DATA.user.last_name);
-      if(DATA.delivery.description) {
-        $("#delivery-description").html(DATA.delivery.description);
-      }
-
-      //if(SOME_PACKAGED) {
-      //  OUT_OF_STOCK_COLSPAN++;
-      //  DESCRIPTION_COLSPAN++;
-      //  TOTAL_PADDING_RIGHT_COLSPAN++;
-      //  SUBMIT_PADDING_COLSPAN++;
-      //} else {
-      //  $(".if-some-packages").remove();
-      //}
-      //if(SOME_WEIGHTED) {
-      //  // TODO
-      //}
-
-      //$("td.total-padding-right").attr("colspan", TOTAL_PADDING_RIGHT_COLSPAN);
-      //$("td.submit-padding").attr("colspan", SUBMIT_PADDING_COLSPAN);
-      
-
-      let rows = ``;
-      DATA.products.forEach((pd, i) => {
-        const pc = pd.purchase;
-        //const parity = i%2 ? "odd" : "even";
-        let input;
-        if(pc.max_quantity === 0) {
-          rows += `<tr><td colspan="5" class="out-of-stock">(Produit épuisé)</td></tr>`;
-        } else {
-          rows += `
+    let rows = ``;
+    DATA.products.forEach((pd, i) => {
+      const pc = pd.purchase;
+      //const parity = i%2 ? "odd" : "even";
+      let input;
+      if (pc.max_quantity === 0) {
+        rows += `<tr><td colspan="5" class="out-of-stock">(Produit épuisé)</td></tr>`;
+      } else {
+        rows += `
             <tr id="row-${pd.id}" class="row-produit">
-              <td rowspan="2" class="product-image"><img src="${pd.image}" /></td>
+              <td rowspan="${pd.description ? 2 : 1}" class="product-image">
+                ${pd.image ? '<img src="' + pd.image + '"/>' : ''}
+              </td>
               <td class="product-name">${pd.name}</td>
               <td class="quantity">
                 <input
                   class="ordered_quantity"
                   maxlength="64"
-                  name="pd${pd.id}"
+                  name="pd-${pd.id}"
                   type="number"
                   step="${pd.quantum}"
                   min="0"
-                  value="0"
+                  max="${pd.purchase.max_quantity}"
+                  value="${pd.purchase.quantity}"
                 />
-              </td>
+                <div class="quantity-nav">
+                  <div class="quantity-button quantity-up">+</div>
+                  <div class="quantity-button quantity-down">-</div>
+                </div>
+                </td>
               <td class="product-unit"> ${render_unit(pd.unit)}</td>
               <td class="unit-price">${pd.price.toFixed(2)} € / ${pd.unit}</td>
               <td class="price">${pc.price.toFixed(2)} €</td>
             </tr>`;
-          if(pd.description) rows += `
+        if (pd.description) rows += `
             <tr class="texte-produit">
               <td colspan="5">
                 ${pd.description}
               </td>
             </tr>`;
-      $("#products-table tbody").append(rows);
-    }
-
-    function recompute() {
-      var total_price = 0;
-      var total_weight = 0;
-      $("input.quantity").each(function(i, e) {
-        const id = Number($(e).attr('name').split("-")[1]);
-        const q = Number($(e).val());
-        const pd = PRODUCTS[id];
-        const pc = pd.purchase;
-        const price = q * pd.price; 
-        $(`#pd-${id} span.price`).text(price.toFixed(2));
-        total_price += price;
-        total_weight += q * pd.unit_weight;
-      });
-      $("#total-price").text(total_price.toFixed(2));
-      $("#total-weight").text(total_weight.toFixed(0));
-    }
-
-    function reset_order(id) {
-      $(`[name=pd-${id}]`).val(0);
-      recompute();
-    }
-
-    $(document).ready(async () => {
-      /* Turn plain inputs into Bootstrap inputs. */
-      await load_purchases();
-      render();
-
-      $("input").addClass("form-control");
-
-      /* Add a tooltip when hovering the line-canceling button. */
-      $("td.reset")
-          .attr("data-toggle", "tooltip")
-          .attr("title", "Annuler l'achat");
-
-      /* For each line with a max quantity, add a tooltip displaying it. */
-      $("#products-table tr").each(function () {
-          var max = $(this).find("input").attr("max");
-          if (max) $(this)
-              .attr("data-toggle", "tooltip")
-              .attr("title", "maximum = " + max);
-      });
-
-      /* When a row is clicked, focus on input and select all of its content. */
-      $("tr").click(function() { $(this).find("input").select().focus(); })
-
-      /* Recompute totals after each change as well as after laoding. */
-      $("#products-table input").change(recompute);
-      recompute();
+      }
     });
+    $("#products-table tbody").append(rows);
+    /* Now let's wire the up/down buttons with the matching inputs. */
+    $('.row-produit').each(function () {
+      const row = $(this);
+      const pd_id = Number(row.attr('id').split("-")[1]);
+      const input = row.find('input[type="number"]');
+      const max = input.attr('max');
+      const quantum = PRODUCTS[pd_id].quantum;
+      row.find('.quantity-up').click(function () {
+        const oldValue = parseFloat(input.val());
+        const newValue = (oldValue >= max) ? oldValue : oldValue + quantum;
+        row.find("input").val(newValue);
+        row.find("input").trigger("change");
+      });
+      row.find('.quantity-down').click(function () {
+        const oldValue = parseFloat(input.val());
+        const newValue = oldValue < quantum ? oldValue : oldValue - quantum;
+        row.find("input").val(newValue);
+        row.find("input").trigger("change");
+      });
+    });
+    $(".quantity input").change(recompute);
+    recompute();
+  }
 
-  </script>
+  function recompute() {
+    let total_price = 0;
+    //let total_weight = 0;
+    $(".row-produit").each(function (i, e) {
+      const row = $(e);
+      const id = Number(row.attr('id').split("-")[1]);
+      const q = Number(row.find("input").val());
+      const pd = PRODUCTS[id];
+      const pc = pd.purchase;
+      const price = q * pd.price;
+      row.find(".price").text(price.toFixed(2));
+      total_price += price;
+      //total_weight += q * pd.unit_weight;
+    });
+    $(".total_price").text(total_price.toFixed(2));
+    //$(".total_weight").text(total_weight.toFixed(0));
+  }
+
+  function reset_order(id) {
+    $(`[name=pd-${id}]`).val(0);
+    recompute();
+  }
+
+  function confirm_cancel() {
+    if (confirm("Annuler les modifications de la commande ?")) {
+      window.history.back();
+    }
+  }
+  $(document).ready(async () => {
+    /* Turn plain inputs into Bootstrap inputs. */
+    await load_purchases();
+    render();
+    /* Recompute totals after each change as well as after laoding. */
+  });
+</script>
 {% endblock %}
 
 
 {% block content %}
 <section class="container margetopXl margebot">
-    <h1 class=" h2-like couleur-prim"><span id='devlivery-date'>—</span> | <span id='delivery-name'>...</span></h1>
-    <h3><span id='network-name'>...</span></h3>
+  <h1 class=" h2-like couleur-prim"><span id='delivery-date'>—</span> | <span id='delivery-name'>...</span></h1>
+  <h3><span id='network-name'>...</span></h3>
 
-    <div class="container margetop row stretch cent">
-      <p class="commandes-detail-intro" id="delivery-description">
-        Lorem Ipsum
-      </p>
-      <!-- Ne faire apparaitre que s'il y a une photo -->
-      <div class="photo-producteur" 
-           id="producer-image" 
-           style="background-image:url('/static/images/index-intro.jpg');
+  <div class="container margetop row stretch cent">
+    <p class="commandes-detail-intro" id="delivery-description">
+    </p>
+    <!-- Ne faire apparaitre que s'il y a une photo -->
+    <div class="photo-producteur" id="producer-image" style="background-image:url('/static/images/index-intro.jpg');
                   background-size: cover; 
                   background-position: center;"></div>
-      <!-- end -->
-    </div>
+    <!-- end -->
+  </div>
 
-    <div class="container">
+  <div class="container">
 
+    <form method="POST">
 
       <table id="products-table">
         <tbody>
@@ -176,58 +175,31 @@
             <th>Sous-Total</th>
           </tr>
 
-          <tr id="row-10941" class="row-produit">
-            <td rowspan="2" class="product-image"><img src="images/image-produit.jpg" /></td>
-            <td class="product-name">Produit</td>
-            <td class="quantity"><input id="pd10941-ordered_quantity" maxlength="64" name="pd10941" type="number" step="1.00" min="0" value="0"></td>
-            <td class="product-unit"> unité(s)</td>
-            <td class="unit-price"><span id="pd10941-unit_price">50.00</span> € / unité</td>
-            <td class="price"><span class="pd10941-ordered_price">0.00</span> €</td>
-          </tr>
-
-          <tr id="row-txt-10941" class="texte-produit">
-            <td colspan="5">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean condimentum ipsum leo, nec consectetur nisi placerat viverra. Nulla lobortis mi et elit luctus, vulputate fermentum justo.
-            </td>
-          </tr>
-
-          <tr id="row-10941" class="row-produit">
-            <td rowspan="2" class="product-image"></td>
-            <td class="product-name">Produit</td>
-            <td class="quantity"><input id="pd10941-ordered_quantity" maxlength="64" name="pd10941" type="number" step="1.00" min="0" value="0"></td>
-            <td class="product-unit">unité(s)</td>
-            <td class="unit-price"><span id="pd10941-unit_price">50.00</span> € / unité</td>
-            <td class="price"><span class="pd10941-ordered_price">0.00</span> €</td>
-          </tr>
-
-          <tr id="row-txt-10941" class="texte-produit">
-            <td colspan="5">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean condimentum ipsum leo, nec consectetur nisi placerat viverra. Nulla lobortis mi et elit luctus, vulputate fermentum justo.
-            </td>
-          </tr>
-
-
           <tr class="total">
             <td colspan="4"></td>
             <td class="total-padding">Total</td>
             <td class="total_cell"><span class="total_price">0.00</span>&nbsp;€</td>
           </tr>
 
+          <!--
           <tr class="total-padding">
             <td colspan="4"></td>
             <td>Poid total</td>
             <td class="total_cell"><span class="total_weight">0</span>&nbsp;kg</td>
           </tr>
+          -->
 
         </tbody>
       </table>
 
       <div class="row container xslim">
         <input class="button-primary" type="submit" value="Valider la commande">
-        <a class="button retour" href="javascript:history.back()">Retour</a>
+        <a class="button retour" href="javascript:confirm_cancel()">Retour</a>
       </div>
+      <input type='hidden' id='delivery-id' name='delivery-id' value='...' />
+      {% csrf_token %}  
+    </form>
+  </div>
 
-    </div>
-
-  </section>
+</section>
 {% endblock %}

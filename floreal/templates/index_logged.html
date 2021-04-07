@@ -39,6 +39,7 @@
       <div class="col33">
         {% with img=mb.network.image_description %}
         <a href="circuit.html">
+          <!-- TODO: use img with object-fit and object-position -->
           <div class="circuits-image" 
                style="background-image: url('{% if img %}{{img.url}}{% else %}{% static  'images/image-circuit.jpg' %}{% endif %}'); 
                       background-size: cover; 

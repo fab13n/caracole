@@ -22,9 +22,10 @@ def edit_user_purchases(request, delivery):
     user = request.user
     if delivery.state != delivery.ORDERING_ALL:
         return HttpResponseForbidden("Cette commande n'est pas ouverte.")
+    # TODO check user membership against delivery's network.
     if request.method == 'POST':
         if _parse_form(request):
-            return redirect("index")
+            return redirect("orders")
         else:
             # TODO: display errors in template
             return redirect("edit_user_purchases", delivery=delivery.id)
@@ -44,6 +45,7 @@ def _parse_form(request):
     """
     d = request.POST.dict()
     dv = m.Delivery.objects.get(id=int(d['delivery-id']))
+    # TODO: retrieve delivery from URL, where it's been checked for authorizations.
     quantities = { } # pd.id -> quantity
     for name, val in d.items():
         bits = name.split("-")
