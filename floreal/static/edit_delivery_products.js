@@ -40,8 +40,6 @@ function reflect_description(r) {
               content_css: '/static/floreal.css',
               language: 'fr_FR'
             });
-          
-            //ta.summernote();
         }
     } else {
         row.hide();
@@ -52,7 +50,7 @@ function reflect_description(r) {
 /* The unit is reapeated all around the row. When the input field changes, reflect it. */
 function reflect_unit_change(r) {
     const P = "#r" + r;
-    const content = $(P+" .unit input").val();
+    let content = $(P+" .unit input").val();
     if(/^\d.*/.test(content)) { content = "×"+content; }
     $(P+" .unit-mirror").text(content);
     $(P+" .if-unit-mirror")[content ? 'show' : 'hide']();
@@ -201,7 +199,7 @@ function add_row() {
     </tr>
     <tr id="r${r}-description">
       <td></td>
-      <td class="description" colspan="15">
+      <td class="pd-description" colspan="15">
         <textarea name="r${r}-description" id="r${r}-description-editor" rows="5"></textarea>
       </td>
     </tr>`);
