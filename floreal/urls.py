@@ -22,8 +22,13 @@ register_converter(Identifier, "id")
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path('admin.html', views.admin, name='admin'),
+    path('admin_circuit.html', views.admin, name='admin'),
     path('orders.html', views.orders, name='orders'),
+    path('user.html', views.user, name='user'),
+    path('admin_db', admin.site.urls),
+    path('impersonate/', include('impersonate.urls')),
+
+    path('nw-<id:network>/presentation.html', views.circuit, name='circuit'),
     path('dv-<id:delivery>/buy.html', views.edit_user_purchases, name='edit_user_purchases'),
     path('dv-<id:delivery>/buy.json', views.view_purchases_json, kwargs={"user": True}, name='user_purchases_json'),
 
@@ -79,8 +84,6 @@ urlpatterns = [
     path('journal', views.journal, name='view_journal'),
     path('charte.html', TemplateView.as_view(template_name='charte.html'), name='charte'),
 
-    path('admin', admin.site.urls),
-    path('impersonate/', include('impersonate.urls')),
  
     path('accounts/register', views.user_register, name="user_register"),
     path('accounts/registration_post.html', views.candidacy, name="registration_post"),

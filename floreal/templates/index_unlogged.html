@@ -58,7 +58,7 @@
     <div class="row infini">
       {% for nw in networks %}
       <div class="col33">
-        <a href="circuit.html">
+        <a href="{% url 'circuit' network=nw.id %}">
           {% with img=nw.image_description %}
           <div class="circuits-image" 
                style="background-image: url('{% if img %}{{img.url}}{% else %}{% static 'images/image-circuit.jpg' %}{% endif %}'); 
@@ -66,15 +66,15 @@
                       background-position: center;"></div>
           {% endwith %}
         </a>
-        <a href="circuit.html"><h3>{{nw.name}}</h3></a>
+        <a href="{% url 'circuit' network=nw.id %}"><h3>{{nw.name}}</h3></a>
         {{nw.short_description|safe}}
         <div class="row">
             <!--
             {% if user.is_staff %}
-            <a href="circuit.html" class="button admin">Administrer</a>
+            <a href="{% url 'circuit' network=nw.id %}" class="button admin">Administrer</a>
             {% endif %}
             -->
-            <a href="circuit.html" class="button button-primary">Rejoindre</a>
+            <a href="{% url 'circuit' network=nw.id %}" class="button button-primary">Rejoindre</a>
         </div>
       </div>
       {% endfor %}

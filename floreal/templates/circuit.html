@@ -1,0 +1,62 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block content %}
+  <section class="container margetopXl margebot">
+    <h1>{{network.name}}</h1>
+    <div class="container slim margetop">
+      {% if network.image_description %}
+      <img src="{{network.image_description.url}}" width="100%"/>
+      {% endif %}
+      <div class="row">
+        <!--
+        <div class="col">
+          <p class="circuits-info">Lieu de livraison : <strong>Endroit renseigné</strong></p>
+          <p class="circuits-info">Jour : <strong>Jour et fréquence</strong></p>
+          <p class="circuits-info">Crée le 3 juin 2019</p>
+        </div>
+        -->
+        {% if network.description %}
+        <div class="col">
+          <div class="row end">
+            {% if user_status == 'non-member' %}
+            <button class="button-primary" type="submit" name="button">S'inscrire</button>
+            {% elif user_status == 'member' %}
+            <a href="circuit.html" class="button inscrit">Inscrit</a>
+            <a href="#" class="button quitter">Quitter</a>
+            {% elif user_status == 'candidate' %}
+            <a href="circuit.html" class="button attente">En attente</a>
+            <a href="#" class="button quitter">Quitter</a>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if has_open_deliveries %}
+      <div><p>
+        <a href="{% url 'orders' %}">Commandes en cours !</a>
+    </p></div>
+      {% endif %}
+
+      <div class="circuits-info-editor">
+        {% if network.description %}
+        {{network.description|safe}}
+        {% elif network.short_description %}
+        {{network.short_description|safe}}
+        {% endif %}
+      </div>
+      <div class="row">
+        {% if user_status == 'non-member' %}
+        <button class="button-primary" type="submit" name="button">S'inscrire</button>
+        {% elif user_status == 'member' %}
+        <a href="#" class="button inscrit">Inscrit</a>
+        <a href="#" class="button quitter">Quitter</a>
+        {% elif user_status == 'candidate' %}
+        <a href="circuit.html" class="button attente">En attente</a>
+        <a href="#" class="button quitter">Quitter</a>
+        {% endif %}
+        <a class="button retour" href="javascript:history.back()">Retour</a>
+      </div>
+    </div>
+  </section>
+{% endblock %}

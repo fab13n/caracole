@@ -147,6 +147,7 @@
 {% endblock %}
 
 {% block content %}
+<section class="container margetopXl margebot">
 <h1>Modifier la commande</h1>
 <form method="post" action="" enctype="multipart/form-data" id="form">
   <table id="dv-table">
@@ -176,6 +177,8 @@
   <p>
     <textarea name="dv-description" id="dv-description" rows="10"></textarea>
   </p>
+
+  <h3>Produits proposés</h3>
   <table id="products-table">
     <thead>
       <tr>
@@ -218,4 +221,5 @@
     {% csrf_token %}
   </p>
 </form>
+</section>
 {% endblock %}

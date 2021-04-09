@@ -55,7 +55,7 @@ def admin(request):
         'user': request.user,
         'memberships': m.NetworkMembership.objects.filter(user=request.user)
     }
-    return render(request,'admin.html', vars)
+    return render(request,'admin_circuits.html', vars)
 
 @login_required()
 def orders(request):
@@ -79,9 +79,27 @@ def orders(request):
 @login_required()
 def order(request):
     vars = {
-
     }
     return render(request, 'order.html',vars)
+
+@login_required()
+def user(request):
+    vars = {}
+    return render(request, 'user.html',vars)
+
+@login_required()
+def circuit(request, network):
+    nw = get_network(network)
+    mb = m.NetworkMembership.objects.filter(user=request.user, network=nw).first()
+    status = 'non-member' if mb is None else 'member' if mb.is_buyer else 'candidate' if mb.is_candidate else 'non-member'
+    vars = {
+        'network': nw,
+        'user': request.user,
+        'has_open_deliveries': status == 'member' and m.Delivery.objects.filter(state=m.Delivery.ORDERING_ALL).exists(),
+        'user_status': status
+    }
+    return render(request, 'circuit.html',vars)
+
 
 
 @login_required()

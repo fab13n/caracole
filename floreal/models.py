@@ -8,19 +8,33 @@ from django.db import models
 from django.db.models import Sum
 from html2text import html2text
 from django.utils import timezone
-
+from django.utils.text import slugify
+from typing import List
 from floreal.francais import Plural, articulate, plural
 
-def _mnemonic(obj):
-    """
-    Generate a mnemonic name for something that might be referred to in a URL.
-    Must be unique within its class, all lowercase letters/numbers.
-    Use pk numbers if the natural name is already taken: admins can always change
-    it if they dislike it.
 
-    My guess is, the default is the letters in the name, lowercased, all other
-    characters ignored.
-    """
+class IdentifiedBySlug(models.Model):
+    """Inherit from this and set the field(s) involved in identification to get a unique slug identifier.
+    To be used with: Network, Delivery, NetworkSubgroup, maybe FlorealUser."""
+
+    SLUG_FIELDS: List[str] = []
+    SLUG_PREFIX_LENGTH = 24
+    slug = models.SlugField(unique=True, null=True)
+
+    class Meta:
+        abstract = True
+
+    def save(self, **kwargs):
+        values = [getattr(self, name) for name in self.SLUG_FIELDS]
+        slug_prefix = slug = slugify(" ".join(values))[:self.SLUG_PREFIX_LENGTH]
+        i = 1
+        # TODO this part is open to race conditions. Needs one lock per class.
+        while self.objects.filter(slug=slug).exists:
+            i += 1
+            slug = slug_prefix + "-" + str(i)
+        self.slug = slug
+        super().save(**kwargs)
+
 
 def _user_network_getter(**kwargs):
     """
@@ -40,7 +54,6 @@ def _user_network_getter(**kwargs):
         )
 
     return user_of_network
-
 
 User.staff_of_network = _user_network_getter(is_staff=True)
 User.buyer_of_network = _user_network_getter(is_buyer=True)

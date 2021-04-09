@@ -1,0 +1,21 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block content %}
+  <section class="container margetopXl margebot">
+    <div class="row baseline">
+    <div><h1>Mon compte</h1>
+    <h2 class="couleur-prim">{{user.first_name}} {{user.last_name}}</h2>
+  </div>
+    <button class="button attente" type="submit" name="button">Se deconnecter</button>
+    </div>
+
+    <div class="container xslim row cent">
+      <ul>
+        <li> <a href="{% url 'view_history' %}">Historique des commandes passées</a> </li>
+        <li> <a href="{% url 'index' %}#circuits">Gérer mes inscriptions aux circuits</a> </li>
+        <li> <a href="#">Modifier mes informations (TODO)</a> </li>
+        <li> <a href="#">Changer de mot de passe (TODO)</a> </li>
+      </ul>
+    </div>
+  </section>
+{% endblock %}
