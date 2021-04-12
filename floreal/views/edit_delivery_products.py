@@ -39,6 +39,7 @@ def _serialize_product(pd):
     }
 
 def delivery_products_json(request, delivery):
+    # TODO: this ought to be a delivery_description
     dv = get_delivery(delivery)
     
     if request.user in dv.network.staff:
@@ -65,6 +66,8 @@ def delivery_products_json(request, delivery):
         'id': dv.id,
         'name': dv.name,
         'state': dv.state,
+        'freeze-date': str(d) if (d:=dv.freeze_date) is not None else None,
+        'distribution-date': str(d) if (d:=dv.distribution_date) is not None else None,
         'description': dv.description,
         'producers': producers,
         'producer': dv.producer.id if dv.producer is not None else 0,
@@ -190,7 +193,13 @@ def _parse_form(request, is_staff):
             dv.producer_id = None
         else:
             dv.producer_id = int(d['producer'])
+    if (date:=d['freeze-date']):
+        dv.freeze_date = date
+    if (date:=d['distribution-date']):
+        dv.distribution_date = date
+
     dv.save()
+
 
     for r in range(int(d['n_rows'])):
         fields = _get_pd_fields(d, request.FILES, 'r%d' % r)

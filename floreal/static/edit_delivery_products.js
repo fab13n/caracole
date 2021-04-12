@@ -285,11 +285,47 @@ function submit_if_valid(then_leave) {
     $("#form").submit()
 }
 
+async function load_delivery() {
+  const response = await fetch("products.json");
+  const dv = await response.json();
+
+  $("#dv-id").val(dv.id);
+  $("#dv-state").val(dv.state);
+  // TODO I should restrict allowed states when the delivery is producer-edited
+
+  if(dv['freeze-date']) {
+    $("#freeze-date").val(dv['freeze-date']);
+  }
+  if(dv['distribution-date']) {
+    $("#distribution-date").val(dv['distribution-date']);
+  }
+
+  dv.producers.forEach(p => {
+    $("#producer").append(`<option value="${p.id}" ${p.selected?"selected":""}>${p.name}</option>`);
+  });
+  $("#producer").val(dv.producer);
+
+  /* Upgrade widgets to bootstrap-select. */
+  $("select").selectpicker;
+
+  /* Only fill the name for non-newly-created deliveries.
+   * For new ones the user has to set it explicitly. */
+  const url_params = new URLSearchParams(window.location.search);
+  if(! url_params.get('new')) { $("#dv-name").val(dv.name); }
+
+  /* Generate and fill product rows */
+  dv.products.forEach(pd => fill_row(add_row(), pd));
+
+  /* Add a couple of empty rows & disable the "move up" button of the first one.
+   * "move down" of the last one is handled whenever blank lines are inserted. */
+  add_blank_products();
+  $("#r1 td.place button.up").attr("disabled", "disabled");
+}
 
 $(document).ready(function() {
 
     /* Turn plain inputs into Bootstrap inputs. */
-    $("input,select,button").addClass("form-control");
+    $("select").addClass("form-control");
 
     /* Turn plain textareas into TinyMCE WYSIWYG editors. */
     tinymce.init({
@@ -298,30 +334,6 @@ $(document).ready(function() {
         language: 'fr_FR'
     });
 
-    $.getJSON("products.json", function(dv) {
-        $("#dv-id").val(dv.id);
-        $("#dv-state").val(dv.state);
-        // TODO I should restrict allowed states when the delivery is producer-edited
+    load_delivery();
 
-        dv.producers.forEach(p => {
-          $("#producer").append(`<option value="${p.id}" ${p.selected?"selected":""}>${p.name}</option>`);
-        });
-        $("#producer").val(dv.producer);
-
-        /* Upgrade widgets to bootstrap-select. */
-        $("select").selectpicker;
-
-        /* Only fill the name for non-newly-created deliveries.
-         * For new ones the user has to set it explicitly. */
-        const url_params = new URLSearchParams(window.location.search);
-        if(! url_params.get('new')) { $("#dv-name").val(dv.name); }
-
-        /* Generate and fill product rows */
-        dv.products.forEach(pd => fill_row(add_row(), pd));
-
-        /* Add a couple of empty rows & disable the "move up" button of the first one.
-         * "move down" of the last one is handled whenever blank lines are inserted. */
-        add_blank_products();
-        $("#r1 td.place button.up").attr("disabled", "disabled");
-      });
 })

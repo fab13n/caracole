@@ -242,7 +242,12 @@ class FlatDeliveryDescription(object):
 
     def to_json(self, nested=False):
         r = {
-            "delivery": {"id": self.delivery.id, "name": self.delivery.name},
+            "delivery": {
+                "id": self.delivery.id,
+                "name": self.delivery.name,
+                "freeze": str(d) if (d:=self.delivery.freeze_date) is not None else None,
+                "distribution": str(d) if (d:=self.delivery.distribution_date) is not None else None,
+            },
             "network": {"id": self.network.id, "name": self.network.name},
             "subgroup": None
             if self.subgroup is None
@@ -406,7 +411,12 @@ class GroupedDeliveryDescription(object):
 
     def to_json(self):
         return {
-            "delivery": {"id": self.delivery.id, "name": self.delivery.name},
+            "delivery": {
+                "id": self.delivery.id,
+                "name": self.delivery.name,
+                "freeze": str(d) if (d:=self.delivery.freeze_date) is not None else None,
+                "distribution": str(d) if (d:=self.delivery.distribution_date) is not None else None,
+            },
             "network": {
                 "id": self.delivery.network.id,
                 "name": self.delivery.network.name,
