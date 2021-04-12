@@ -10,7 +10,9 @@
     <h1>Commandes en cours</h1>
 
     <div class="container slim margetop">
-      {% for dd in delivery_descriptions %}
+      {% for nw, descriptions in networks_and_deliveries %}
+      <a id="{{nw.slug}}"/>
+      {% for dd in descriptions %}
       <p class="commandes-entete"><span>Commande</span> Distribution</p>
       <ul class="commandes">
         <li>
@@ -38,6 +40,7 @@
             {% if dd.total.price %} <span class="prix">{{dd.total.price}} €</span> {% endif %}
           </ul>
       </ul>
+      {% endfor %}
       {% endfor %}
     </div>
 

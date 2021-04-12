@@ -14,25 +14,37 @@ from floreal.francais import Plural, articulate, plural
 
 
 class IdentifiedBySlug(models.Model):
-    """Inherit from this and set the field(s) involved in identification to get a unique slug identifier.
-    To be used with: Network, Delivery, NetworkSubgroup, maybe FlorealUser."""
+    """
+    Common ancestor of classes for which we want a slug,
+    i.e. a URL-friendly unique identifier that's easier to remember than numeric primary keys.
+    """
 
-    SLUG_FIELDS: List[str] = []
-    SLUG_PREFIX_LENGTH = 24
     slug = models.SlugField(unique=True, null=True)
 
     class Meta:
         abstract = True
 
+    def slug_prefix(self):
+        return slugify(self.name)[:24].strip("-")
+
     def save(self, **kwargs):
-        values = [getattr(self, name) for name in self.SLUG_FIELDS]
-        slug_prefix = slug = slugify(" ".join(values))[:self.SLUG_PREFIX_LENGTH]
-        i = 1
-        # TODO this part is open to race conditions. Needs one lock per class.
-        while self.objects.filter(slug=slug).exists:
-            i += 1
-            slug = slug_prefix + "-" + str(i)
-        self.slug = slug
+        if self.slug is None:
+            # Find every object whose slug starts with the computed prefix, and add a number suffix if needed.
+            # Make sure to perform only one DB request.
+            #
+            # Notice that this is only used on the first save of reasonably rarely created objects 
+            # (e.g. products and purchases aren't identified by slugs), so it's probably not worth
+            # optimizing with text_pattern_ops DB indexes or the likes.
+            slug_prefix = slug = self.slug_prefix()
+            similar_slugs = self.__class__.objects.filter(slug__startswith=slug_prefix).only("slug")
+            used_suffixes = {slug[len(slug_prefix):] for obj in similar_slugs if (slug:=obj.slug) is not None}
+            if "" not in used_suffixes:
+                self.slug = slug_prefix
+            else:
+                suffix = -1
+                while str(suffix) in used_suffixes:
+                    suffix -= 1
+                self.slug = slug_prefix + str(suffix)
         super().save(**kwargs)
 
 
@@ -62,7 +74,7 @@ User.candidate_of_network = _user_network_getter(is_candidate=True)
 User.regulator_of_network = _user_network_getter(is_regulator=True)
 
 
-class FlorealUser(models.Model):
+class FlorealUser(IdentifiedBySlug):
     """
     Associate a phone number to each user.
     """
@@ -74,6 +86,9 @@ class FlorealUser(models.Model):
 
     def __str__(self):
         return f"{self.user.first_name} {self.user.last_name}: {self.display_number}"
+
+    def slug_prefix(self):
+        return slugify(f"{self.user.first_name} {self.user.last_name}")
 
     @property
     def display_number(self):
@@ -100,7 +115,7 @@ class FlorealUser(models.Model):
         return self._uri
 
 
-class NetworkSubgroup(models.Model):
+class NetworkSubgroup(IdentifiedBySlug):
     network = models.ForeignKey("Network", on_delete=models.CASCADE)
     name = models.CharField(max_length=32)
 
@@ -171,7 +186,7 @@ class NetworkMembership(models.Model):
         # TODO unique network*user
 
 
-class Network(models.Model):
+class Network(IdentifiedBySlug):
     """
     One distribution network. Deliveries are passed for a whole network,
     then broken up into subgroups.
@@ -234,8 +249,7 @@ class Network(models.Model):
         return self.delivery_set.filter(state__in="BCD")
 
 
-
-class Delivery(models.Model):
+class Delivery(IdentifiedBySlug):
     """A command of products, for a given network. It's referenced by product
     descriptions and by purchase orders.
 

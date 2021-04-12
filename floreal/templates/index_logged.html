@@ -54,7 +54,9 @@
             <a href="{% url 'circuit' network=mb.network.id %}" class="button admin">Administrer</a>
             {% endif %}
             -->
-            {% if mb.is_buyer %}
+            {% if mb.has_open_orders %}
+            <a href="{% url 'orders' %}#{{mb.network.slug}}" class="button">Commander</a>
+            {% elif mb.is_buyer %}
             <a href="{% url 'circuit' network=mb.network.id %}" class="button inscrit">Inscrit</a>
             <a href="#" class="button quitter">Quitter</a>
             {% elif mb.is_candidate %}
