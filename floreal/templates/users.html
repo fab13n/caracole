@@ -1,39 +1,61 @@
-{% extends 'layout_narrow.html' %}
+{% extends 'layout.html' %}
 {% load static %}
 
 {% block head %}
-<link href="{% static 'bootstrap4-toggle/css/bootstrap4-toggle.min.css' %}" rel="stylesheet"/>
-<script src="{% static 'bootstrap4-toggle/js/bootstrap4-toggle.min.js' %}"></script>
 
-<script src="{% static 'bootstrap-select/js/bootstrap-select.min.js' %}"></script>
-<link href="{% static 'bootstrap-select/css/bootstrap-select.min.css' %}" rel="stylesheet"/>
+<!-- needed by bootstrap select, has to be loaded before bootstrap -->
+<script src="{% static 'popper/popper.js' %}"></script>
+
+<link href="{% static 'bootstrap/css/bootstrap.css' %}" rel="stylesheet" />
+<script src="{% static 'bootstrap/js/bootstrap.js' %}"></script>
+
+<link href="{% static 'bootstrap4-toggle/css/bootstrap4-toggle.css' %}" rel="stylesheet" />
+<script src="{% static 'bootstrap4-toggle/js/bootstrap4-toggle.js' %}"></script>
+
+<script src="{% static 'bootstrap-select/js/bootstrap-select.js' %}"></script>
+<link href="{% static 'bootstrap-select/css/bootstrap-select.css' %}" rel="stylesheet" />
 
 <style type="text/css">
-#user-form td:first-child {text-align: right;}
-.btn-primary {border-color: #811305; background-color: #811305;}
-.btn-primary:disabled {border-color: gray; background-color: gray;}
-.toggle-off {background-color: lightgray; color: gray;}
+  #user-form td:first-child {
+    text-align: right;
+  }
+
+  .btn-primary {
+    border-color: #811305;
+    background-color: #811305;
+  }
+
+  .btn-primary:disabled {
+    border-color: gray;
+    background-color: gray;
+  }
+
+  .toggle-off {
+    background-color: lightgray;
+    color: gray;
+  }
 </style>
 
 <script type='text/javascript'>
 
-let CURRENT_USER = null;
-let MODIFIED_USER = false;
-let USERS = {}; // id -> user record
-let NETWORKS = {}; // id -> network record
+  let CURRENT_USER = null;
+  let MODIFIED_USER = false;
+  let USERS = {}; // id -> user record
+  let NETWORKS = {}; // id -> network record
 
-function load_users() {
-  $.getJSON("{% url 'users_json' %}", data => {
+  async function load_users() {
+    const response = await fetch("{% url 'users_json' %}");
+    const data = await response.json();
     const select = $("#users");
     data.users.forEach(u => {
       select.append(`
-        <option 
-          data-tokens="${u.email}"
-          data-subtext="${u.email}" 
-          value="${u.id}"">
-          ${u.first_name} ${u.last_name}
-        </option>`)
-      USERS[u.id] = u; 
+      <option 
+        data-tokens="${u.email}"
+        data-subtext="${u.email}" 
+        value="${u.id}"">
+        ${u.first_name} ${u.last_name}
+      </option>`)
+      USERS[u.id] = u;
     });
     data.networks.forEach(nw => {
       NETWORKS[nw.id] = nw;
@@ -45,9 +67,9 @@ function load_users() {
     setTimeout(() => $("#users").selectpicker("toggle"), 0);
     select.on("change", (event) => {
       const u = USERS[event.target.value];
-      if(MODIFIED_USER) {
-        if(confirm(
-          "Sauvegarder d'abord les modifications pour "+
+      if (MODIFIED_USER) {
+        if (confirm(
+          "Sauvegarder d'abord les modifications pour " +
           CURRENT_USER.first_name + " " + CURRENT_USER.last_name + " ?"
         )) {
           // TODO wait for result?
@@ -57,60 +79,60 @@ function load_users() {
       render_user(u);
       CURRENT_USER = u;
       MODIFIED_USER = false;
-      $("#user-form").show(); 
+      $("#user-form").show();
     })
 
     const oui_non = (name) => `<input
-        class="user-modifier"
-        name="${name}" 
-        type="checkbox" 
-        data-toggle="toggle" 
-        data-on="Oui" 
-        data-off="Non"
-      />`;
+      class="user-modifier"
+      name="${name}" 
+      type="checkbox" 
+      data-toggle="toggle" 
+      data-on="Oui" 
+      data-off="Non"
+    />`;
 
     let template = data.networks.map(nw => `
-        <tr>
-          <th colspan="2">Réseau ${nw.name} (${nw.id})</th>
-        </tr>
-        <tr>
-          <td>Acheteur:</td>
-          <td>${oui_non("buyer-"+nw.id)}</td>
-        </tr>
-        <tr>
-          <td>Admin réseau:</td>
-          <td>${oui_non("staff-"+nw.id)}</td>
-        </tr>
-        <tr>
-          <td>Producteur:</td>
-          <td>${oui_non("producer-"+nw.id)}</td>
-        </tr>
-        <tr>
-          <td>Régulateur:</td>
-          <td>${oui_non("regulator-"+nw.id)}</td>
-        </tr>`).join("\n");
+      <tr>
+        <th colspan="2">Réseau ${nw.name} (${nw.id})</th>
+      </tr>
+      <tr>
+        <td>Acheteur:</td>
+        <td>${oui_non("buyer-" + nw.id)}</td>
+      </tr>
+      <tr>
+        <td>Admin réseau:</td>
+        <td>${oui_non("staff-" + nw.id)}</td>
+      </tr>
+      <tr>
+        <td>Producteur:</td>
+        <td>${oui_non("producer-" + nw.id)}</td>
+      </tr>
+      <tr>
+        <td>Régulateur:</td>
+        <td>${oui_non("regulator-" + nw.id)}</td>
+      </tr>`).join("\n");
 
-    if(data.is_staff) {
+    if (data.is_staff) {
       template += `
-        <tr>
-          <th colspan="2">Administrateur global?</th>
-        </tr>
-        <tr>
-          <td></td>
-          <td>${oui_non("is_staff")}</td>
-        </tr>
-        <!--<tr><td colspan="2">
-          <button 
-            id="deactivate"
-            class="btn btn-block btn-danger">
-            Désactiver le compte
-          </button>
-        </td></tr>-->`;
+      <tr>
+        <th colspan="2">Administrateur global?</th>
+      </tr>
+      <tr>
+        <td></td>
+        <td>${oui_non("is_staff")}</td>
+      </tr>
+      <!--<tr><td colspan="2">
+        <button 
+          id="deactivate"
+          class="btn btn-block btn-danger">
+          Désactiver le compte
+        </button>
+      </td></tr>-->`;
     }
     template += `
-      <tr><td colspan="2">
-        <button id="save" type="button" class="btn btn-block btn-primary">Sauvegarder</button>
-      </td></tr>`;
+    <tr><td colspan="2">
+      <button id="save" type="button" class="btn btn-block btn-primary">Sauvegarder</button>
+    </td></tr>`;
 
     // Insert and force bootstrap-style toggle look&feel
     $("#user-form")
@@ -119,7 +141,7 @@ function load_users() {
     $("#user-form [type=checkbox]").bootstrapToggle();
     $(".user-modifier").on('change', () => {
       // Once modifications occurred, saving them to server becomes allowed
-      if(! MODIFIED_USER && CURRENT_USER) {
+      if (!MODIFIED_USER && CURRENT_USER) {
         console.log(`user ${CURRENT_USER.id} is now modified`);
         MODIFIED_USER = true;
         $("#save").prop("disabled", false);
@@ -130,111 +152,106 @@ function load_users() {
       save_changes();
     });
     $("#deactivate").on("click", () => {
-      if(confirm(
+      if (confirm(
         `Désactiver complètement et définitivement le compte de ` +
         CURRENT_USER.first_name + " " + CURRENT_USER.last_name + " ?")) {
         console.log("TODO deactivate, deselect user (from select + hide form)");
-        }
-    });
-  });
-}
-
-/* Modify the HTML widgets so that they reflect user `u`'s state
- * according to JSON DB. */
-function render_user(u) {
-  console.log("Rendering user ",u);
-  Object.values(NETWORKS).forEach(nw =>
-    ["buyer", "staff", "producer", "regulator"].forEach(field =>
-      $(`[name=${field}-${nw.id}]`).bootstrapToggle(u[field].includes(nw.id) ? "on" : "off")
-    )
-  );
-  $(`[name=is_staff]`).bootstrapToggle(u.is_staff ? "on" : "off");
-  $("#save").prop("disabled", true); // will be re-enabled upon modification
-}
-
-/* Send current user modifications to server. */
-function save_changes() {
-  const add_spinner = () => {
-    $("#save").prop("disabled", true);
-    $("#save").html(
-      `<span id = "save-spinner" class="spinner-border spinner-border-sm"></span>
-      Sauvegarder ${CURRENT_USER.first_name} ${CURRENT_USER.last_name}`);
-  };
-  const remove_spinner = () =>
-    $("#save").html(`Sauvegarder`);
-
-  const data = get_data();
-  console.log("Sending ", JSON.stringify(data));
-  add_spinner();
-  $.ajax({
-    url: 'users.json',
-    type: 'POST',
-    contentType: 'application/json; charset=utf-8',
-    data: JSON.stringify(data),
-    success: () => {
-      remove_spinner();
-      // Reflect changes from `data` into local users table, in case it's reloaded.
-      Object.entries(data).forEach(([name, val]) => { console.log("save", name, val); CURRENT_USER[name] = val; })
-      MODIFIED_USER = false;
-    },
-    error: (result) => { 
-      alert("Failed, see the console");
-      console.log("Save request failed:", result);
-      remove_spinner(); 
-      $("#save").prop("disabled", false); 
-    }
-  });
-}
-
-/* Get data from HTML input, return it as a JSON object
- * ready to be sent to server. */
-function get_data() {
-  if(CURRENT_USER === null || ! MODIFIED_USER) { return null; }
-
-  const get_number = (element) => {
-    const bits = element.getAttribute('name').split("-");
-    return Number(bits[bits.length - 1]);
-  }
-
-  const result = {
-    user: CURRENT_USER.id,
-    networks: Object.keys(NETWORKS).map(Number)
-  };
-
-  ['buyer', 'staff', 'producer', 'regulator'].forEach(field =>  {
-    result[field] = [];
-    $(`input[name^=${field}-]`).each((_, x) => {
-      if(x.checked) {
-        result[field].push(get_number(x));
       }
-    })
-  });
-
-  if($("[name=is_staff]").length > 0) {
-    result['is_staff'] = $("[name=is_staff]")[0].checked;
+    });
   }
 
-  return result;
-}
+  /* Modify the HTML widgets so that they reflect user `u`'s state
+   * according to JSON DB. */
+  function render_user(u) {
+    console.log("Rendering user ", u);
+    Object.values(NETWORKS).forEach(nw =>
+      ["buyer", "staff", "producer", "regulator"].forEach(field =>
+        $(`[name=${field}-${nw.id}]`).bootstrapToggle(u[field].includes(nw.id) ? "on" : "off")
+      )
+    );
+    $(`[name=is_staff]`).bootstrapToggle(u.is_staff ? "on" : "off");
+    $("#save").prop("disabled", true); // will be re-enabled upon modification
+  }
 
-</script>  
-{% endblock %}
+  /* Send current user modifications to server. */
+  function save_changes() {
+    const add_spinner = () => {
+      $("#save").prop("disabled", true);
+      $("#save").html(
+        `<span id = "save-spinner" class="spinner-border spinner-border-sm"></span>
+      Sauvegarder ${CURRENT_USER.first_name} ${CURRENT_USER.last_name}`);
+    };
+    const remove_spinner = () =>
+      $("#save").html(`Sauvegarder`);
 
-{% block document_ready %}
-load_users();
+    const data = get_data();
+    console.log("Sending ", JSON.stringify(data));
+    add_spinner();
+    $.ajax({
+      url: 'users.json',
+      type: 'POST',
+      contentType: 'application/json; charset=utf-8',
+      data: JSON.stringify(data),
+      success: () => {
+        remove_spinner();
+        // Reflect changes from `data` into local users table, in case it's reloaded.
+        Object.entries(data).forEach(([name, val]) => { console.log("save", name, val); CURRENT_USER[name] = val; })
+        MODIFIED_USER = false;
+      },
+      error: (result) => {
+        alert("Failed, see the console");
+        console.log("Save request failed:", result);
+        remove_spinner();
+        $("#save").prop("disabled", false);
+      }
+    });
+  }
+
+  /* Get data from HTML input, return it as a JSON object
+   * ready to be sent to server. */
+  function get_data() {
+    if (CURRENT_USER === null || !MODIFIED_USER) { return null; }
+
+    const get_number = (element) => {
+      const bits = element.getAttribute('name').split("-");
+      return Number(bits[bits.length - 1]);
+    }
+
+    const result = {
+      user: CURRENT_USER.id,
+      networks: Object.keys(NETWORKS).map(Number)
+    };
+
+    ['buyer', 'staff', 'producer', 'regulator'].forEach(field => {
+      result[field] = [];
+      $(`input[name^=${field}-]`).each((_, x) => {
+        if (x.checked) {
+          result[field].push(get_number(x));
+        }
+      })
+    });
+
+    if ($("[name=is_staff]").length > 0) {
+      result['is_staff'] = $("[name=is_staff]")[0].checked;
+    }
+
+    return result;
+  }
+
+  $(document).ready(load_users);
+
+</script>
 {% endblock %}
 
 {% block content %}
-<h1>Gestion des utilisateurs</h1>
-<p>
-  Sélectionnez un utilisateur à modifier: 
-  <span id = "loading-spinner" class="spinner-border spinner-border-sm"></span>
-  <select 
-    id="users" 
-    title="Choisir un utilisateur" 
-    data-live-search="true"
-    data-show-subtext="true">
-  </select>
-</p>
-<table id="user-form"></table>
+<section class="container margetopXl margebot">
+  <h1>Gestion des utilisateurs</h1>
+  <p>
+    Sélectionnez un utilisateur à modifier:
+    <span id="loading-spinner" class="spinner-border spinner-border-sm"></span>
+    <select id="users" title="Choisir un utilisateur" data-live-search="true" data-show-subtext="true">
+    </select>
+  </p>
+  <table id="user-form"></table>
+</section>
 {% endblock %}
