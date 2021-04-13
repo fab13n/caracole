@@ -508,6 +508,9 @@ class UserDeliveryDescription(object):
                 "id": self.delivery.id,
                 "name": self.delivery.name,
                 "description": self.delivery.description,
+                "freeze": str(d) if (d:=self.delivery.freeze_date) is not None else None,
+                "distribution": str(d) if (d:=self.delivery.distribution_date) is not None else None,
+
             },
             "network": {
                 "id": self.network.id,

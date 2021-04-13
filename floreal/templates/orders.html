@@ -11,22 +11,26 @@
 
     <div class="container slim margetop">
       {% for nw, descriptions in networks_and_deliveries %}
-      <a id="{{nw.slug}}"/>
+      <a id="{{nw.slug}}"></a>
       {% for dd in descriptions %}
-      <p class="commandes-entete"><span>Commande</span> Distribution</p>
+      {% with has_freeze=dd.delivery.freeze|is_in_the_future has_distribution=dd.delivery.distribution %}
+      <p class="commandes-entete">
+        {% if has_freeze %}<span>Commande</span>{% endif %} 
+        {% if has_distribution %}Distribution{% endif %}
+      </p>
       <ul class="commandes">
         <li>
           <span class="jours">
-            {% if dd.freeze_days >= 0 %}
-            J - {{ff.freeze_days }}
+            {% if has_freeze %}
+            J - {{dd.delivery.freeze|days_until}}
             {% else %}
-            &nbsp;
+            ?
             {% endif %}          
           </span>
           <a href="{% url 'edit_user_purchases' delivery=dd.delivery.id %}">
             <span class="couleur-prim">
-            {% if dd.delivery_date %}{{dd.delivery_date}}{% else %}—{% endif %}
-            | {{dd.network.name}} |
+            {% if has_distribution %}{{dd.delivery.distribution}} | {% endif %}
+            {{dd.network.name}} |
             </span>
             {{dd.delivery.name}} 
           </a>
@@ -40,6 +44,7 @@
             {% if dd.total.price %} <span class="prix">{{dd.total.price}} €</span> {% endif %}
           </ul>
       </ul>
+      {% endwith %}{# has_freeze has_distribution #}
       {% endfor %}
       {% endfor %}
     </div>

@@ -34,9 +34,14 @@
 <p>
     Vous pouvez saisir ici le texte d'un mail récapitulatif, qui sera envoyé aux personnes
     ayant commandé dans une des commandes actuellement gelées du réseau {{nw.name}}.
-    Il s'agit des commandes
-    {% for dv in deliveries %}{{dv.name}}{% if not forloop.last %}, {% endif %}{% endfor %}.
-</p>
+    {% if deliveries|length == 1 %}Il s'agit de la commande {{deliveries.0.name}}
+    {% else %} Il s'agit des commandes suivantes :
+    <ul>
+        {% for dv in deliveries %}
+        <li>{{dv.name}}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
 
 <p>
     <em>Attention !</em> Le texte du mail contient des balises entre accolades, qui généreront 

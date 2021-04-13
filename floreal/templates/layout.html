@@ -61,7 +61,7 @@
 	      {% endblock %}
 	
         {% if not user.is_anonymous %}
-        <li><a href="user.html">Mon compte<span class="loggedin"> : {{user.first_name}} {{user.last_name}}</span></a></li>
+        <li><a href="{% url 'user' %}">Mon compte<span class="loggedin"> : {{user.first_name}} {{user.last_name}}</span></a></li>
         {% if user.is_staff %}{# TODO also producer, subgroup admin etc. #}
         <!-- admin - à afficher pour les comptes admins connectés -->
         <li class="lienSupNav"><a href="{% url 'admin' %}">Administration</a></li>

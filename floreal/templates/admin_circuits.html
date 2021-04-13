@@ -49,6 +49,9 @@
                     <strong>Administration avancée</strong> de {{nw.name}}
                 </a></li>
                 <li><a href="{% url 'emails_network' network=nw.id %}"><strong>Annuaire</strong> des membres</a></li>
+                {% if mb.has_frozen_deliveries %}
+                <li><a href="{% url 'invoice_mail_form' network=nw.id %}"><strong>Écrire</strong> aux acheteurs de commandes gelées</a></li>
+                {% endif %}
             </ul>
 
             <!-- Pour chaque commande -->

@@ -76,10 +76,20 @@ def index(request):
 
 @login_required()
 def admin(request):
+    mbships = list(m.NetworkMembership.objects.filter(user=request.user))
+    frozen = {
+        mb.id
+        for mb in m.NetworkMembership.objects.filter(
+            user=request.user, is_staff=True, network__delivery__state=m.Delivery.FROZEN
+        ).distinct()
+    }
+    for mb in mbships:
+        mb.has_frozen_deliveries = mb.id in frozen
+
     vars = {
         "messages": m.AdminMessage.objects.all(),  # TODO only those I administrate
         "user": request.user,
-        "memberships": m.NetworkMembership.objects.filter(user=request.user),
+        "memberships": mbships,
     }
     return render(request, "admin_circuits.html", vars)
 
@@ -108,10 +118,7 @@ def orders(request):
                 )
             )
 
-    vars = {
-        "user": request.user,
-        "networks_and_deliveries": networks_and_deliveries
-    }
+    vars = {"user": request.user, "networks_and_deliveries": networks_and_deliveries}
     return render(request, "orders.html", vars)
 
 
