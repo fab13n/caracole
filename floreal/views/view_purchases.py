@@ -2,7 +2,7 @@
 
 import os
 from django.db.models import Q
-from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 import json
@@ -12,7 +12,8 @@ from .decorators import nw_admin_required
 from .getters import get_delivery, get_network, get_subgroup
 from . import latex
 from .spreadsheet import spreadsheet
-from floreal.views.delivery_description import FlatDeliveryDescription, GroupedDeliveryDescription, UserDeliveryDescription
+from .delivery_description import FlatDeliveryDescription, GroupedDeliveryDescription, UserDeliveryDescription
+from .. import models as m
 
 MIME_TYPE = {
     'json': "text/json", # TODO check correct name
@@ -71,6 +72,7 @@ def view_purchases_html(request, delivery, subgroup=None):
 def view_purchases_xlsx(request, delivery, subgroup=None):
     """View purchases for a given delivery as an MS-Excel spreadsheet, possibly restricted to a subgroup.
     (subgroup) staff only."""
+    m.JournalEntry.log(request.user, "Downloaded Excel purchases for dv-%s", delivery)
     return render_description(
         request=request, delivery=delivery,
         renderer=spreadsheet, extension='xlsx'
@@ -78,8 +80,9 @@ def view_purchases_xlsx(request, delivery, subgroup=None):
 
 
 def view_purchases_latex_table(request, delivery, subgroup=None):
-    """View purchases for a given delivery as an MS-Excel spreadsheet, possibly restricted to a subgroup.
+    """View purchases for a given delivery as a PDF table, possibly restricted to a subgroup.
     (subgroup) staff only."""
+    m.JournalEntry.log(request.user, "Downloaded PDF purchases for dv-%s", delivery)
     return render_description(
         request=request, delivery=delivery,
         renderer=latex.table, extension='pdf'
@@ -88,6 +91,7 @@ def view_purchases_latex_table(request, delivery, subgroup=None):
 def view_purchases_latex_cards(request, delivery, subgroup=None):
     """View purchases for a given delivery as an MS-Excel spreadsheet, possibly restricted to a subgroup.
     (subgroup) staff only."""
+    m.JournalEntry.log(request.user, "Downloaded PDF purchases (cards) for dv-%s", delivery)
     return render_description(
         request=request, delivery=delivery,
         renderer=latex.cards, extension='pdf'

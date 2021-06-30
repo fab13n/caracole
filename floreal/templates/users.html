@@ -3,18 +3,6 @@
 
 {% block head %}
 
-<!-- needed by bootstrap select, has to be loaded before bootstrap -->
-<script src="{% static 'popper/popper.js' %}"></script>
-
-<link href="{% static 'bootstrap/css/bootstrap.css' %}" rel="stylesheet" />
-<script src="{% static 'bootstrap/js/bootstrap.js' %}"></script>
-
-<link href="{% static 'bootstrap4-toggle/css/bootstrap4-toggle.css' %}" rel="stylesheet" />
-<script src="{% static 'bootstrap4-toggle/js/bootstrap4-toggle.js' %}"></script>
-
-<script src="{% static 'bootstrap-select/js/bootstrap-select.js' %}"></script>
-<link href="{% static 'bootstrap-select/css/bootstrap-select.css' %}" rel="stylesheet" />
-
 <style type="text/css">
   #user-form td:first-child {
     text-align: right;
@@ -34,7 +22,15 @@
     background-color: lightgray;
     color: gray;
   }
+
+  .dropdown-menu, .filter-option {
+    font-size: 1.5rem;
+  }
+
 </style>
+
+<script src="{% static 'tinymce/tinymce.min.js' %}"></script>
+<script src="{% static 'tinymce/jquery.tinymce.min.js' %}"></script>
 
 <script type='text/javascript'>
 
@@ -170,6 +166,7 @@
       )
     );
     $(`[name=is_staff]`).bootstrapToggle(u.is_staff ? "on" : "off");
+    tinyMCE.get("description").setContent(u.florealuser__description || "");
     $("#save").prop("disabled", true); // will be re-enabled upon modification
   }
 
@@ -219,7 +216,8 @@
 
     const result = {
       user: CURRENT_USER.id,
-      networks: Object.keys(NETWORKS).map(Number)
+      networks: Object.keys(NETWORKS).map(Number),
+      florealuser__description: tinyMCE.get("description").getContent()
     };
 
     ['buyer', 'staff', 'producer', 'regulator'].forEach(field => {
@@ -238,7 +236,23 @@
     return result;
   }
 
-  $(document).ready(load_users);
+  $(document).ready(() => {
+    tinymce.init({
+      selector: 'textarea',
+      content_css: "/static/floreal.css",
+      language: 'fr_FR',
+      init_instance_callback: (editor) => {
+        editor.on('keydown', (event) => {
+          if (!MODIFIED_USER && CURRENT_USER) {
+            console.log(`user ${CURRENT_USER.id} is now modified`);
+            MODIFIED_USER = true;
+            $("#save").prop("disabled", false);
+          }
+        })
+      }
+    });
+    load_users();
+  })
 
 </script>
 {% endblock %}
@@ -246,12 +260,16 @@
 {% block content %}
 <section class="container margetopXl margebot">
   <h1>Gestion des utilisateurs</h1>
+  <h3>Selection de l'utilisateur :</h3>
   <p>
-    Sélectionnez un utilisateur à modifier:
     <span id="loading-spinner" class="spinner-border spinner-border-sm"></span>
-    <select id="users" title="Choisir un utilisateur" data-live-search="true" data-show-subtext="true">
+    <select id="users" title="Choisir un utilisateur" data-live-search="true" data-show-subtext="true" style="display: none">
     </select>
   </p>
+
+  <h3>Description de l'utilisateur / producteur</h3>
+  <textarea id="description"></textarea>
+
   <table id="user-form"></table>
 </section>
 {% endblock %}

@@ -19,7 +19,7 @@ class IdentifiedBySlug(models.Model):
     i.e. a URL-friendly unique identifier that's easier to remember than numeric primary keys.
     """
 
-    slug = models.SlugField(unique=True, null=True)
+    slug = models.SlugField(unique=True, null=True)  # TODO eventually null will be false
 
     class Meta:
         abstract = True
@@ -134,10 +134,10 @@ class NetworkSubgroup(IdentifiedBySlug):
     def staff(self):
         return self._filtered_members(is_subgroup_staff=True)
 
-    class meta:
-        pass
-        # unique network*name
-
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['network', 'name'], name='unique_subgroup_name'),
+        ]
 
 class NetworkMembership(models.Model):
     """
@@ -181,10 +181,11 @@ class NetworkMembership(models.Model):
         r += " as " + "+".join(roles)
         return r
 
-    class meta:
-        pass
-        # TODO unique network*user
-
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['network', 'user'], name='unique_membership'),
+            # TODO: check that you can't be both buyer and candidate
+        ]
 
 class Network(IdentifiedBySlug):
     """
@@ -286,7 +287,7 @@ class Delivery(IdentifiedBySlug):
 
     @property
     def description_text(self):
-        return html2text(self.description)
+        return html2text(self.description) if self.description is not None else ""
 
     class Meta:
         verbose_name_plural = "Deliveries"
@@ -324,6 +325,9 @@ class Product(models.Model):
             "-quantity_per_package",
             "name",
         )
+        constraints = [
+            models.UniqueConstraint(fields=['delivery', 'name'], name='unique_product'),
+        ]
 
     def __str__(self):
         return self.name
@@ -372,9 +376,6 @@ class Purchase(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.DecimalField(decimal_places=3, max_digits=6)
 
-    class Meta:
-        unique_together = (("product", "user"),)
-
     @property
     def price(self):
         return self.quantity * self.product.price
@@ -415,6 +416,11 @@ class Purchase(models.Model):
             result += " pour %s %s" % (self.user.first_name, self.user.last_name)
         return result
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'product'], name='unique_purchase'),
+        ]
+        
 
 class JournalEntry(models.Model):
     """Record of a noteworthy action by an admin, for social debugging purposes: changing delivery statuses,

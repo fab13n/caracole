@@ -1,4 +1,4 @@
-{% extends 'layout_narrow.html' %}
+{% extends 'layout.html' %}
 {% load floreal_filters %}
 
 {% block head %}
@@ -26,8 +26,7 @@
 
 {% block content %}
 
-<p><a href="{% url 'network_admin' network=nw.id %}">Retour à l'administration du réseau {{nw.name}}</a> ↩</p>
-<p><a href="{% url 'index' %}">Retour à la page principale</a> ↩↩</p>
+<section class="container margetopXl margebot">
 
 <h1>Envoyer un mail récapitulatif</h1>
 
@@ -42,6 +41,7 @@
         {% endfor %}
     </ul>
     {% endif %}
+</p>
 
 <p>
     <em>Attention !</em> Le texte du mail contient des balises entre accolades, qui généreront 
@@ -74,5 +74,7 @@
     </table>
     <input type="submit" value="Envoyer"/>
 </form>
+
+</section>
 
 {% endblock %}

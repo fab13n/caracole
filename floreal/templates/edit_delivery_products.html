@@ -4,23 +4,88 @@
 {% block head %}
 
 <!-- needed by bootstrap select, has to be loaded before bootstrap -->
-<script src="{% static 'popper/popper.js' %}"></script>
-
-<link href="{% static 'bootstrap/css/bootstrap.css' %}" rel="stylesheet" />
-<script src="{% static 'bootstrap/js/bootstrap.js' %}"></script>
-
-<link href="{% static 'bootstrap4-toggle/css/bootstrap4-toggle.css' %}" rel="stylesheet" />
-<script src="{% static 'bootstrap4-toggle/js/bootstrap4-toggle.js' %}"></script>
-
-<script src="{% static 'bootstrap-select/js/bootstrap-select.js' %}"></script>
-<link href="{% static 'bootstrap-select/css/bootstrap-select.css' %}" rel="stylesheet" />
-
 <script src="{% static 'tinymce/tinymce.min.js' %}"></script>
 <script src="{% static 'tinymce/jquery.tinymce.min.js' %}"></script>
 
 <script type='text/javascript' src="{% static 'edit_delivery_products.js' %}"></script>
 
 <style type="text/css">
+
+/* from raf */
+#products-table {
+  width: 100%;
+}
+
+#products-table td, #products-table th {
+  border: none;
+}
+
+#products-table .row-produit {
+  border-top: 1px solid #733A00;
+}
+
+#products-table th {
+  font-family: 'oswald', sans-serif;
+  text-align: center;
+  color: #733A00;
+  min-width: 20%;
+}
+
+#products-table td {
+  text-align: center;
+}
+
+#products-table tr.texte-produit td {
+  text-align: left;
+  padding: 0 2rem 2rem;
+}
+
+.quantity input[type="number"], .quantity input[type="number"]:focus {
+  height: auto;
+  padding: .6rem 0 0 0;
+  color: #ED5C01;
+  border: none !important;
+  box-shadow: none;
+  box-sizing: border-box;
+  background-color: transparent;
+  font-family: 'oswald', sans-serif;
+}
+
+#limiteCommande label, #limiteCommande input {
+  margin-left: 1rem;
+}
+
+#products-table th, #products-table td {
+  padding: 1rem .5rem;
+}
+
+#products-table .name {
+  width: 40%;
+}
+#products-table .price, #products-table .unit {
+  width: 48px;
+}
+#products-table .devise {
+  width: 20px;
+}
+#products-table .quantity_per_package input,
+#products-table .quantity_limit input,
+#products-table .quantum input,
+#products-table .unit_weight input {
+  width: 48px;
+}
+label {
+  position: relative;
+}
+label span {
+  position: absolute;
+  top: -3px;
+  right: 10px;
+  color: #000;
+}
+
+/* end raf */
+
   td.place {
     white-space: nowrap;
   }
@@ -32,10 +97,6 @@
 
   td.place button:disabled {
     color: lightgray;
-  }
-
-  td.name input {
-    width: 200px;
   }
 
   td.unit input {
@@ -82,17 +143,27 @@
     text-align: left;
   }
 
-  tr.deleted {
+  tr.deleted, tr.deleted input, tr.deleted textarea {
     text-decoration: line-through;
+    color: gray !important;
   }
 
-  tr.deleted input {
-    text-decoration: line-through;
+  tr.deleted td.deleted label,
+  tr.deleted td.described label {
+    /* Also override hover, for 'deleted' and 'described' => important. */
+    background-color: gray !important;
   }
 
-  tr.deleted textarea {
-    text-decoration: line-through;
+  td.deleted label, td.described label {
+    /* Remove extra space left and right of buttons. */
+    min-width: unset;
+    width: unset;
   }
+
+  td.deleted label::before { content: "Effacer"; }
+
+  tr.deleted td.deleted label::before { content: "Rajouter"; }
+
 
   #products-table th.non-rotate {
     vertical-align: bottom;
@@ -104,7 +175,7 @@
   }
 
   #products-table input {
-    padding: 1px;
+    padding: 5px;
   }
 
   table .hidden {
@@ -212,15 +283,9 @@
         <th colspan="2" class="non-rotate">Quantum</th>
         <th colspan="2" class="non-rotate">Poids</th>
         <th class="non-rotate">Image</th>
-        <th class="rotate">
-          <div>
-            <div>Effacer ?</div>
-          </div>
+        <th>
         </th>
-        <th class="rotate">
-          <div>
-            <div>Description ?</div>
-          </div>
+        <th>
         </th>
       </tr>
       <tr>

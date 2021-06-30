@@ -7,7 +7,6 @@ from tempfile import NamedTemporaryFile
 from django.template.loader import get_template
 from .delivery_description import FlatDeliveryDescription
 
-
 LATEX_RUN_TIMEOUT = 30  # seconds
 
 

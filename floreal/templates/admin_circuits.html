@@ -2,56 +2,103 @@
 {% load static %}
 {% load floreal_filters %}
 
-{% block document_ready %}
+{% block head %}
+
+<script type='text/javascript'>
+    /* TODO: only load userids when the <select> widget opens
+     */
+    async function load_impersonate(event) {
+        if($("#select-impersonate")[0]) {
+            // already loaded
+            return;
+        }
+        const response = await fetch("{% url 'users_json' %}");
+        const json = await response.json();
+        const widget = 
+            `&nbsp;<select id="select-impersonate" title="Membres…" data-live-search="true">` +
+            json.users
+                .map(u => `<option value=${u.id}>${u.first_name} ${u.last_name} — ${u.email}</option>`)
+                .join("\n") +
+            `</select>`;
+        $(event.target).append(widget);
+        const select = $("#select-impersonate");
+        select.selectpicker();
+        setTimeout(() => $("#select-impersonate").selectpicker("toggle"), 0);
+        select.on("change", (event) => {
+            alert("TODO impersonate user #"+event.target.value);
+        });
+    }
+</script>
+
 {% endblock %}
 
 {% block content %}
 <section class="container margetopXl margebot">
     <h1>Administration</h1>
 
-    {% if user.is_staff %}
     <div id="staff-admin" class="margetop">
         <h2>Administration globale</h2>
         <ul>
+            <li><a href="{% url 'users_html'%}">Gérer les utilisateurs</a></li>
+            {% if user.is_staff %}
             <li><a href="{% url 'admin:index' %}">Accès à la base de donnée</a></li>
-            <li><a href="">Usurper une identité (TODO)</a></li>
+            <li><a href="#" onclick="load_impersonate(event);")>Usurper une identité</a></li>
             <li><a href="{% url 'view_journal' %}">Journal des actions utilisateur</a></li>
             <li> <a href="">Créer un nouveau circuit (TODO)</a> </li>
+            {% endif %}
+            <li>Messages aux utilisateurs :
+                <ul>
+                    {% for msg in messages %}
+                    <li>
+                        {% if msg.network %}
+                        <strong>Réseau {{msg.network.name}} :</strong>
+                        {% endif %}
+                        « {{msg.message|safe}} »
+                      <a class='button button-primary compact' href="{% url 'unset_message' id=msg.id %}?next={% url 'admin' %}">effacer</a>
+                    </li>
+                    {% empty %}
+                    <li>Aucun message</li>
+                    {% endfor %}
+                    <li><a href="{% url 'set_message' %}?next=admin">Poster un nouveau message</a></li>
+                </ul>
+            </li>
         </ul>
     </div>
-    {% endif %}
 
-    <div id="messagerie-admin" class="margetop">
-        <h2>Messagerie des administrateurs</h2>
-        {% for msg in messages %}
-        <p class="admin-message">
-            {% if msg.network %}
-            <strong>Réseau {{msg.network.name}} :</strong>
-            {% endif %}
-            {{msg.message|safe}}
-        </p>
-        <a href="{% url 'unset_message' id=msg.id %}"><span class="no">Supprimer le message ✘</span></a>
-        {% empty %}
-        <p>Aucun message</p>
-        {% endfor %}
-    </div>
+    <h2>Administration des circuits</h2>
 
     <ul>
-        <li><a href="/set-message">Poster un nouveau message administrateur</a></li>
-
         <!-- Pour chaque circuit -->
         {% for mb in memberships %}
         {% with nw=mb.network %}
         <div class="divider acces-rapide couleur-sec">
-            <h5 class="center divider couleur-sec">Administrer <span class="couleur-prim">{{nw.name}}</span></h5>
+            <a id="nw-{{nw.id}}"></a>
+            <h5 class="center divider couleur-sec">Réseau <span class="couleur-prim">{{nw.name}}</span></h5>
             <ul>
                 <li class="circuit"><a href="{% url 'network_admin' network=nw.id %}" href="#nw-{{mb.network.id}}">
                     <strong>Administration avancée</strong> de {{nw.name}}
                 </a></li>
                 <li><a href="{% url 'emails_network' network=nw.id %}"><strong>Annuaire</strong> des membres</a></li>
-                {% if mb.has_frozen_deliveries %}
+                {% if mb.has_frozen_deliveries  %}
                 <li><a href="{% url 'invoice_mail_form' network=nw.id %}"><strong>Écrire</strong> aux acheteurs de commandes gelées</a></li>
                 {% endif %}
+                <li><a href="{% url 'list_delivery_models' network=nw.id %}"><strong>Nouvelle</strong> commande</a></li>
+                {% with candidates=mb.network.candidates %}
+                {% if candidates %}
+                <li>Candidatures :
+                    <a id="nw-{{nw.id}}-candidacies"></a>
+                    <ul>
+                        {% for u in candidates %}
+                        <li>{{u.first_name}} {{u.last_name}} ({{u.email}}):
+                            <a href="{% url 'validate_candidacy' user=u.id network=nw.id response='Y' %}?next={% url 'admin' %}#nw-{{nw.id}}-candidacies">Accepter</a>
+                            /
+                            <a href="{% url 'validate_candidacy' user=u.id network=nw.id response='N' %}?next={% url 'admin' %}#nw-{{nw.id}}-candidacies">Refuser</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                {% endif %}
+                {% endwith %}
             </ul>
 
             <!-- Pour chaque commande -->

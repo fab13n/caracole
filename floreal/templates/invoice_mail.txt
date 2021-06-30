@@ -5,12 +5,10 @@ Voici le récapitulatif de vos commandes.
 {{user.first_name}} {{user.last_name}}
 
 {% load floreal_filters %}
-{% for item in purchases_by_delivery %}
-{{item.dv.name}}: {{item.total|price}}
+{% for delivery in purchases_by_delivery %}
+{{delivery.dv.name}}: {{delivery.total|price}}
 ---
-{{item.dv.description_text}}
----
-{% for pc in item.pcs %}
-- {{pc}}{% endfor %}
+{% for purchase in item.pcs %}
+- {{purchase}}{% endfor %}
 -------------------------------------------------------------------------------
 {% endfor %}

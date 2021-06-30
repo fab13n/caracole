@@ -1,0 +1,31 @@
+{% extends 'editor.html' %}
+{% block head %}
+{{ block.super }}
+<script type="text/javascript">
+  function on_image_change(event) {
+    const img = $("#image")[0]
+    img.src = URL.createObjectURL(event.target.files[0]);
+  }
+
+  $(document).ready(function() {
+    // Necessary in order to send files
+    $("form").attr("enctype", "multipart/form-data"); 
+  });
+</script>
+<style lang="text/css">
+#image {
+  width: 250px;
+  height: 200px;
+  object-fit: cover;
+  object-position: center;
+  border: 1px solid black;
+}
+</style>
+{% endblock %}
+
+{% block custom %}
+<p>
+  Image liée à la description : 
+  <img id="image" src="{% if image %}{{image.url}}{% else %}/media/none.png{% endif %}">
+  <input type="file" accept="image/*" name="image" onchange="on_image_change(event)"/></p>
+{% endblock %}

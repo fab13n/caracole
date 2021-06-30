@@ -1,6 +1,7 @@
-{% extends 'layout_narrow.html' %}
+{% extends 'layout.html' %}
 
 {% block content %}
+<section class="container margetopXl margebot">
 
 <h2>Vous êtes inscrit aux Circuits Courts Civam...</h2>
 
@@ -9,4 +10,5 @@
 <h2><a href="{% url 'candidacy' %}">Demander à rejoindre un réseau</a></h2>
 <p><a href="{% url 'index' %}">Retour à la page d'accueil</a></p>
 
+</section>
 {% endblock %}

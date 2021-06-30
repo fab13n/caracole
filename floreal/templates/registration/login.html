@@ -1,4 +1,4 @@
-{% extends 'layout_narrow.html' %}
+{% extends 'layout.html' %}
 
 {% block head %}
 
@@ -13,6 +13,7 @@
 
 
 {% block content %}
+<section class="container margetopXl margebot">
 
 {% if form.errors %}
 <p style="background-color:powderblue;">E-mail ou mot de passe invalide. Veuillez réessayer.</p>
@@ -45,5 +46,6 @@
 <p>On vous a proposé de rejoindre un circuit Civam ? <a href="{% url 'user_register' %}">Enregistrez-vous</a>.</p>
 
 <p>Vous avez oublié votre mot de passe ? <a href="{% url 'auth_password_reset' %}">Remettez-le à zéro</a>.</p>
+</section>
 
 {% endblock %}

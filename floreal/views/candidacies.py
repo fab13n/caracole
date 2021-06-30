@@ -8,7 +8,7 @@ from django.core.mail import send_mail
 
 from caracole import settings
 from .. import models as m
-from .getters import get_network
+from .getters import get_network, get_user
 from .decorators import nw_admin_required
 
 
@@ -52,76 +52,76 @@ def create_candidacy(request, network):
         pass  # already member
     elif nw.auto_validate and user.member_of_network.exists():
         m.JournalEntry.log(user, "Applied for nw-%d, automatically granted", nw.id)
-        validate_candidacy_without_checking(request, candidacy=cd.id, response='Y', send_confirmation_mail=True)
+        validate_candidacy_without_checking(request, network=nw, user=user, response='Y', send_confirmation_mail=True)
     else:
+        m.NetworkMembership.objects.create(network=nw, user=user, is_candidate=True, is_buyer=False)
         m.JournalEntry.log(user, "Applied for nw-%d, candidacy pending", nw.id)
 
-    target = request.GET.get('next', False)
-    return redirect(target) if target else redirect('candidacy')
+    target = request.GET.get('next')
+    return redirect(target or 'index')
 
 @login_required()
 def cancel_candidacy(request, network):
     """Cancel your own, yet-unapproved candidacy."""
     user = request.user
     nw = get_network(network)
-    nw.candidates.remove(user)
-    m.JournalEntry.log(user, "Cancelled own application for nw-%d", cd.network.id)
-    target = request.GET.get('next', False)
-    return redirect(target) if target else redirect('candidacy')
+    m.NetworkMembership.objects.filter(network=nw, user=user, is_candidate=True).delete()
+    m.JournalEntry.log(user, "Cancelled own application for nw-%d", nw.id)
+    return redirect(request.GET.get(next, 'index'))
 
 
-def validate_candidacy(request, candidacy, response):
-    try:
-        cd = get_candidacy(candidacy)
-        u = request.user
-        if u not in sg.staff.all() and user not in cd.network.staff.all():
-            return HttpResponseForbidden('Réservé aux administrateurs du sous-groupe '+sg.network.name+'/'+sg.name)
-    except m.Candidacy.DoesNotExist:
-        m.JournalEntry.log("Attempt to treat inexistant candidacy cd-%d from %s", cd.id)
-        return redirect(request.GET.get(next, 'candidacy'))
+@nw_admin_required()
+def validate_candidacy(request, network, user, response):
+    nw = get_network(network)
+    u = get_user(user)
+    staff_user = request.user
+    if not nw.staff.filter(id=staff_user.id).exists():
+        return HttpResponseForbidden('Réservé aux administrateurs du réseau '+network.name)
 
-    m.JournalEntry.log(request.user, "%s candidacy cd-%d from u-%d %s to sg-%d %s/%s",
-                       ("Granted" if response == 'Y' else 'Rejected'), cd.id, cd.user.id, cd.user.username,
-                       cd.subgroup.id, cd.subgroup.network.name, cd.subgroup.name)
-    return validate_candidacy_without_checking(request, candidacy=candidacy, response=response, send_confirmation_mail=True)
+    m.JournalEntry.log(request.user, "Candidacy from u-%d to nw-%d is %s",
+                        u.id, nw.id,
+                       ("Granted" if response == 'Y' else 'Rejected'))
+    return validate_candidacy_without_checking(request, user=u, network=nw, response=response, send_confirmation_mail=True)
 
 @nw_admin_required()
 def manage_candidacies(request):
-    candidacies = m.Candidacy.objects.filter(network__staff__in=[request.user])
+    candidacies = m.NetworkMembership.objects.filter(is_candidate=True, network__in=request.user.staff_of_network)
     return render(request, 'manage_candidacies.html', {'user': request.user, 'candidacies': candidacies})
 
-def validate_candidacy_without_checking(request, candidacy, response, send_confirmation_mail):
+def validate_candidacy_without_checking(request, network, user, response, send_confirmation_mail):
     """A (legal) candidacy has been answered by an admin.
     Perform corresponding membership changes and notify user through e-mail."""
-    cd = get_candidacy(candidacy)
     adm = request.user
     adm = "%s %s (%s)" % (adm.first_name, adm.last_name, adm.email)
-    mail = ["Bonjour %s, \n\n" % (cd.user.first_name,)]
+    mail = ["Bonjour %s, \n\n" % (user.first_name,)]
+    nm = m.NetworkMembership.objects.get(user=user, network=network, is_candidate=True)
     if response == 'Y':
-        mail += f"Votre adhésion au réseau {cd.network.name} a été acceptée"
+        mail += f"Votre adhésion au réseau {network.name} a été acceptée"
         mail += f" par {adm}. " if adm else " automatiquement. "
-        cd.network.members.add(cd.user)
         mail += "\n\n"
-        if cd.network.delivery_set.filter(state=m.Delivery.ORDERING_ALL).exists():
+        if network.delivery_set.filter(state=m.Delivery.ORDERING_ALL).exists():
             mail += "Une commande est actuellement en cours, dépêchez vous de vous connecter sur le site pour y participer !"
         else:
             mail += "Vos responsables de réseau vous préviendront par mail quand une nouvelle commande sera ouverte."
+        nm.is_candidate = False
+        nm.is_buyer = True
+        nm.save()
     elif adm:  # Negative response from an admin
-        mail += f"Votre demande d'adhésion au réseau {cd.network.name} a été refusée par {adm}. " \
+        mail += f"Votre demande d'adhésion au réseau {network.name} a été refusée par {adm}. " \
                 f"Si cette décision vous surprend, ou vous semble injustifiée, veuillez entrer en contact par " \
                 f"e-mail avec cette personne pour clarifier la situation."
+        nm.delete()
     else:  # Automatic refusal. Shouldn't happen in the system's current state.
-        mail += f"Votre demande d'adhésion au réseau {cd.network.name} a été refusée automatiquement." \
+        mail += f"Votre demande d'adhésion au réseau {network.name} a été refusée automatiquement." \
                 "Si cette décision vous surprend, contactez les administrateurs du réseau."
+        nm.delete()
 
     mail += "\n\nCordialement, le robot du site de commande des Circuits Courts Civam."
     mail += "\n\nLien vers le site : http://solalim.civam-occitanie.fr"
-    title = settings.EMAIL_SUBJECT_PREFIX + " Votre demande d'inscription au circuit court "+cd.subgroup.network.name
+    title = settings.EMAIL_SUBJECT_PREFIX + " Votre demande d'inscription au circuit court "+network.name
     if send_confirmation_mail:
-        send_mail(subject=title, message=''.join(mail), from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=[cd.user.email],
+        send_mail(subject=title, message=''.join(mail), from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=[user.email],
                   fail_silently=True)
-    cd.delete()
 
-    target = request.GET.get('next', False)
-    return redirect(target) if target else redirect('candidacy')
+    return redirect(request.GET.get('next', 'index'))
 

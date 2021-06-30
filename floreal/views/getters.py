@@ -24,3 +24,4 @@ def model_getter(cls, field_names=None):
 get_network = model_getter(m.Network, ['name'])
 get_delivery = model_getter(m.Delivery, ['network__name', 'name'])
 get_subgroup = model_getter(m.NetworkSubgroup, ['network__name', 'name'])
+get_user = model_getter(m.User, ['email'])

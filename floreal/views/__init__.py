@@ -19,7 +19,7 @@ from .decorators import nw_admin_required, regulator_required
 
 from .edit_delivery_purchases import edit_delivery_purchases
 from .edit_user_purchases import edit_user_purchases
-from .user_registration import user_register, user_register_post
+from .user_registration import user_register
 from .edit_delivery_products import edit_delivery_products, delivery_products_json
 from .view_purchases import (
     view_purchases_html,
@@ -67,9 +67,9 @@ def index(request):
         vars = {
             "user": request.user,
             "memberships": mbships,
-            "unsubscribed": m.Network.objects.exclude(members=request.user).exclude(
-                visible=False
-            ),
+            "unsubscribed": m.Network.objects \
+                .exclude(members=request.user) \
+                .exclude(visible=False)
         }
         return render(request, "index_logged.html", vars)
 
@@ -308,7 +308,8 @@ def delete_archived_delivery(request, delivery):
         dv.name,
         nw.name,
     )
-    return redirect("archived_deliveries", nw.id)
+    target = request.GET.get('next')
+    return redirect(target) if target else redirect("archived_deliveries", nw.id)
 
 
 @nw_admin_required()
@@ -326,7 +327,8 @@ def delete_all_archived_deliveries(request, network):
         ", ".join("dv-%d" % i for i in ids),
         nw.name,
     )
-    return redirect("archived_deliveries", network)
+    target = request.GET.get('next')
+    return redirect(target) if target else redirect("archived_deliveries", network)
 
 
 def create_network(request, nw_name, sg_name):
@@ -338,8 +340,8 @@ def create_network(request, nw_name, sg_name):
     nw = m.Network.objects.create(name=nw_name)
     nw.staff.add(user)
     nw.members.add(user)
-    target = request.GET.get("next", False)
     m.JournalEntry.log(user, "Created network nw-%d: %s", nw.id, nw_name)
+    target = request.GET.get("next")
     return redirect(target) if target else redirect("network_admin", network=nw.id)
 
 
@@ -480,7 +482,7 @@ def set_delivery_state(request, delivery, state):
         m.Delivery.STATE_CHOICES[state],
     )
 
-    target = request.GET.get("next", False)
+    target = request.GET.get("next")
     return redirect(target) if target else HttpResponse("")
 
 
@@ -585,7 +587,8 @@ def journal(request):
 
     days = []
     current_day = None
-    for entry in m.JournalEntry.objects.all().order_by("-date")[:1024]:
+    n = request.GET.get('n', 1024)
+    for entry in m.JournalEntry.objects.all().order_by("-date")[:n]:
         today = entry.date.strftime("%x")
         action = journal_link_re.sub(add_link_to_actions, html.escape(entry.action))
         record = {
@@ -605,7 +608,8 @@ def editor(
     request, target=None, title="Éditer", template="editor.html", content=None, **kwargs
 ):
     ctx = dict(
-        title=title, target=target or request.path, content=content or "", **kwargs
+        title=title, target=target or request.path, content=content or "", 
+        next=request.GET.get('next'), **kwargs
     )
     ctx.update(csrf(request))
     return render(request, template, ctx)
@@ -629,7 +633,9 @@ def set_message(request):
             if text.endswith("</p>"):
                 text = text[:-4]
         msg = m.AdminMessage.objects.create(message=text, network_id=network_id)
-        return redirect("index")
+        m.JournalEntry.log(request.user, "Posted a message to %s", f"nw-{network_id}" if network_id else "everyone")
+        target = request.GET.get("next", "index")
+        return redirect(target)
     else:
         u = request.user
         options = [("Tout le monde", "everyone")] + [
@@ -649,17 +655,32 @@ def unset_message(request, id):
     # TODO check that user is allowed for that message
     # To be done in a m.Message method
     m.AdminMessage.objects.get(id=int(id)).delete()
-    return redirect("index")
+    target = request.GET.get("next", "index")
+    return redirect(target)
 
 
-@nw_admin_required()
-def edit_network_description(request, network):
-    nw = get_network(network)
+def _description_and_image(request, obj, title):
     if request.method == "POST":
-        nw.description = request.POST["editor"]
-        nw.save()
-        return redirect("network_admin", nw.id)
+        obj.description = request.POST["editor"]
+        img = request.FILES.get('image')
+        if img:
+            obj.image_description = img
+        obj.save()
+        return redirect(request.GET.get('next', 'admin'))
     else:
         return editor(
-            request, title="Présentation du réseau " + nw.name, content=nw.description
+            request, title=title,
+            template='description_and_image.html',
+            content=obj.description,
+            image=obj.image_description,
         )
+
+@nw_admin_required()
+def network_description_and_image(request, network):
+    nw = get_network(network)
+    return _description_and_image(request, nw, f"Présentation du réseau {nw.name}")
+
+@nw_admin_required()
+def user_description_and_image(request, user):
+    flu = m.FlorealUser.objects.get(user_id=user)
+    return _description_and_image(request, flu, f"Présentation de {flu.user.first_name} {flu.user.last_name}")

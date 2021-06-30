@@ -48,7 +48,7 @@ def users_get(request):
 
     user_records = {
         u_rec["id"]: dict(**u_rec, **{k: [] for k in KEYS})
-        for u_rec in users.values("id", "first_name", "last_name", "email", "is_staff")
+        for u_rec in users.values("id", "first_name", "last_name", "email", "is_staff", "florealuser__description")
     }
 
     network_records = []
@@ -110,6 +110,16 @@ def user_update(request):
         user.is_staff = data["is_staff"]
         user.save()
 
+    descr = data["florealuser__description"]
+    try:
+        if user.florealuser.description != descr:
+            user.florealuser.description = descr
+            user.florealuser.save()
+    except m.FlorealUser.DoesNotExist:
+        fu = m.FlorealUser.objects.create(user=user, description=descr)
+
+    # TODO Also handle image_description
+
     for nw_id in network_ids:
         (nm, created) = m.NetworkMembership.objects.get_or_create(
             user=user, network_id=nw_id, defaults={"is_" + key: False for key in KEYS}
@@ -129,5 +139,7 @@ def user_update(request):
             nm.delete()
         elif must_save:
             nm.save()
+
+    m.JournalEntry.log(staff, "Edited user u-%d", user.id)
 
     return HttpResponse(b"OK")

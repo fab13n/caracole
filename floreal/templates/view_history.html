@@ -1,11 +1,12 @@
-{% extends 'layout_narrow.html' %}
+{% extends 'layout.html' %}
 {% load floreal_filters %}
 
 {% block head %}
 {% endblock %}
 
 {% block content %}
-<h2>Historique des commandes de {{user.first_name}} {{user.last_name}}</h2>
+<section class="container margetopXl margebot">
+<h1>Historique des commandes de {{user.first_name}} {{user.last_name}}</h1>
 <ul>
   {% for x in deliveries %}
   <li>{{x.network.name}}, {{x.delivery.name}}, {{x.price|price}}:
@@ -17,4 +18,6 @@
   </li>
   {% endfor %}
 </ul>
+<p><a class="button retour" href="javascript:history.back()">Retour</a></p>
+</section>
 {% endblock %}

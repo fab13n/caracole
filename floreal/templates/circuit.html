@@ -19,7 +19,10 @@
         <div class="col">
           <div class="row end">
             {% if user_status == 'non-member' %}
-            <button class="button-primary" type="submit" name="button">S'inscrire</button>
+            <a class="button button-primary" 
+              onclick="return confirm('Voulez-vous demander à rejoindre le réseau {{network.name}}?')"
+              href="{% url 'create_candidacy' network=network.id %}">
+              S'inscrire</a>
             {% elif user_status == 'member' %}
             <a href="circuit.html" class="button inscrit">Inscrit</a>
             <a href="#" class="button quitter">Quitter</a>
@@ -47,7 +50,7 @@
       </div>
       <div class="row">
         {% if user_status == 'non-member' %}
-        <button class="button-primary" type="submit" name="button">S'inscrire</button>
+        <a href="{% url 'create_candidacy' network=network.id %}" class="button button-primary">S'inscrire</a>
         {% elif user_status == 'member' %}
         <a href="#" class="button inscrit">Inscrit</a>
         <a href="#" class="button quitter">Quitter</a>

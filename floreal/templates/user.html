@@ -6,7 +6,7 @@
     <div><h1>Mon compte</h1>
     <h2 class="couleur-prim">{{user.first_name}} {{user.last_name}}</h2>
   </div>
-    <button class="button attente" type="submit" name="button">Se deconnecter</button>
+    <a class="button attente" type="submit" name="button" href="{% url 'auth_logout' %}?next={% url 'index' %}">Se deconnecter</a>
     </div>
 
     <div class="container xslim row cent">
@@ -14,7 +14,7 @@
         <li> <a href="{% url 'view_history' %}">Historique des commandes passées</a> </li>
         <li> <a href="{% url 'index' %}#circuits">Gérer mes inscriptions aux circuits</a> </li>
         <li> <a href="#">Modifier mes informations (TODO)</a> </li>
-        <li> <a href="#">Changer de mot de passe (TODO)</a> </li>
+        <li> <a href="{% url 'auth_password_change' %}">Changer de mot de passe</a> </li>
       </ul>
     </div>
   </section>

@@ -21,7 +21,7 @@ $(document).ready(function(){
 
 {% block content %}
 <h1>{{title}}</h1>
-<form method="POST" action={{target}}>
+<form method="POST" action="{{target}}{% if next %}?next={{next}}{% endif %}">
   {% block custom %}{% endblock %}
   <textarea name="editor" class="editor">{{content|safe}}</textarea>
   <input type="submit" value="Sauvegarder" name="save"/>

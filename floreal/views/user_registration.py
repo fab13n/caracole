@@ -86,14 +86,10 @@ def user_register(request):
             new_user = authenticate(username=d['email'], password=d['password1'])
             login(request, new_user)
 
-            return HttpResponseRedirect('registration_post.html')
+            return HttpResponseRedirect('/#circuits``')
         else:  # invalid form
             d = form.data
             m.JournalEntry.log(None, "Failed account creation for %s %s (%s)", d['first_name'], d['last_name'], d['email'])
             return render(request, 'registration/registration_form.html', {'form': form})
     else:
         return render(request, 'registration/registration_form.html', {'form': RegistrationForm()})
-
-
-def user_register_post(request):
-    return render(request, 'registration/registration_post.html', {})

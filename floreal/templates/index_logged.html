@@ -57,8 +57,10 @@
             {% if mb.has_open_orders %}
             <a href="{% url 'orders' %}#{{mb.network.slug}}" class="button">Commander</a>
             {% elif mb.is_buyer %}
-            <a href="{% url 'circuit' network=mb.network.id %}" class="button inscrit">Inscrit</a>
-            <a href="#" class="button quitter">Quitter</a>
+            <a s  href="{% url 'circuit' network=mb.network.id %}" class="button inscrit">Inscrit</a>
+            <a href="{% url 'leave_network' network=mb.network.id %}" 
+               onclick="return confirm('Vous voulez définitivement quitter {{mb.network.name}}?')"
+               class="button quitter">Quitter</a>
             {% elif mb.is_candidate %}
             <a href="{% url 'circuit' network=mb.network.id %}" class="button attente">En attente</a>
             <a href="#" class="button quitter">Quitter</a>

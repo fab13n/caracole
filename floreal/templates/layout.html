@@ -20,16 +20,29 @@
   <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,500,900&display=swap" rel="stylesheet">
 
 
+  <!-- JQUERY
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+
+  <script src="{% static 'jquery/jquery.js' %}"></script>
+
+  <!-- Bootstrap fancy widgets (must be placed after jQuery, before custom styles)
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <script src="{% static 'popper/popper.js' %}"></script>
+  <link href="{% static 'bootstrap/css/bootstrap.css' %}" rel="stylesheet" />
+  <script src="{% static 'bootstrap/js/bootstrap.js' %}"></script>  
+  <script src="{% static 'bootstrap-select/js/bootstrap-select.js' %}"></script>
+  <link href="{% static 'bootstrap-select/css/bootstrap-select.css' %}" rel="stylesheet" />
+  <link href="{% static 'bootstrap4-toggle/css/bootstrap4-toggle.css' %}" rel="stylesheet" />
+  <script src="{% static 'bootstrap4-toggle/js/bootstrap4-toggle.js' %}"></script>
+
+
+
   <!-- CSS
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <link rel="stylesheet" href="{% static 'css/normalize.css' %}">
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
   <link rel="stylesheet" href="{% static 'css/hamburgers.css' %}">
 
-  <!-- JQUERY
-  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
-
-  <script src="{% static 'jquery/jquery.js' %}"></script>
   <script src="{% static 'js/script.js' %}"></script>
 
   <!-- Favicon
@@ -106,7 +119,7 @@
         </div>
       </div>
       <div class="center">
-        <p style="margin:0;">© Solalim 2021 - Tous droits réservés - Design : <a href="http://raf.pm" target="_blank">RAF</a></p>
+        <p style="margin:0;">© Solalim 2021 - Tous droits réservés - Moteur : <a href="https://github.com/fab13n">Fabien</a> ; Design : <a href="http://raf.pm" target="_blank">RAF</a></p>
         <p><a href="mentions-legales.html">Mentions légales</a></p>
       </div>
   </footer>

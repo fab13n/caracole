@@ -27,6 +27,7 @@ urlpatterns = [
     path('user.html', views.user, name='user'),
     path('admin_db', admin.site.urls),
     path('impersonate/', include('impersonate.urls')),
+    path('u-<id:user>/description-and-image', views.user_description_and_image, name='user_description_and_image'),
 
     path('nw-<id:network>/presentation.html', views.circuit, name='circuit'),
     path('dv-<id:delivery>/buy.html', views.edit_user_purchases, name='edit_user_purchases'),
@@ -42,7 +43,7 @@ urlpatterns = [
     path('nw-<id:network>', views.network_admin, name='network_admin'),
     path('nw-<id:network>/producer', views.producer, name='producer'),
     path('nw-<id:network>/archives', views.archived_deliveries, name='archived_deliveries'),
-    path('nw-<id:network>/edit-description', views.edit_network_description, name='edit_network_description'),
+    path('nw-<id:network>/description-and-image', views.network_description_and_image, name='edit_network_description'),
     re_path(r'^nw-(?P<network>[0-9]+)/all-deliveries/(?P<states>[A-Z]+)\.html$', views.all_deliveries_html, name='all_deliveries_html'),
     re_path(r'^nw-(?P<network>[0-9]+)/all-deliveries/(?P<states>[A-Z]+)\.pdf$', views.all_deliveries_latex, name='all_deliveries_latex'),
     path('nw-<id:network>/invoice-mail-form', views.invoice_mail_form, name='invoice_mail_form'),
@@ -60,10 +61,10 @@ urlpatterns = [
     path('dv-<id:delivery>/archive.<suffix>', views.get_archive, name='get_archive'),
  
     path('candidacy', views.candidacy, name='candidacy'),
-    path('cd-<candidacy>/cancel', views.cancel_candidacy, name='cancel_candidacy'),
-    path('cd-<candidacy>/set-response/<response>', views.validate_candidacy, name='validate_candidacy'),
+    path('candidacy/nw-<network>/u-<user>/cancel', views.cancel_candidacy, name='cancel_candidacy'),
+    path('candidacy/nw-<network>/u-<user>/set-response/<response>', views.validate_candidacy, name='validate_candidacy'),
     path('nw-<id:network>/leave', views.leave_network, name='leave_network'),
-    path('new-cd/nw-<id:network>', views.create_candidacy, name='create_candidacy'),
+    path('candidacy/nw-<id:network>', views.create_candidacy, name='create_candidacy'),
     path('candidacy/staff', views.manage_candidacies, name='manage_candidacies'),
 
     path('dv-<id:delivery>.html', views.view_purchases_html, name='view_delivery_purchases_html'),
@@ -86,7 +87,7 @@ urlpatterns = [
 
  
     path('accounts/register', views.user_register, name="user_register"),
-    path('accounts/registration_post.html', views.candidacy, name="registration_post"),
+    # path('accounts/registration_post.html', views.candidacy, name="registration_post"),
     # TODO Test usefulness of final /
     re_path('^accounts/password/reset/?$', PasswordResetView.as_view(), name="password_reset"),
     re_path('^accounts/password/reset_done/?$', PasswordResetDoneView.as_view(), name="password_reset_done"),

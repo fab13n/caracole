@@ -80,8 +80,6 @@ function swap_rows(r0) {
     const P1 = "#r" + r1;
     console.log("Swapping rows "+r0+" and "+r1);
 
-    // TODO Use $.each rather than for loops?
-
     /* Swap input values, except file uploads and textarea */
     const INPUT_FIELDS = ['id', 'name', 'price', 'unit', 'quantity_per_package',
                         'quantity_limit', 'quantum', 'unit_weight'];
@@ -110,11 +108,11 @@ function swap_rows(r0) {
     const c0 = e0 ? e0.getContent() : null;
     const c1 = e1 ? e1.getContent() : null;
     /* Make sure that target editors exist */
-    if(e0 && ! e1) { load_editor(r1); e1 = tinyMCE.get(P1 + "-description-editor"); }
-    if(e1 && ! e0) { load_editor(r0); e0 = tinyMCE.get(P0 + "-description-editor"); }
+    if(e0 && ! e1) { load_editor(r1); e1 = tinyMCE.get("r" + r1 + "-description-editor"); }
+    if(e1 && ! e0) { load_editor(r0); e0 = tinyMCE.get("r" + r0 + "-description-editor"); }
     /* Swap contents */
-    if(c0 !== null) e1.setContent(c0);
-    if(c1 !== null) e0.setContent(c1);
+    if(c0 !== null) e1.setContent(c0); else if(e1) e1.setContent("");
+    if(c1 !== null) e0.setContent(c1); else if(e0) e0.setContent("");
 
     /* Swap images. This is tricky because file inputs can't have their content altered
      * for security reasons. Therefore they will be moved and relabelled instead.
@@ -190,11 +188,26 @@ function add_row() {
                    onchange="reflect_image_change(${r}, event)"/>
           </label>
         </div></td>
+
         <td class="deleted">
-          <input name="r${r}-deleted" value="r${r}-deleted" onchange="reflect_deletion(${r})" type="checkbox">
+          <label for="r${r}-deleted" class="button button-primary"></label>
+          <input 
+            name="r${r}-deleted" 
+            id="r${r}-deleted" 
+            value="r${r}-deleted" 
+            onchange="reflect_deletion(${r})" 
+            type="checkbox" 
+            style="display: none">
         </td>
         <td class="described">
-          <input name="r${r}-described" value="r${r}-described" onchange="reflect_description(${r})" type="checkbox">
+          <label for="r${r}-described" class="button button-primary">Décrire</label>
+          <input
+            name="r${r}-described" 
+            id="r${r}-described" 
+            value="r${r}-described" 
+            onchange="reflect_description(${r})" 
+            type="checkbox"
+            style="display: none">
         </td>
     </tr>
     <tr id="r${r}-description">

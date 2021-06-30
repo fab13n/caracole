@@ -93,7 +93,7 @@ strong {
   font-weight: 500;
 }
 
-h1:first-of-type, .h1-like:first-of-type, {
+h1:first-of-type, .h1-like:first-of-type {
   margin: 5rem 0 3rem;
 }
 
@@ -652,8 +652,10 @@ ul.circuit-admin-list ul li {
   background-color: transparent;
   font-family: 'oswald', sans-serif;
 }
+/** A mettre dans la bonne page uniquement,
+ *  réparti entre edition de commande et achats utilisateur.
 
-#products-table td.product-unit {
+ #products-table td.product-unit {
   text-align: left;
 }
 
@@ -676,7 +678,6 @@ td.price {
   color: #ED5C01;
 }
 
-/* Boutons quantité */
 .quantity {
   position: relative;
   min-width: 3rem;
@@ -752,6 +753,8 @@ input[type=number] {
   height: 50%;
   border-radius: 0% 0% 50% 50%;
 }
+
+*/
 
 #limiteCommande label, #limiteCommande input {
   margin-left: 1rem;
@@ -1386,6 +1389,11 @@ button.button-third, .button.button-third {
   min-width: 10rem;
   width: auto;
   margin: 0 1rem;
+}
+
+.button.compact {
+  min-width: unset;
+  width: auto;
 }
 
 @media (max-width: 980px) {

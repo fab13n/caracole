@@ -1,4 +1,4 @@
-{% extends 'layout_narrow.html' %}
+{% extends 'layout.html' %}
 {% load static %}
 {% load floreal_filters %}
 
@@ -10,6 +10,8 @@
 {% endblock %}
 
 {% block content %}
+<section class="container margetopXl margebot">
+
 <h1>Créer une nouvelle commande dans le réseau {{nw.name}}</h1>
 
 <p>Créer une nouvelle commande :</p>
@@ -32,6 +34,6 @@
     {% endif %}
 </ul>
 
-<p>Retourner à l'<a href="{% url 'network_admin' network=nw.id %}">administration du réseau {{nw.name}}</a>.</p>
-
+<p><a class="button retour" href="javascript:history.back()">Retour</a></p>
+</section>
 {% endblock %}
