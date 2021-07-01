@@ -28,6 +28,15 @@
             alert("TODO impersonate user #"+event.target.value);
         });
     }
+
+    function rename_delivery(dv_id, dv_name) {
+        var new_name = window.prompt(`Renommer la commande ${dv_name} :`, dv_name);
+        var url = "{% url 'set_delivery_name' delivery='DVID' name='NAME' %}".replace('DVID', dv_id).replace('NAME', new_name);
+        if (new_name) {
+            $.ajax(url, {success: function() { window.location.reload(); }});
+        }
+    }
+
 </script>
 
 {% endblock %}
@@ -123,6 +132,7 @@
                 <div>
                     <a class="button modif" href="{% url 'edit_delivery_products' delivery=dv.id %}">Modifier la commande</a>
                     <a class="button modif" href="{% url 'edit_delivery_purchases' delivery=dv.id %}">Modifier les achats</a>
+                    <a class="button modif" onclick="rename_delivery({{dv.id}}, '{{dv.name|escapejs}}')">Renommer</a>
                 </div>
                 <div>
                     <a class="button admin" href="{% url 'view_delivery_purchases_html' delivery=dv.id %}">Voir en ligne</a>

@@ -5,6 +5,148 @@
 
 {% block head %}
 <style type="text/css">
+  #products-table {
+    width: 100%;
+  }
+
+  #products-table td,
+  #products-table th {
+    border: none;
+  }
+
+  #products-table .row-produit {
+    border-top: 1px solid #733A00;
+  }
+
+  #products-table th {
+    font-family: 'oswald', sans-serif;
+    text-align: center;
+    color: #733A00;
+    min-width: 20%;
+  }
+
+  #products-table td {
+    text-align: center;
+  }
+
+  #products-table tr.texte-produit td {
+    text-align: left;
+    padding: 0 2rem 2rem;
+  }
+
+  .quantity input[type="number"],
+  .quantity input[type="number"]:focus {
+    height: auto;
+    padding: .6rem 0 0 0;
+    color: #ED5C01;
+    border: none !important;
+    box-shadow: none;
+    box-sizing: border-box;
+    background-color: transparent;
+    font-family: 'oswald', sans-serif;
+  }
+
+  #products-table td.product-unit {
+    text-align: left;
+  }
+
+  #products-table tr.total {
+    background: #ED5C01;
+    color: #fff;
+    font-family: 'oswald', sans-serif;
+  }
+
+  #products-table tr.total-padding {
+    font-family: 'oswald', sans-serif;
+  }
+
+  td.unit-price span {
+    font-weight: 500;
+  }
+
+  td.price {
+    font-family: 'oswald', sans-serif;
+    color: #ED5C01;
+  }
+
+  .quantity {
+    position: relative;
+    min-width: 3rem;
+    max-width: 3rem;
+  }
+
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type=number] {
+    -moz-appearance: textfield !important;
+  }
+
+  .quantity input {
+    width: 45px;
+    height: 42px;
+    line-height: 1.65;
+    display: block;
+    padding: 0;
+    margin: 0;
+    padding-left: 20px;
+    position: relative;
+    top: 1.8rem;
+    z-index: 1;
+    width: 5rem;
+    text-align: right;
+  }
+
+  .quantity input:focus {
+    outline: 0;
+  }
+
+  .quantity-nav {
+    position: relative;
+    top: -1.8rem;
+    height: 42px;
+    z-index: 0;
+  }
+
+  .quantity-button {
+    position: relative;
+    cursor: pointer;
+    width: 20px;
+    text-align: center;
+    color: #fff;
+    background-color: #84B818;
+    font-size: 1.8rem;
+    font-family: "Roboto", sans-serif !important;
+    line-height: 2.1rem;
+    font-weight: 500;
+    -webkit-transform: translateX(-100%);
+    transform: translateX(-100%);
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+  }
+
+  .quantity-button.quantity-up {
+    position: absolute;
+    height: 50%;
+    top: 0;
+    border-radius: 50% 50% 0% 0%;
+  }
+
+  .quantity-button.quantity-down {
+    position: absolute;
+    bottom: -1px;
+    height: 50%;
+    border-radius: 0% 0% 50% 50%;
+  }
+
+
+
   td.product-image img {
     object-fit: contain;
     object-position: center;
@@ -197,7 +339,7 @@
         <a class="button retour" href="javascript:confirm_cancel()">Retour</a>
       </div>
       <input type='hidden' id='delivery-id' name='delivery-id' value='...' />
-      {% csrf_token %}  
+      {% csrf_token %}
     </form>
   </div>
 
