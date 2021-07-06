@@ -36,6 +36,7 @@ function reflect_description(r) {
         if(! is_loaded) {
             ta.attr("loaded", "1");
             tinymce.init({
+              plugins: "link",
               selector: P+'-description textarea',
               content_css: '/static/floreal.css',
               language: 'fr_FR'
@@ -67,6 +68,7 @@ function reflect_image_change(r, event) {
 /* change the basic textarea into a timyMCE editor. */
 function load_editor(r) {
   tinymce.init({
+    plugins: "link",
     selector: "#r" + r + "-description textarea",
     content_css: "/static/floreal.css",
     language: 'fr_FR'
@@ -342,9 +344,10 @@ $(document).ready(function() {
 
     /* Turn plain textareas into TinyMCE WYSIWYG editors. */
     tinymce.init({
-        selector: 'textarea',
-        content_css: "/static/floreal.css",
-        language: 'fr_FR'
+      plugins: "link",
+      selector: 'textarea',
+      content_css: "/static/floreal.css",
+      language: 'fr_FR'
     });
 
     load_delivery();
