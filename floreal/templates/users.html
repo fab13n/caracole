@@ -7,26 +7,6 @@
   #user-form td:first-child {
     text-align: right;
   }
-
-  .btn-primary {
-    border-color: #811305;
-    background-color: #811305;
-  }
-
-  .btn-primary:disabled {
-    border-color: gray;
-    background-color: gray;
-  }
-
-  .toggle-off {
-    background-color: lightgray;
-    color: gray;
-  }
-
-  .dropdown-menu, .filter-option {
-    font-size: 1.5rem;
-  }
-
 </style>
 
 <script src="{% static 'tinymce/tinymce.min.js' %}"></script>
@@ -135,6 +115,9 @@
       .append(template)
       .hide(); // will be shown upon user selection
     $("#user-form [type=checkbox]").bootstrapToggle();
+    // Bootstrap toggle layout is buggy inside tables.
+    $("#user-form div.toggle").css("width", "58").css("height", "36")
+
     $(".user-modifier").on('change', () => {
       // Once modifications occurred, saving them to server becomes allowed
       if (!MODIFIED_USER && CURRENT_USER) {

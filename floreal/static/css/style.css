@@ -1155,6 +1155,10 @@ p.commandes-entete span {
 .dropdown-menu, .btn, .form-control {
   font-size: unset;
 }
+.btn-primary {
+  background: #84B818;
+  border-color: #84B818;
+}
 
 /* Buttons –––––––––––––––––––––––––––––––––––––––––––––––––– */
 .button, button, input[type="submit"], input[type="reset"], input[type="button"] {

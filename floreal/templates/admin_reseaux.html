@@ -119,7 +119,9 @@
                   />
                   <span id="visibility-state-{{nw.id}}"></span>
                 </li>
-                {% if candidates %}
+                {% if not candidates %}
+                {# pass #}
+                {% elif candidates|length < 4 %}
                 <li>Candidatures :
                     <a id="nw-{{nw.id}}-candidacies"></a>
                     <ul>
@@ -132,6 +134,8 @@
                         {% endfor %}
                     </ul>
                 </li>
+                {% else %}
+                <li><a href="{% url 'manage_candidacies' %}"><strong>{{candidates|length}} candidatures</strong> à valider</a>.</li>
                 {% endif %}
                 {% endwith %}
             </ul>
