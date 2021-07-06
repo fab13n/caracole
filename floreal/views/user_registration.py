@@ -86,7 +86,7 @@ def user_register(request):
             new_user = authenticate(username=d['email'], password=d['password1'])
             login(request, new_user)
 
-            return HttpResponseRedirect('/#circuits``')
+            return HttpResponseRedirect('/#reseaux')
         else:  # invalid form
             d = form.data
             m.JournalEntry.log(None, "Failed account creation for %s %s (%s)", d['first_name'], d['last_name'], d['email'])

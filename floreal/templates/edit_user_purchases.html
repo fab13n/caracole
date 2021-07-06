@@ -34,18 +34,6 @@
     padding: 0 2rem 2rem;
   }
 
-  .quantity input[type="number"],
-  .quantity input[type="number"]:focus {
-    height: auto;
-    padding: .6rem 0 0 0;
-    color: #ED5C01;
-    border: none !important;
-    box-shadow: none;
-    box-sizing: border-box;
-    background-color: transparent;
-    font-family: 'oswald', sans-serif;
-  }
-
   #products-table td.product-unit {
     text-align: left;
   }
@@ -60,48 +48,49 @@
     font-family: 'oswald', sans-serif;
   }
 
-  td.unit-price span {
+  #products-table td.unit-price span {
     font-weight: 500;
   }
 
-  td.price {
+  #products-table td.price {
     font-family: 'oswald', sans-serif;
     color: #ED5C01;
   }
 
-  .quantity {
+  #products-table td.quantity {
     position: relative;
     min-width: 3rem;
     max-width: 3rem;
+    padding: 0px;
   }
 
-  input[type=number]::-webkit-inner-spin-button,
-  input[type=number]::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-
-  input[type=number] {
-    -moz-appearance: textfield !important;
-  }
-
-  .quantity input {
-    width: 45px;
-    height: 42px;
+  #products-table td.quantity input {
+    border: none !important;
+    box-shadow: none;
+    box-sizing: border-box;
+    background-color: transparent;
+    font-family: 'oswald', sans-serif;
     line-height: 1.65;
     display: block;
-    padding: 0;
-    margin: 0;
+    padding: 0px;
+    margin: 0px !important;
     padding-left: 20px;
     position: relative;
     top: 1.8rem;
     z-index: 1;
-    width: 5rem;
     text-align: right;
+    color: #ED5C01;
   }
 
-  .quantity input:focus {
+  #products-table td.quantity input:focus {
     outline: 0;
+  }
+
+  #products-table td.product-image img {
+    object-fit: contain;
+    object-position: center;
+    width: 93px;
+    height: 93px;
   }
 
   .quantity-nav {
@@ -145,13 +134,14 @@
     border-radius: 0% 0% 50% 50%;
   }
 
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
 
-
-  td.product-image img {
-    object-fit: contain;
-    object-position: center;
-    width: 93px;
-    height: 93px;
+  input[type=number] {
+    -moz-appearance: textfield !important;
   }
 </style>
  
@@ -188,10 +178,18 @@
       //const parity = i%2 ? "odd" : "even";
       let input;
       if (pc.max_quantity === 0) {
-        rows += `<tr><td colspan="5" class="out-of-stock">(Produit épuisé)</td></tr>`;
-      } else {
         rows += `
-            <tr id="row-${pd.id}" class="row-produit">
+          <tr id="row-${pd.id}" class="row-produit">
+            <td class="product-image"></td>
+            <td class="product-name">${pd.name}</td>
+            <td colspan="5" class="out-of-stock">(Produit épuisé)</td>
+          </tr>`;
+      } else {
+        const maxq = pd.purchase.max_quantity;
+        rows += `
+            <tr id="row-${pd.id}" class="row-produit" data-toggle="tooltip" 
+              ${maxq == null ? '' : 'title="Reste ' + maxq + ' ' +pd.unit+'"'}>
+              {# If there's a description, the image occupies both rows. #}
               <td rowspan="${pd.description ? 2 : 1}" class="product-image">
                 ${pd.image ? '<img src="' + pd.image + '"/>' : ''}
               </td>
@@ -256,6 +254,7 @@
       const row = $(e);
       const id = Number(row.attr('id').split("-")[1]);
       const q = Number(row.find("input").val());
+      if(isNaN(q)) { return; /* Produit épuisé. */ }
       const pd = PRODUCTS[id];
       const pc = pd.purchase;
       const price = q * pd.price;

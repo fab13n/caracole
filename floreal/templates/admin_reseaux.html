@@ -4,6 +4,9 @@
 
 {% block head %}
 
+<style type="text/css">
+</style>
+
 <script type='text/javascript'>
     /* TODO: only load userids when the <select> widget opens
      */
@@ -30,12 +33,24 @@
     }
 
     function rename_delivery(dv_id, dv_name) {
-        var new_name = window.prompt(`Renommer la commande ${dv_name} :`, dv_name);
-        var url = "{% url 'set_delivery_name' delivery='DVID' name='NAME' %}".replace('DVID', dv_id).replace('NAME', new_name);
+        const new_name = window.prompt(`Renommer la commande ${dv_name} :`, dv_name);
+        const url = "{% url 'set_delivery_name' delivery='DVID' name='NAME' %}".replace('DVID', dv_id).replace('NAME', new_name);
         if (new_name) {
             $.ajax(url, {success: function() { window.location.reload(); }});
         }
     }
+
+    function on_visibility_change(nwid) {
+    }
+
+    $(document).ready(() => {
+        $("input.visibility").bootstrapToggle();
+        {% for mb in memberships %}
+        {% with nw=mb.network %}
+        $("#visibility-{{nw.id}}").bootstrapToggle({% if nw.visible %}"on"{% else %}"off"{% endif %});
+        {% endwith %}
+        {% endfor %}
+    })
 
 </script>
 
@@ -93,6 +108,17 @@
                 {% endif %}
                 <li><a href="{% url 'list_delivery_models' network=nw.id %}"><strong>Nouvelle</strong> commande</a></li>
                 {% with candidates=mb.network.candidates %}
+                <li>Visible: <input
+                    class="visibility"
+                    id="visibility-{{nw.id}}"
+                    name="${name}" 
+                    type="checkbox" 
+                    data-toggle="toggle" 
+                    data-on="Oui" 
+                    data-off="Non"
+                  />
+                  <span id="visibility-state-{{nw.id}}"></span>
+                </li>
                 {% if candidates %}
                 <li>Candidatures :
                     <a id="nw-{{nw.id}}-candidacies"></a>

@@ -22,14 +22,14 @@ register_converter(Identifier, "id")
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path('admin_circuit.html', views.admin, name='admin'),
+    path('admin_reseaux.html', views.admin, name='admin'),
     path('orders.html', views.orders, name='orders'),
     path('user.html', views.user, name='user'),
     path('admin_db', admin.site.urls),
     path('impersonate/', include('impersonate.urls')),
     path('u-<id:user>/description-and-image', views.user_description_and_image, name='user_description_and_image'),
 
-    path('nw-<id:network>/presentation.html', views.circuit, name='circuit'),
+    path('nw-<id:network>/presentation.html', views.reseau, name='reseau'),
     path('dv-<id:delivery>/buy.html', views.edit_user_purchases, name='edit_user_purchases'),
     path('dv-<id:delivery>/buy.json', views.view_purchases_json, kwargs={"user": True}, name='user_purchases_json'),
 

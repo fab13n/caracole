@@ -75,7 +75,7 @@ def validate_candidacy(request, network, user, response):
     nw = get_network(network)
     u = get_user(user)
     staff_user = request.user
-    if not nw.staff.filter(id=staff_user.id).exists():
+    if not staff_user.is_staff and not nw.staff.filter(id=staff_user.id).exists():
         return HttpResponseForbidden('Réservé aux administrateurs du réseau '+network.name)
 
     m.JournalEntry.log(request.user, "Candidacy from u-%d to nw-%d is %s",
@@ -118,7 +118,7 @@ def validate_candidacy_without_checking(request, network, user, response, send_c
 
     mail += "\n\nCordialement, le robot du site de commande des Circuits Courts Civam."
     mail += "\n\nLien vers le site : http://solalim.civam-occitanie.fr"
-    title = settings.EMAIL_SUBJECT_PREFIX + " Votre demande d'inscription au circuit court "+network.name
+    title = settings.EMAIL_SUBJECT_PREFIX + " Votre demande d'inscription au réseau "+network.name
     if send_confirmation_mail:
         send_mail(subject=title, message=''.join(mail), from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=[user.email],
                   fail_silently=True)

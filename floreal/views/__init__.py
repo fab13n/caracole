@@ -91,7 +91,7 @@ def admin(request):
         "user": request.user,
         "memberships": mbships,
     }
-    return render(request, "admin_circuits.html", vars)
+    return render(request, "admin_reseaux.html", vars)
 
 
 @login_required()
@@ -135,7 +135,7 @@ def user(request):
 
 
 @login_required()
-def circuit(request, network):
+def reseau(request, network):
     nw = get_network(network)
     mb = m.NetworkMembership.objects.filter(user=request.user, network=nw).first()
     status = (
@@ -154,7 +154,7 @@ def circuit(request, network):
         and m.Delivery.objects.filter(state=m.Delivery.ORDERING_ALL).exists(),
         "user_status": status,
     }
-    return render(request, "circuit.html", vars)
+    return render(request, "reseau.html", vars)
 
 
 @login_required()
