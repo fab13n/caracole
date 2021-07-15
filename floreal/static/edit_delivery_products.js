@@ -300,9 +300,13 @@ function submit_if_valid(then_leave) {
     $("#form").submit()
 }
 
+/* Will contain dowloaded delivery, helps debug. */
+var DELIVERY = null; 
+
 async function load_delivery() {
   const response = await fetch("products.json");
   const dv = await response.json();
+  DELIVERY = dv;
 
   $("#dv-id").val(dv.id);
   $("#dv-state").val(dv.state);
@@ -335,6 +339,15 @@ async function load_delivery() {
    * "move down" of the last one is handled whenever blank lines are inserted. */
   add_blank_products();
   $("#r1 td.place button.up").attr("disabled", "disabled");
+
+  /* Set the description. In a timeout, in order to wait for tinyMCE to load. */
+  
+  setTimeout(
+    () => tinyMCE.get("dv-description").setContent(dv.description),
+    0
+  );
+
+
 }
 
 $(document).ready(function() {

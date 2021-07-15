@@ -11,6 +11,7 @@
 $(document).ready(function(){
   /* Turn plain textareas into TinyMCE WYSIWYG editors. */
   tinymce.init({
+      plugins: 'link',
       selector: 'textarea',
       content_css: "{% static 'floreal.css' %}",
       language: 'fr_FR'
@@ -20,11 +21,13 @@ $(document).ready(function(){
 {% endblock %}
 
 {% block content %}
-<h1>{{title}}</h1>
+<section class="container margetopXl margebot">
+  <h1>{{title}}</h1>
 <form method="POST" action="{{target}}{% if next %}?next={{next}}{% endif %}">
   {% block custom %}{% endblock %}
   <textarea name="editor" class="editor">{{content|safe}}</textarea>
   <input type="submit" value="Sauvegarder" name="save"/>
   {% csrf_token %}
 </form>
+</section>
 {% endblock %}

@@ -40,14 +40,38 @@
         }
     }
 
-    function on_visibility_change(nwid) {
+    function on_visibility_change(nw_id, event) {
+        const url = "{% url 'set_network_visibility' network='NWID' val='VALUE' %}".replace('NWID', nw_id).replace('VALUE', event.target.checked);
+        // TODO add "⌛" after event.target
+        $.ajax(url, {success: function() {
+            // TODO remove hourglass
+            console.log("network", nw_id, "visibility is now", event.target.checked);
+        } });
+    }
+
+    function on_validation_change(nw_id, event) {
+        const url = "{% url 'set_network_validation' network='NWID' val='VALUE' %}".replace('NWID', nw_id).replace('VALUE', event.target.checked);
+        // TODO add "⌛" after event.target
+        $.ajax(url, {success: function() {
+            // TODO remove hourglass
+            console.log("network", nw_id, "validation is now", event.target.checked);
+        } });
+    }
+
+    function on_state_change(dv_id, state, event) {
+        const url = "{% url 'set_delivery_state' delivery='DVID' state='STATE' %}".replace('DVID', dv_id).replace('STATE', state);
+        // TODO add "⌛" after event.target
+        $.ajax(url, {success: function() {
+            // TODO remove hourglass
+            console.log("Success");
+        } });
     }
 
     $(document).ready(() => {
         $("input.visibility").bootstrapToggle();
         {% for mb in memberships %}
         {% with nw=mb.network %}
-        $("#visibility-{{nw.id}}").bootstrapToggle({% if nw.visible %}"on"{% else %}"off"{% endif %});
+        //$("#visibility-{{nw.id}}").bootstrapToggle({% if nw.visible %}"on"{% else %}"off"{% endif %});
         {% endwith %}
         {% endfor %}
     })
@@ -89,36 +113,50 @@
         </ul>
     </div>
 
-    <h2>Administration des circuits</h2>
+    <h2>Administration des réseaux</h2>
 
     <ul>
         <!-- Pour chaque circuit -->
         {% for mb in memberships %}
         {% with nw=mb.network %}
+
         <div class="divider acces-rapide couleur-sec">
             <a id="nw-{{nw.id}}"></a>
             <h5 class="center divider couleur-sec">Réseau <span class="couleur-prim">{{nw.name}}</span></h5>
+
+            <h5 class="txt-left couleur-sec margebotS">Configuration</h5>
             <ul>
-                <li class="circuit"><a href="{% url 'network_admin' network=nw.id %}" href="#nw-{{mb.network.id}}">
-                    <strong>Administration avancée</strong> de {{nw.name}}
-                </a></li>
+                <li><a href="{% url 'edit_network_description' network=nw.id %}">Éditer la <strong>description du réseau</strong></a></li>
                 <li><a href="{% url 'emails_network' network=nw.id %}"><strong>Annuaire</strong> des membres</a></li>
-                {% if mb.has_frozen_deliveries  %}
-                <li><a href="{% url 'invoice_mail_form' network=nw.id %}"><strong>Écrire</strong> aux acheteurs de commandes gelées</a></li>
-                {% endif %}
-                <li><a href="{% url 'list_delivery_models' network=nw.id %}"><strong>Nouvelle</strong> commande</a></li>
-                {% with candidates=mb.network.candidates %}
-                <li>Visible: <input
-                    class="visibility"
-                    id="visibility-{{nw.id}}"
-                    name="${name}" 
-                    type="checkbox" 
-                    data-toggle="toggle" 
-                    data-on="Oui" 
-                    data-off="Non"
-                  />
+                <li><strong>Visible</strong> par les non-membres : 
+                    <input
+                        class="visibility"
+                        id="visibility-{{nw.id}}"
+                        name="visibility-{{nw.id}}"
+                        type="checkbox" 
+                        data-toggle="toggle" 
+                        data-on="Oui" 
+                        data-off="Non"
+                        onchange="on_visibility_change({{nw.id}}, event)"
+                        {% if nw.visible %}checked="checked"{% endif %}
+                    />
                   <span id="visibility-state-{{nw.id}}"></span>
                 </li>
+                <li>Candidatures <strong>validées</strong> : 
+                    <input
+                        class="auto-validate"
+                        id="auto-validate-{{nw.id}}"
+                        name="auto-validate-{{nw.id}}"
+                        type="checkbox" 
+                        data-toggle="toggle" 
+                        data-on="automatiquement" 
+                        data-off="par&nbsp;les&nbsp;admins"
+                        onchange="on_validation_change({{nw.id}}, event)"
+                        {% if nw.auto_validate %}checked="checked"{% endif %}
+                    />
+                  <span id="visibility-state-{{nw.id}}"></span>
+                </li>
+                {% with candidates=mb.network.candidates %}
                 {% if not candidates %}
                 {# pass #}
                 {% elif candidates|length < 4 %}
@@ -140,13 +178,23 @@
                 {% endwith %}
             </ul>
 
-            <!-- Pour chaque commande -->
+
+            <h5 class="txt-left couleur-sec margebotS">Commandes</h5>
+            <ul>
+                <li><a href="{% url 'list_delivery_models' network=nw.id %}">Créer une <strong>nouvelle commande</strong>.</a></li>
+                {% if mb.has_frozen_deliveries  %}
+                {% endif %}
+                <li>
+                    Qui a commandé où ? Voir <strong>
+                    <a href="{% url 'all_deliveries_html' network=nw.id states='BCDE' %}">en ligne</a>,
+                    <a href="{% url 'all_deliveries_latex' network=nw.id states='BCDE' %}">en PDF</a>
+                    </strong>.
+                </li>
+                <li><a href="{% url 'invoice_mail_form' network=nw.id %}">Envoyer un <strong>mail de rappel</strong> pour les commandes gelées</a>.</li>
+                <li><a href="{% url 'archived_deliveries' network=nw.id %}">Voir les commandes <strong>archivées</strong></a>.</li>
+            </ul>
+
             {% for dv in nw.active_deliveries %}
-
-            {% if forloop.first %}
-            <h5 class="txt-left couleur-sec margebotS">Commandes en cours</h5>
-            {% endif %}
-
             <div class="commande-cours">
                 <p><strong>
                     {% if dv.freeze_date %}
@@ -158,7 +206,19 @@
                     {% if dv.producer %}
                     - {{dv.producer.first_name}} {{dv.producer.last_name}}
                     {% endif %}
-                </strong> | Statut : <i>{{dv.state_name}}</i></p>
+                </strong> | Statut : 
+                <!--<i>{{dv.state_name}}</i>-->
+                  <select 
+                    id="dv-{{dv.id}}-state" 
+                    name="dv-{{dv.id}}-state" 
+                    class="button admin" 
+                    onchange="on_state_change({{dv.id}}, event.target.value)">
+                    {% for key, name in dv.STATE_CHOICES.items %}
+                    <option value="{{key}}" {% if key == dv.state %}selected="selected"{% endif %}>{{name}}</option>
+                    {% endfor %}
+                  </select>
+
+                </p>
                 <div>
                     <a class="button modif" href="{% url 'edit_delivery_products' delivery=dv.id %}">Modifier la commande</a>
                     <a class="button modif" href="{% url 'edit_delivery_purchases' delivery=dv.id %}">Modifier les achats</a>
@@ -171,8 +231,6 @@
                     <a class="button admin" href="{% url 'view_delivery_purchases_cards' delivery=dv.id %}">Cartes PDF</a>
                 </div>
             </div>
-            {% empty %}
-            Aucune commande en cours
             {% endfor %}
             <!-- end commande-->
 

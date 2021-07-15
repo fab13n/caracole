@@ -47,6 +47,8 @@ urlpatterns = [
     re_path(r'^nw-(?P<network>[0-9]+)/all-deliveries/(?P<states>[A-Z]+)\.html$', views.all_deliveries_html, name='all_deliveries_html'),
     re_path(r'^nw-(?P<network>[0-9]+)/all-deliveries/(?P<states>[A-Z]+)\.pdf$', views.all_deliveries_latex, name='all_deliveries_latex'),
     path('nw-<id:network>/invoice-mail-form', views.invoice_mail_form, name='invoice_mail_form'),
+    path('nw-<id:network>/set-visibility/<val>', views.set_network_visibility, name='set_network_visibility'),
+    path('nw-<id:network>/set-validation/<val>', views.set_network_validation, name='set_network_validation'),
 
     # path('dv-<id:delivery>', views.edit_user_purchases, name='edit_user_purchases'),
     # path('dv-<id:delivery>-u.json', views.view_purchases_json, kwargs={"user": True}, name='user_purchases_json'),

@@ -24,8 +24,12 @@
 {% endblock %}
 
 {% block custom %}
-<p>
-  Image liée à la description : 
+<h2>Image liée à la description</h2>
+<div>
   <img id="image" src="{% if image %}{{image.url}}{% else %}/media/none.png{% endif %}">
-  <input type="file" accept="image/*" name="image" onchange="on_image_change(event)"/></p>
+</div>
+<div>
+  <input type="file" accept="image/*" name="image" onchange="on_image_change(event)"/>
+</div>
+<h2>Description textuelle</h2>
 {% endblock %}

@@ -9,7 +9,7 @@ from django.shortcuts import render, redirect, reverse
 from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.utils import html
-from django.template.context_processors import csrf
+from django.template.context_processors import csrf, request
 from django.db.models import Count, Q
 
 from caracole import settings
@@ -455,9 +455,7 @@ def create_delivery(request, network, dv_model=None):
         reverse("edit_delivery_products", kwargs={"delivery": new_dv.id}) + "?new=true"
     )
 
-
 def set_delivery_state(request, delivery, state):
-    """Change a delivery's state."""
     dv = get_delivery(delivery)
     if not m.NetworkMembership.objects.filter(
         user=request.user, network=dv.network, is_staff=True
@@ -467,24 +465,43 @@ def set_delivery_state(request, delivery, state):
         )
     if state not in m.Delivery.STATE_CHOICES:
         return HttpResponseBadRequest(state + " n'est pas un état valide.")
-    must_save = (
-        dv.state < m.Delivery.TERMINATED == state
-        and m.Purchase.objects.filter(product__delivery=dv).exists()
-    )
     dv.state = state
     dv.save()
-    if must_save:
-        save_delivery(dv)
-    m.JournalEntry.log(
-        request.user,
-        "Set delivery dv-%d in state %s",
-        dv.id,
-        m.Delivery.STATE_CHOICES[state],
-    )
+    m.JournalEntry.log(request.user, "Set state=%s in dv-%d", state, dv.id)
 
     target = request.GET.get("next")
     return redirect(target) if target else HttpResponse("")
 
+
+    return _set_delivery_field(request, delivery, 'state', state)
+
+def _set_network_field(request, network, name, val):
+    """Change a delivery's state."""
+    nw = get_network(network)
+    if not m.NetworkMembership.objects.filter(
+        user=request.user, network=network, is_staff=True
+    ).exists():
+        return HttpResponseForbidden(
+            "Réservé aux administrateurs du réseau " + network.name
+        )
+
+    setattr(nw, name, val)
+    nw.save()
+    m.JournalEntry.log(
+        request.user,
+        "Set %s=%s in nw-%d",
+        name, val, nw.id)
+
+    target = request.GET.get("next")
+    return redirect(target) if target else HttpResponse("")
+
+def set_network_visibility(request, network, val):
+    b = val.lower() in ('on', 'true', '1')
+    return _set_network_field(request, network, 'visible', b)
+
+def set_network_validation(request, network, val):
+    b = val.lower() in ('on', 'true', '1')
+    return _set_network_field(request, network, 'auto_validate', b)
 
 @nw_admin_required(lambda a: get_delivery(a["delivery"]).network)
 def set_delivery_name(request, delivery, name):

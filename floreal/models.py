@@ -247,7 +247,7 @@ class Network(IdentifiedBySlug):
         return self.networksubgroup_set.exists()
 
     def active_deliveries(self):
-        return self.delivery_set.filter(state__in="BCD")
+        return self.delivery_set.filter(state__in="ABCD")
 
 
 class Delivery(IdentifiedBySlug):
