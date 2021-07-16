@@ -186,8 +186,8 @@
                 {% endif %}
                 <li>
                     Qui a commandé où ? Voir <strong>
-                    <a href="{% url 'all_deliveries_html' network=nw.id states='BCDE' %}">en ligne</a>,
-                    <a href="{% url 'all_deliveries_latex' network=nw.id states='BCDE' %}">en PDF</a>
+                    <a href="{% url 'all_deliveries_html' network=nw.id states='BCD' %}">en ligne</a>,
+                    <a href="{% url 'all_deliveries_latex' network=nw.id states='BCD' %}">en PDF</a>
                     </strong>.
                 </li>
                 <li><a href="{% url 'invoice_mail_form' network=nw.id %}">Envoyer un <strong>mail de rappel</strong> pour les commandes gelées</a>.</li>

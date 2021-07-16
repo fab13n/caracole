@@ -309,7 +309,7 @@ class Product(models.Model):
     unit_weight = models.DecimalField(
         decimal_places=3, max_digits=6, default=0.0, blank=True
     )
-    quantum = models.DecimalField(decimal_places=2, max_digits=3, default=1, blank=True)
+    quantum = models.DecimalField(decimal_places=2, max_digits=5, default=1, blank=True)
     description = models.TextField(null=True, blank=True, default=None)
     place = models.PositiveSmallIntegerField(null=True, blank=True, default=True)
     image = models.ImageField(null=True, default=None, blank=True)
