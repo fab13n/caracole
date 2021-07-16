@@ -94,7 +94,7 @@ def edit_delivery_products(request, delivery):
         _parse_form(request, is_staff)
         m.JournalEntry.log(request.user, "Edited products for delivery dv-%d", dv.id)
         if request.POST['then_leave'].lower() == 'true':
-            return redirect('edit_delivery_staff', dv.id)
+            return redirect('admin', dv.id)
         else:
             return redirect('edit_delivery_products', dv.id)  # TODO retrieve URL from request?
 

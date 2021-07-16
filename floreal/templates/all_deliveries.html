@@ -1,10 +1,33 @@
-{% extends "layout_wide.html" %}
+{% extends "layout.html" %}
 {% load floreal_filters %}
 
 {% block head %}
 <style type="text/css">
 td.yes { background-color: #ccffcc; color: green; font-size: larger; }
 .highlight { background-color: #ffaaaa; }
+tr:first-child > th {
+    vertical-align: bottom;
+}
+tr:first-child > th > span {
+    writing-mode: vertical-lr;
+}
+th {
+    white-space: nowrap;
+    text-align: right;
+}
+td, th {
+    padding: 0px;
+}
+
+td:nth-child(4n) {
+    border-right: 1px solid #E1E1E1;
+}
+
+/* Allow horizontal scrolling. */
+html, body {
+    overflow-x: unset;
+}
+
 </style>
 <script type="application/javascript">
 
@@ -20,28 +43,29 @@ td.yes { background-color: #ccffcc; color: green; font-size: larger; }
     function highlight_leave() { $(".highlight").removeClass("highlight"); }
 
     $(document).ready(function() {
-        $('.highlightable').hover(highlight_enter, highlight_leave);
+        //$('.highlightable').hover(highlight_enter, highlight_leave);
     })
 </script>
 {% endblock %}
 
 {% block content %}
+<section class="container margetopXl margebot">
+
 <h1>{{table|length}} Commandes en cours pour le réseau {{network.name}}</h1>
 <table>
     <tr>
         <td></td>
         {% for dv, has_purchased in table.0.1 %}
-        <th class="rotate"><div><div class="dv-{{dv.id}} highlightable">{{dv.name}}</div></div></th>
+        <th><span>{{dv.name}}</span></th>
         {% endfor %}
     </tr>
-    <tr><td>&nbsp;</td></tr>
     {% for u, x in table %}
     <tr>
         <th class="u-{{u.id}} highlightable left">{{u.first_name}} {{u.last_name}}</th>
         {% for dv, has_purchased in x %}
         {% if has_purchased %}
         <td class="yes u-{{u.id}} dv-{{dv.id}} highlightable">
-            <a href="{% url 'view_all_purchases_html' delivery=dv.id %}">✔</a>
+            <a href="{% url 'view_delivery_purchases_html' delivery=dv.id %}">✔</a>
         </td>
         {% else %}
         <td class="u-{{u.id}} dv-{{dv.id}} highlightable">-</td>{% endif %}
@@ -58,4 +82,5 @@ td.yes { background-color: #ccffcc; color: green; font-size: larger; }
 {{u|email}},{% endfor %}
 </p>
 
+</section>
 {% endblock %}

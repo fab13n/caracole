@@ -39,10 +39,10 @@
             </li>
             <li>
                 Consulter
-                <a href="{% url 'view_all_purchases_html' delivery=dv.id %}">en ligne <img src="{% static 'images/grid.png' %}"/></a>,
-                <a href="{% url 'view_all_purchases_xlsx' delivery=dv.id %}">en tableau Excel <img src="{% static 'images/excel.png' %}"/></a>,
-                <a href="{% url 'view_all_purchases_latex' delivery=dv.id %}">en table PDF <img src="{% static 'images/pdf.png' %}"/></a>,
-                <a href="{% url 'view_all_cards_latex' delivery=dv.id %}">en fiches individuelles <img src="{% static 'images/pdf.png' %}"/></a>
+                <a href="{% url 'view_delivery_purchases_html' delivery=dv.id %}">en ligne <img src="{% static 'images/grid.png' %}"/></a>,
+                <a href="{% url 'view_delivery_purchases_xlsx' delivery=dv.id %}">en tableau Excel <img src="{% static 'images/excel.png' %}"/></a>,
+                <a href="{% url 'view_delivery_purchases_latex' delivery=dv.id %}">en table PDF <img src="{% static 'images/pdf.png' %}"/></a>,
+                <a href="{% url 'view_delivery_cards_latex' delivery=dv.id %}">en fiches individuelles <img src="{% static 'images/pdf.png' %}"/></a>
             </li>
         </ul>
     </li>

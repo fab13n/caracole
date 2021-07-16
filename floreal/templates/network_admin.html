@@ -51,8 +51,8 @@ tr:hover input[type=button] {visibility: visible;}
   <li><a href="{% url 'manage_candidacies' %}">Gérer les candidatures</a></li>
   <li><a href="#" id='create-subgroup'>Créer un nouveau sous-groupe de {{nw.name}}</a></li>
   <li>Voir la synthèse des commandes en cours
-      <a href="{% url 'all_deliveries_html' network=nw.id states='BCDE' %}">en ligne</a>,
-      <a href="{% url 'all_deliveries_latex' network=nw.id states='BCDE' %}">en PDF</a></li>
+      <a href="{% url 'all_deliveries_html' network=nw.id states='BCD' %}">en ligne</a>,
+      <a href="{% url 'all_deliveries_latex' network=nw.id states='BCD' %}">en PDF</a></li>
   <li><a href="{% url 'invoice_mail_form' network=nw.id %}">Envoyer un rappel mail pour les commandes gelées <img src="{% static 'images/email.png' %}"/></a></li>
   <li><a href="{% url 'archived_deliveries' network=nw.id %}">Voir les commandes archivées</a></li>
 </ul>
