@@ -24,6 +24,9 @@ SECRET_KEY = E['DJANGO_SECRET_KEY']
 DEBUG = E.get("DEBUG", "false").lower() == 'true'
 ALLOWED_HOSTS = ['localhost', E['PUBLIC_HOST']]
 
+# For debug-toolbar
+INTERNAL_IPS = ['127.0.0.1'] 
+
 EMAIL_USE_TLS = True
 EMAIL_HOST = 'SMTP_HOST'
 EMAIL_PORT = 'SMTP_PORT'
@@ -55,6 +58,7 @@ INSTALLED_APPS = (
     'impersonate',
     'registration',  # WARNING that's django-registration-redux, not django-registration!
     'django_extensions',
+    'debug_toolbar',
 )
 
 
@@ -67,7 +71,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'impersonate.middleware.ImpersonateMiddleware'
+    'impersonate.middleware.ImpersonateMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 TEMPLATES = [
@@ -137,7 +142,7 @@ if not os.path.isdir(MEDIA_ROOT):
 
 AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend',)
 
-if False:
+if True:
     # Enables real-time SQL logs
     LOGGING = {
         'version': 1,

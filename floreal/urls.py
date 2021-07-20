@@ -6,6 +6,7 @@ from django.contrib import admin
 from django.views.generic import TemplateView
 from django.contrib.auth.views import PasswordResetView, PasswordResetDoneView
 from . import views
+import debug_toolbar
 
 
 class Identifier(object):
@@ -101,7 +102,9 @@ urlpatterns = [
     path('unset-message/<id:id>', views.unset_message, name='unset_message'),
 
     path("users.json", views.users_json, name='users_json'),
-    path("users.html", views.users_html,name='users_html')
+    path("users.html", views.users_html,name='users_html'),
+
+    path('__debug__/', include(debug_toolbar.urls)),
 ]
 
 from django.conf import settings

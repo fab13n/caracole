@@ -1,4 +1,5 @@
 Django
+django-debug-toolbar
 django-extensions
 django-registration-redux
 django-impersonate
