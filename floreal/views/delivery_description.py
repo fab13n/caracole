@@ -247,6 +247,8 @@ class FlatDeliveryDescription(object):
                 "name": self.delivery.name,
                 "freeze": str(d) if (d:=self.delivery.freeze_date) is not None else None,
                 "distribution": str(d) if (d:=self.delivery.distribution_date) is not None else None,
+                "state": self.delivery.state,
+                "state_name": self.delivery.state_name(),
             },
             "network": {"id": self.network.id, "name": self.network.name},
             "subgroup": None
@@ -416,6 +418,8 @@ class GroupedDeliveryDescription(object):
                 "name": self.delivery.name,
                 "freeze": str(d) if (d:=self.delivery.freeze_date) is not None else None,
                 "distribution": str(d) if (d:=self.delivery.distribution_date) is not None else None,
+                "state": self.delivery.state,
+                "state_name": self.delivery.state_name(),
             },
             "network": {
                 "id": self.delivery.network.id,
@@ -510,7 +514,8 @@ class UserDeliveryDescription(object):
                 "description": self.delivery.description,
                 "freeze": str(d) if (d:=self.delivery.freeze_date) is not None else None,
                 "distribution": str(d) if (d:=self.delivery.distribution_date) is not None else None,
-
+                "state": self.delivery.state,
+                "state_name": self.delivery.state_name(),
             },
             "network": {
                 "id": self.network.id,

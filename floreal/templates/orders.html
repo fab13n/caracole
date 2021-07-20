@@ -7,46 +7,62 @@
 
 {% block content %}
 <section class="container margetopXl margebot">
+    {% if general_messages %}
+    <h1>Message des administrateurs</h1>
+    {% for m in general_messages %}
+    {{m|safe}}
+    {% endfor %}
+    {% endif %}
+
     <h1>Commandes en cours</h1>
 
     <div class="container slim margetop">
-      {% for nw, descriptions in networks_and_deliveries %}
+      {% for nw in networks %}
       <a id="{{nw.slug}}"></a>
-      {% for dd in descriptions %}
-      {% with has_freeze=dd.delivery.freeze|is_in_the_future has_distribution=dd.delivery.distribution %}
-      <p class="commandes-entete">
-        {% if has_freeze %}<span>Commande</span>{% endif %} 
-        {% if has_distribution %}Distribution{% endif %}
-      </p>
+
+      {% for m in nw.messages %}
+      <strong>Message des responsables du réseau {{nw.name}} :</strong> {{m|safe}}
+      {% endfor %}
+
+      {% for dv in nw.deliveries %}
+      {% if dv.purchases or dv.state == Delivery.ORDERING_ALL %}
+      {% with has_freeze_date=dv.freeze|is_in_the_future has_distribution_date=dv.distribution %}
       <ul class="commandes">
         <li>
-          <span class="jours">
-            {% if has_freeze %}
-            J - {{dd.delivery.freeze|days_until}}
-            {% else %}
-            ?
-            {% endif %}          
-          </span>
-          <a href="{% url 'edit_user_purchases' delivery=dd.delivery.id %}">
-            <span class="couleur-prim">
-            {% if has_distribution %}{{dd.delivery.distribution}} | {% endif %}
-            {{dd.network.name}} |
+            {% if dv.state > Delivery.ORDERING_ALL %}
+            <span class="jours">{{dv.state_name}}</span>  
+            {% elif has_freeze_date %}
+            <span class="jours" data-toggle="tooltip" title="Commander jusqu'au {{dv.freeze}}">
+            J - {{dv.freeze|days_until}}
             </span>
-            {{dd.delivery.name}} 
+            {% else %}
+            <span class="jours" data-toggle="tooltip" title="Date de clôture des commandes non renseignée">
+            ?
+            </span>
+            {% endif %}          
+          {% if dv.state == Delivery.ORDERING_ALL %}
+          <a href="{% url 'edit_user_purchases' delivery=dv.id %}">
+          {% endif %}
+            <span class="couleur-prim">
+            {% if has_distribution_date %}{{dv.distribution}} | {% endif %}
+            {{nw.name}} |
+            </span>
+            {{dv.name}} 
+          {% if dv.state == Delivery.ORDERING_ALL %}
           </a>
+          {% endif %}
         </li>
           <ul>
-            {% for pd in dd.products %}
-            {% with pc=pd.purchase %}
-            <li><strong>{{pc.quantity|floatformat}}</strong> {{pd.unit}} de <strong>{{pd.name}}</strong></li>
-            {% endwith %}
+            {% for pc in dv.purchases %}
+            <li><strong>{{pc.quantity|floatformat}}</strong> {{pc.unit}} de <strong>{{pc.name}}</strong></li>
             {% endfor %}
-            {% if dd.total.price %} <span class="prix">{{dd.total.price}} €</span> {% endif %}
+            {% if dv.total_price %} <span class="prix">{{dv.total_price|price}}</span> {% endif %}
           </ul>
       </ul>
-      {% endwith %}{# has_freeze has_distribution #}
-      {% endfor %}
-      {% endfor %}
+      {% endwith %}{# has_freeze_date has_distribution_date #}
+      {% endif %} {# can order or has ordered #}
+      {% endfor %}{# delivery #}
+      {% endfor %}{# network #}
     </div>
 
     <div class="container slim margetop">

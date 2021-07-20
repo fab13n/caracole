@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 import re
 from collections import defaultdict
+from django.http.response import JsonResponse
 
 from django.shortcuts import render, redirect, reverse
 from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpResponse
@@ -98,28 +99,77 @@ def admin(request):
 def orders(request):
     networks = [
         mb.network
-        for mb in m.NetworkMembership.objects.filter(
-            user=request.user, is_buyer=True
-        ).only("network")
+        for mb in m.NetworkMembership.objects
+        .filter(user=request.user, is_buyer=True)
+        .select_related("network")
+        .only("network")
     ]
-    networks_and_deliveries = []
-    for nw in networks:
-        open_deliveries = list(
-            m.Delivery.objects.filter(state=m.Delivery.ORDERING_ALL, network=nw)
-        )
-        if open_deliveries:
-            networks_and_deliveries.append(
-                (
-                    nw,
-                    [
-                        dd.UserDeliveryDescription(dv, request.user).to_json()
-                        for dv in open_deliveries
-                    ],
-                )
-            )
+    deliveries = (m.Delivery.objects
+        .filter(network__in=networks)
+        .filter(state__in="BCD")
+    )
+    purchases = (m.Purchase.objects
+        .filter(product__delivery__in=deliveries)
+        .filter(user=request.user)
+        .select_related("product")
+    )
+    messages = (m.AdminMessage.objects
+        .filter(network__in=networks)
+    )
 
-    vars = {"user": request.user, "networks_and_deliveries": networks_and_deliveries}
-    return render(request, "orders.html", vars)
+    nw_by_id = {}
+    dv_by_id = {}
+ 
+    for nw in networks:
+        jnw = {
+            "id": nw.id,
+            "name": nw.name,
+            "slug": nw.slug,
+            "messages": [],
+            "deliveries": [],
+        } 
+        nw_by_id[nw.id] = jnw
+
+    for msg in messages:
+        nw_by_id[msg.network_id]["messages"].append(msg.message)
+
+    for dv in deliveries:
+        jdv = {
+            "id": dv.id,
+            "name": dv.name,
+            "state": dv.state,
+            "state_name": dv.state_name(),
+            "purchases": [],
+            "total_price": 0.,
+            "freeze": dv.freeze_date,
+            "distribution": dv.distribution_date,
+        }
+        dv_by_id[dv.id] = jdv
+        nw_by_id[dv.network_id]['deliveries'].append(jdv)
+
+    for pc in purchases:
+        pd = pc.product
+        jdv = dv_by_id[pd.delivery_id]
+        jpc = {
+            "name": pd.name,
+            "unit": pd.unit,
+            "quantity": float(pc.quantity),
+            "price": float(pc.price)
+        }
+        jdv["purchases"].append(jpc)
+        jdv["total_price"] += float(pc.price)
+
+    active_networks = [jnw
+        for jnw in nw_by_id.values()
+        if jnw['messages'] or jnw['deliveries']
+    ]
+    context = {
+        "user": request.user,
+        "Delivery": m.Delivery,
+        "networks": active_networks,
+        "general_messages": [msg.message for msg in m.AdminMessage.objects.filter(network=None)]
+    }
+    return render(request, "orders.html", context)
 
 
 @login_required()
