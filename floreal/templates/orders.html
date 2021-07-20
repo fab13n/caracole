@@ -21,7 +21,9 @@
       <a id="{{nw.slug}}"></a>
 
       {% for m in nw.messages %}
-      <strong>Message des responsables du réseau {{nw.name}} :</strong> {{m|safe}}
+      <div class="">
+        <strong>Message des responsables du réseau {{nw.name}} :</strong> {{m|safe}}
+      </div>
       {% endfor %}
 
       {% for dv in nw.deliveries %}
