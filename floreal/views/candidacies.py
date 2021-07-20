@@ -39,7 +39,7 @@ def leave_network(request, network):
     m.JournalEntry.log(user, "Left network nw-%d %s", nw.id, nw.name)
     nw.members.remove(user.id)
     target = request.GET.get('next', False)
-    return redirect(target) if target else redirect('candidacy')
+    return redirect(target) if target else redirect('index')
 
 
 @login_required()

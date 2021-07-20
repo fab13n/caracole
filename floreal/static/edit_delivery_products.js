@@ -175,13 +175,17 @@ function add_row() {
         <td class="price"><input name="r${r}-price" step="0.01" min="0" type="number" /></td>
         <td>€/</td>
         <td class="unit"><input maxlength="64" name="r${r}-unit" type="text" /></td>
+        <!-- Package management currently disabled -- 
         <td class="quantity_per_package"><input name="r${r}-quantity_per_package" type="number" /></td>
         <td class="unit-label">&nbsp;<span class="unit-mirror"></span><span class="if-unit-mirror">/ct</span></td>
+        -->
         <td class="quantity_limit"><input name="r${r}-quantity_limit" min="0" type="number"/></td>
           <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>
         <td class="quantum"><input name="r${r}-quantum" min="0" type="number" step="0.001"/></td>
         <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>
+        <!-- Weight management currently disabled --
         <td class="unit_weight"><input name="r${r}-unit_weight" min="0" step="0.001" type="number"/></td><td>kg</td>
+        -->
         <td class="image-upload"><div>
           <input name="r${r}-image-modified" class="image-modified" type="hidden" value="0"/>
           <label class="image-display">

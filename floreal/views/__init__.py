@@ -655,7 +655,7 @@ def journal(request):
     days = []
     current_day = None
     n = request.GET.get('n', 1024)
-    for entry in m.JournalEntry.objects.all().order_by("-date")[:n]:
+    for entry in m.JournalEntry.objects.all().select_related("user").order_by("-date")[:n]:
         today = entry.date.strftime("%x")
         action = journal_link_re.sub(add_link_to_actions, html.escape(entry.action))
         record = {
