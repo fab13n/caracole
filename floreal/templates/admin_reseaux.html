@@ -69,11 +69,6 @@
 
     $(document).ready(() => {
         $("input.visibility").bootstrapToggle();
-        {% for mb in memberships %}
-        {% with nw=mb.network %}
-        //$("#visibility-{{nw.id}}").bootstrapToggle({% if nw.visible %}"on"{% else %}"off"{% endif %});
-        {% endwith %}
-        {% endfor %}
     })
 
 </script>

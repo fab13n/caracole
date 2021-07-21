@@ -157,11 +157,13 @@ function swap_rows(r0) {
      * Here the image is in the input's label, they're all swapped together. */
 }
 
+let N_ROWS = 0;
+
 /* Add rows of blank products at the end of the table */
 // TODO use an HTML5 template
 function add_row() {
-  const r = Number($("#n_rows").val()) + 1;
-  $("#n_rows").val(r);
+  N_ROWS += 1;
+  const r = N_ROWS;
   $("#products-table tbody").append(`
     <tr id="r${r}">
         <td class="hidden id">
@@ -276,8 +278,7 @@ function submit_if_valid(then_leave) {
     }
   
     /* Check that non-deleted products have a unique name and a valid price. */
-    const n_rows = Number($("#n_rows").val());
-    for(let i=1; i<=n_rows; i++) {
+    for(let i=1; $(`r${i}-id`).length; i++) {
       /* Don't check deleted products */
       if($("[name=r"+i+"-deleted]").is(":checked")) { continue; }
       const name_i = $("input[name=r"+i+"-name]").val().trim();
@@ -347,7 +348,7 @@ async function load_delivery() {
   /* Set the description. In a timeout, in order to wait for tinyMCE to load. */
   
   setTimeout(
-    () => tinyMCE.get("dv-description").setContent(dv.description),
+    () => tinyMCE.get("dv-description").setContent(dv.description || ""),
     0
   );
 

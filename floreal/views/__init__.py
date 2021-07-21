@@ -75,9 +75,46 @@ def index(request):
         return render(request, "index_logged.html", vars)
 
 
+def _admin_optimized(request):
+    if request.user.is_staff:
+        networks = m.Network.objects.all()
+    else:
+        networks = [
+            mb.network
+            for mb in m.NetworkMembership.objects
+            .filter(user=request.user)
+            .filter(is_admin=True)
+            .select_related("network")
+        ]
+    jnetworks = {
+        nw.id: {
+            "id": nw.id,
+            "slug": nw.slug,
+            "name": nw.name,
+            "candidates": []
+        } for nw in networks
+    }
+
+    candidacies = (m.NetworkMembership.objects
+        .filter(network__in=networks)
+        .select_related(user)
+    )
+    for cd in candidacies:
+        jnetworks[cd.network_id].append(cd.user)
+
+    return list(jnetworks.values())
+
+    
+
+
+
 @login_required()
 def admin(request):
-    mbships = list(m.NetworkMembership.objects.filter(user=request.user))
+    mbships = list(m.NetworkMembership.objects
+        .filter(user=request.user)
+        .select_related("network")
+        # .prefetch_related("network__members")
+    )
     frozen = {
         mb.id
         for mb in m.NetworkMembership.objects.filter(

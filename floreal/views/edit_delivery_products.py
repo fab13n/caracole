@@ -200,8 +200,12 @@ def _parse_form(request, is_staff):
 
     dv.save()
 
+    n_rows = 1
+    while f"r{n_rows}-id" in d:
+        n_rows += 1
 
-    for r in range(int(d['n_rows'])):
+
+    for r in range(1, n_rows):
         fields = _get_pd_fields(d, request.FILES, 'r%d' % r)
         if fields.get('id'):
             pd = m.Product.objects.get(id=fields['id'])
