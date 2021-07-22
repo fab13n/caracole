@@ -75,7 +75,25 @@ def index(request):
         return render(request, "index_logged.html", vars)
 
 
-def _admin_optimized(request):
+def admin(request):
+    # Besoin:
+    #  - Des messages généraux
+    #  - Des réseaux sur lesquels j'ai des droits
+    #  - Dans chaque réseau:
+    #     - des commandes en cours (ABCD)
+    #     - du nombre de commandes active (BCD)
+    #     - des messages
+    #     - visibilité, automatique, slug, id
+    #
+    # Quant aux droits:
+    #  - is_staff = tout
+    #  - staff d'un réseau = pas de msg broadcast, acces DB, journal, impersonate, nouveau circuit
+    #  - producteur:
+    #     - nouvelle commande, mais restreinte a un soit-meme comme producteur
+    #       il faudra verifier dans le post qu'il n'y a pas forgerie.
+    #     - on garde qui a commandé où, mais restreint à ce dont on est producteur.
+    #       À gérer par l'url qd request.user n'est pas admin
+
     if request.user.is_staff:
         networks = m.Network.objects.all()
     else:
@@ -86,30 +104,63 @@ def _admin_optimized(request):
             .filter(is_admin=True)
             .select_related("network")
         ]
-    jnetworks = {
-        nw.id: {
-            "id": nw.id,
-            "slug": nw.slug,
-            "name": nw.name,
-            "candidates": []
-        } for nw in networks
-    }
+
+    deliveries = (m.Delivery.objects
+        .filter(network__in=networks)
+        .filter(state__in="ABCD")
+        .select_related("producer")
+    )
 
     candidacies = (m.NetworkMembership.objects
         .filter(network__in=networks)
-        .select_related(user)
+        .filter(is_candidate=True)
+        .select_related("user")
     )
+
+    jnetworks = {}
+
+    for nw in networks:
+        jnetworks[nw.id] = {
+            "id": nw.id,
+            "slug": nw.slug,
+            "name": nw.name,
+            "candidates": [],
+            "deliveries": [],
+            "active_deliveries": 0,
+            "is_network_staff": True  # will change for producers
+        }
+
     for cd in candidacies:
-        jnetworks[cd.network_id].append(cd.user)
+        jnetworks[cd.network_id]["candidates"].append(cd.user)
 
-    return list(jnetworks.values())
+    for dv in deliveries:
+        jdv = {
+            "id": dv.id,
+            "state": dv.state,
+            "state_name": dv.state_name(),
+            "name": dv.name,
+            "freeze_date": dv.freeze_date,
+            "distribution_date": dv.distribution_date,
+            "producer": dv.producer
+        }
+        jnw = jnetworks[dv.network_id]
+        if dv.state in "BCD":
+            jnw["active_deliveries"] += 1
+        jnw["deliveries"].append(jdv)
 
+    context = {
+        "user": request.user,
+        "messages": m.AdminMessage.objects.filter(network=None),
+        "networks": jnetworks.values(),
+        "Delivery": m.Delivery,
+    }
     
+    return render(request, "admin_reseaux.html", context)
 
 
 
 @login_required()
-def admin(request):
+def xxx_admin(request):
     mbships = list(m.NetworkMembership.objects
         .filter(user=request.user)
         .select_related("network")
