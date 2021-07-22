@@ -145,11 +145,11 @@
   }
 
   #delivery-image-description {
-    background-size: cover;
+    object-fit: cover;
+    object-position: center;
     flex: 0 0 34%;
     width: 200px;
   }
-
 
 </style>
  
@@ -183,10 +183,19 @@
     }
     if(DATA.producer.image_description) {
       $("#delivery-image-description").attr("src", DATA.producer.image_description);
-    } else if(DATA.delivery.image_description) {
-      $("#delivery-image-description").attr("src", DATA.producer.image_description);
+    } else if(DATA.network.image_description) {
+      $("#delivery-image-description").attr("src", DATA.network.image_description);
+    }
+
+    if(DATA.delivery.freeze) {
+      $("#freeze-date").text(DATA.delivery.freeze);
     } else {
-      // TODO: generic image?
+      $(".if-freeze-date").remove();
+    }
+    if(DATA.delivery.distribution) {
+      $("#distribution-date").text(DATA.delivery.distribution);
+    } else {
+      $(".if-distribution-date").remove();
     }
 
     let rows = ``;
@@ -306,19 +315,15 @@
 {% block content %}
 <section class="container margetopXl margebot">
   <h1 class=" h2-like couleur-prim"><span id='delivery-date'>—</span> | <span id='delivery-name'>...</span></h1>
-  <h3><span id='network-name'>...</span></h3>
+  <h3>Réseau <span id='network-name'>...</span></h3>
+  <!-- TODO dates de freeze et de livraison, si disponibles. -->
+  <p class="if-freeze-date">Commandes jusqu'au <span id="freeze-date">...</span></p>
+  <p class="if-distribution-date">Livraison le <span id="distribution-date">...</span></p>
 
   <div class="container margetop row stretch cent">
     <p class="commandes-detail-intro" id="delivery-description">
     </p>
-    <!-- Ne faire apparaitre que s'il y a une photo -->
     <img id="delivery-image-description"/>
-    <!--
-    <div class="photo-producteur" id="producer-image" style="background-image:url('/static/images/index-intro.jpg');
-                  background-size: cover; 
-                  background-position: center;"></div>
-    -->
-    <!-- end -->
   </div>
 
   <div class="container">
