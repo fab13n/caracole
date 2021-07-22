@@ -10,7 +10,7 @@ class Plural(models.Model):
     singular = models.CharField(max_length=64, unique=True)
     plural = models.CharField(max_length=64, null=True, blank=True, default=None)
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s/%s" % (self.singular, self.plural)
 
 

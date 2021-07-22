@@ -615,6 +615,7 @@ ul.circuit-admin-list ul li {
   margin-left: 1rem;
 }
 
+/* This must be controlled from local pages
 #products-table th, #products-table td {
   padding: 1rem .5rem;
 }
@@ -634,6 +635,8 @@ ul.circuit-admin-list ul li {
 #products-table .unit_weight input {
   width: 48px;
 }
+*/
+
 label {
   position: relative;
 }

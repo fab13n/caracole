@@ -57,13 +57,26 @@ function reflect_unit_change(r) {
     $(P+" .if-unit-mirror")[content ? 'show' : 'hide']();
 }
 
-/* When an image is uploaded, put its content in the previsualization label img */
+/* When an image is uploaded, put its content in the previsualization label img. */
 function reflect_image_change(r, event) {
     const P = "#r" + r;
     const img = $(P+" .image-upload img")[0];
     $(P+" input.image-modified").val("1");
     img.src = URL.createObjectURL(event.target.files[0]);
 }
+
+/* Only support command description when no producer is selected. */
+function reflect_producer_selection() {
+  if($("#producer").val() === "0") {
+    //tinyMCE.get("dv-description").show();
+    $(".when-some-producer").hide();
+    $(".when-no-producer").show();
+  } else {
+    $(".when-no-producer").hide();
+    $(".when-some-producer").show();
+  }
+}
+
 
 /* change the basic textarea into a timyMCE editor. */
 function load_editor(r) {
@@ -348,7 +361,10 @@ async function load_delivery() {
   /* Set the description. In a timeout, in order to wait for tinyMCE to load. */
   
   setTimeout(
-    () => tinyMCE.get("dv-description").setContent(dv.description || ""),
+    () => {
+      tinyMCE.get("dv-description").setContent(dv.description || "");
+      reflect_producer_selection();
+    },
     0
   );
 
@@ -364,6 +380,7 @@ $(document).ready(function() {
     tinymce.init({
       plugins: "link",
       selector: 'textarea',
+      width: 640,
       content_css: "/static/floreal.css",
       language: 'fr_FR'
     });

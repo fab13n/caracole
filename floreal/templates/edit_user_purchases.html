@@ -143,6 +143,14 @@
   input[type=number] {
     -moz-appearance: textfield !important;
   }
+
+  #delivery-image-description {
+    background-size: cover;
+    flex: 0 0 34%;
+    width: 200px;
+  }
+
+
 </style>
  
 <script type='text/javascript'>
@@ -168,8 +176,17 @@
     $("#delivery-id").val(DATA.delivery.id);
     $("#network-name").text(DATA.network.name);
     $("#user-name").text(DATA.user.first_name + " " + DATA.user.last_name);
-    if (DATA.delivery.description) {
+    if(DATA.producer.description){
+      $("#delivery-description").html(DATA.producer.description);
+    } else if (DATA.delivery.description) {
       $("#delivery-description").html(DATA.delivery.description);
+    }
+    if(DATA.producer.image_description) {
+      $("#delivery-image-description").attr("src", DATA.producer.image_description);
+    } else if(DATA.delivery.image_description) {
+      $("#delivery-image-description").attr("src", DATA.producer.image_description);
+    } else {
+      // TODO: generic image?
     }
 
     let rows = ``;
@@ -295,9 +312,12 @@
     <p class="commandes-detail-intro" id="delivery-description">
     </p>
     <!-- Ne faire apparaitre que s'il y a une photo -->
+    <img id="delivery-image-description"/>
+    <!--
     <div class="photo-producteur" id="producer-image" style="background-image:url('/static/images/index-intro.jpg');
                   background-size: cover; 
                   background-position: center;"></div>
+    -->
     <!-- end -->
   </div>
 

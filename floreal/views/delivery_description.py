@@ -31,6 +31,8 @@ from decimal import Decimal
 
 T = TypeVar("T")
 
+def img_url(image_field: Optional[m.models.ImageField]):
+    return image_field.url if image_field else None
 
 class SubgroupPurchase(object):
     """
@@ -520,11 +522,13 @@ class UserDeliveryDescription(object):
             "network": {
                 "id": self.network.id,
                 "name": self.network.name,
-                "description": self.network.description
+                "description": self.network.description,
+                "image_description": img_url(self.network.image_description),
             },
             "producer": {
                 "name": prod.first_name + " " + prod.last_name,
-                "description": prod.florealuser.description
+                "description": prod.florealuser.description,
+                "image_description": img_url(prod.florealuser.image_description),
             } if (prod := self.delivery.producer) else None,
             "products": [
                 {
