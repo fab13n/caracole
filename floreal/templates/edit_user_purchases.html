@@ -186,14 +186,18 @@
     } else if(DATA.network.image_description) {
       $("#delivery-image-description").attr("src", DATA.network.image_description);
     }
-
+    if(DATA.producer) {
+      $(".producer-name").text(DATA.producer.name);
+    } else {
+      $(".if-producer").remove();
+    }
     if(DATA.delivery.freeze) {
-      $("#freeze-date").text(DATA.delivery.freeze);
+      $(".freeze-date").text(DATA.delivery.freeze);
     } else {
       $(".if-freeze-date").remove();
     }
     if(DATA.delivery.distribution) {
-      $("#distribution-date").text(DATA.delivery.distribution);
+      $(".distribution-date").text(DATA.delivery.distribution);
     } else {
       $(".if-distribution-date").remove();
     }
@@ -314,11 +318,11 @@
 
 {% block content %}
 <section class="container margetopXl margebot">
-  <h1 class=" h2-like couleur-prim"><span id='delivery-date'>—</span> | <span id='delivery-name'>...</span></h1>
-  <h3>Réseau <span id='network-name'>...</span></h3>
-  <!-- TODO dates de freeze et de livraison, si disponibles. -->
-  <p class="if-freeze-date">Commandes jusqu'au <span id="freeze-date">...</span></p>
-  <p class="if-distribution-date">Livraison le <span id="distribution-date">...</span></p>
+  <h1 class=" h2-like couleur-prim"><span class='distribution-date'>—</span> | <span id='delivery-name'>...</span></h1>
+  <p>Réseau <span id='network-name'>...</span></p>
+  <p class="if-produceur"><span class="producer-name">...</span></p>
+  <p class="if-freeze-date">Commandes jusqu'au <span class="freeze-date">...</span></p>
+  <p class="if-distribution-date">Livraison le <span class="distribution-date">...</span></p>
 
   <div class="container margetop row stretch cent">
     <p class="commandes-detail-intro" id="delivery-description">
@@ -346,14 +350,6 @@
             <td class="total-padding">Total</td>
             <td class="total_cell"><span class="total_price">0.00</span>&nbsp;€</td>
           </tr>
-
-          <!--
-          <tr class="total-padding">
-            <td colspan="4"></td>
-            <td>Poid total</td>
-            <td class="total_cell"><span class="total_weight">0</span>&nbsp;kg</td>
-          </tr>
-          -->
 
         </tbody>
       </table>

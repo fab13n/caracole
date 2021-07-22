@@ -300,7 +300,11 @@
 
       <div class="col-xs-8">
         <h3>Description de la commande</h3>
-        <div class="when-some-producer"><p>La commande a un producteur sélectionné ;<br/> c'est la description de ce producteur qui sera affichée.</p></div>
+        <div class="when-some-producer">
+          <p>La commande a un producteur sélectionné ;<br/>
+          c'est la description de ce producteur qui sera affichée.<br/>
+          <a id="edit-producer" href="{% url 'users_html' %}?">Éditer la présentation du producteur</a>.
+        </p></div>
         <div class="when-no-producer">
           <textarea name="dv-description" id="dv-description" rows="10"></textarea>
         </div>

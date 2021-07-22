@@ -38,9 +38,6 @@
     });
     select.selectpicker(); // Force rendering of dynamically added picker
     $("#loading-spinner").remove();
-    // Open the selection widget; mysteriously won't work synchronously,
-    // hence the async setTimeout()
-    setTimeout(() => $("#users").selectpicker("toggle"), 0);
     select.on("change", (event) => {
       const u = USERS[event.target.value];
       if (MODIFIED_USER) {
@@ -150,6 +147,8 @@
     );
     $(`[name=is_staff]`).bootstrapToggle(u.is_staff ? "on" : "off");
     tinyMCE.get("description").setContent(u.florealuser__description || "");
+    const img_url = u['florealuser__image_description']?.url || "/media/none.png";
+    $("#image").attr("src", img_url);
     $("#save").prop("disabled", true); // will be re-enabled upon modification
   }
 
@@ -165,7 +164,6 @@
       $("#save").html(`Sauvegarder`);
 
     const data = get_data();
-    console.log("Sending ", JSON.stringify(data));
     add_spinner();
     $.ajax({
       url: 'users.json',
@@ -175,7 +173,7 @@
       success: () => {
         remove_spinner();
         // Reflect changes from `data` into local users table, in case it's reloaded.
-        Object.entries(data).forEach(([name, val]) => { console.log("save", name, val); CURRENT_USER[name] = val; })
+        Object.entries(data).forEach(([name, val]) => { CURRENT_USER[name] = val; })
         MODIFIED_USER = false;
       },
       error: (result) => {
@@ -200,7 +198,8 @@
     const result = {
       user: CURRENT_USER.id,
       networks: Object.keys(NETWORKS).map(Number),
-      florealuser__description: tinyMCE.get("description").getContent()
+      florealuser__description: tinyMCE.get("description").getContent(),
+      florealuser__image_description: CURRENT_USER.florealuser__image_description,
     };
 
     ['buyer', 'staff', 'producer', 'regulator'].forEach(field => {
@@ -219,7 +218,29 @@
     return result;
   }
 
-  $(document).ready(() => {
+  /* File readers are asynchronous, but don't support modern async/await format. */
+  get_image_name_and_content = (file) => new Promise((resolve, reject) => {
+    if(! file) { return [null, null]; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      resolve([file.name, reader.result]);
+    };
+    reader.onerror = reject;
+    reader.readAsBinaryString(file);
+  })
+  
+  async function on_image_change(event) {
+    const file = event.target.files[0];
+    const [name, content] = await get_image_name_and_content(file);
+    const img = $("#image")[0]
+    if(null === content) { return; }
+    img.src = URL.createObjectURL(file);
+    CURRENT_USER["florealuser__image_description"] = {name, content};
+  }
+
+  $(document).ready(async () => {
+    const url = new URL(window.location);
+    const selected = url.searchParams.get("selected");
     tinymce.init({
       plugins: 'link',
       selector: 'textarea',
@@ -235,7 +256,23 @@
         })
       }
     });
-    load_users();
+    await load_users();
+    if(selected) {
+      setTimeout(() => {
+        $("#users").val(selected);
+        $("#users").selectpicker("refresh");
+        const u = USERS[selected];
+        render_user(u);
+        CURRENT_USER = u;
+        MODIFIED_USER = false;
+        $("#user-form").show();
+
+      }, 0);
+    } else {
+      // Open the selection widget; won't work synchronously,
+      // hence the async setTimeout()
+      setTimeout(() => $("#users").selectpicker("toggle"), 0);
+    }
   })
 
 </script>
@@ -252,6 +289,22 @@
   </p>
 
   <h3>Description de l'utilisateur / producteur</h3>
+  <div>
+    <label for="image-input">
+    {# TODO pass image.url from python, use it if applicable #}
+    <img id="image" src=""/>
+    </label>
+  </div>
+  <div>
+    <input 
+      type="file" 
+      accept="image/*" 
+      class="user-modifier"
+      name="image" 
+      id="image-input" 
+      onchange="on_image_change(event)"/>
+  </div>
+
   <textarea id="description"></textarea>
 
   <table id="user-form"></table>

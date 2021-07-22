@@ -1,8 +1,10 @@
 import json
+import io
 
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 
 from .. import models as m
 
@@ -48,8 +50,13 @@ def users_get(request):
 
     user_records = {
         u_rec["id"]: dict(**u_rec, **{k: [] for k in KEYS})
-        for u_rec in users.values("id", "first_name", "last_name", "email", "is_staff", "florealuser__description")
+        for u_rec in users.values("id", "first_name", "last_name", "email", "is_staff", "florealuser__description", "florealuser__image_description")
     }
+
+    # Convert image URLs
+    for u in user_records.values():
+        url = u['florealuser__image_description']
+        u['florealuser__image_description'] = {'url': settings.MEDIA_URL + url} if url else None
 
     network_records = []
 
@@ -111,14 +118,21 @@ def user_update(request):
         user.save()
 
     descr = data["florealuser__description"]
-    try:
-        if user.florealuser.description != descr:
-            user.florealuser.description = descr
-            user.florealuser.save()
-    except m.FlorealUser.DoesNotExist:
-        fu = m.FlorealUser.objects.create(user=user, description=descr)
+    if user.florealuser is None:
+        m.FlorealUser.objects.create(user=user, description=descr)
+        user.refresh_from_db()
 
-    # TODO Also handle image_description
+    if user.florealuser.description != descr:
+        user.florealuser.description = descr
+        user.florealuser.save()
+
+    # handle image_description
+    if 'florealuser__image_description' in data:
+        img = data['florealuser__image_description']
+        content = img['content'].encode('latin1')
+        reader = io.BytesIO(content)
+        user.florealuser.image_description.save(img['name'], reader)
+        user.florealuser.save()
 
     for nw_id in network_ids:
         (nm, created) = m.NetworkMembership.objects.get_or_create(

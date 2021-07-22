@@ -67,13 +67,16 @@ function reflect_image_change(r, event) {
 
 /* Only support command description when no producer is selected. */
 function reflect_producer_selection() {
-  if($("#producer").val() === "0") {
-    //tinyMCE.get("dv-description").show();
+  const prod_id = $("#producer").val();
+  if(prod_id === "0") {
     $(".when-some-producer").hide();
     $(".when-no-producer").show();
   } else {
     $(".when-no-producer").hide();
     $(".when-some-producer").show();
+    const q = $("#edit-producer");
+    const url = q.attr("href").split("?")[0] + "?selected=" + prod_id;
+    q.attr("href", url);
   }
 }
 
