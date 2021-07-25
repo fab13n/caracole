@@ -19,7 +19,7 @@ from .getters import get_network, get_delivery
 from .decorators import nw_admin_required, regulator_required
 
 from .edit_delivery_purchases import edit_delivery_purchases
-from .edit_user_purchases import edit_user_purchases
+from .buy import buy
 from .user_registration import user_register
 from .edit_delivery_products import edit_delivery_products, delivery_products_json
 from .view_purchases import (
@@ -55,12 +55,15 @@ def index(request):
         vars.update(csrf(request))
         return render(request, "index_unlogged.html", vars)
     else:
-        mbships = list(m.NetworkMembership.objects.filter(user=request.user))
+        mbships = list(m.NetworkMembership.objects
+            .filter(user=request.user, valid_until=None)
+        )
         for nm in mbships:
             hoo = (
                 nm.is_buyer
+                # TODO can be performed into a single query with network_id__in
                 and m.Delivery.objects.filter(
-                    network=nm.network, state=m.Delivery.ORDERING_ALL
+                    network_id=nm.network_id, state=m.Delivery.ORDERING_ALL
                 ).exists()
             )
             nm.has_open_orders = hoo
@@ -76,44 +79,23 @@ def index(request):
 
 
 def admin(request):
-    # Besoin:
-    #  - Des messages généraux
-    #  - Des réseaux sur lesquels j'ai des droits
-    #  - Dans chaque réseau:
-    #     - des commandes en cours (ABCD)
-    #     - du nombre de commandes active (BCD)
-    #     - des messages
-    #     - visibilité, automatique, slug, id
-    #
-    # Quant aux droits:
-    #  - is_staff = tout
-    #  - staff d'un réseau = pas de msg broadcast, acces DB, journal, impersonate, nouveau circuit
-    #  - producteur:
-    #     - nouvelle commande, mais restreinte a un soit-meme comme producteur
-    #       il faudra verifier dans le post qu'il n'y a pas forgerie.
-    #     - on garde qui a commandé où, mais restreint à ce dont on est producteur.
-    #       À gérer par l'url qd request.user n'est pas admin
-
     if request.user.is_staff:
         networks = m.Network.objects.all()
     else:
-        networks = [
-            mb.network
-            for mb in m.NetworkMembership.objects
-            .filter(user=request.user)
-            .filter(is_admin=True)
-            .select_related("network")
-        ]
-
+        networks = (m.Network.objects
+            .filter(networkmembership__user=request.user,
+                    networkmembership__is_staff=True,
+                    networkmembership__valid_until=None)
+        )
     deliveries = (m.Delivery.objects
-        .filter(network__in=networks)
-        .filter(state__in="ABCD")
+        .filter(network__in=networks, state__in="ABCD")
         .select_related("producer")
     )
 
     candidacies = (m.NetworkMembership.objects
-        .filter(network__in=networks)
-        .filter(is_candidate=True)
+        .filter(network__in=networks,
+                is_candidate=True,
+                valid_until=None)
         .select_related("user")
     )
 
@@ -157,38 +139,12 @@ def admin(request):
     
     return render(request, "admin_reseaux.html", context)
 
-
-
-@login_required()
-def xxx_admin(request):
-    mbships = list(m.NetworkMembership.objects
-        .filter(user=request.user)
-        .select_related("network")
-        # .prefetch_related("network__members")
-    )
-    frozen = {
-        mb.id
-        for mb in m.NetworkMembership.objects.filter(
-            user=request.user, is_staff=True, network__delivery__state=m.Delivery.FROZEN
-        ).distinct()
-    }
-    for mb in mbships:
-        mb.has_frozen_deliveries = mb.id in frozen
-
-    vars = {
-        "messages": m.AdminMessage.objects.all(),  # TODO only those I administrate
-        "user": request.user,
-        "memberships": mbships,
-    }
-    return render(request, "admin_reseaux.html", vars)
-
-
 @login_required()
 def orders(request):
     networks = [
         mb.network
         for mb in m.NetworkMembership.objects
-        .filter(user=request.user, is_buyer=True)
+        .filter(user=request.user, is_buyer=True, valid_until=None)
         .select_related("network")
         .only("network")
     ]
@@ -275,7 +231,7 @@ def user(request):
 @login_required()
 def reseau(request, network):
     nw = get_network(network)
-    mb = m.NetworkMembership.objects.filter(user=request.user, network=nw).first()
+    mb = m.NetworkMembership.objects.filter(user=request.user, network=nw, valid_until=None).first()
     status = (
         "non-member"
         if mb is None
@@ -294,85 +250,6 @@ def reseau(request, network):
     }
     return render(request, "reseau.html", vars)
 
-
-@login_required()
-def xxx_index(request):
-    """Main page: list deliveries open for ordering as a user, networks for which the user is full admin,
-    and orders for which he has subgroup-admin actions to take."""
-
-    user = request.user
-
-    vars = {"user": user, "Delivery": m.Delivery}
-    vars["has_phone"] = phone.has_number(request.user)
-
-    # Deliveries which need to be displayed, and maybe ordered on.
-    # TODO Include order here rather than through filters
-
-    member_of_networks = user.member_of_network.all()
-
-    active_deliveries = (
-        m.Delivery.objects.filter(network__in=member_of_networks)
-        .filter(
-            Q(state=m.Delivery.ORDERING_ALL)
-            | Q(
-                state__in=[m.Delivery.ORDERING_ADMIN, m.Delivery.FROZEN],
-                product__purchase__user=user,
-            )
-        )
-        .distinct()
-    )
-
-    # Purchases by this user in an active delivery.
-    # Gathered with a single SQL query, reorganized by network/delivery
-    # in Python. TODO fetch_related: this request is performed for every
-    # request of the landing page!
-    purchases = m.Purchase.objects.filter(
-        user=user, product__delivery__in=active_deliveries
-    )
-
-    # Reorganize deliveries and purchases: network -> deliveries -> purchases
-    networks_by_id = {nw.id: nw for nw in member_of_networks}  # nw.id -> nw
-    deliveries_by_id = {dv.id: dv for dv in active_deliveries}
-    deliveries_by_network = defaultdict(list)  # nw.id -> [dv+]
-    for dv in active_deliveries:
-        deliveries_by_network[dv.network.id].append(dv)
-    purchases_by_delivery = {dv.id: [] for dv in active_deliveries}  # dv.id -> [pc*]
-    for pc in purchases:
-        purchases_by_delivery[pc.product.delivery_id].append(pc)
-    vars["user_deliveries"] = [
-        {
-            "nw": networks_by_id[nw_id],
-            "deliveries": [
-                {
-                    "dv": deliveries_by_id[dv.id],
-                    "purchases": purchases_by_delivery[dv.id],
-                    "price": sum(pc.price for pc in purchases_by_delivery[dv.id]),
-                }
-                for dv in deliveries
-            ],
-        }
-        for nw_id, deliveries in deliveries_by_network.items()
-    ]
-
-    # Every pending candidacy for which I'm network staff
-    vars["candidacies"] = [
-        (u, nw) for nw in user.staff_of_network.all() for u in nw.candidates.all()
-    ]
-
-    # Admin messages to display
-    vars["messages"] = {
-        ("Message général", msg.message, msg.id)
-        for msg in m.AdminMessage.objects.filter(network=None)
-    } | {
-        (nw.name, msg.message, msg.id)
-        for nw in member_of_networks
-        for msg in nw.adminmessage_set.all()
-    }
-
-    import json
-
-    print("\n\nvars:\n", vars)
-    return render(request, "index.html", vars)
 
 
 @nw_admin_required()
@@ -488,7 +365,7 @@ def edit_delivery_staff(request, delivery):
     change the products characteristics, change other users' orders."""
     dv = m.Delivery.objects.get(id=delivery)
     if not m.NetworkMembership.objects.filter(
-        user=request.user, network=dv.network, is_staff=True
+        user=request.user, network=dv.network, is_staff=True, valid_until=None
     ).exists():
         HttpResponseForbidden("Réservé aux admins")
     vars = {
@@ -516,7 +393,10 @@ def list_delivery_models(request, network, all_networks=False, producer=False):
     """Propose to create a delivery based on a previous delivery."""
     nw = m.Network.objects.get(id=network)
     if all_networks:
-        authorized_networks = request.user.staff_of_network.all()
+        authorized_networks = m.Network.objects.filter(
+            networkmembership__user=request.user, 
+            networkmembership__is_staff=True,
+            networkmembership__valid_until=None)
         deliveries = m.Delivery.objects.filter(network__in=authorized_networks)
     else:
         deliveries = m.Delivery.objects.filter(network=nw)
@@ -595,8 +475,8 @@ def create_delivery(request, network, dv_model=None):
 
 def set_delivery_state(request, delivery, state):
     dv = get_delivery(delivery)
-    if not m.NetworkMembership.objects.filter(
-        user=request.user, network=dv.network, is_staff=True
+    if not request.user.is_staff and not m.NetworkMembership.objects.filter(
+        user=request.user, network=dv.network, is_staff=True, valid_until=None
     ).exists():
         return HttpResponseForbidden(
             "Réservé aux administrateurs du réseau " + dv.network.name
@@ -604,6 +484,8 @@ def set_delivery_state(request, delivery, state):
     if state not in m.Delivery.STATE_CHOICES:
         return HttpResponseBadRequest(state + " n'est pas un état valide.")
     dv.state = state
+    if state >= m.Delivery.FROZEN and dv.freeze_date is None:
+        dv.freeze_date = m.Now()
     dv.save()
     m.JournalEntry.log(request.user, "Set state=%s in dv-%d", state, dv.id)
 
@@ -617,7 +499,7 @@ def _set_network_field(request, network, name, val):
     """Change a delivery's state."""
     nw = get_network(network)
     if not m.NetworkMembership.objects.filter(
-        user=request.user, network=network, is_staff=True
+        user=request.user, network=network, is_staff=True, valid_until=None
     ).exists():
         return HttpResponseForbidden(
             "Réservé aux administrateurs du réseau " + network.name
@@ -793,9 +675,17 @@ def set_message(request):
         return redirect(target)
     else:
         u = request.user
-        options = [("Tout le monde", "everyone")] + [
-            ("Réseau %s" % nw.name, "nw-%d" % nw.id) for nw in u.staff_of_network.all()
-        ]
+        if u.is_staff:
+            options = [("Tout le monde", "everyone")] + [
+            ("Réseau %s" % nw.name, "nw-%d" % nw.id) for nw in m.m.Network.objects.all()]
+        else:
+            options = [
+                ("Réseau %s" % nw.name, "nw-%d" % nw.id) 
+                for nw in m.Network.objects.filter(
+                    networkmembership__user_id=u.id,
+                    networkmembership__is_staff=True,
+                    networkmembership__valid_until=None
+                )] 
         return editor(
             request,
             title="Message administrateur",

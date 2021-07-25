@@ -43,6 +43,11 @@ REQUIRE_UNIQUE_EMAIL = False
 # Application definitions
 DELIVERY_ARCHIVE_DIR = os.path.join(BASE_DIR, "delivery_archive")
 
+# Superusers can impersonate other superusers
+IMPERSONATE = {
+    'ALLOW_SUPERUSER': True
+}
+
 if not os.path.isdir(DELIVERY_ARCHIVE_DIR):
     os.makedirs(DELIVERY_ARCHIVE_DIR)
 

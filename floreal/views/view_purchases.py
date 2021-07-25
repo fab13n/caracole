@@ -6,6 +6,7 @@ from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 import json
+from typing import List, Tuple
 
 from caracole import settings
 from .decorators import nw_admin_required
@@ -38,10 +39,11 @@ def render_description(request, delivery, renderer, extension, subgroup=None, us
     """
     dv = get_delivery(delivery)
     # Permission
-    if  not user and \
-        request.user not in dv.network.staff and \
-        request.user != dv.producer:
-        return HttpResponseForbidden("PAs autorisé")
+    if not user and not request.user.is_staff and not m.NetworkMembership.objects.filter(
+        user=user, network=dv.network, is_staff=True, valid_until=None
+    ).exists():
+        # TODO authorize producers
+        return HttpResponseForbidden(f"Pas autorisé pour {dv.network.name}")
 
     if user:
         dd = UserDeliveryDescription(dv, request.user, empty_products=True)
@@ -109,25 +111,46 @@ def view_purchases_json(request, delivery, subgroup=None, user: bool = False):
 @nw_admin_required()
 def all_deliveries(request, network, states):
     nw = get_network(network)
+
+    if False:
+        # TODO the whole thing could be done in a single query as follows,
+        # with the main issue being that only the user and delivery ids,
+        # not actual objects, are extracted by .values().
+        q = (m.Purchase.objects.filter(
+                product__delivery__state__in=states, 
+                product__delivery__network=nw)
+                .values('user', 'product__delivery')
+                .distinct()
+        )
+        # This allows to get back full objects quickly, but that's still ugly
+        deliveries = m.Delivery.objects.filter(id__in=[x['product_delivery'] for x in q])
+        users = m.User.objects.filter(id__in=[x['user'] for x in q])
+    
+
     deliveries = list(m.Delivery.objects.filter(network=nw, state__in=states))
     users = m.User.objects.filter(member_of_network=nw, is_active=True)
 
-    # u -> dv -> has_purchased
+    # u_id -> dv -> has_purchased
     users_with_purchases = {u: {dv: False for dv in deliveries} for u in users}
 
     for dv in deliveries:
+        # TODO here's the nasty query-in-a-loop
         for u in users.filter(purchase__product__delivery=dv).distinct():
             users_with_purchases[u][dv] = True
 
-    # Remove network users with no purchases in any delivery
+    # Remove users with no purchases in any selected delivery
     users_with_purchases = {
         u: dv_pc
         for u, dv_pc in users_with_purchases.items()
         if any(v for v in dv_pc.values())
     }
             
-    # t: List[Tuple[m.User, List[Tuple[m.Delivery, bool]]]]
-    t = [(u, [(dv, dv_pc[dv]) for dv in deliveries]) for u, dv_pc in users_with_purchases.items()]
+    t: List[Tuple[m.User, List[Tuple[m.Delivery, bool]]]] = (
+        [
+            (u, [(dv, dv_pc[dv]) 
+            for dv in deliveries]) 
+            for u, dv_pc in users_with_purchases.items()
+    ]
     t.sort(key=lambda x: (x[0].last_name, x[0].first_name))
 
     return {'states': states, 'network': nw, 'table': t}

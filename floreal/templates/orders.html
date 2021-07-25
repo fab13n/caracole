@@ -43,7 +43,7 @@
             </span>
             {% endif %}          
           {% if dv.state == Delivery.ORDERING_ALL %}
-          <a href="{% url 'edit_user_purchases' delivery=dv.id %}">
+          <a href="{% url 'buy' delivery=dv.id %}">
           {% endif %}
             <span class="couleur-prim">
             {% if has_distribution_date %}{{dv.distribution}} | {% endif %}

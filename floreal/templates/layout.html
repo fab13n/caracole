@@ -82,6 +82,11 @@
         {% endif %}
         {% endif %}
 
+        {% if user.is_impersonate %}
+        <li>
+          <a href="{% url 'impersonate-stop' %}" class="button attente" style="width: unset">Cesser d'usurper {{user.first_name}} {{user.last_name}}</a>
+        </li>
+        {% endif %}
       </ul>
     </nav>
   </header>

@@ -55,7 +55,10 @@
             {% endif %}
             -->
             {% if mb.has_open_orders %}
-            <a href="{% url 'orders' %}#{{mb.network.slug}}" class="button">Commander</a>
+            <a href="{% url 'orders' %}#{{mb.network.slug}}" class="button button-primary">Commander</a>
+            <a href="{% url 'leave_network' network=mb.network.id %}" 
+               onclick="return confirm('Vous voulez définitivement quitter {{mb.network.name}}?')"
+               class="button quitter">Quitter</a>
             {% elif mb.is_buyer %}
             <a s  href="{% url 'reseau' network=mb.network.id %}" class="button inscrit">Inscrit</a>
             <a href="{% url 'leave_network' network=mb.network.id %}" 
@@ -63,7 +66,9 @@
                class="button quitter">Quitter</a>
             {% elif mb.is_candidate %}
             <a href="{% url 'reseau' network=mb.network.id %}" class="button attente">En attente</a>
-            <a href="#" class="button quitter">Quitter</a>
+            <a href="{% url 'leave_network' network=mb.network.id %}" 
+               onclick="return confirm('Vous voulez annuler votre candidature à {{mb.network.name}}?')"
+               class="button quitter">Quitter</a>
             {% endif %}
         </div>
       </div>

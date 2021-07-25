@@ -18,19 +18,21 @@ def edit_delivery_purchases(request, delivery):
     user = request.user
     dv = get_delivery(delivery)
 
-    if user not in dv.network.staff and user not in dv.network.producers:
-        return HttpResponseForbidden(f"Réservé aux admins et producteurs du réseau {dv.network.name}")
+    if not request.user.is_staff and not m.NetworkMembership.objects.filter(
+        user=user, network=dv.network, is_staff=True, valid_until=None
+    ).exists():
+        return HttpResponseForbidden(f"Réservé aux admins du réseau {dv.network.name}")
 
     if request.method == 'POST':
-        _parse_form(request, dv, nw)
-        return redirect("view_delivery_purchases_html", delivery=dv.id, network=nw.id)
+        _parse_form(request, dv)
+        return redirect("view_delivery_purchases_html", delivery=dv.id)
     else:
         vars = {'user': user, 'delivery': dv}
         vars.update(csrf(request))
         return render(request,'edit_delivery_purchases.html', vars)
 
 
-def _parse_form(request, dv, nw):
+def _parse_form(request, dv):
     """
     Parse responses from subgroup purchase editions.
     :param request:
@@ -78,6 +80,6 @@ def _parse_form(request, dv, nw):
         for pd in check_quotas:
             set_limit(pd)
     
-    m.JournalEntry.log(request.user, "Modified user purchases in dv-%d nw-%d", dv.id, nw.id)
+    m.JournalEntry.log(request.user, "Modified user purchases in dv-%d", dv.id)
 
     return True  # true == no error

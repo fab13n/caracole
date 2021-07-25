@@ -18,7 +18,7 @@ def nw_admin_required(admin_getter=lambda a: a.get('network', None)):
             if user.is_staff:
                 return f(request, *args, **kwargs)
             nw = get_network(admin_getter(kwargs))
-            if not m.NetworkMembership.objects.filter(user=user, network=nw, is_staff=True).exists():
+            if not m.NetworkMembership.objects.filter(user=user, network=nw, is_staff=True, valid_until=None).exists():
                     return HttpResponseForbidden('Réservé aux administrateurs du réseau '+nw.name)
             return f(request, *args, **kwargs)
         return g
@@ -39,7 +39,7 @@ def regulator_required(admin_getter=lambda a: a.get('network', None)):
                 if not (
                     user.staff_of_network.filter(id=nw.id).exists() or
                     user.regulator_of_network.filter(id=nw.id).exists()):
-                    return HttpResponseForbidden('Réservé aux régulateurs du réseau '+sg.network.name+'/'+sg.name)
+                    return HttpResponseForbidden('Réservé aux régulateurs du réseau ' + nw.name)
             else:
                 if not (
                     user.staff_of_network.filter().exists() or

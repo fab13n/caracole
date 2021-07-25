@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.http import HttpResponseForbidden
 from django.core.mail import send_mail
+from django.db.models.functions import Now
 
 from caracole import settings
 from .. import models as m
@@ -50,7 +51,8 @@ def create_candidacy(request, network):
     if nw.members.filter(id=user.id).exists():
         m.JournalEntry.log(user, "Applied for nw-%d, but was already member", nw.id)
         pass  # already member
-    elif nw.auto_validate and user.member_of_network.exists():
+    elif nw.auto_validate and m.NetworkMembership.objects.filter(user=user, is_candidate=False).exists():
+        # This user has already been accepted somewhere at least once
         m.JournalEntry.log(user, "Applied for nw-%d, automatically granted", nw.id)
         validate_candidacy_without_checking(request, network=nw, user=user, response='Y', send_confirmation_mail=True)
     else:
@@ -65,7 +67,8 @@ def cancel_candidacy(request, network):
     """Cancel your own, yet-unapproved candidacy."""
     user = request.user
     nw = get_network(network)
-    m.NetworkMembership.objects.filter(network=nw, user=user, is_candidate=True).delete()
+    # Mark end of validity
+    m.NetworkMembership.objects.filter(network=nw, user=user, is_candidate=True).update(valid_until=Now())
     m.JournalEntry.log(user, "Cancelled own application for nw-%d", nw.id)
     return redirect(request.GET.get(next, 'index'))
 
@@ -85,7 +88,12 @@ def validate_candidacy(request, network, user, response):
 
 @nw_admin_required()
 def manage_candidacies(request):
-    candidacies = m.NetworkMembership.objects.filter(is_candidate=True, network__in=request.user.staff_of_network)
+    staff_of_networks = m.Network.objects.filter(
+        networkmambership__user=request.user,
+        is_staff=True,
+        networkmembership__valid_until=None
+    )
+    candidacies = m.NetworkMembership.objects.filter(is_candidate=True, network__in=staff_of_networks, valid_until=None)
     return render(request, 'manage_candidacies.html', {'user': request.user, 'candidacies': candidacies})
 
 def validate_candidacy_without_checking(request, network, user, response, send_confirmation_mail):
@@ -94,7 +102,7 @@ def validate_candidacy_without_checking(request, network, user, response, send_c
     adm = request.user
     adm = "%s %s (%s)" % (adm.first_name, adm.last_name, adm.email)
     mail = ["Bonjour %s, \n\n" % (user.first_name,)]
-    nm = m.NetworkMembership.objects.get(user=user, network=network, is_candidate=True)
+    nm = m.NetworkMembership.objects.get(user=user, network=network, is_candidate=True, valid_until=None)
     if response == 'Y':
         mail += f"Votre adhésion au réseau {network.name} a été acceptée"
         mail += f" par {adm}. " if adm else " automatiquement. "
@@ -103,18 +111,22 @@ def validate_candidacy_without_checking(request, network, user, response, send_c
             mail += "Une commande est actuellement en cours, dépêchez vous de vous connecter sur le site pour y participer !"
         else:
             mail += "Vos responsables de réseau vous préviendront par mail quand une nouvelle commande sera ouverte."
-        nm.is_candidate = False
-        nm.is_buyer = True
-        nm.save()
+        m.NetworkMembership.objects.create(
+            user=user,
+            network=network,
+            is_buyer=True
+        )
     elif adm:  # Negative response from an admin
         mail += f"Votre demande d'adhésion au réseau {network.name} a été refusée par {adm}. " \
                 f"Si cette décision vous surprend, ou vous semble injustifiée, veuillez entrer en contact par " \
                 f"e-mail avec cette personne pour clarifier la situation."
-        nm.delete()
     else:  # Automatic refusal. Shouldn't happen in the system's current state.
         mail += f"Votre demande d'adhésion au réseau {network.name} a été refusée automatiquement." \
                 "Si cette décision vous surprend, contactez les administrateurs du réseau."
-        nm.delete()
+
+    # Terminate candidacy validity
+    nm.valid_until = Now()
+    nm.save()
 
     mail += "\n\nCordialement, le robot du site de commande des Circuits Courts Civam."
     mail += "\n\nLien vers le site : http://solalim.civam-occitanie.fr"

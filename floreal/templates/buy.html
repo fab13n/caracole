@@ -176,12 +176,12 @@
     $("#delivery-id").val(DATA.delivery.id);
     $("#network-name").text(DATA.network.name);
     $("#user-name").text(DATA.user.first_name + " " + DATA.user.last_name);
-    if(DATA.producer.description){
+    if(DATA.producer?.description){
       $("#delivery-description").html(DATA.producer.description);
     } else if (DATA.delivery.description) {
       $("#delivery-description").html(DATA.delivery.description);
     }
-    if(DATA.producer.image_description) {
+    if(DATA.producer?.image_description) {
       $("#delivery-image-description").attr("src", DATA.producer.image_description);
     } else if(DATA.network.image_description) {
       $("#delivery-image-description").attr("src", DATA.network.image_description);
@@ -320,7 +320,7 @@
 <section class="container margetopXl margebot">
   <h1 class=" h2-like couleur-prim"><span class='distribution-date'>—</span> | <span id='delivery-name'>...</span></h1>
   <p>Réseau <span id='network-name'>...</span></p>
-  <p class="if-produceur"><span class="producer-name">...</span></p>
+  <p class="if-producer"><span class="producer-name">...</span></p>
   <p class="if-freeze-date">Commandes jusqu'au <span class="freeze-date">...</span></p>
   <p class="if-distribution-date">Livraison le <span class="distribution-date">...</span></p>
 

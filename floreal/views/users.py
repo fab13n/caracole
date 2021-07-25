@@ -5,7 +5,6 @@ from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
-
 from .. import models as m
 
 KEYS = ("buyer", "staff", "producer", "regulator")
@@ -20,7 +19,7 @@ def users_json(request):
     if (
         not request.user.is_staff
         and not m.NetworkMembership.objects.filter(
-            user=request.user, is_staff=True
+            user=request.user, is_staff=True, valid_until=None
         ).exists()
     ):
         return HttpResponseForbidden("Admins only")
@@ -43,8 +42,12 @@ def users_get(request):
         users = m.User.objects.filter(is_active=True)
     else:
         # Only access to network you are staff of, and their users
-        networks = staff.staff_of_network.all()
-        users = m.User.objects.filter(member_of_network__in=networks).filter(
+        networks = m.Network.objects.filter(
+            networkmembership__user=staff, 
+            networkmembership__is_staff=True,
+            networkmembership__valid_until=None)
+        users = m.User.objects.filter(
+            networkmembership__network__in=networks,
             is_active=True
         )
 
@@ -63,7 +66,7 @@ def users_get(request):
     for nw in networks:
         nw_rec = {"id": nw.id, "name": nw.name}
         network_records.append(nw_rec)
-        for nm in m.NetworkMembership.objects.filter(network=nw):
+        for nm in m.NetworkMembership.objects.filter(network=nw, valid_until=None):
             u_rec = user_records.get(nm.user_id)
             if u_rec is None:
                 continue  # Inactive. Membership should be deleted
@@ -105,7 +108,7 @@ def user_update(request):
         pass
     elif all(
         m.NetworkMembership.objects.filter(
-            user=staff, is_staff=True, newtork_id=nw_id
+            user=staff, is_staff=True, network_id=nw_id, valid_until=False
         ).exists()
         for nw_id in network_ids
     ):
@@ -114,6 +117,7 @@ def user_update(request):
         return HttpResponseForbidden("Not enough rights")
 
     if user.is_staff != data["is_staff"]:
+        # TODO: prevent global staff from removing their own privilege?
         user.is_staff = data["is_staff"]
         user.save()
 
@@ -135,24 +139,37 @@ def user_update(request):
         user.florealuser.save()
 
     for nw_id in network_ids:
-        (nm, created) = m.NetworkMembership.objects.get_or_create(
-            user=user, network_id=nw_id, defaults={"is_" + key: False for key in KEYS}
-        )
-        must_save = False
-        must_delete = True
+
+        # TODO: 
+        # 1. check whether previous membership matches described one
+        # 2. in case of mismatch, terminate the old one, create a new one.
+
+        old_nm = m.NetworkMembership.objects.filter(
+            user=user, network_id=nw_id, valid_until=None,
+        ).first()
+
+        # Object created with the direct constructor, not with .objects.create().
+        # As a result it isn't inserted in DB right now. It will be inserted only
+        new_nm = m.NetworkMembership(user=user, network_id=nw_id, is_buyer=False)
+
+        some_fields_changed = False
+        some_fields_true = False
+
         for key in KEYS:
             attr = "is_" + key
-            old_val = getattr(nm, attr)
+            old_val = getattr(old_nm, attr, False)
             new_val = nw_id in data[key]
-            if new_val:
-                must_delete = False
             if old_val != new_val:
-                setattr(nm, attr, new_val)
-                must_save = True
-        if must_delete:
-            nm.delete()
-        elif must_save:
-            nm.save()
+                setattr(new_nm, attr, new_val)
+                some_fields_changed = True
+            if new_val:
+                some_fields_true = True
+
+        if some_fields_changed:
+            old_nm.valid_until = m.Now()
+            old_nm.save()
+            if some_fields_true:
+                new_nm.save()
 
     m.JournalEntry.log(staff, "Edited user u-%d", user.id)
 

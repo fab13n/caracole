@@ -4,8 +4,9 @@ from datetime import datetime
 
 from caracole import settings
 from django.contrib.auth.models import User
+from django.db.models.functions import Now
 from django.db import models
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from html2text import html2text
 from django.utils import timezone
 from django.utils.text import slugify
@@ -48,30 +49,29 @@ class IdentifiedBySlug(models.Model):
         super().save(**kwargs)
 
 
-def _user_network_getter(**kwargs):
-    """
-    Users of a network are listed by a ManyToMany+through relationship,
-    which makes it cumbersome to retrive them with default Django accessors.
-    This helper allows to add ``<quality>_of_network()`` accessors to auth
-    user objects.
-    """
-    @property
-    def user_of_network(self):
-        now = timezone.now()
-        return Network.objects.filter(
-            networkmembership__in=NetworkMembership.objects
-                .filter(user=self, **kwargs)
-                .exclude(valid_from__gt=now)
-                .exclude(valid_until__lt=now)
-        )
+# def _user_network_getter(**kwargs):
+#     """
+#     Users of a network are listed by a ManyToMany+through relationship,
+#     which makes it cumbersome to retrive them with default Django accessors.
+#     This helper allows to add ``<quality>_of_network()`` accessors to auth
+#     user objects.
+#     """
+#     @property
+#     def user_of_network(self):
+#         return Network.objects.filter(
+#             networkmembership__in=NetworkMembership.objects
+#                 .filter(user=self, **kwargs)
+#                 .exclude(valid_from__gt=Now())
+#                 .exclude(valid_until__lt=Now())
+#         )
 
-    return user_of_network
+#     return user_of_network
 
-User.staff_of_network = _user_network_getter(is_staff=True)
-User.buyer_of_network = _user_network_getter(is_buyer=True)
-User.producer_of_network = _user_network_getter(is_producer=True)
-User.candidate_of_network = _user_network_getter(is_candidate=True)
-User.regulator_of_network = _user_network_getter(is_regulator=True)
+# User.staff_of_network = _user_network_getter(is_staff=True)
+# User.buyer_of_network = _user_network_getter(is_buyer=True)
+# User.producer_of_network = _user_network_getter(is_producer=True)
+# User.candidate_of_network = _user_network_getter(is_candidate=True)
+# User.regulator_of_network = _user_network_getter(is_regulator=True)
 
 
 class FlorealUser(IdentifiedBySlug):
@@ -119,20 +119,26 @@ class NetworkSubgroup(IdentifiedBySlug):
     network = models.ForeignKey("Network", on_delete=models.CASCADE)
     name = models.CharField(max_length=32)
 
-    def _filtered_members(self, **kwargs):
-        ids = (
-            nm["user_id"]
-            for nm in self.networkmembership_set.filter(**kwargs).values("user_id")
-        )
-        return User.objects.filter(id__in=ids)
+    # def _filtered_members(self, date=None, **kwargs):
+    #     date |= Now()
+    #     ids = (
+    #         nm["user_id"]
+    #         for nm in (self.networkmembership_set
+    #             .filter(**kwargs)
+    #             .filter(valid_from__lte=date)
+    #             .filter(Q(valid_to=None)|Q(valid_to__gte=date))
+    #             .values("user_id")
+    #         )
+    #     )
+    #     return User.objects.filter(id__in=ids)
 
-    @property
-    def buyers(self):
-        return self._filtered_members(is_buyer=True)
+    # @property
+    # def buyers(self):
+    #     return self._filtered_members(is_buyer=True)
 
-    @property
-    def staff(self):
-        return self._filtered_members(is_subgroup_staff=True)
+    # @property
+    # def staff(self):
+    #     return self._filtered_members(is_subgroup_staff=True)
 
     class Meta:
         constraints = [
@@ -183,8 +189,8 @@ class NetworkMembership(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['network', 'user'], name='unique_membership'),
-            # TODO: check that you can't be both buyer and candidate
+            # The point is, there's only one currently valid (valid_until=None) membership for a user/network
+            models.UniqueConstraint(fields=['network', 'user', 'valid_until'], name='unique_membership'),
         ]
 
 class Network(IdentifiedBySlug):
@@ -211,32 +217,32 @@ class Network(IdentifiedBySlug):
     def __str__(self):
         return self.name
 
-    def _filtered_members(self, **kwargs):
-        return User.objects.filter(
-            networkmembership__in=NetworkMembership.objects.filter(
-                network=self, **kwargs
-            )
-        )
+    # def _filtered_members(self, **kwargs):
+    #     return User.objects.filter(
+    #         networkmembership__in=NetworkMembership.objects.filter(
+    #             network=self, **kwargs
+    #         )
+    #     )
 
-    @property
-    def staff(self):
-        return self._filtered_members(is_staff=True)
+    # @property
+    # def staff(self):
+    #     return self._filtered_members(is_staff=True)
 
-    @property
-    def buyers(self):
-        return self._filtered_members(is_buyer=True)
+    # @property
+    # def buyers(self):
+    #     return self._filtered_members(is_buyer=True)
 
-    @property
-    def producers(self):
-        return self._filtered_members(is_producer=True)
+    # @property
+    # def producers(self):
+    #     return self._filtered_members(is_producer=True)
 
-    @property
-    def candidates(self):
-        return self._filtered_members(is_candidate=True)
+    # @property
+    # def candidates(self):
+    #     return self._filtered_members(is_candidate=True)
 
-    @property
-    def regulators(self):
-        return self._filtered_members(is_regulator=True)
+    # @property
+    # def regulators(self):
+    #     return self._filtered_members(is_regulator=True)
 
     @property
     def description_text(self):
@@ -246,8 +252,8 @@ class Network(IdentifiedBySlug):
     def grouped(self):
         return self.networksubgroup_set.exists()
 
-    def active_deliveries(self):
-        return self.delivery_set.filter(state__in="ABCD")
+    # def active_deliveries(self):
+    #     return self.delivery_set.filter(state__in="ABCD")
 
 
 class Delivery(IdentifiedBySlug):

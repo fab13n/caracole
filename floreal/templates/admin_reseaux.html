@@ -28,7 +28,8 @@
         select.selectpicker();
         setTimeout(() => $("#select-impersonate").selectpicker("toggle"), 0);
         select.on("change", (event) => {
-            alert("TODO impersonate user #"+event.target.value);
+            window.location = "{% url 'impersonate-start' uid=9999 %}".replace(9999, event.target.value)
+            // alert("TODO impersonate user #"+event.target.value);
         });
     }
 
@@ -86,7 +87,11 @@
             <li><a href="{% url 'users_html'%}">Gérer les utilisateurs</a></li>
             {% if user.is_staff %}
             <li><a href="{% url 'admin:index' %}">Accès à la base de donnée</a></li>
+            {% if user.is_impersonate %}
+            <li>Vous usurpez actuellement l'identité de {{user.first_name}} {{user.last_name}}</a></li>
+            {% else %}
             <li><a href="#" onclick="load_impersonate(event);")>Usurper une identité</a></li>
+            {% endif %}
             <li><a href="{% url 'view_journal' %}">Journal des actions utilisateur</a></li>
             <li> <a href="">Créer un nouveau circuit (TODO)</a> </li>
             {% endif %}
@@ -119,10 +124,10 @@
         <div class="divider acces-rapide couleur-sec">
             <a id="nw-{{nw.id}}"></a>
             <h5 class="center divider couleur-sec">Réseau <span class="couleur-prim">{{nw.name}}</span></h5>
-            {% if nw.is_network_staff or nw.candidates %}
+            {% if user.is_staff or nw.is_staff or nw.candidates %}
             <h5 class="txt-left couleur-sec margebotS">Configuration</h5>
             <ul>
-                {% if nw.is_netork_staff %}
+                {% if user.is_staff or nw.is_staff %}
                 <li><a href="{% url 'edit_network_description' network=nw.id %}">Éditer la <strong>description du réseau</strong></a></li>
                 <li><a href="{% url 'emails_network' network=nw.id %}"><strong>Annuaire</strong> des membres</a></li>
                 <li><strong>Visible</strong> par les non-membres : 
@@ -153,7 +158,7 @@
                     />
                   <span id="visibility-state-{{nw.id}}"></span>
                 </li>
-                {% endif %}{# is_network_staff #}
+                {% endif %}{# user/nw.is_staff #}
                 {% if not nw.candidates %}
                 {# pass #}
                 {% elif nw.candidates|length < 4 %}
@@ -179,9 +184,9 @@
             <ul>
                 <li><a href="{% url 'list_delivery_models' network=nw.id %}">Créer une <strong>nouvelle commande</strong>.</a></li>
                 <li>
-                    <strong>{{nw.active_deliveries}} commandes actives</strong> ; qui a commandé où ? Voir
-                    <a href="{% url 'all_deliveries_html' network=nw.id states='BCD' %}">en ligne</a>,
-                    <a href="{% url 'all_deliveries_latex' network=nw.id states='BCD' %}">en PDF</a>
+                    <strong>{{nw.active_deliveries}} commandes actives</strong> ; qui a commandé où ? Voir 
+                    <strong><a href="{% url 'all_deliveries_html' network=nw.id states='BCD' %}">en ligne</a></strong>,
+                    <strong><a href="{% url 'all_deliveries_latex' network=nw.id states='BCD' %}">en PDF</a</strong>
                 </li>
                 <li><a href="{% url 'invoice_mail_form' network=nw.id %}">Envoyer un <strong>mail de rappel</strong> pour les commandes gelées</a>.</li>
                 <li><a href="{% url 'archived_deliveries' network=nw.id %}">Voir les commandes <strong>archivées</strong></a>.</li>

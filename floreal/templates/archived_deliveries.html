@@ -1,22 +1,19 @@
-{% extends 'layout_narrow.html' %}
+{% extends 'layout.html' %}
 {% load floreal_filters %}
 {% load static %}
 
 {% block head %}
 {% endblock head %}
 
-{% block breadcrumbs %}
-<li class="breadcrumb-item"><a href="{% url 'index' %}">Accueil</a></li>
-<li class="breadcrumb-item"><a href="{% url 'network_admin' network=nw.id %}">Réseau {{nw.name}}</a></li>
-{% endblock %}
-
 
 {% block content %}
+<section class="container margetopXl margebot">
 
 <h2>Livraisons archivées du réseau {{nw.name}}</h2>
 <ul>
     {% for dv in deliveries %}
-    <li><a href="{% url 'edit_delivery_staff' delivery=dv.id %}">{{dv.name}} <img src="{% static 'images/edit.png' %}"/></a>
+    <!-- TODO proposer de reactiver, en commande gelee -->
+    <li><a href="">{{dv.name}} <img src="{% static 'images/edit.png' %}"/></a>
         ({{dv.state_name}})</li>
     {% empty %}
     <li>(aucune commande)</li>
@@ -32,5 +29,5 @@
     {% endfor %}
 </ul>
 {% endif %}
-
+</section>
 {% endblock content %}

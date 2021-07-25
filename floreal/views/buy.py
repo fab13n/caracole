@@ -2,10 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import django
-if django.VERSION < (1, 8):
-    from django.core.context_processors import csrf
-else:
-    from django.template.context_processors import csrf
+from django.template.context_processors import csrf
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
@@ -16,25 +13,31 @@ from .getters import get_delivery
 
 
 @login_required()
-def edit_user_purchases(request, delivery):
+def buy(request, delivery):
     """Let user order for himself, or modify an order on an open delivery."""
     delivery = get_delivery(delivery)
     user = request.user
     if delivery.state != delivery.ORDERING_ALL:
         return HttpResponseForbidden("Cette commande n'est pas ouverte.")
-    # TODO check user membership against delivery's network.
+    if not m.NetworkMembership.objects.filter(
+        user=request.user, network_id=delivery.network_id, is_buyer=True, valid_until=None
+    ).exists():
+        return HttpResponseForbidden(
+            "Réservé aux membres du réseau " + delivery.network.name
+        )
+
     if request.method == 'POST':
         if _parse_form(request):
             return redirect("orders")
         else:
             # TODO: display errors in template
-            return redirect("edit_user_purchases", delivery=delivery.id)
+            return redirect("buy", delivery=delivery.id)
     else:
         vars = {
             'delivery': delivery,
         }
         vars.update(csrf(request))
-        return render(request,'edit_user_purchases.html', vars)
+        return render(request,'buy.html', vars)
 
 
 def _parse_form(request):

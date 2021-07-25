@@ -167,6 +167,8 @@ class FlatDeliveryDescription(object):
     Detailed description of the purchases of each member of a network
     for a given delivery. Might be created standalone, or as a part of
     a multi-network delivery description of type `GroupedDeliveryDescription`.
+
+    TODO: we should probbaly just have a function producing some JSON, rather than an intermediate class instance with to_json()
     """
 
     def __init__(
@@ -189,8 +191,23 @@ class FlatDeliveryDescription(object):
             self.users = users
         else:
             if subgroup is None:
-                self.users = dv.network.buyers
+                date = dv.freeze_date
+                if date is not None:
+                    self.users = m.User.objects.filter(
+                        Q(networkmembership__valid_until__gte=date)|
+                        Q(networkmembership__valid_until=None),
+                        networkmembership__valid_from__lte=date,
+                        networkmembership__network_id=dv.network_id,
+                        networkmembership__is_buyer = True
+                    )
+                else:
+                   self.users = m.User.objects.filter(
+                        networkmembership__valid_until=None,
+                        networkmembership__network_id=dv.network_id,
+                        networkmembership__is_buyer = True
+                    )
             else:
+                raise NotImplementedError("Filter by subgroup")
                 self.users = subgroup.buyers
             # Remove those who didn't order
             if not empty_users:
@@ -337,7 +354,7 @@ class GroupedDeliveryDescription(object):
         subgroup_users: Dict[int, List[m.User]] = defaultdict(list)  # sgid -> [User*]
         user_subgroup: Dict[int, int] = {}  # user_id -> subgroup_id
         for nm in (
-            m.NetworkMembership.objects.filter(network_id=dv.network_id, is_buyer=True)
+            m.NetworkMembership.objects.filter(network_id=dv.network_id, is_buyer=True, valid_until=None)
             .select_related("user")
             .order_by("user__last_name", "user__first_name")
         ):
