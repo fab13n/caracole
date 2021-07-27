@@ -49,9 +49,9 @@ def parse_u(dump):
             )
             u.new_id = u_db.id
     print(f"   removed {len(deleted_user_ids)} users out of {len(dump.user)}")
-    assert all(k not in kept_user_ids or v.new_id for k, v in dump.user.items())
-    assert all(id not in kept_user_ids for id in deleted_user_ids)
-    assert all(id not in deleted_user_ids for id in kept_user_ids)
+    assert all(k not in kept_user_ids or k in deleted_user_ids or v.new_id for k, v in dump.user.items())
+    # assert all(id not in kept_user_ids for id in deleted_user_ids)
+    # assert all(id not in deleted_user_ids for id in kept_user_ids)
 
     for p in dump.userphones.values():
         try:
@@ -85,22 +85,24 @@ def parse_nw(dump):
                 sg.new_id = new_sg_id
             print(f"     * users")
             for old_uid in sg.users:
-                if old_uid in deleted_user_ids:
-                    continue
+                u = dump.user[old_uid]
+                if not hasattr(u, "new_id"):
+                    continue  # deleted user
                 mb, _ = m.NetworkMembership.objects.get_or_create(
                     network_id=nw.new_id,
-                    user_id=dump.user[old_uid].new_id,
+                    user_id=u.new_id,
                     defaults={"subgroup_id": new_sg_id},
                 )
                 mb.is_buyer = True
                 mb.save()
             print(f"     * subgroup staff")
             for old_uid in sg.staff:
-                if old_uid in deleted_user_ids:
-                    continue
+                u = dump.user[old_uid]
+                if not hasattr(u, "new_id"):
+                    continue  # deleted user
                 mb, _ = m.NetworkMembership.objects.get_or_create(
                     network_id=nw.new_id,
-                    user_id=dump.user[old_uid].new_id,
+                    user_id=u.new_id,
                     defaults={"subgroup_id": new_sg_id},
                 )
                 mb.is_subgroup_staff = True
@@ -108,10 +110,11 @@ def parse_nw(dump):
 
         print(f"     * network staff")
         for old_uid in nw.staff:
-            if old_uid in deleted_user_ids:
-                continue
+            u = dump.user[old_uid]
+            if not hasattr(u, "new_id"):
+                continue  # deleted user
             mb, _ = m.NetworkMembership.objects.get_or_create(
-                network_id=nw.new_id, user_id=dump.user[old_uid].new_id
+                network_id=nw.new_id, user_id=u.new_id
             )
             mb.is_staff = True
             mb.save()
@@ -143,6 +146,7 @@ def parse_dv(dump):
             defaults={k: getattr(pd, k) for k in PRODUCT_FIELDS},
         )
         pd.new_id = pd_db.id
+    print(" Done")
 
 
 def parse_pc(dump):
@@ -163,15 +167,16 @@ def parse_pc(dump):
             defaults={"quantity": pc.quantity},
         )
         pc.new_id = pc_db.id
-
+    print(" Done")
 
 def parse_cd(dump):
     print(f" * candidacies")
     for cd in dump.candidacy.values():
         u = dump.user[cd.user]
+        if not hasattr(u, "new_id"):
+            continue  # deleted user
         sg = dump.subgroup[cd.subgroup]
         new_nw_id = dump.network[sg.network].new_id
-        new_nw = m.Network.objects.get(id=new_nw_id)
         nm, _ = m.NetworkMembership.objects.get_or_create(
             network_id=new_nw_id, user_id=u.new_id, defaults={"is_buyer": False}
         )

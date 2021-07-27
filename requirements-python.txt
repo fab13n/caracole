@@ -3,6 +3,8 @@ django-debug-toolbar
 django-extensions
 django-registration-redux
 django-impersonate
+django-leaflet
+GDAL==2.4.0
 html2text
 ipython
 Markdown

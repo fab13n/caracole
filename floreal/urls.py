@@ -130,6 +130,8 @@ urlpatterns = [
     path('edit/<title>/<path:target>', views.editor, name='editor'),
 
     path('__debug__/', include(debug_toolbar.urls)),
+
+    path('map.html', views.map, name='map'),
 ]
 
 from django.conf import settings

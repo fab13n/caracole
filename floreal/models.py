@@ -48,6 +48,16 @@ class IdentifiedBySlug(models.Model):
                 self.slug = slug_prefix + str(suffix)
         super().save(**kwargs)
 
+class Mapped(models.Model):
+
+    longitude = models.FloatField(null=True, default=None)
+    latitude = models.FloatField(null=True, default=None)
+
+    # TODO add by-class or by-instance icons
+
+    class Meta:
+        abstract = True
+
 
 # def _user_network_getter(**kwargs):
 #     """
@@ -74,7 +84,7 @@ class IdentifiedBySlug(models.Model):
 # User.regulator_of_network = _user_network_getter(is_regulator=True)
 
 
-class FlorealUser(IdentifiedBySlug):
+class FlorealUser(IdentifiedBySlug, Mapped):
     """
     Associate a phone number to each user.
     """
@@ -193,7 +203,7 @@ class NetworkMembership(models.Model):
             models.UniqueConstraint(fields=['network', 'user', 'valid_until'], name='unique_membership'),
         ]
 
-class Network(IdentifiedBySlug):
+class Network(IdentifiedBySlug, Mapped):
     """
     One distribution network. Deliveries are passed for a whole network,
     then broken up into subgroups.

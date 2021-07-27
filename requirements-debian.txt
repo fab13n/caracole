@@ -1,3 +1,5 @@
+gdal-bin
+libgdal-dev
 texlive
 texlive-latex-extra
 uwsgi-plugin-python3

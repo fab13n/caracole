@@ -729,3 +729,19 @@ def network_description_and_image(request, network):
 def user_description_and_image(request, user):
     flu = m.FlorealUser.objects.get(user_id=user)
     return _description_and_image(request, flu, f"Présentation de {flu.user.first_name} {flu.user.last_name}")
+
+
+def map(request):
+    networks = m.Network.objects.filter(visible=True, latitude__isnull=False)
+    if not request.user.is_anonymous:
+        networks = [*networks, *m.Network.objects.filter(visible=False, networkmembership__user=request.user, latitude__isnull=False).distinct()]
+    producers = m.FlorealUser.objects.filter(
+        user__networkmembership__network__in=networks,
+        user__networkmembership__is_producer=True,
+        latitude__isnull=False,
+    ).distinct().select_related('user')
+    return render(request, "map.html", {
+        "user": request.user, 
+        'networks': networks,
+        'producers': producers,    
+    })

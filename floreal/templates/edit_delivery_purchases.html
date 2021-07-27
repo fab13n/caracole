@@ -59,7 +59,7 @@
 
       /* Set product name */
       $("#product-names").append(
-        `<th class="class="pd-${pd.id} rotate"><div><div>${pd.name}</div></div></th>`
+        `<th class="class="pd-${pd.id}"><span>${pd.name}</span></th>`
       );
 
       /* Set product name */
@@ -176,6 +176,8 @@
   .four  { background-color: #d5b1ac; }
   .blank  { text-align: left; }
   table { margin-top: 30px; /*table-layout: fixed;*/ }
+  tr:first-child > th { vertical-align: bottom; }
+  tr:first-child > th > span { writing-mode: vertical-lr; }
   td.quantity { border: none; width: 50px; }
   tr.extra, tr.extra input[type=number] {  background-color: #c08982; border: 1px solid #811305; }
   .if-out-of-package { font-weight: bold;}
