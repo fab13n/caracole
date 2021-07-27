@@ -145,8 +145,7 @@ def all_deliveries(request, network, states):
         if any(v for v in dv_pc.values())
     }
             
-    t: List[Tuple[m.User, List[Tuple[m.Delivery, bool]]]] = (
-        [
+    t: List[Tuple[m.User, List[Tuple[m.Delivery, bool]]]] = [
             (u, [(dv, dv_pc[dv]) 
             for dv in deliveries]) 
             for u, dv_pc in users_with_purchases.items()
