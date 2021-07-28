@@ -710,14 +710,25 @@ def _description_and_image(request, obj, title):
         img = request.FILES.get('image')
         if img:
             obj.image_description = img
+
+        if (lat := request.POST.get('latitude')) and \
+           (lon := request.POST.get('longitude')):
+           obj.latitude = float(lat)
+           obj.longitude = float(lon)
+
+        if (sdescr := request.POST.get('short_description')) is not None:
+            obj.short_description = sdescr
+
         obj.save()
+
         return redirect(request.GET.get('next', 'admin'))
     else:
         return editor(
             request, title=title,
             template='description_and_image.html',
             content=obj.description,
-            image=obj.image_description,
+            obj=obj,
+            has_short_description=hasattr(obj, "short_description")
         )
 
 @nw_admin_required()

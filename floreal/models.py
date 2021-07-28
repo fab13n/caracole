@@ -50,8 +50,8 @@ class IdentifiedBySlug(models.Model):
 
 class Mapped(models.Model):
 
-    longitude = models.FloatField(null=True, default=None)
-    latitude = models.FloatField(null=True, default=None)
+    longitude = models.FloatField(null=True, blank=True, default=None)
+    latitude = models.FloatField(null=True, blank=True, default=None)
 
     # TODO add by-class or by-instance icons
 

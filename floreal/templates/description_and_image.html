@@ -20,16 +20,34 @@
   object-position: center;
   border: 1px solid black;
 }
+.coord {
+  width: 150px !important;
+  margin-left: 10px;
+}
 </style>
 {% endblock %}
 
 {% block custom %}
 <h2>Image liée à la description</h2>
 <div>
-  <img id="image" src="{% if image %}{{image.url}}{% else %}/media/none.png{% endif %}">
+  <img id="image" src="{% if obj.image %}{{obj.image.url}}{% else %}/media/none.png{% endif %}">
 </div>
 <div>
   <input type="file" accept="image/*" name="image" onchange="on_image_change(event)"/>
 </div>
+
+<h2>Position géographique</h2>
+<div>
+  <label for="latitude">Latitude :</label><input type="number" name="latitude" id="latitude" step="any" class="coord" min="-90" max="90"
+  {% if obj.latitude %}value="{{obj.latitude}}"{% endif %}/>
+  <label for="longitude">Latitude :</label><input type="number" name="longitude" id="longitude" step="any" class="coord" min="-180" max="180"
+  {% if obj.longitude %}value="{{obj.longitude}}"{% endif %}/>
+</div>
+
+{% if has_short_description %}
+<h2>Description succinte (200 caractères max, pas de mise en page)</h2>
+<textarea name="short_description" maxlength="200">{{obj.short_description|default:""}}</textarea>
+{% endif %}
+
 <h2>Description textuelle</h2>
 {% endblock %}
