@@ -8,8 +8,6 @@
 </style>
 
 <script type='text/javascript'>
-    /* TODO: only load userids when the <select> widget opens
-     */
     async function load_impersonate(event) {
         if($("#select-impersonate")[0]) {
             // already loaded
@@ -29,7 +27,6 @@
         setTimeout(() => $("#select-impersonate").selectpicker("toggle"), 0);
         select.on("change", (event) => {
             window.location = "{% url 'impersonate-start' uid=9999 %}".replace(9999, event.target.value)
-            // alert("TODO impersonate user #"+event.target.value);
         });
     }
 
@@ -68,6 +65,15 @@
         } });
     }
 
+    async function prompt_network_creation() {
+        const name = prompt("Créer un nouveau réseau nommé :");
+        if(name) {
+            const url = "{% url 'create_network' nw_name='NW_NAME' %}".replace("NW_NAME", name);
+            await fetch(url);
+            document.location.reload();
+        }
+    }
+
     $(document).ready(() => {
         $("input.visibility").bootstrapToggle();
     })
@@ -93,7 +99,7 @@
             <li><a href="#" onclick="load_impersonate(event);")>Usurper une identité</a></li>
             {% endif %}
             <li><a href="{% url 'view_journal' %}">Journal des actions utilisateur</a></li>
-            <li> <a href="">Créer un nouveau circuit (TODO)</a> </li>
+            <li> <a href="#" onclick="prompt_network_creation()">Créer un nouveau circuit</a> </li>
             {% endif %}
             <li>Messages aux utilisateurs :
                 <ul>
@@ -183,12 +189,14 @@
             <h5 class="txt-left couleur-sec margebotS">Commandes</h5>
             <ul>
                 <li><a href="{% url 'list_delivery_models' network=nw.id %}">Créer une <strong>nouvelle commande</strong>.</a></li>
+                {% if nw.active_deliveries %}
                 <li>
                     <strong>{{nw.active_deliveries}} commandes actives</strong> ; qui a commandé où ? Voir 
                     <strong><a href="{% url 'all_deliveries_html' network=nw.id states='BCD' %}">en ligne</a></strong>,
                     <strong><a href="{% url 'all_deliveries_latex' network=nw.id states='BCD' %}">en PDF</a</strong>
                 </li>
                 <li><a href="{% url 'invoice_mail_form' network=nw.id %}">Envoyer un <strong>mail de rappel</strong> pour les commandes gelées</a>.</li>
+                {% endif %}
                 <li><a href="{% url 'archived_deliveries' network=nw.id %}">Voir les commandes <strong>archivées</strong></a>.</li>
             </ul>
 

@@ -346,15 +346,18 @@ def delete_all_archived_deliveries(request, network):
     return redirect(target) if target else redirect("archived_deliveries", network)
 
 
-def create_network(request, nw_name, sg_name):
+def create_network(request, nw_name):
     user = request.user
     if not user.is_staff:
         return HttpResponseForbidden("Creation de réseaux réservée au staff")
     if m.Network.objects.filter(name__iexact=nw_name).exists():
         return HttpResponseBadRequest("Il y a déjà un réseau nommé " + nw_name)
     nw = m.Network.objects.create(name=nw_name)
-    nw.staff.add(user)
-    nw.members.add(user)
+    mb = m.NetworkMembership.objects.create(
+        network=nw,
+        user=request.user,
+        is_staff=True
+    )
     m.JournalEntry.log(user, "Created network nw-%d: %s", nw.id, nw_name)
     target = request.GET.get("next")
     return redirect(target) if target else redirect("network_admin", network=nw.id)
@@ -589,6 +592,13 @@ def view_phones(request, network):
 @login_required()
 def view_history(request):
     # Deliveries in which the current user has purchased something
+    # TODO: make it a single request for purchases, then group them by delivery,
+    # either here in a single pass or in the template with:
+    #
+    #     {% regroup purchases by delivery as purchases_by_delivery %}
+    #     {% for dv_pc in purchases_by_delivery %}
+    #     {% with dv=dv_pc.grouper %}
+    #     {% for pc in dv_pc.list %}
     deliveries = [
         {
             "delivery": dv,
@@ -597,7 +607,7 @@ def view_history(request):
                 product__delivery=dv, user=request.user
             ),
         }
-        for dv in m.Delivery.objects.filter(product__purchase__user__in=[request.user])
+        for dv in m.Delivery.objects.filter(product__purchase__user=request.user).distinct()
     ]
     for x in deliveries:
         x["price"] = sum(y.price for y in x["purchases"])
