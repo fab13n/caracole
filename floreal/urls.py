@@ -10,6 +10,11 @@ import debug_toolbar
 import impersonate.urls
 
 
+from wagtail.core import urls as wagtail_urls
+from wagtail.admin import urls as wagtailadmin_urls
+from wagtail.documents import urls as wagtaildocs_urls
+
+
 class Identifier(object):
     regex = '[0-9A-Za-z_]+'
 
@@ -132,6 +137,14 @@ urlpatterns = [
     path('__debug__/', include(debug_toolbar.urls)),
 
     path('map.html', views.map, name='map'),
+
+    path('admin/pages/', include(wagtailadmin_urls)),
+    path('documents/', include(wagtaildocs_urls)),
+
+    # For anything not caught by a more specific rule above, hand over to
+    # Wagtail's serving mechanism
+    path('pages/', include(wagtail_urls)),
+
 ]
 
 from django.conf import settings

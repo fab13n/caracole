@@ -174,7 +174,7 @@
                         {% for u in nw.candidates %}
                         <li>{{u.first_name}} {{u.last_name}} ({{u.email}}):
                             <a href="{% url 'validate_candidacy' user=u.id network=nw.id response='Y' %}?next={% url 'admin' %}#nw-{{nw.id}}-candidacies">Accepter</a>
-                            /
+                            /   
                             <a href="{% url 'validate_candidacy' user=u.id network=nw.id response='N' %}?next={% url 'admin' %}#nw-{{nw.id}}-candidacies">Refuser</a>
                         </li>
                         {% endfor %}

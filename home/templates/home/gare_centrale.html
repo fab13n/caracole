@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+{% load static %}
+
+{% block content %}
+<section class="container margetopXl margebot">
+  <h1>Gare Centrale {{page.title}}</h1>
+  <div>
+    {{page.body|safe}}
+  </div>
+
+</section>
+
+{% endblock content %}

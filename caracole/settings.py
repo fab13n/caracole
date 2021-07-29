@@ -54,6 +54,24 @@ if not os.path.isdir(DELIVERY_ARCHIVE_DIR):
 
 INSTALLED_APPS = (
     'floreal',  # Before auth, so that app's password management templates take precedence
+
+    'home',
+    'search',
+
+    'wagtail.contrib.forms',
+    'wagtail.contrib.redirects',
+    'wagtail.embeds',
+    'wagtail.sites',
+    'wagtail.users',
+    'wagtail.snippets',
+    'wagtail.documents',
+    'wagtail.images',
+    'wagtail.search',
+    'wagtail.admin',
+    'wagtail.core',
+    'taggit',
+    'modelcluster',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -66,6 +84,7 @@ INSTALLED_APPS = (
     'debug_toolbar',
     'leaflet', # needs gdal, https://mothergeo-py.readthedocs.io/en/latest/development/how-to/gdal-ubuntu-pkg.html
     # also https://gis.stackexchange.com/questions/28966/python-gdal-package-missing-header-file-when-installing-via-pip (need for env PATH vars)
+    'wagtail'
 )
 
 
@@ -80,7 +99,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'impersonate.middleware.ImpersonateMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
-]
+    'wagtail.contrib.redirects.middleware.RedirectMiddleware',
+  ]
 
 TEMPLATES = [
     {
@@ -148,6 +168,9 @@ if not os.path.isdir(MEDIA_ROOT):
     os.makedirs(MEDIA_ROOT)
 
 AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend',)
+
+WAGTAIL_SITE_NAME = "Solalim Civam Occitanie"
+TAGGIT_CASE_INSENSITIVE = True
 
 if False:
     # Enables real-time SQL logs
