@@ -123,11 +123,13 @@ urlpatterns = [
  
  
     path('accounts/register', views.user_register, name="user_register"),
+    path('accounts/update', views.user_update, name="user_update"),
     # path('accounts/registration_post.html', views.candidacy, name="registration_post"),
     # TODO Test usefulness of final /
     re_path('^accounts/password/reset/?$', PasswordResetView.as_view(), name="password_reset"),
     re_path('^accounts/password/reset_done/?$', PasswordResetDoneView.as_view(), name="password_reset_done"),
     path('accounts/', include('registration.backends.simple.urls')),
+    path('accounts/deactivate', views.user_deactivate, name='user_deactivate'), 
 
     # TODO a mettre dans les infos personnelles
     # path('add-phone-number/<phone>', views.phone.add_phone_number, name="add_phone_number"),

@@ -20,7 +20,7 @@ from .decorators import nw_admin_required, regulator_required
 
 from .edit_delivery_purchases import edit_delivery_purchases
 from .buy import buy
-from .user_registration import user_register
+from .user_registration import user_register, user_update, user_deactivate
 from .edit_delivery_products import edit_delivery_products, delivery_products_json
 from .view_purchases import (
     view_purchases_html,

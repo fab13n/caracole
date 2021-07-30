@@ -1,0 +1,58 @@
+{% extends 'layout.html' %}
+
+{% block head %}
+<style type="text/css">
+    .errorlist {
+        background-color: red;
+        color: white;
+        font-weight: bold;
+    }
+
+    ul {
+        margin: 5px;
+    }
+
+    th {
+        text-align: right;
+    }
+
+    td[colspan="2"] {
+        text-align: center;
+    }
+
+    .helptext {
+        display: none;
+    }
+
+    input,
+    select {
+        width: 300px;
+    }
+
+    select {
+        height: 300px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="container margetopXl margebot">
+
+<h1>Modifier vos informations</h1>
+
+<form action="" method="post">
+    <table>
+        {{form}}
+        <tr><td colspan="2">
+            <a href="{% url 'auth_password_change' %}">Changer de mot de passe</a> 
+        </td></tr>
+        <tr>
+            <td></td>
+            <td><input type="submit" value="S'enregistrer" /></td>
+        </tr>
+    </table>
+    {% csrf_token %}
+</form>
+
+</section>
+{% endblock %}
