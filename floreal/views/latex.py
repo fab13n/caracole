@@ -65,7 +65,7 @@ def table(dd):
 
 
 def cards(dd):
-    max_order_size = max(len([pc for pc in row.purchases if pc]) for row in dd.rows, default=0)
+    max_order_size = max((len([pc for pc in row.purchases if pc]) for row in dd.rows), default=0)
     template = "subgroup-cards.tex" if isinstance(dd, FlatDeliveryDescription) else "delivery-cards.tex"
     return render_latex(template, {'dd': dd, 'max_order_size': max_order_size})
 
