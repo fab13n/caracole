@@ -56,6 +56,8 @@ def render_description(request, delivery, renderer, extension, subgroup=None, us
         dd = FlatDeliveryDescription(dv)
 
     name_stem = dd.delivery.name if download else None
+    if not (dd.rows and dd.products):
+        return HttpResponse("Aucun achat dans cette livraison", status=404)
     return non_html_response(name_stem, extension, renderer(dd))
 
 
