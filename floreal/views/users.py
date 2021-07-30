@@ -1,10 +1,11 @@
-import json
 import io
+import json
 
+from django.conf import settings
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
+
 from .. import models as m
 
 KEYS = ("buyer", "staff", "producer", "regulator")
@@ -33,7 +34,6 @@ def users_json(request):
 
 
 def users_get(request):
-    # TODO add optional per-network restriction in URL
     staff = request.user
 
     if staff.is_staff:
@@ -43,29 +43,43 @@ def users_get(request):
     else:
         # Only access to network you are staff of, and their users
         networks = m.Network.objects.filter(
-            networkmembership__user=staff, 
+            networkmembership__user=staff,
             networkmembership__is_staff=True,
-            networkmembership__valid_until=None)
+            networkmembership__valid_until=None,
+        )
         users = m.User.objects.filter(
-            networkmembership__network__in=networks,
-            is_active=True
+            networkmembership__network__in=networks, is_active=True
         )
 
     user_records = {
         u_rec["id"]: dict(**u_rec, **{k: [] for k in KEYS})
-        for u_rec in users.values("id", "first_name", "last_name", "email", "is_staff", "florealuser__description", "florealuser__image_description")
+        for u_rec in users.values(
+            "id",
+            "first_name",
+            "last_name",
+            "email",
+            "is_staff",
+            "florealuser__description",
+            "florealuser__image_description",
+            "florealuser__latitude",
+            "florealuser__longitude",
+            "florealuser__phone",
+        )
     }
 
     # Convert image URLs
     for u in user_records.values():
-        url = u['florealuser__image_description']
-        u['florealuser__image_description'] = {'url': settings.MEDIA_URL + url} if url else None
+        url = u["florealuser__image_description"]
+        u["florealuser__image_description"] = (
+            {"url": settings.MEDIA_URL + url} if url else None
+        )
 
     network_records = []
 
     for nw in networks:
         nw_rec = {"id": nw.id, "name": nw.name}
         network_records.append(nw_rec)
+        # TODO perform in a single .filter(network__in=networks, valid_until=None) request
         for nm in m.NetworkMembership.objects.filter(network=nw, valid_until=None):
             u_rec = user_records.get(nm.user_id)
             if u_rec is None:
@@ -78,7 +92,7 @@ def users_get(request):
         {
             "is_staff": staff.is_staff,
             "networks": sorted(network_records, key=lambda nw: nw["name"]),
-            "users": sorted(user_records.values(), key=lambda u: u["last_name"])
+            "users": sorted(user_records.values(), key=lambda u: u["last_name"]),
         }
     )
 
@@ -97,10 +111,6 @@ def user_update(request):
     staff = request.user
     data = json.loads(request.body)
     user = m.User.objects.get(id=data["user"])
-
-    # TODO retrieve set of considered networks.
-    # TODO check rights against each of these networks
-    # TODO or consider that every network has been listed in th UI?
 
     network_ids = data["networks"]
 
@@ -121,31 +131,35 @@ def user_update(request):
         user.is_staff = data["is_staff"]
         user.save()
 
-    descr = data["florealuser__description"]
-    if user.florealuser is None:
-        m.FlorealUser.objects.create(user=user, description=descr)
+    fu = user.florealuser
+    if fu is None:
+        fu = m.FlorealUser.objects.create(user=user)
         user.refresh_from_db()
 
-    if user.florealuser.description != descr:
-        user.florealuser.description = descr
-        user.florealuser.save()
+    fu.latitude = float(data["florealuser__latitude"])
+    fu.longitude = float(data["florealuser__longitude"])
+    fu.phone = data["florealuser__phone"]
+    fu.description = data["florealuser__description"]
 
     # handle image_description
-    if 'florealuser__image_description' in data:
-        img = data['florealuser__image_description']
-        content = img['content'].encode('latin1')
+    img = data.get("florealuser__image_description")
+    if img is not None:
+        img = data["florealuser__image_description"]
+        content = img["content"].encode("latin1")
         reader = io.BytesIO(content)
-        user.florealuser.image_description.save(img['name'], reader)
-        user.florealuser.save()
+        fu.image_description.save(img["name"], reader)
+
+    fu.save()
 
     for nw_id in network_ids:
 
-        # TODO: 
-        # 1. check whether previous membership matches described one
-        # 2. in case of mismatch, terminate the old one, create a new one.
+        # TODO: get all memberships in a single request
+        # .filter(user=user, valid_until=None, network_id__in=network_ids)
 
         old_nm = m.NetworkMembership.objects.filter(
-            user=user, network_id=nw_id, valid_until=None,
+            user=user,
+            network_id=nw_id,
+            valid_until=None,
         ).first()
 
         # Object created with the direct constructor, not with .objects.create().

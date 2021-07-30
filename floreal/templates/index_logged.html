@@ -53,8 +53,8 @@
             {% if mb.is_staff or mb.is_subgroup_staff or is_producer or is_regulator or mb.user.is_staff %}
             <!--
             <a href="{% url 'reseau' network=mb.network.id %}" class="button admin">Administrer</a>
-            {% endif %}
             -->
+            {% endif %}
             {% if mb.has_open_orders %}
             <a href="{% url 'orders' %}#{{mb.network.slug}}" class="button button-primary">Commander</a>
             <a href="{% url 'leave_network' network=mb.network.id %}" 

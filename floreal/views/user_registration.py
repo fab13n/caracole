@@ -41,8 +41,12 @@ class RegistrationForm(UpdateForm):
 
     def clean_email(self):
         email = self.cleaned_data['email']
-        if m.User.objects.filter(email=email).exists():
-            raise forms.ValidationError('Cet e-mail est déjà enregistré.')
+        if (prev_u := m.User.objects.filter(email=email).first()) is not None:
+            if prev_u.is_active:
+                raise forms.ValidationError('Cet e-mail est déjà enregistré.')
+            else:
+                # TODO: change the old User's email, to respect uniqueness constraint.
+                raise forms.ValidationError('Vous vous êtes désinscrit. Contactez un administrateur si vous souhaitez revenir.')
         return email
 
     def clean_password2(self):
@@ -128,8 +132,8 @@ def user_deactivate(request):
     user = request.user
     if user.is_staff or user.is_superuser:
         return HttpResponse("Les admins ne doivent pas se désactiver tout seuls", status=400)
-    user.networkmembership_set.update(valid_until=m.Now())
+    user.networkmembership_set.filter(valid_until=None).update(valid_until=m.Now())
     user.is_active = False
     user.save()
-    logout()
+    logout(request)
     return HttpResponseRedirect('index')

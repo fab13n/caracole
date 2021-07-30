@@ -1,9 +1,9 @@
 {% extends 'layout.html' %}
 {% load static %}
-{% block header %}
+{% block head %}
 <script type='text/javascript'>
   function deactivate_prompt() {
-    if(prompt("Vous aller IRRÉmÉDIABLEMENT QUITTER tous les réseaux CIVAM; "+
+    if(confirm("Vous aller IRRÉmÉDIABLEMENT QUITTER tous les réseaux CIVAM; "+
               "vous ne pourrez plus commander dans aucun réseaux.\n\n"+
               "ÊTES VOUS SÛR·E DE VOULOIR POURSUIVRE ?")) {
                 window.location = "{% url 'user_deactivate' %}"
@@ -24,9 +24,9 @@
       <ul>
         <li> <a href="{% url 'view_history' %}">Historique des commandes passées</a> </li>
         <li> <a href="{% url 'index' %}#réseaux">Gérer mes inscriptions aux réseaux</a> </li>
-        <li> <a href="{% url 'user_update' %}">Modifier mes informations</a> </li>
+        <li> <a href="{% url 'user_update' %}">Modifier mes données personnelles</a> </li>
         <li> <a href="{% url 'auth_password_change' %}">Changer de mot de passe</a> </li>
-        <li> <a href="" onclick="deactivate_prompt()">Désinscription</a></li>
+        <li> <a href="#" onclick="deactivate_prompt()">Désinscription</a></li>
       </ul>
     </div>
   </section>

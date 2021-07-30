@@ -68,7 +68,7 @@ def cancel_candidacy(request, network):
     user = request.user
     nw = get_network(network)
     # Mark end of validity
-    m.NetworkMembership.objects.filter(network=nw, user=user, is_candidate=True).update(valid_until=Now())
+    m.NetworkMembership.objects.filter(network=nw, user=user, is_candidate=True, valid_until=None).update(valid_until=Now())
     m.JournalEntry.log(user, "Cancelled own application for nw-%d", nw.id)
     return redirect(request.GET.get(next, 'index'))
 
@@ -88,12 +88,16 @@ def validate_candidacy(request, network, user, response):
 
 @nw_admin_required()
 def manage_candidacies(request):
-    staff_of_networks = m.Network.objects.filter(
-        networkmambership__user=request.user,
-        is_staff=True,
-        networkmembership__valid_until=None
-    )
-    candidacies = m.NetworkMembership.objects.filter(is_candidate=True, network__in=staff_of_networks, valid_until=None)
+    if request.user.is_staff:
+        candidacies = m.NetworkMembership.objects.filter(is_candidate=True, valid_until=None)
+    else:
+        staff_of_networks = m.Network.objects.filter(
+            networkmembership__user=request.user,
+            networkmembership__is_staff=True,
+            networkmembership__valid_until=None
+        )
+        candidacies = m.NetworkMembership.objects.filter(is_candidate=True, network__in=staff_of_networks, valid_until=None)
+    candidacies = candidacies.select_related().order_by('network__name', 'user__last_name', 'user__first_name')
     return render(request, 'manage_candidacies.html', {'user': request.user, 'candidacies': candidacies})
 
 def validate_candidacy_without_checking(request, network, user, response, send_confirmation_mail):

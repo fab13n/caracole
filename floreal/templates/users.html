@@ -7,6 +7,9 @@
   #user-form td:first-child {
     text-align: right;
   }
+  .coord {
+    width: unset !important;
+  }
 </style>
 
 <script src="{% static 'tinymce/tinymce.min.js' %}"></script>
@@ -76,7 +79,9 @@
         <td>Admin réseau:</td>
         <td>${oui_non("staff-" + nw.id)}</td>
       </tr>
-      <tr>
+      <tr    result.florealuser__latitude = $("florealuser__latitude").val();
+    result.florealuser__longitude = $("florealuser__longitude").val();
+>
         <td>Producteur:</td>
         <td>${oui_non("producer-" + nw.id)}</td>
       </tr>
@@ -115,7 +120,7 @@
     // Bootstrap toggle layout is buggy inside tables.
     $("#user-form div.toggle").css("width", "58").css("height", "36")
 
-    $(".user-modifier").on('change', () => {
+    $(".user-modifier").on('change keyup', () => {
       // Once modifications occurred, saving them to server becomes allowed
       if (!MODIFIED_USER && CURRENT_USER) {
         console.log(`user ${CURRENT_USER.id} is now modified`);
@@ -149,6 +154,9 @@
     tinyMCE.get("description").setContent(u.florealuser__description || "");
     const img_url = u['florealuser__image_description']?.url || "/media/none.png";
     $("#image").attr("src", img_url);
+    $("[name=florealuser__phone]").val(u.florealuser__phone);
+    $("[name=florealuser__latitude]").val(u.florealuser__latitude);
+    $("[name=florealuser__longitude]").val(u.florealuser__longitude);
     $("#save").prop("disabled", true); // will be re-enabled upon modification
   }
 
@@ -200,6 +208,9 @@
       networks: Object.keys(NETWORKS).map(Number),
       florealuser__description: tinyMCE.get("description").getContent(),
       florealuser__image_description: CURRENT_USER.florealuser__image_description,
+      florealuser__latitude: Number($("[name=florealuser__latitude]").val()),
+      florealuser__longitude: Number($("[name=florealuser__longitude]").val()),
+      florealuser__phone: $("[name=florealuser__longitude]").val(),
     };
 
     ['buyer', 'staff', 'producer', 'regulator'].forEach(field => {
@@ -290,6 +301,20 @@
 
   <h3>Description de l'utilisateur / producteur</h3>
   <div>
+    <label for="latitude">Téléphone : </label>
+    <input type="text" name="florealuser__phone" id="phone" class="coord user-modifier"/>
+  </div>
+  <div>
+    Position géographique :
+    <label for="latitude">Latitude = </label>
+    <input type="number" name="florealuser__latitude" id="latitude" step="any" class="coord user-modifier" min="-90" max="90"/>
+    <label for="longitude">Longitude = </label>
+    <input type="number" name="florealuser__longitude" id="longitude" step="any" class="coord user-modifier" min="-180" max="180"/>
+  </div>  
+
+
+  <div>
+    Photo :
     <label for="image-input">
     {# TODO pass image.url from python, use it if applicable #}
     <img id="image" src=""/>
