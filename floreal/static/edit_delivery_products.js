@@ -325,7 +325,7 @@ function submit_if_valid(then_leave) {
 var DELIVERY = null; 
 
 async function load_delivery() {
-  const response = await fetch("products.json");
+  const response = await fetch("json");
   const dv = await response.json();
   DELIVERY = dv;
 

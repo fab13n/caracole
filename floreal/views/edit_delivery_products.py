@@ -41,10 +41,21 @@ def _serialize_product(pd):
 def delivery_products_json(request, delivery):
     # TODO: this ought to be a delivery_description
     dv = get_delivery(delivery)
+    is_staff = request.user.is_staff or m.NetworkMembership.objects.filter(
+        user=request.user, valid_until=None, network_id=dv.network_id, is_staff=True
+    ).exists()
+    is_producer = dv.producer_id == request.user.id
+
+    if not is_staff and not is_producer:
+        return HttpResponseForbidden("Réservé aux admins ou au producteur")
     
-    if request.user in dv.network.staff:
+    if is_staff:
         # If I'm staff, I can choose any producer I want
-        dv_producers = dv.network.producers
+        dv_producers = m.User.objects.filter(
+            networkmembership__network_id=dv.network_id,
+            networkmembership__valid_until=None,
+            networkmembership__is_producer=True,
+        )
         producers = (
             [{"id": 0, "name": "Aucun"}] +
             [{"id": u.id, "name": u.first_name+" "+u.last_name} for u in dv_producers])
@@ -55,7 +66,7 @@ def delivery_products_json(request, delivery):
                 if item['id'] == dv.producer_id:
                     item["selected"] = True
                     break
-    elif dv.producer_id == request.user.id:
+    elif is_producer:
         # If I'm not staff but I'm the producer, I can't change the choice
         u = dv.producer
         producers = [{"id": u.id, "name": u.first_name+" "+u.last_name, "selected": True}]
@@ -81,13 +92,12 @@ def edit_delivery_products(request, delivery):
     # Check authorizations: reserved to this network's staff and producers    
 
     dv = get_delivery(delivery)
-    is_producer = False
+    is_staff = request.user.is_staff or m.NetworkMembership.objects.filter(
+        user=request.user, valid_until=None, network_id=dv.network_id, is_staff=True
+    ).exists()
+    is_producer = dv.producer_id == request.user.id
 
-    if (is_staff := request.user in dv.network.staff):
-        pass
-    elif dv.producer_id == request.user.id:
-        is_producer = True
-    else:
+    if not is_staff and not is_producer:
         return HttpResponseForbidden("Réservé aux admins ou au producteur")
 
     if request.method == 'POST':  # Handle submitted data
