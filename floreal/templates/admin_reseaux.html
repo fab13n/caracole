@@ -121,9 +121,10 @@
     </div>
     {% endif %}
 
+    {% if networks|length > 1 %}
     <h2>Administration des réseaux</h2>
-
-    <ul>
+    {% endif %}
+    
         <!-- Pour chaque circuit -->
         {% for nw in networks %}
  
@@ -135,7 +136,7 @@
             <ul>
                 {% if user.is_staff or nw.is_staff %}
                 <li><a href="{% url 'edit_network_description' network=nw.id %}">Éditer la <strong>description du réseau</strong></a></li>
-                <li><a href="{% url 'emails_network' network=nw.id %}"><strong>Annuaire</strong> des membres</a></li>
+                <li><a href="{% url 'directory_network' network=nw.id %}"><strong>Annuaire</strong> des membres</a></li>
                 <li><strong>Visible</strong> par les non-membres : 
                     <input
                         class="visibility"
@@ -203,18 +204,23 @@
             {% for dv in nw.deliveries %}
             <div class="commande-cours">
                 <p><strong>
-                    {% if dv.freeze_date %}
-                    {{dv.freeze_date|date:"SHORT_DATE_FORMAT"}} | 
+                    {% if dv.freeze_date %}{# if in_the_past and there's a distri date, display the latter. #}
+                    <span title="Commandes jusqu'au {{dv.freeze_date|date:'SHORT_DATE_FORMAT'}}"
+                        data-toggle="tooltip">
+                        {{dv.freeze_date|date:"SHORT_DATE_FORMAT"}}
+                    </span> | 
                     {% elif dv.distribution_date %}
-                    {{dv.distribution_date|date:"SHORT_DATE_FORMAT"}} | 
+                    <span title="Distribution le {{dv.distribution_date|date:'SHORT_DATE_FORMAT'}}"
+                        data-toggle="tooltip">
+                        {{dv.distribution_date|date:"SHORT_DATE_FORMAT"}} |
+                    </span> 
                     {% endif %}
                     {{dv.name }}
                     {% if dv.producer %}
                     - {{dv.producer.first_name}} {{dv.producer.last_name}}
                     {% endif %}
-                </strong> | Statut : 
-                <!--<i>{{dv.state_name}}</i>-->
-                  <select 
+                </strong>
+                <select 
                     id="dv-{{dv.id}}-state" 
                     name="dv-{{dv.id}}-state" 
                     class="button admin" 
@@ -222,7 +228,7 @@
                     {% for key, name in Delivery.STATE_CHOICES.items %}
                     <option value="{{key}}" {% if key == dv.state %}selected="selected"{% endif %}>{{name}}</option>
                     {% endfor %}
-                  </select>
+                </select>
 
                 </p>
                 <div>
@@ -243,7 +249,7 @@
         </div>
         <!-- end circuit -->
         {% endfor %}
-    </ul>
+
 </section>
 
 

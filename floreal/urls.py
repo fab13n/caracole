@@ -116,7 +116,7 @@ urlpatterns = [
     path('nw-<id:network>/emails', views.view_emails, name='emails_network'),
     path('nw-<id:network>/emails.pdf', views.view_emails_pdf, name='emails_network_pdf'),
 
-    path('nw-<id:network>/phones', views.view_phones, name='phones_network'),
+    path('nw-<id:network>/directory', views.view_directory, name='directory_network'),
     
     # Tous les vieux achats d'un utilisateur. Encore utile?
     path('history', views.view_history, name='view_history'),

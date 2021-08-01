@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 import re
 from collections import defaultdict
+from django.db.models.query_utils import select_related_descend
 from django.http.response import JsonResponse
 
 from django.shortcuts import render, redirect, reverse
@@ -45,8 +46,6 @@ from .invoice_mail import invoice_mail_form
 from .users import users_json, users_html
 from . import delivery_description as dd
 
-from floreal.views import require_phone_number as phone
-
 
 def index(request):
     if request.user.is_anonymous:
@@ -79,7 +78,14 @@ def index(request):
 
 
 def admin(request):
-    if request.user.is_staff:
+    if (only := request.GET.get('only')):
+        networks = m.Network.objects.filter(
+            id=only,
+            networkmembership__user=request.user,
+            networkmembership__is_staff=True,
+            networkmembership__valid_until=None,
+        )
+    elif request.user.is_staff:
         networks = m.Network.objects.all()
     else:
         networks = (m.Network.objects
@@ -455,7 +461,7 @@ def create_delivery(request, network, dv_model=None):
             pd.delivery_id = new_dv.id
             pd.save()  # Will duplicate because pk==None
 
-    if not nw.staff.filter(id=request.user.id).exists():
+    if not m.NetworkMembership.objects.filter(network_id=nw.id, user_id=request.user.id, valid_until=None).exists():
         # I'm not staff, I must at least be producer of this network.
         # And the created delivery will be mine.
         if nw.producers.filter(id=request.user.id).exists():
@@ -573,20 +579,37 @@ def view_emails(request, network):
 
 
 @login_required()
-def view_phones(request, network):
+def view_directory(request, network):
     user = request.user
-    vars = {"user": user}
     nw = get_network(network)
-    if user not in nw.staff.all():
+    members = {
+        "Administrateurs": [],
+        "Producteurs": [],
+        "Régulateurs": [],
+        "Acheteurs": [],
+        "Candidats": []
+    }
+    vars = {"user": user, "nw": nw, "members": members} 
+    if not user.is_staff and not m.NetworkMembership.objects.filter(network_id=nw.id, user_id=user.id, valid_until=None).exists():
         return HttpResponseForbidden("Réservé aux admins")
-    vars["nw"] = nw
-    vars["staff"] = nw.staff.order_by("last_name", "first_name")
-    vars["regulators"] = nw.regulators.exclude(id__in={u.id for u in vars["staff"]})
-    vars["members"] = nw.regulators.exclude(
-        id__in={u.id for x in ["staff", "regulators"] for u in vars[x]}
-    )
-    vars["producers"] = nw.producers.all()
-    return render(request, "phones.html", vars)
+    for mb in (m.NetworkMembership.objects
+        .filter(network_id=nw, valid_until=None)
+        .select_related("user")
+        .select_related("user__florealuser")):
+        if mb.is_staff:
+            cat = 'Administrateurs'
+        elif mb.is_producer:
+            cat = 'Producteurs'
+        elif mb.is_regulator:
+            cat = 'Régulateurs'
+        elif mb.is_buyer:
+            cat = 'Acheteurs'
+        elif mb.is_candidate:
+            cat = 'Candidats'
+        else:
+            continue
+        members[cat].append(mb.user)
+    return render(request, "directory.html", vars)
 
 
 @login_required()

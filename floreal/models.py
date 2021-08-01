@@ -117,11 +117,14 @@ class FlorealUser(IdentifiedBySlug, Mapped):
     @property
     def uri(self):
         if not hasattr(self, "_uri"):
-            n = "".join(k for k in self.phone if k.isdigit())
-            if len(n) == 10:
-                self._uri = "tel:+33" + n[1:]
-            else:
+            if self.phone is None:
                 self._uri = None
+            else:
+                n = "".join(k for k in self.phone if k.isdigit())
+                if len(n) == 10:
+                    self._uri = "tel:+33" + n[1:]
+                else:
+                    self._uri = None
         return self._uri
 
 
@@ -342,7 +345,8 @@ class Product(models.Model):
             "name",
         )
         constraints = [
-            models.UniqueConstraint(fields=['delivery', 'name'], name='unique_product'),
+            # There can be several products named the same, e.g. in different quantities.
+            # models.UniqueConstraint(fields=['delivery', 'name'], name='unique_product'),
         ]
 
     def __str__(self):
