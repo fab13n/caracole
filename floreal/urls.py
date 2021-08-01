@@ -113,7 +113,7 @@ urlpatterns = [
     path('dv-<id:delivery>/delete', views.delete_archived_delivery, name='delete_archived_delivery'),
     path('nw-<id:network>/delete-empty-archives', views.delete_all_archived_deliveries, name='delete_all_archived_deliveries'),
 
-    path('nw-<id:network>/emails', views.view_emails, name='emails_network'),
+    # path('nw-<id:network>/emails', views.view_emails, name='emails_network'),
     path('nw-<id:network>/emails.pdf', views.view_emails_pdf, name='emails_network_pdf'),
 
     path('nw-<id:network>/directory', views.view_directory, name='directory_network'),
