@@ -5,6 +5,22 @@
 {% block head %}
 
 <style type="text/css">
+    .top-links {
+        font-size: 12px;
+        background-color: lightgrey;
+        position: fixed;
+        top: 0px;
+        right: 0px;
+        line-height: 18px;
+        z-index: 100;
+    }
+    .top-links li::before {
+        top: 6px;
+    }
+    .top-links li {
+        margin-top: 0px;
+        margin-bottom: 0px;
+    }
 </style>
 
 <script type='text/javascript'>
@@ -83,7 +99,18 @@
 {% endblock %}
 
 {% block content %}
-<section     class="container margetopXl margebot">
+{% if networks|length > 1 %}
+<div class="top-links">
+    Aller à :
+    <ul>
+        {% for nw in networks %}
+        <li><a href="#nw-{{nw.id}}">{{nw.name}}</a></li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<section class="container margetopXl margebot">
     <h1>Administration</h1>
 
     {% if user.is_staff %}
