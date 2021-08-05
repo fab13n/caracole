@@ -75,7 +75,7 @@ function reflect_producer_selection() {
     $(".when-no-producer").hide();
     $(".when-some-producer").show();
     const q = $("#edit-producer");
-    const url = q.attr("href").split("?")[0] + "?selected=" + prod_id;
+    const url = q.attr("href").replace("9999", prod_id);
     q.attr("href", url);
   }
 }
