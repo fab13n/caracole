@@ -2,6 +2,7 @@ import re
 from typing import Tuple
 
 from openlocationcode import openlocationcode as olc
+from unidecode import unidecode
 
 from .models import Ville
 
@@ -19,7 +20,7 @@ def to_code_area(plus_code: str) -> olc.CodeArea:
     short, city_name = plus_code.split(maxsplit=1)
     if olc.isValid(plus_code):
         raise ValueError('Code invalide')
-    simple_name = NON_LETTER.sub(" ", city_name.lower())
+    simple_name = NON_LETTER.sub(" ", unidecode(city_name.lower()))
     try:
         city: Ville = Ville.objects.get(nom_simple__contains=simple_name)
     except Ville.DoesNotExist:
