@@ -21,6 +21,12 @@
         margin-top: 0px;
         margin-bottom: 0px;
     }
+    .active-deliveries td {
+        padding: 1px;
+    }
+    .active-deliveries select {
+        margin: 1px;
+    }
 </style>
 
 <script type='text/javascript'>
@@ -228,9 +234,11 @@
                 <li><a href="{% url 'archived_deliveries' network=nw.id %}">Voir les commandes <strong>archivées</strong></a>.</li>
             </ul>
 
+            <table class="active-deliveries">
             {% for dv in nw.deliveries %}
-            <div class="commande-cours">
-                <p><strong>
+            <tr>
+                <td>
+                  <strong>
                     {% if dv.freeze_date %}{# if in_the_past and there's a distri date, display the latter. #}
                     <span title="Commandes jusqu'au {{dv.freeze_date|date:'SHORT_DATE_FORMAT'}}"
                         data-toggle="tooltip">
@@ -246,31 +254,38 @@
                     {% if dv.producer %}
                     - {{dv.producer.first_name}} {{dv.producer.last_name}}
                     {% endif %}
-                </strong>
-                <select 
-                    id="dv-{{dv.id}}-state" 
-                    name="dv-{{dv.id}}-state" 
-                    class="button admin" 
-                    onchange="on_state_change({{dv.id}}, event.target.value)">
-                    {% for key, name in Delivery.STATE_CHOICES.items %}
-                    <option value="{{key}}" {% if key == dv.state %}selected="selected"{% endif %}>{{name}}</option>
-                    {% endfor %}
-                </select>
-
-                </p>
-                <div>
-                    <a class="button modif" href="{% url 'edit_delivery_products' delivery=dv.id %}">Modifier la commande</a>
-                    <a class="button modif" href="{% url 'edit_delivery_purchases' delivery=dv.id %}">Modifier les achats</a>
-                    <a class="button modif" onclick="rename_delivery({{dv.id}}, '{{dv.name|escapejs}}')">Renommer</a>
-                </div>
-                <div>
-                    <a class="button admin" href="{% url 'view_delivery_purchases_html' delivery=dv.id %}">Voir en ligne</a>
-                    <a class="button admin" href="{% url 'view_delivery_purchases_xlsx' delivery=dv.id %}">MS-Excel</a>
-                    <a class="button admin" href="{% url 'view_delivery_purchases_latex' delivery=dv.id %}">Tableau PDF</a>
-                    <a class="button admin" href="{% url 'view_delivery_purchases_cards' delivery=dv.id %}">Cartes PDF</a>
-                </div>
-            </div>
+                  </strong>
+                </td>
+                <td>
+                    <select 
+                        id="dv-{{dv.id}}-state" 
+                        name="dv-{{dv.id}}-state" 
+                        class="button admin" 
+                        onchange="on_state_change({{dv.id}}, event.target.value)">
+                        {% for key, name in Delivery.STATE_CHOICES.items %}
+                        <option value="{{key}}" {% if key == dv.state %}selected="selected"{% endif %}>{{name}}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select class="button admin">
+                        <option>Modifier...</option>
+                        <option>La commande</option>
+                        <option>Les achats</option>
+                        <option>Le nom</option>
+                    </select>
+                </td>
+                <td>
+                    <select class="button admin">
+                        <option>Voir...</option>
+                        <option>En ligne</option>
+                        <option>En tableau à imprimer</option>
+                        <option>En cartes à imprimer</option>
+                    </select>
+                </td>
+                </tr>
             {% endfor %}
+            </table>
             <!-- end commande-->
 
         </div>
