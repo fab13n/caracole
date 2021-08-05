@@ -8,6 +8,7 @@ GDAL==2.4.0
 html2text
 ipython
 Markdown
+openlocationcode
 psycopg2-binary
 pytz
 six

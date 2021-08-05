@@ -21,33 +21,50 @@
   border: 1px solid black;
 }
 .coord {
-  width: 150px !important;
+  width: 250px !important;
   margin-left: 10px;
+}
+table.image-and-position td {
+  vertical-align: top;
 }
 </style>
 {% endblock %}
 
 {% block custom %}
-<h2>Image liée à la description</h2>
-<div>
-  <img id="image" src="{% if obj.image %}{{obj.image.url}}{% else %}/media/none.png{% endif %}">
-</div>
-<div>
-  <input type="file" accept="image/*" name="image" onchange="on_image_change(event)"/>
-</div>
+<table class="image-and-position">
+  <tr>
+    <td>
+      <h2>Image</h2>
+      <div>
+        <img id="image" src="{% if obj.image %}{{obj.image.url}}{% else %}/media/none.png{% endif %}">
+      </div>
+      <div>
+        <input type="file" accept="image/*" name="image" onchange="on_image_change(event)"/>
+      </div>      
+    </td>
+    <td>
+      <h2>Position géographique</h2>
+      <div>
+        <p>
+          Entrez la position au format Google : la latitude suivie de la longitude, en degrées, séparées par une virgule,
+          en utilisant le point pour séparer la partie entière de la partie décimale, par exemple «&nbsp;<tt>43.5, 1.5</tt>&nbsp;».
+          Les <em>plus-code</em> Google sont également acceptés, par exemple «&nbsp;<tt>8FM3GFWR+9Q</tt>&nbsp;» ou encore 
+          «&nbsp;<tt>GFWR+9Q Ramonville-Saint-Agne</tt>&nbsp;».
+        </p>
+        <label for="positioon">Position :</label><input type="text" name="position" id="position" step="any" class="coord"
+        {% if obj.latitude %}value="{{obj.latitude}}, {{obj.longitude}}"{% endif %}/>
+      </div>      
+    </td>
+  </tr>
+</table>
 
-<h2>Position géographique</h2>
-<div>
-  <label for="latitude">Latitude :</label><input type="number" name="latitude" id="latitude" step="any" class="coord" min="-90" max="90"
-  {% if obj.latitude %}value="{{obj.latitude}}"{% endif %}/>
-  <label for="longitude">Longitude :</label><input type="number" name="longitude" id="longitude" step="any" class="coord" min="-180" max="180"
-  {% if obj.longitude %}value="{{obj.longitude}}"{% endif %}/>
-</div>
 
 {% if has_short_description %}
-<h2>Description succinte (200 caractères max, pas de mise en page)</h2>
+<h2>Description succinte</h2> 
+<p>200 caractères max, pas de mise en page)</p>
 <textarea name="short_description" maxlength="200">{{obj.short_description|default:""}}</textarea>
 {% endif %}
 
-<h2>Description textuelle</h2>
+<h2>Description longue</h2>
+<p>Ici la mise en forme est autorisée, mais à utiliser avec parcimonie. Eviter les images, utiliser plutôt le champ image au-dessus.</p>
 {% endblock %}

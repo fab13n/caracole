@@ -59,20 +59,20 @@ def users_get(request):
             "last_name",
             "email",
             "is_staff",
-            "florealuser__description",
-            "florealuser__image_description",
-            "florealuser__latitude",
-            "florealuser__longitude",
-            "florealuser__phone",
+            # "florealuser__description",
+            # "florealuser__image_description",
+            # "florealuser__latitude",
+            # "florealuser__longitude",
+            # "florealuser__phone",
         )
     }
 
-    # Convert image URLs
-    for u in user_records.values():
-        url = u["florealuser__image_description"]
-        u["florealuser__image_description"] = (
-            {"url": settings.MEDIA_URL + url} if url else None
-        )
+    # # Convert image URLs
+    # for u in user_records.values():
+    #     url = u["florealuser__image_description"]
+    #     u["florealuser__image_description"] = (
+    #         {"url": settings.MEDIA_URL + url} if url else None
+    #     )
 
     network_records = []
 
@@ -131,25 +131,25 @@ def user_update(request):
         user.is_staff = data["is_staff"]
         user.save()
 
-    fu = user.florealuser
-    if fu is None:
-        fu = m.FlorealUser.objects.create(user=user)
-        user.refresh_from_db()
+    # fu = user.florealuser
+    # if fu is None:
+    #     fu = m.FlorealUser.objects.create(user=user)
+    #     user.refresh_from_db()
 
-    fu.latitude = float(data["florealuser__latitude"])
-    fu.longitude = float(data["florealuser__longitude"])
-    fu.phone = data["florealuser__phone"]
-    fu.description = data["florealuser__description"]
+    # fu.latitude = float(data["florealuser__latitude"])
+    # fu.longitude = float(data["florealuser__longitude"])
+    # fu.phone = data["florealuser__phone"]
+    # fu.description = data["florealuser__description"]
 
-    # handle image_description
-    img = data.get("florealuser__image_description")
-    if img is not None:
-        img = data["florealuser__image_description"]
-        content = img["content"].encode("latin1")
-        reader = io.BytesIO(content)
-        fu.image_description.save(img["name"], reader)
+    # # handle image_description
+    # img = data.get("florealuser__image_description")
+    # if img is not None:
+    #     img = data["florealuser__image_description"]
+    #     content = img["content"].encode("latin1")
+    #     reader = io.BytesIO(content)
+    #     fu.image_description.save(img["name"], reader)
 
-    fu.save()
+    # fu.save()
 
     for nw_id in network_ids:
 

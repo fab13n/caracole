@@ -1,4 +1,4 @@
-(c) 2014-2021 Fabien Fleutot.
+(c) 2021 Fabien Fleutot.
 
 MIT PUBLIC LICENSE
 

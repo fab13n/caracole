@@ -79,9 +79,7 @@
         <td>Admin réseau:</td>
         <td>${oui_non("staff-" + nw.id)}</td>
       </tr>
-      <tr    result.florealuser__latitude = $("florealuser__latitude").val();
-    result.florealuser__longitude = $("florealuser__longitude").val();
->
+      <tr>
         <td>Producteur:</td>
         <td>${oui_non("producer-" + nw.id)}</td>
       </tr>
@@ -145,18 +143,14 @@
    * according to JSON DB. */
   function render_user(u) {
     console.log("Rendering user ", u);
+    const edit_description_url = "{% url 'edit_user_description' user=9999 %}".replace(9999, u.id);
+    $("#edit-description").attr("href", edit_description_url);
     Object.values(NETWORKS).forEach(nw =>
       ["buyer", "staff", "producer", "regulator"].forEach(field =>
         $(`[name=${field}-${nw.id}]`).bootstrapToggle(u[field].includes(nw.id) ? "on" : "off")
       )
     );
     $(`[name=is_staff]`).bootstrapToggle(u.is_staff ? "on" : "off");
-    tinyMCE.get("description").setContent(u.florealuser__description || "");
-    const img_url = u['florealuser__image_description']?.url || "/media/none.png";
-    $("#image").attr("src", img_url);
-    $("[name=florealuser__phone]").val(u.florealuser__phone);
-    $("[name=florealuser__latitude]").val(u.florealuser__latitude);
-    $("[name=florealuser__longitude]").val(u.florealuser__longitude);
     $("#save").prop("disabled", true); // will be re-enabled upon modification
   }
 
@@ -206,11 +200,6 @@
     const result = {
       user: CURRENT_USER.id,
       networks: Object.keys(NETWORKS).map(Number),
-      florealuser__description: tinyMCE.get("description").getContent(),
-      florealuser__image_description: CURRENT_USER.florealuser__image_description,
-      florealuser__latitude: Number($("[name=florealuser__latitude]").val()),
-      florealuser__longitude: Number($("[name=florealuser__longitude]").val()),
-      florealuser__phone: $("[name=florealuser__longitude]").val(),
     };
 
     ['buyer', 'staff', 'producer', 'regulator'].forEach(field => {
@@ -229,44 +218,9 @@
     return result;
   }
 
-  /* File readers are asynchronous, but don't support modern async/await format. */
-  get_image_name_and_content = (file) => new Promise((resolve, reject) => {
-    if(! file) { return [null, null]; }
-    const reader = new FileReader();
-    reader.onload = () => {
-      resolve([file.name, reader.result]);
-    };
-    reader.onerror = reject;
-    reader.readAsBinaryString(file);
-  })
-  
-  async function on_image_change(event) {
-    const file = event.target.files[0];
-    const [name, content] = await get_image_name_and_content(file);
-    const img = $("#image")[0]
-    if(null === content) { return; }
-    img.src = URL.createObjectURL(file);
-    CURRENT_USER["florealuser__image_description"] = {name, content};
-  }
-
   $(document).ready(async () => {
     const url = new URL(window.location);
     const selected = url.searchParams.get("selected");
-    tinymce.init({
-      plugins: 'link',
-      selector: 'textarea',
-      content_css: "/static/floreal.css",
-      language: 'fr_FR',
-      init_instance_callback: (editor) => {
-        editor.on('keydown', (event) => {
-          if (!MODIFIED_USER && CURRENT_USER) {
-            console.log(`user ${CURRENT_USER.id} is now modified`);
-            MODIFIED_USER = true;
-            $("#save").prop("disabled", false);
-          }
-        })
-      }
-    });
     await load_users();
     if(selected) {
       setTimeout(() => {
@@ -299,38 +253,7 @@
     </select>
   </p>
 
-  <h3>Description de l'utilisateur / producteur</h3>
-  <div>
-    <label for="latitude">Téléphone : </label>
-    <input type="text" name="florealuser__phone" id="phone" class="coord user-modifier"/>
-  </div>
-  <div>
-    Position géographique :
-    <label for="latitude">Latitude = </label>
-    <input type="number" name="florealuser__latitude" id="latitude" step="any" class="coord user-modifier" min="-90" max="90"/>
-    <label for="longitude">Longitude = </label>
-    <input type="number" name="florealuser__longitude" id="longitude" step="any" class="coord user-modifier" min="-180" max="180"/>
-  </div>  
-
-
-  <div>
-    Photo :
-    <label for="image-input">
-    {# TODO pass image.url from python, use it if applicable #}
-    <img id="image" src=""/>
-    </label>
-  </div>
-  <div>
-    <input 
-      type="file" 
-      accept="image/*" 
-      class="user-modifier"
-      name="image" 
-      id="image-input" 
-      onchange="on_image_change(event)"/>
-  </div>
-
-  <textarea id="description"></textarea>
+  <a href="#" id="edit-description">Éditer la Description de l'utilisateur / producteur</a>
 
   <table id="user-form"></table>
 </section>

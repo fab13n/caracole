@@ -395,6 +395,9 @@ class Purchase(models.Model):
     user = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.DecimalField(decimal_places=3, max_digits=6)
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+
 
     @property
     def price(self):

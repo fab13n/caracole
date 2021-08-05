@@ -7,14 +7,17 @@ from collections import defaultdict
 from django.db.models.query_utils import select_related_descend
 from django.http.response import JsonResponse
 
+from django.conf import settings
 from django.shortcuts import render, redirect, reverse
 from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.utils import html
 from django.template.context_processors import csrf, request
 from django.db.models import Count, Q
+from openlocationcode import openlocationcode
 
-from caracole import settings
+from villes import plus_code
+
 from .. import models as m
 from .getters import get_network, get_delivery
 from .decorators import nw_admin_required, regulator_required
@@ -590,7 +593,7 @@ def view_directory(request, network):
         "Candidats": []
     }
     vars = {"user": user, "nw": nw, "members": members} 
-    if not user.is_staff and not m.NetworkMembership.objects.filter(network_id=nw.id, user_id=user.id, valid_until=None).exists():
+    if not user.is_staff and not m.NetworkMembership.objects.filter(network_id=nw.id, user_id=user.id, valid_until=None, is_staff=True).exists():
         return HttpResponseForbidden("Réservé aux admins")
     for mb in (m.NetworkMembership.objects
         .filter(network_id=nw, valid_until=None)
@@ -736,6 +739,10 @@ def unset_message(request, id):
     target = request.GET.get("next", "index")
     return redirect(target)
 
+# Used to decode short Google "plus codes"
+CENTRAL_LATITUDE = 43.5
+CENTRAL_LONGITUDE = 1.5
+POSITION_REGEXP = re.compile(r"([+-]?\d+(?:\.\d*)?),([+-]?\d+(?:\.\d*)?)")
 
 def _description_and_image(request, obj, title):
     if request.method == "POST":
@@ -744,10 +751,14 @@ def _description_and_image(request, obj, title):
         if img:
             obj.image_description = img
 
-        if (lat := request.POST.get('latitude')) and \
-           (lon := request.POST.get('longitude')):
-           obj.latitude = float(lat)
-           obj.longitude = float(lon)
+        if (pos := request.POST.get('position')):
+            try:
+                (obj.latitude, obj.longitude) = plus_code.to_lat_lon(pos)
+            except ValueError:
+                if (match := POSITION_REGEXP.match(pos.replace(' ', ''))):
+                    (obj.latitude, obj.longitude) = (float(x) for x in match.groups())
+                else:
+                    return HttpResponseBadRequest("Position invalide")
 
         if (sdescr := request.POST.get('short_description')) is not None:
             obj.short_description = sdescr
