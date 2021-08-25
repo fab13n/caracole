@@ -17,6 +17,7 @@ from django.db.models import Count, Q
 from openlocationcode import openlocationcode
 
 from villes import plus_code
+from home.models import HomePage
 
 from .. import models as m
 from .getters import get_network, get_delivery
@@ -51,9 +52,10 @@ from . import delivery_description as dd
 
 
 def index(request):
+    accueil = HomePage.objects.all().first().texte_accueil
     if request.user.is_anonymous:
         my_networks = list()
-        vars = {"networks": m.Network.objects.exclude(visible=False)}
+        vars = {"networks": m.Network.objects.exclude(visible=False), "accueil": accueil}
         vars.update(csrf(request))
         return render(request, "index_unlogged.html", vars)
     else:
@@ -72,6 +74,7 @@ def index(request):
 
         vars = {
             "user": request.user,
+            "accueil": accueil,
             "memberships": mbships,
             "unsubscribed": m.Network.objects \
                 .exclude(members=request.user) \
@@ -237,10 +240,12 @@ def user(request):
     return render(request, "user.html", vars)
 
 
-@login_required()
 def reseau(request, network):
     nw = get_network(network)
-    mb = m.NetworkMembership.objects.filter(user=request.user, network=nw, valid_until=None).first()
+    if request.user.is_anonymous:
+        mb = None
+    else:
+        mb = m.NetworkMembership.objects.filter(user=request.user, network=nw, valid_until=None).first()
     status = (
         "non-member"
         if mb is None

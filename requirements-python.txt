@@ -9,9 +9,10 @@ html2text
 ipython
 Markdown
 openlocationcode
+Pillow
 psycopg2-binary
 pytz
 six
 uwsgi
+unidecode
 XlsxWriter
-Pillow

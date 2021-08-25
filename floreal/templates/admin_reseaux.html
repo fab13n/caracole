@@ -120,6 +120,7 @@
             <li><a href="{% url 'users_html'%}">Gérer les utilisateurs</a></li>
             {% if user.is_staff %}
             <li><a href="{% url 'admin:index' %}">Accès à la base de donnée</a></li>
+            <li><a href="{% url 'wagtailadmin_home' %}">Gestion du contenu rédactionnel</a>
             {% if user.is_impersonate %}
             <li>Vous usurpez actuellement l'identité de {{user.first_name}} {{user.last_name}}</a></li>
             {% else %}
