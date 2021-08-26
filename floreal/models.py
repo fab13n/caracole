@@ -132,6 +132,9 @@ class NetworkSubgroup(IdentifiedBySlug):
     network = models.ForeignKey("Network", on_delete=models.CASCADE)
     name = models.CharField(max_length=32)
 
+    def __str__(self) -> str:
+        return f"{self.network.name} / {self.name}"
+
     # def _filtered_members(self, date=None, **kwargs):
     #     date |= Now()
     #     ids = (

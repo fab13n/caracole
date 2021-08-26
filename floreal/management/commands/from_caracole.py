@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from floreal import models as m
 import sys
 from markdown import markdown
-
+from django.db import IntegrityError, DataError
 
 def get_dump(filename):
     print(f" * reading content of {filename}")
@@ -54,8 +54,12 @@ def parse_structure(dump):
         try:
             new_uid = dump.user[p.user].new_id
             m.FlorealUser.objects.create(user_id=new_uid, phone=p.phone)
-        except KeyError:
-            pass
+        except (KeyError, AttributeError):
+            pass  # uid does not exist
+        except IntegrityError:
+            pass  # FlorealUser already exists
+        except DataError:
+            print(f"   WARNING: invalid phone number for {dump.user[p.user].email}: {repr(p.phone)}")
     print(" * Added phone numbers")
 
     for old_nwid, nw in dump.network.items():
@@ -109,7 +113,7 @@ def parse_records(dump):
         dv_db, _ = m.Delivery.objects.get_or_create(
             name=dv.name,
             network_id=dump.network[dv.network].new_id,
-            defaults={"state": CONVERT_STATE[dv.state], "description": markdown(dv.description)},
+            defaults={"state": CONVERT_STATE[dv.state], "description": markdown(dv.description or "")},
         )
         dv.new_id = dv_db.id
     print(" * products")

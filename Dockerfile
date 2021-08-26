@@ -22,4 +22,4 @@ RUN apt-get update &&\
 RUN pip install -U pip
 COPY requirements-python.txt /root/
 RUN pip install -r /root/requirements-python.txt
-WORKDIR /home/caracole/
+WORKDIR /home/solalim/

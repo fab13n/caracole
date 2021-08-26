@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import os
-os.environ['DJANGO_SETTINGS_MODULE'] = 'caracole.settings'
+os.environ['DJANGO_SETTINGS_MODULE'] = 'solalim.settings'
 import django
 django.setup()
 

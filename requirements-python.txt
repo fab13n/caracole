@@ -15,4 +15,5 @@ pytz
 six
 uwsgi
 unidecode
+wagtail
 XlsxWriter

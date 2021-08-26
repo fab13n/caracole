@@ -3,6 +3,8 @@ import json
 from types import SimpleNamespace
 from floreal import models as m
 import sys
+from markdown import markdown
+from django.db import IntegrityError, DataError
 
 
 def get_dump(filename):
@@ -57,8 +59,12 @@ def parse_u(dump):
         try:
             new_uid = dump.user[p.user].new_id
             m.FlorealUser.objects.create(user_id=new_uid, phone=p.phone)
-        except AttributeError:
-            pass
+        except (KeyError, AttributeError):
+            pass  # uid does not exist
+        except IntegrityError:
+            pass  # FlorealUser already exists
+        except DataError:
+            print(f"   WARNING: invalid phone number for {dump.user[p.user].email}: {repr(p.phone)}")
     print(" * Added phone numbers")
 
 

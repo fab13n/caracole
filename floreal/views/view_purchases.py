@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 import json
 from typing import List, Tuple
 
-from caracole import settings
+from django.conf import settings
 from .decorators import nw_admin_required
 from .getters import get_delivery, get_network, get_subgroup
 from . import latex

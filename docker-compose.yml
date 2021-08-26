@@ -14,18 +14,23 @@ services:
       - ${VOLUMES}/postgresql:/pgdata
 
   django_prod: &django_prod
-    image: caracole
+    image: solalim
     build: .
-    command: uwsgi --ini /home/caracole/uwsgi.ini
+    command: uwsgi --ini /home/solalim/uwsgi.ini
     restart: unless-stopped
     volumes:
-      - ./manage.py:/home/caracole/manage.py
-      - ./uwsgi.ini:/home/caracole/uwsgi.ini
-      - ./caracole:/home/caracole/caracole
-      - ./floreal:/home/caracole/floreal
-      - ${VOLUMES}/database.sqlite3:/home/caracole/database.sqlite3
-      - ${VOLUMES}/logs:/home/caracole/logs
-      - ${VOLUMES}/media:/home/caracole/media
+      - ./manage.py:/home/solalim/manage.py
+      - ./uwsgi.ini:/home/solalim/uwsgi.ini
+      - ./solalim:/home/solalim/solalim
+      - ./floreal:/home/solalim/floreal
+      - ./pages:/home/solalim/pages
+      - ./villes:/home/solalim/villes
+      - ./search:/home/solalim/search
+      - ./customize_wagtail:/home/solalim/customize_wagtail
+
+      - ${VOLUMES}/database.sqlite3:/home/solalim/database.sqlite3
+      - ${VOLUMES}/logs:/home/solalim/logs
+      - ${VOLUMES}/media:/home/solalim/media
     environment:
       - SUPERUSER_PASSWORD
       - SUPERUSER_USERNAME
@@ -35,7 +40,7 @@ services:
       - POSTGRES_DBNAME
       - POSTGRES_HOST
       - POSTGRES_PORT
-      - DJANGO_SETTINGS_MODULE=caracole.settings
+      - DJANGO_SETTINGS_MODULE=solalim.settings
       - DJANGO_SECRET_KEY
       - PUBLIC_HTTP_PORT
       - PUBLIC_HTTPS_PORT
@@ -53,12 +58,16 @@ services:
     command: ./manage.py runserver 0.0.0.0:8000
     restart: "no"
     volumes:
-      - ./manage.py:/home/caracole/manage.py
-      - ./uwsgi.ini:/home/caracole/uwsgi.ini
-      - ./caracole:/home/caracole/caracole
-      - ./floreal:/home/caracole/floreal
-      - ${VOLUMES}/database.sqlite3:/home/caracole/database.sqlite3
-      - ${VOLUMES}/media:/home/caracole/media
+      - ./manage.py:/home/solalim/manage.py
+      - ./uwsgi.ini:/home/solalim/uwsgi.ini
+      - ./solalim:/home/solalim/solalim
+      - ./floreal:/home/solalim/floreal
+      - ./pages:/home/solalim/pages
+      - ./villes:/home/solalim/villes
+      - ./search:/home/solalim/search
+      - ./customize_wagtail:/home/solalim/customize_wagtail
+      - ${VOLUMES}/database.sqlite3:/home/solalim/database.sqlite3
+      - ${VOLUMES}/media:/home/solalim/media
     environment:
       - SUPERUSER_PASSWORD
       - SUPERUSER_USERNAME
@@ -68,7 +77,7 @@ services:
       - POSTGRES_DBNAME
       - POSTGRES_HOST
       - POSTGRES_PORT
-      - DJANGO_SETTINGS_MODULE=caracole.settings
+      - DJANGO_SETTINGS_MODULE=solalim.settings
       - DJANGO_SECRET_KEY
       - PUBLIC_HTTP_PORT
       - PUBLIC_HTTPS_PORT
@@ -79,17 +88,21 @@ services:
       - SMTP_PASSWORD
       - DEBUG=True
     ports:
-      - 8765:8000
+      - 8000:8000
 
   init:
     <<: *django_prod
     volumes:
-      - ./manage.py:/home/caracole/manage.py
-      - ./caracole:/home/caracole/caracole
-      - ./floreal:/home/caracole/floreal
-      - ${VOLUMES}/static:/home/caracole/static
-      - ${VOLUMES}/database.sqlite3:/home/caracole/database.sqlite3
-    command: ./caracole/initialize.sh
+      - ./manage.py:/home/solalim/manage.py
+      - ./solalim:/home/solalim/solalim
+      - ./floreal:/home/solalim/floreal
+      - ./pages:/home/solalim/pages
+      - ./villes:/home/solalim/villes
+      - ./search:/home/solalim/search
+      - ./customize_wagtail:/home/solalim/customize_wagtail
+      - ${VOLUMES}/static:/home/solalim/static
+      - ${VOLUMES}/database.sqlite3:/home/solalim/database.sqlite3
+    command: ./solalim/initialize.sh
 
   prod:
     image: nginx
@@ -101,8 +114,8 @@ services:
       - ${VOLUMES}/${PUBLIC_PROTO}.conf:/etc/nginx/conf.d/default.conf
       # - ${VOLUMES}/certbot/conf:/etc/letsencrypt
       - /etc/letsencrypt:/etc/letsencrypt
-      - ${VOLUMES}/static:/var/www/caracole/static
-      - ${VOLUMES}/media:/var/www/caracole/media
+      - ${VOLUMES}/static:/var/www/solalim/static
+      - ${VOLUMES}/media:/var/www/solalim/media
       - ${VOLUMES}/certbot/www:/var/www/certbot
       - ${VOLUMES}/maintenance:/var/www/maintenance
     depends_on:

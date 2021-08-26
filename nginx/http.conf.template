@@ -15,11 +15,11 @@ server {
   }
 
   location /static/ {
-    alias /var/www/caracole/static/;
+    alias /var/www/solalim/static/;
   }
 
   location /media/ {
-    alias /var/www/caracole/media/;
+    alias /var/www/solalim/media/;
   }
 
   error_page 503 /maintenance.html;

@@ -17,7 +17,7 @@ from django.db.models import Count, Q
 from openlocationcode import openlocationcode
 
 from villes import plus_code
-from home.models import HomePage
+from pages.models import TexteDAccueil
 
 from .. import models as m
 from .getters import get_network, get_delivery
@@ -52,7 +52,10 @@ from . import delivery_description as dd
 
 
 def index(request):
-    accueil = HomePage.objects.all().first().texte_accueil
+    try:
+        accueil = TexteDAccueil.objects.all().first().texte_accueil
+    except AttributeError:
+        accueil = "Penser à renseigner le texte d'accueil :-)"
     if request.user.is_anonymous:
         my_networks = list()
         vars = {"networks": m.Network.objects.exclude(visible=False), "accueil": accueil}
@@ -121,7 +124,9 @@ def admin(request):
             "candidates": [],
             "deliveries": [],
             "active_deliveries": 0,
-            "is_network_staff": True  # will change for producers
+            "is_network_staff": True,  # will change for producers
+            "visible": nw.visible,
+            "auto_validate": nw.auto_validate,
         }
 
     for cd in candidacies:

@@ -7,7 +7,7 @@ from django.http import HttpResponseForbidden
 from django.core.mail import send_mail
 from django.db.models.functions import Now
 
-from caracole import settings
+from django.conf import settings
 from .. import models as m
 from .getters import get_network, get_user
 from .decorators import nw_admin_required

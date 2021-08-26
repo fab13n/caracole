@@ -6,22 +6,18 @@ from numbers import Number
 from floreal import models as m
 
 
-def model_getter(cls, field_names=None):
+def model_getter(cls):
     def f(x):
         if isinstance(x, str) and x.isdigit() or isinstance(x, Number):
             return cls.objects.get(pk=x)
-        elif isinstance(x, cls):
-            return x
-        elif field_names and isinstance(x, str):
-            field_vals = x.split(":")
-            kwargs = { k+"__iexact": v.replace('+', ' ') for k, v in zip(field_names, field_vals)}
-            return cls.objects.get(**kwargs)
+        elif isinstance(cls, m.IdentifiedBySlug):
+            return cls.objects.get(slug__iexact=x)
         else:
             return None
     return f
 
 
-get_network = model_getter(m.Network, ['name'])
-get_delivery = model_getter(m.Delivery, ['network__name', 'name'])
-get_subgroup = model_getter(m.NetworkSubgroup, ['network__name', 'name'])
-get_user = model_getter(m.User, ['email'])
+get_network = model_getter(m.Network)
+get_delivery = model_getter(m.Delivery)
+get_subgroup = model_getter(m.NetworkSubgroup)
+get_user = model_getter(m.User)

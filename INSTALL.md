@@ -18,7 +18,7 @@ complètement automatisée, ce document décrit son état actuel.
    
    
 2. éventuellement faire des réglages avancés dans
-   `caracole/settings.py`.
+   `solalim/settings.py`.
    
 3. lancer le script d'initialisation. Il initialisera la base de
    donnée, la base de fichiers statiques, créera les fichiers de
@@ -42,7 +42,7 @@ complètement automatisée, ce document décrit son état actuel.
    probablement, au moins dans un premier temps.
 
 7. une fois que tout fonctionne, passer `DEBUG = False` dans
-   `caracole/seetings.py`.
+   `solalim/seetings.py`.
 
 
 HTTPS
@@ -77,7 +77,7 @@ Sans Docker
 
 ```
 edit .env                              # Configure setup
-caracole/env2bash .env > .env.sh       # Convert to bash
+solalim/env2bash .env > .env.sh       # Convert to bash
 . .env.sh                              # Set variables
 python3 -m virtualenv venv             # Create virtualenv
 . venv/bin/activate                    # Enter virtualenv

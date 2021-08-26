@@ -25,7 +25,7 @@ DEBUG = E.get("DEBUG", "false").lower() == 'true'
 ALLOWED_HOSTS = ['localhost', E['PUBLIC_HOST']]
 
 # For debug-toolbar
-INTERNAL_IPS = ['127.0.0.1'] 
+INTERNAL_IPS = ['127.0.0.1', '172.19.0.1'] 
 
 EMAIL_USE_TLS = True
 EMAIL_HOST = 'SMTP_HOST'
@@ -55,7 +55,7 @@ if not os.path.isdir(DELIVERY_ARCHIVE_DIR):
 INSTALLED_APPS = (
     'floreal',  # Before auth, so that app's password management templates take precedence
 
-    'home',
+    'pages',
     'search',
 
     'customize_wagtail',
@@ -122,7 +122,7 @@ TEMPLATES = [
 
 ROOT_URLCONF = 'floreal.urls'
 
-WSGI_APPLICATION = 'caracole.wsgi.application'
+WSGI_APPLICATION = 'solalim.wsgi.application'
 
 DATABASES = {
     "default": {

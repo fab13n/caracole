@@ -2,7 +2,7 @@ from django.db import models
 
 
 class Ville(models.Model):
-    id = models.SmallIntegerField(db_column="ville_id", primary_key=True)
+    id = models.IntegerField(db_column="ville_id", primary_key=True)
     departement = models.CharField(
         db_column="ville_departement", max_length=3, blank=True, null=True
     )
@@ -29,20 +29,20 @@ class Ville(models.Model):
         db_column="ville_commune", max_length=3, blank=True, null=True
     )
     code_commune = models.CharField(db_column="ville_code_commune", max_length=5)
-    arrondissement = models.SmallIntegerField(
+    arrondissement = models.IntegerField(
         db_column="ville_arrondissement", blank=True, null=True
     )
     canton = models.CharField(
         db_column="ville_canton", max_length=4, blank=True, null=True
     )
-    amdi = models.SmallIntegerField(db_column="ville_amdi", blank=True, null=True)
-    population_2010 = models.SmallIntegerField(
+    amdi = models.IntegerField(db_column="ville_amdi", blank=True, null=True)
+    population_2010 = models.IntegerField(
         db_column="ville_population_2010", blank=True, null=True
     )
-    population_1999 = models.SmallIntegerField(
+    population_1999 = models.IntegerField(
         db_column="ville_population_1999", blank=True, null=True
     )
-    population_2012 = models.SmallIntegerField(
+    population_2012 = models.IntegerField(
         db_column="ville_population_2012", blank=True, null=True
     )
     densite_2010 = models.IntegerField(
@@ -67,8 +67,8 @@ class Ville(models.Model):
     latitude_dms = models.CharField(
         db_column="ville_latitude_dms", max_length=8, blank=True, null=True
     )
-    zmin = models.SmallIntegerField(db_column="ville_zmin", blank=True, null=True)
-    zmax = models.SmallIntegerField(db_column="ville_zmax", blank=True, null=True)
+    zmin = models.IntegerField(db_column="ville_zmin", blank=True, null=True)
+    zmax = models.IntegerField(db_column="ville_zmax", blank=True, null=True)
 
     class Meta:
         db_table = "villes_france_free"

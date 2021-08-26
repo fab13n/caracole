@@ -175,7 +175,7 @@
                         data-on="Oui" 
                         data-off="Non"
                         onchange="on_visibility_change({{nw.id}}, event)"
-                        {% if nw.visible %}checked="checked"{% endif %}
+                        {% if nw.visible %}checked="checked"{%else%}data-invisible="1"{% endif %}
                     />
                   <span id="visibility-state-{{nw.id}}"></span>
                 </li>

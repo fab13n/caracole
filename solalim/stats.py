@@ -1,7 +1,7 @@
 import sys
 sys.path += ["."]
 import os
-os.environ['DJANGO_SETTINGS_MODULE']='caracole.settings'
+os.environ['DJANGO_SETTINGS_MODULE']='solalim.settings'
 import django
 django.setup()
 from floreal import models as m
