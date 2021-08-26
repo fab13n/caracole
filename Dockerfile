@@ -22,4 +22,8 @@ RUN apt-get update &&\
 RUN pip install -U pip
 COPY requirements-python.txt /root/
 RUN pip install -r /root/requirements-python.txt
+
+# Needs to be the same version as returned by libgdal-dev
+RUN pip install GDAL==$(gdal-config --version)
+
 WORKDIR /home/solalim/
