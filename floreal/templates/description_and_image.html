@@ -36,7 +36,7 @@ table.image-and-position td {
     <td>
       <h2>Image</h2>
       <div>
-        <img id="image" src="{% if obj.image %}{{obj.image.url}}{% else %}/media/none.png{% endif %}">
+        <img id="image" src="{% if obj.image_description %}{{obj.image_description.url}}{% else %}/media/none.png{% endif %}">
       </div>
       <div>
         <input type="file" accept="image/*" name="image" onchange="on_image_change(event)"/>

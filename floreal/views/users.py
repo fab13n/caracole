@@ -180,8 +180,9 @@ def user_update(request):
                 some_fields_true = True
 
         if some_fields_changed:
-            old_nm.valid_until = m.Now()
-            old_nm.save()
+            if old_nm is not None:
+                old_nm.valid_until = m.Now()
+                old_nm.save()
             if some_fields_true:
                 new_nm.save()
 
