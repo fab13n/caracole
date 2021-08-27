@@ -69,13 +69,13 @@
       <ul>
         {% block header_items %}
         <li class="current_page_item"><a href="{% url 'index' %}">Accueil</a></li>
-        <li><a href="{% url 'index' %}#réseaux">Les réseaux</a></li>
+        <!--<li><a href="{% url 'index' %}#réseaux">Les réseaux</a></li>-->
         <li><a href="{% url 'orders' %}">Commandes</a></li>
 	      {% endblock %}
 	
         {% if not user.is_anonymous %}
         <li><a href="{% url 'user' %}">Mon compte<span class="loggedin"> : {{user.first_name}} {{user.last_name}}</span></a></li>
-        {% if user.is_staff %}{# TODO also producer, subgroup admin etc. #}
+        {% if user.florealuser.has_some_admin_rights %}
         <!-- admin - à afficher pour les comptes admins connectés -->
         <li class="lienSupNav"><a href="{% url 'admin' %}">Administration</a></li>
         <!-- end admin -->

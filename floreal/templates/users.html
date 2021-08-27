@@ -143,7 +143,7 @@
    * according to JSON DB. */
   function render_user(u) {
     console.log("Rendering user ", u);
-    const edit_description_url = "{% url 'edit_user_description' user=9999 %}".replace(9999, u.id);
+    const edit_description_url = "{% url 'edit_user_description' user=9999 %}".replace(9999, u.id) + "?next={% url 'users_html' %}";
     $("#edit-description").attr("href", edit_description_url);
     Object.values(NETWORKS).forEach(nw =>
       ["buyer", "staff", "producer", "regulator"].forEach(field =>

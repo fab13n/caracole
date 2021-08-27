@@ -45,7 +45,9 @@ DELIVERY_ARCHIVE_DIR = os.path.join(BASE_DIR, "delivery_archive")
 
 # Superusers can impersonate other superusers
 IMPERSONATE = {
-    'ALLOW_SUPERUSER': True
+    'ALLOW_SUPERUSER': True,
+    'URI_EXCLUSIONS': [],
+
 }
 
 if not os.path.isdir(DELIVERY_ARCHIVE_DIR):

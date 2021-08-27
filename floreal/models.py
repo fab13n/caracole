@@ -12,6 +12,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from typing import List
 from floreal.francais import Plural, articulate, plural
+from functools import cached_property
 
 
 class IdentifiedBySlug(models.Model):
@@ -100,32 +101,32 @@ class FlorealUser(IdentifiedBySlug, Mapped):
     def slug_prefix(self):
         return slugify(f"{self.user.first_name} {self.user.last_name}")
 
-    @property
+    @cached_property
     def display_number(self):
         if self.phone is None:
             return None
-        if not hasattr(self, "_display_number"):
-            n = "".join(k for k in self.phone if k.isdigit())
-            if len(n) == 10:
-                self._display_number = " ".join(
-                    n[i : i + 2] for i in range(0, len(n), 2)
-                )
-            else:
-                self._display_number = self.phone
-        return self._display_number
-
-    @property
+        n = "".join(k for k in self.phone if k.isdigit())
+        if len(n) == 10:
+            return " ".join(
+                n[i : i + 2] for i in range(0, len(n), 2)
+            )
+        else:
+            return self.phone
+    
+    @cached_property
     def uri(self):
-        if not hasattr(self, "_uri"):
-            if self.phone is None:
-                self._uri = None
-            else:
-                n = "".join(k for k in self.phone if k.isdigit())
-                if len(n) == 10:
-                    self._uri = "tel:+33" + n[1:]
-                else:
-                    self._uri = None
-        return self._uri
+        if self.phone is None:
+            return None
+        n = "".join(k for k in self.phone if k.isdigit())
+        if len(n) == 10:
+            return "tel:+33" + n[1:]
+        else:
+            return None
+
+    @cached_property
+    def has_some_admin_rights(self):
+        u = self.user
+        return u.is_staff or NetworkMembership.objects.filter(user_id=u.id, valid_until=None, is_staff=True).exists()
 
 
 class NetworkSubgroup(IdentifiedBySlug):
