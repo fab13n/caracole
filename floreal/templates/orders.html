@@ -7,13 +7,10 @@
 
 {% block content %}
 <section class="container margetopXl margebot">
-    {% if general_messages %}
-    <h1>Message des administrateurs</h1>
     {% for m in general_messages %}
     {{m|safe}}
     {% endfor %}
-    {% endif %}
-
+    
     <h1>Commandes en cours</h1>
 
     <div class="container slim margetop">

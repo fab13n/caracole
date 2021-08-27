@@ -69,7 +69,6 @@
       <ul>
         {% block header_items %}
         <li class="current_page_item"><a href="{% url 'index' %}">Accueil</a></li>
-        <!--<li><a href="{% url 'index' %}#réseaux">Les réseaux</a></li>-->
         <li><a href="{% url 'orders' %}">Commandes</a></li>
 	      {% endblock %}
 	
@@ -81,6 +80,8 @@
         <!-- end admin -->
         {% endif %}
         {% endif %}
+
+        <!--<li><a href="">Lancez votre réseau !</a></li>-->
 
         {% if user.is_impersonate %}
         <li>
@@ -126,6 +127,14 @@
       <div class="center">
         <p style="margin:0;">© Solalim 2021 - Tous droits réservés - Moteur : <a href="https://github.com/fab13n">Fabien</a> ; Design : <a href="http://raf.pm" target="_blank">RAF</a></p>
         <p><a href="mentions-legales.html">Mentions légales</a></p>
+        <p>
+          <a href="https://www.laregion.fr">
+            <img class="logo-sponsor" src="{% static 'images/logos/region-occitanie.png' %}"/></a>
+          <a href="https://www.toulouse-metropole.fr/">
+            <img class="logo-sponsor" src="{% static 'images/logos/toulouse-metropole.png' %}"/></a>
+          <a href="https://www.banquepopulaire.fr/occitane/votre-banque/fondation-bpoc/">
+            <img class="logo-sponsor" src="{% static 'images/logos/banque-populaire.png' %}"/></a>
+        </p>
       </div>
   </footer>
 

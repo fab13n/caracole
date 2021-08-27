@@ -566,6 +566,12 @@ ul.circuit-admin-list ul li {
   color: #84B818;
 }
 
+.logo-sponsor {
+  width: auto;
+  height: 40px;
+  margin: 0px 10px 0px 10px;
+}
+
 @media (max-width:1070px) {
   #btn-connexion {
     margin-right: 3rem;
