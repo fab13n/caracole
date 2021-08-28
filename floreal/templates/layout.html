@@ -81,8 +81,9 @@
         {% endif %}
         {% endif %}
 
-        <!--<li><a href="">Lancez votre réseau !</a></li>-->
-
+        <li><a href="{% url 'map' %}">Carte des réseaux</a></li>
+        <li><a href="" onclick='alert("Coming soon ☺");'>Lancez votre réseau !</a></li>
+        
         {% if user.is_impersonate %}
         <li>
           <a href="{% url 'impersonate-stop' %}" class="button attente" style="width: unset">Cesser d'usurper {{user.first_name}} {{user.last_name}}</a>
