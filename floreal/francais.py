@@ -11,7 +11,7 @@ class Plural(models.Model):
     plural = models.CharField(max_length=64, null=True, blank=True, default=None)
 
     def __str__(self):
-        return "%s/%s" % (self.singular, self.plural)
+        return "%s/%s" % (self.singular, self.plural or "?")
 
 
 # Cache for plurals, to avoid many DB lookups when a pluralized word appears many times in a page.
