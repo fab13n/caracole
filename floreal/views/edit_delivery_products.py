@@ -55,7 +55,7 @@ def delivery_products_json(request, delivery):
             networkmembership__network_id=dv.network_id,
             networkmembership__valid_until=None,
             networkmembership__is_producer=True,
-        )
+        ).order_by("last_name", "first_name")
         producers = (
             [{"id": 0, "name": "Aucun"}] +
             [{"id": u.id, "name": u.first_name+" "+u.last_name} for u in dv_producers])
