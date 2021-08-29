@@ -172,19 +172,19 @@
 
   /* Reflect the content of `DATA` into widgets. */
   function render() {
-    $("#delivery-name").text(DATA.delivery.name);
+    $(".delivery-name").text(DATA.delivery.name);
     $("#delivery-id").val(DATA.delivery.id);
-    $("#network-name").text(DATA.network.name);
-    $("#user-name").text(DATA.user.first_name + " " + DATA.user.last_name);
+    $(".network-name").text(DATA.network.name);
+    $(".user-name").text(DATA.user.first_name + " " + DATA.user.last_name);
     if(DATA.producer?.description){
-      $("#delivery-description").html(DATA.producer.description);
+      $(".delivery-description").html(DATA.producer.description);
     } else if (DATA.delivery.description) {
-      $("#delivery-description").html(DATA.delivery.description);
+      $(".delivery-description").html(DATA.delivery.description);
     }
     if(DATA.producer?.image_description) {
-      $("#delivery-image-description").attr("src", DATA.producer.image_description);
+      $(".delivery-image-description").attr("src", DATA.producer.image_description);
     } else if(DATA.network.image_description) {
-      $("#delivery-image-description").attr("src", DATA.network.image_description);
+      $(".delivery-image-description").attr("src", DATA.network.image_description);
     }
     if(DATA.producer) {
       $(".producer-name").text(DATA.producer.name);
@@ -197,7 +197,10 @@
       $(".if-freeze-date").remove();
     }
     if(DATA.delivery.distribution) {
-      $(".distribution-date").text(DATA.delivery.distribution);
+      $(".distribution-date")
+        .text(DATA.delivery.distribution)
+        .attr("title", "Distribution le "+DATA.delivery.distribution)
+        .attr("data-toggle", "tooltip")
     } else {
       $(".if-distribution-date").remove();
     }
@@ -318,16 +321,13 @@
 
 {% block content %}
 <section class="container margetopXl margebot">
-  <h1 class=" h2-like couleur-prim"><span class='distribution-date'>—</span> | <span id='delivery-name'>...</span></h1>
-  <p>Réseau <span id='network-name'>...</span></p>
-  <p class="if-producer"><span class="producer-name">...</span></p>
-  <p class="if-freeze-date">Commandes jusqu'au <span class="freeze-date">...</span></p>
-  <p class="if-distribution-date">Livraison le <span class="distribution-date">...</span></p>
+  <h1 class=" h2-like couleur-prim"><span class='distribution-date'>—</span> | <span class='network-name'>...</span> | <span class='delivery-name'>...</span></h1>
+  <p class="if-freeze-date">Commandez avant le <span class="freeze-date">...</span>.</p>
 
   <div class="container margetop row stretch cent">
-    <p class="commandes-detail-intro" id="delivery-description">
+    <p class="commandes-detail-intro" class="delivery-description">
     </p>
-    <img id="delivery-image-description"/>
+    <img class="delivery-image-description"/>
   </div>
 
   <div class="container">

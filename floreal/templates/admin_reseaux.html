@@ -12,32 +12,60 @@
         top: 0px;
         right: 0px;
         line-height: 18px;
-        z-index: 100;
+        z-index: 100000;
     }
+
     .top-links li::before {
         top: 6px;
     }
+
     .top-links li {
         margin-top: 0px;
         margin-bottom: 0px;
     }
+
     .active-deliveries td {
-        padding: 1px;
+        padding: 1px 10px 1px 10px;
+        border-bottom: none;
     }
+
     .active-deliveries select {
         margin: 1px;
+    }
+
+    .active-deliveries {
+        border: 1px solid #84B818;
+        margin-left: 20px;
+        padding: 5px;
+    }
+
+    .active-deliveries td:first-child {
+        font-size: 1.5rem;
+        position: relative;
+    }
+
+    .active-deliveries td:first-child .overlay {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        background-color: #84B818;
+        color: white;
+        font-weight: bold;
+        padding-left: 10px;
     }
 </style>
 
 <script type='text/javascript'>
     async function load_impersonate(event) {
-        if($("#select-impersonate")[0]) {
+        if ($("#select-impersonate")[0]) {
             // already loaded
             return;
         }
         const response = await fetch("{% url 'users_json' %}");
         const json = await response.json();
-        const widget = 
+        const widget =
             `&nbsp;<select id="select-impersonate" title="Membres…" data-live-search="true">` +
             json.users
                 .map(u => `<option value=${u.id}>${u.first_name} ${u.last_name} — ${u.email}</option>`)
@@ -52,11 +80,17 @@
         });
     }
 
+    function notify_delivery(dv_id, text) {
+        const where = $(`#dv-${dv_id} td:first-child`);
+        where.append(`<div class='overlay'>${text}</div>`);
+        where.find(".overlay").fadeOut(2000);
+    }
+
     function rename_delivery(dv_id, dv_name) {
         const new_name = window.prompt(`Renommer la commande ${dv_name} :`, dv_name);
         const url = "{% url 'set_delivery_name' delivery='DVID' name='NAME' %}".replace('DVID', dv_id).replace('NAME', new_name);
         if (new_name) {
-            $.ajax(url, {success: function() { window.location.reload(); }});
+            $.ajax(url, { success: function () { window.location.reload(); } });
         }
     }
 
@@ -64,8 +98,8 @@
         const url = "{% url 'set_network_visibility' network='NWID' val='VALUE' %}".replace('NWID', nw_id).replace('VALUE', event.target.checked);
         // TODO add "⌛" after event.target
         $.ajax(url, {success: function() {
-            // TODO remove hourglass
-            console.log("network", nw_id, "visibility is now", event.target.checked);
+                // TODO remove hourglass
+                console.log("network", nw_id, "visibility is now", event.target.checked);
         } });
     }
 
@@ -73,8 +107,8 @@
         const url = "{% url 'set_network_validation' network='NWID' val='VALUE' %}".replace('NWID', nw_id).replace('VALUE', event.target.checked);
         // TODO add "⌛" after event.target
         $.ajax(url, {success: function() {
-            // TODO remove hourglass
-            console.log("network", nw_id, "validation is now", event.target.checked);
+                // TODO remove hourglass
+                console.log("network", nw_id, "validation is now", event.target.checked);
         } });
     }
 
@@ -82,9 +116,68 @@
         const url = "{% url 'set_delivery_state' delivery='DVID' state='STATE' %}".replace('DVID', dv_id).replace('STATE', state);
         // TODO add "⌛" after event.target
         $.ajax(url, {success: function() {
-            // TODO remove hourglass
-            console.log("Success");
+                // TODO remove hourglass
+                notify_delivery(dv_id, "État changé !")
         } });
+    }
+
+    function on_modify(dv_id, what) {
+        $(`#dv-${dv_id} .pseudo-menu`).val("none");
+        // TODO reset the select
+        switch (what) {
+            case "none":
+                // pass
+                break;
+            case "products":
+                window.location.href = "{% url 'edit_delivery_products' delivery=9999 %}".replace("9999", dv_id);
+                break;
+            case "purchases":
+                window.location.href = "{% url 'edit_delivery_purchases' delivery=9999 %}".replace("9999", dv_id);
+                break;
+            case "name": {
+                const name_element = $(`#dv-${dv_id} .dv-name`);
+                const old_name = name_element.text().trim();
+                const new_name = prompt(`Renommer la commande :`, old_name);
+                if(new_name) {
+                    const url = "{% url 'set_delivery_name' delivery=9999 name='NAME' %}"
+                        .replace(9999, dv_id)
+                        .replace('NAME', new_name); 
+                    fetch(url)
+                        .then(() => {
+                            notify_delivery(dv_id, "Renommée");
+                            name_element.text(new_name);
+                        })
+                        .catch(() => {
+                            alert("Échec du renommage !")
+                        });
+                }
+                break;
+            }
+            default:
+                console.error("Unexpected modify value " + what);
+                break;
+        }
+    }
+
+    function on_view(dv_id, what) {
+        $(`#dv-${dv_id} .pseudo-menu`).val("none");
+        switch (what) {
+            case "none":
+                // pass
+                break;
+            case "online":
+                window.location.href = "{% url 'view_delivery_purchases_html' delivery=9999 %}".replace("9999", dv_id);
+                break;
+            case "table":
+                window.location.href = "{% url 'view_delivery_purchases_latex' delivery=9999 %}".replace("9999", dv_id);
+                break;
+            case "cards":
+                window.location.href = "{% url 'view_delivery_purchases_cards' delivery=9999 %}".replace("9999", dv_id);
+                break;
+            default:
+                console.error("Unexpected modify value " + what);
+                break;
+        }
     }
 
     async function prompt_network_creation() {
@@ -127,7 +220,7 @@
             {% if user.is_staff %}
             <li><a href="{% url 'admin:index' %}">Accès à la base de donnée</a></li>
             <li><a href="{% url 'wagtailadmin_home' %}">Gestion du contenu rédactionnel</a>
-            {% if user.is_impersonate %}
+                {% if user.is_impersonate %}
             <li>Vous usurpez actuellement l'identité de {{user.first_name}} {{user.last_name}}</a></li>
             {% else %}
             <li><a href="#" onclick="load_impersonate(event);")>Usurper une identité</a></li>
@@ -143,7 +236,8 @@
                         <strong>Réseau {{msg.network.name}} :</strong>
                         {% endif %}
                         « {{msg.message|safe}} »
-                      <a class='button button-primary compact' href="{% url 'unset_message' id=msg.id %}?next={% url 'admin' %}">effacer</a>
+                        <a class='button button-primary compact'
+                            href="{% url 'unset_message' id=msg.id %}?next={% url 'admin' %}">effacer</a>
                     </li>
                     {% empty %}
                     <li>Aucun message</li>
@@ -158,140 +252,129 @@
     {% if networks|length > 1 %}
     <h2>Administration des réseaux</h2>
     {% endif %}
-    
-        <!-- Pour chaque circuit -->
-        {% for nw in networks %}
- 
-        <div class="divider acces-rapide couleur-sec">
-            <a id="nw-{{nw.id}}"></a>
-            <h5 class="center divider couleur-sec">Réseau <span class="couleur-prim">{{nw.name}}</span></h5>
-            {% if user.is_staff or nw.is_staff or nw.candidates %}
-            <h5 class="txt-left couleur-sec margebotS">Configuration</h5>
-            <ul>
-                {% if user.is_staff or nw.is_staff %}
-                <li><a href="{% url 'edit_network_description' network=nw.id %}">Éditer la <strong>description du réseau</strong></a></li>
-                <li><a href="{% url 'directory_network' network=nw.id %}"><strong>Annuaire</strong> des membres</a></li>
-                <li><strong>Visible</strong> par les non-membres : 
-                    <input
-                        class="visibility"
-                        id="visibility-{{nw.id}}"
-                        name="visibility-{{nw.id}}"
-                        type="checkbox" 
-                        data-toggle="toggle" 
-                        data-on="Oui" 
-                        data-off="Non"
-                        onchange="on_visibility_change({{nw.id}}, event)"
-                        {% if nw.visible %}checked="checked"{%else%}data-invisible="1"{% endif %}
-                    />
-                  <span id="visibility-state-{{nw.id}}"></span>
-                </li>
-                <li>Candidatures <strong>validées</strong> : 
-                    <input
-                        class="auto-validate"
-                        id="auto-validate-{{nw.id}}"
-                        name="auto-validate-{{nw.id}}"
-                        type="checkbox" 
-                        data-toggle="toggle" 
-                        data-on="automatiquement" 
-                        data-off="par&nbsp;les&nbsp;admins"
-                        onchange="on_validation_change({{nw.id}}, event)"
-                        {% if nw.auto_validate %}checked="checked"{% endif %}
-                    />
-                  <span id="visibility-state-{{nw.id}}"></span>
-                </li>
-                {% endif %}{# user/nw.is_staff #}
-                {% if not nw.candidates %}
-                {# pass #}
-                {% elif nw.candidates|length < 4 %}
-                <li>Candidatures :
-                    <a id="nw-{{nw.id}}-candidacies"></a>
-                    <ul>
-                        {% for u in nw.candidates %}
-                        <li>{{u.first_name}} {{u.last_name}} ({{u.email}}):
-                            <a href="{% url 'validate_candidacy' user=u.id network=nw.id response='Y' %}?next={% url 'admin' %}#nw-{{nw.id}}-candidacies">Accepter</a>
-                            /   
-                            <a href="{% url 'validate_candidacy' user=u.id network=nw.id response='N' %}?next={% url 'admin' %}#nw-{{nw.id}}-candidacies">Refuser</a>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </li>
-                {% else %}
-                <li><a href="{% url 'manage_candidacies' %}"><strong>{{nw.candidates|length}} candidatures</strong> à valider</a>.</li>
-                {% endif %}
-            </ul>
+
+    <!-- Pour chaque circuit -->
+    {% for nw in networks %}
+
+    <div class="divider acces-rapide couleur-sec">
+        <a id="nw-{{nw.id}}"></a>
+        <h5 class="center divider couleur-sec">Réseau <span class="couleur-prim">{{nw.name}}</span></h5>
+        {% if user.is_staff or nw.is_staff or nw.candidates %}
+        <h5 class="txt-left couleur-sec margebotS">Configuration</h5>
+        <ul>
+            {% if user.is_staff or nw.is_staff %}
+            <li><a href="{% url 'edit_network_description' network=nw.id %}">
+                Éditer la <strong>description du réseau</strong></a></li>
+            <li><a href="{% url 'directory_network' network=nw.id %}"><strong>Annuaire</strong> des membres</a></li>
+            <li><strong>Visible</strong> par les non-membres :
+                <input class="visibility" id="visibility-{{nw.id}}" name="visibility-{{nw.id}}" type="checkbox"
+                    data-toggle="toggle" data-on="Oui" data-off="Non" onchange="on_visibility_change({{nw.id}}, event)"
+                    {% if nw.visible %}checked="checked" {%else%}data-invisible="1" {% endif %} />
+                <span id="visibility-state-{{nw.id}}"></span>
+            </li>
+            <li>Candidatures <strong>validées</strong> :
+                <input 
+                    class="auto-validate"
+                    id="auto-validate-{{nw.id}}"
+                    name="auto-validate-{{nw.id}}"
+                    type="checkbox" 
+                    data-toggle="toggle" 
+                    data-on="automatiquement" 
+                    data-off="par&nbsp;les&nbsp;admins"
+                    onchange="on_validation_change({{nw.id}}, event)"
+                    {% if nw.auto_validate %}checked="checked"{% endif %}
+                />
+            </li>
+            {% endif %}{# user/nw.is_staff #}
+            {% if not nw.candidates %}
+            {# pass #}
+            {% elif nw.candidates|length < 4 %}
+            <li>Candidatures :
+                <a id="nw-{{nw.id}}-candidacies"></a>
+                <ul>
+                    {% for u in nw.candidates %}
+                    <li>{{u.first_name}} {{u.last_name}} ({{u.email}}):
+                        <a href="{% url 'validate_candidacy' user=u.id network=nw.id response='Y' %}?next={% url 'admin' %}#nw-{{nw.id}}-candidacies">Accepter</a>
+                        /
+                        <a href="{% url 'validate_candidacy' user=u.id network=nw.id response='N' %}?next={% url 'admin' %}#nw-{{nw.id}}-candidacies">Refuser</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </li>
+            {% else %}{# too many candidatures #}
+            <li><a href="{% url 'manage_candidacies' %}"><strong>{{nw.candidates|length}} candidatures</strong> à valider</a>.</li>
+            {% endif %}{# few or many candidatures #}
+        </ul>
+        {% endif %}{# is_staff or candidates #}
+
+        <h5 class="txt-left couleur-sec margebotS">Commandes</h5>
+        <ul>
+            <li><a href="{% url 'list_delivery_models' network=nw.id %}">Créer une <strong>nouvelle commande</strong>.</a></li>
+            {% if nw.active_deliveries %}
+            <li>
+                <strong>{{nw.active_deliveries}} commandes actives</strong> ; qui a commandé où ? Voir
+                <strong><a href="{% url 'all_deliveries_html' network=nw.id states='BCD' %}">en ligne</a></strong>,
+                <strong><a href="{% url 'all_deliveries_latex' network=nw.id states='BCD' %}">en PDF</a></strong>
+            </li>
+            <li><a href="{% url 'invoice_mail_form' network=nw.id %}">Envoyer un <strong>mail de rappel</strong> pour les commandes gelées</a>.</li>
             {% endif %}
+            <li><a href="{% url 'archived_deliveries' network=nw.id %}">Voir les commandes <strong>archivées</strong></a>.</li>
+        </ul>
 
-            <h5 class="txt-left couleur-sec margebotS">Commandes</h5>
-            <ul>
-                <li><a href="{% url 'list_delivery_models' network=nw.id %}">Créer une <strong>nouvelle commande</strong>.</a></li>
-                {% if nw.active_deliveries %}
-                <li>
-                    <strong>{{nw.active_deliveries}} commandes actives</strong> ; qui a commandé où ? Voir 
-                    <strong><a href="{% url 'all_deliveries_html' network=nw.id states='BCD' %}">en ligne</a></strong>,
-                    <strong><a href="{% url 'all_deliveries_latex' network=nw.id states='BCD' %}">en PDF</a</strong>
-                </li>
-                <li><a href="{% url 'invoice_mail_form' network=nw.id %}">Envoyer un <strong>mail de rappel</strong> pour les commandes gelées</a>.</li>
-                {% endif %}
-                <li><a href="{% url 'archived_deliveries' network=nw.id %}">Voir les commandes <strong>archivées</strong></a>.</li>
-            </ul>
-
-            <table class="active-deliveries">
+        <table class="active-deliveries">
             {% for dv in nw.deliveries %}
-            <tr>
+            <tr id="dv-{{dv.id}}">
                 <td>
-                  <strong>
-                    {% if dv.freeze_date %}{# if in_the_past and there's a distri date, display the latter. #}
-                    <span title="Commandes jusqu'au {{dv.freeze_date|date:'SHORT_DATE_FORMAT'}}"
-                        data-toggle="tooltip">
-                        {{dv.freeze_date|date:"SHORT_DATE_FORMAT"}}
-                    </span> | 
-                    {% elif dv.distribution_date %}
-                    <span title="Distribution le {{dv.distribution_date|date:'SHORT_DATE_FORMAT'}}"
-                        data-toggle="tooltip">
-                        {{dv.distribution_date|date:"SHORT_DATE_FORMAT"}} |
-                    </span> 
-                    {% endif %}
-                    {{dv.name }}
-                    {% if dv.producer %}
-                    - {{dv.producer.first_name}} {{dv.producer.last_name}}
-                    {% endif %}
-                  </strong>
+                        <strong>
+                            {% if dv.freeze_date %}{# if in_the_past and there's a distri date, display the latter. #}
+                            <span title="Commandes jusqu'au {{dv.freeze_date|date:'SHORT_DATE_FORMAT'}}"
+                                data-toggle="tooltip">
+                                {{dv.freeze_date|date:"SHORT_DATE_FORMAT"}}
+                            </span> |
+                            {% elif dv.distribution_date %}
+                            <span title="Distribution le {{dv.distribution_date|date:'SHORT_DATE_FORMAT'}}"
+                                data-toggle="tooltip">
+                                {{dv.distribution_date|date:"SHORT_DATE_FORMAT"}} |
+                            </span>
+                            {% endif %}
+                            <span class='dv-name'>{{dv.name}}</span>
+                            {% if dv.producer %}
+                            - {{dv.producer.first_name}} {{dv.producer.last_name}}
+                            {% endif %}
+                        </strong>
                 </td>
                 <td>
-                    <select 
-                        id="dv-{{dv.id}}-state" 
-                        name="dv-{{dv.id}}-state" 
-                        class="button admin" 
+                    <select id="dv-{{dv.id}}-state" name="dv-{{dv.id}}-state" class="button admin"
                         onchange="on_state_change({{dv.id}}, event.target.value)">
                         {% for key, name in Delivery.STATE_CHOICES.items %}
-                        <option value="{{key}}" {% if key == dv.state %}selected="selected"{% endif %}>{{name}}</option>
+                        <option value="{{key}}" {% if key == dv.state %}selected="selected" {% endif %}>{{name}}</option>
                         {% endfor %}
                     </select>
                 </td>
                 <td>
-                    <select class="button admin">
-                        <option>Modifier...</option>
-                        <option>La commande</option>
-                        <option>Les achats</option>
-                        <option>Le nom</option>
+                    <select class="button admin pseudo-menu" onchange="on_modify({{dv.id}}, event.target.value)">
+                        <option value="none">Modifier...</option>
+                        <option value="products">La commande</option>
+                        <option value="purchases">Les achats</option>
+                        <option value="name">Le nom</option>
                     </select>
                 </td>
                 <td>
-                    <select class="button admin">
-                        <option>Voir...</option>
-                        <option>En ligne</option>
-                        <option>En tableau à imprimer</option>
-                        <option>En cartes à imprimer</option>
+                    <select class="button admin pseudo-menu" onchange="on_view({{dv.id}}, event.target.value)">
+                        <option value="none">Voir...</option>
+                        <option value="online">En ligne</option>
+                        <option value="table">En tableau à imprimer</option>
+                        <option value="cards">En cartes à imprimer</option>
                     </select>
                 </td>
-                </tr>
+            </tr>
             {% endfor %}
-            </table>
-            <!-- end commande-->
+        </table>
+        <!-- end commande-->
 
-        </div>
-        <!-- end circuit -->
-        {% endfor %}
+    </div>
+    <!-- end circuit -->
+    {% endfor %}
 
 </section>
 

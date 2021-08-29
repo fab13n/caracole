@@ -55,6 +55,7 @@ class Mapped(models.Model):
     latitude = models.FloatField(null=True, blank=True, default=None)
 
     # TODO add by-class or by-instance icons
+    # TODO add commune
 
     class Meta:
         abstract = True
@@ -94,12 +95,21 @@ class FlorealUser(IdentifiedBySlug, Mapped):
     phone = models.CharField(max_length=20, null=True, blank=True, default=None)
     description = models.TextField(null=True, blank=True, default=None)
     image_description = models.ImageField(null=True, blank=True, default=None)
+    pseudonym = models.CharField(max_length=User.username.field.max_length, null=True, blank=True, default=None)
 
     def __str__(self):
-        return f"{self.user.first_name} {self.user.last_name}: {self.display_number}"
+        return self.pseudonym
 
     def slug_prefix(self):
         return slugify(f"{self.user.first_name} {self.user.last_name}")
+
+    @property
+    def display_name(self):
+        if self.pseudonym:
+            return self.pseudonym
+        else:
+            u = self.user
+            return u.first_name + " " + u.last_name
 
     @cached_property
     def display_number(self):

@@ -264,7 +264,7 @@ def reseau(request, network):
         "network": nw,
         "user": request.user,
         "has_open_deliveries": status == "member"
-        and m.Delivery.objects.filter(state=m.Delivery.ORDERING_ALL).exists(),
+        and m.Delivery.objects.filter(state=m.Delivery.ORDERING_ALL, network=nw).exists(),
         "user_status": status,
     }
     return render(request, "reseau.html", vars)

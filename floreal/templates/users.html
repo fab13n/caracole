@@ -10,6 +10,9 @@
   .coord {
     width: unset !important;
   }
+  .btn-primary[disabled] {
+    background-color: gray;
+  }
 </style>
 
 <script src="{% static 'tinymce/tinymce.min.js' %}"></script>
@@ -162,9 +165,19 @@
         `<span id = "save-spinner" class="spinner-border spinner-border-sm"></span>
       Sauvegarder ${CURRENT_USER.first_name} ${CURRENT_USER.last_name}`);
     };
-    const remove_spinner = () =>
-      $("#save").html(`Sauvegarder`);
+    const remove_spinner = () => {
+      $("#save")
+        .html(`Sauvegarder`)
+        .after(`
+          <div class='saved-msg'>
+            modifications de
+            ${CURRENT_USER.first_name} ${CURRENT_USER.last_name}
+            sauvegardées !
+          </div>
+        `);
+        $(".saved-msg").fadeOut(5000);
 
+    };
     const data = get_data();
     add_spinner();
     $.ajax({

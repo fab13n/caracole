@@ -35,10 +35,11 @@
         {% endif %}
       </div>
 
-      {% if has_open_deliveries %}
+      {% if has_open_deliveries and network.description %}
       <div><p>
-        <a href="{% url 'orders' %}">Commandes en cours !</a>
-    </p></div>
+        il y a des commandes en cours : 
+        <a class="button button-primary" href="{% url 'orders' %}#nw-{{network.id}}">Commander</a>
+      </p></div>
       {% endif %}
 
       <div class="circuits-info-editor">
@@ -52,11 +53,17 @@
         {% if user_status == 'non-member' %}
         <a href="{% url 'create_candidacy' network=network.id %}" class="button button-primary">S'inscrire</a>
         {% elif user_status == 'member' %}
-        <a href="#" class="button inscrit">Inscrit</a>
-        <a href="#" class="button quitter">Quitter</a>
+        {% if has_open_deliveries %}
+        <a class="button button-primary" href="{% url 'orders' %}#nw-{{network.id}}">Commander</a>
+        {% endif %}
+        <a href="{% url 'leave_network' network=network.id %}" 
+           onclick="return confirm('Vous voulez définitivement quitter {{network.name}} ?')"
+           class="button quitter">Quitter</a>
         {% elif user_status == 'candidate' %}
-        <a href="circuit.html" class="button attente">En attente</a>
-        <a href="#" class="button quitter">Quitter</a>
+        <span class="button attente">En attente</span>
+        <a href="{% url 'leave_network' network=network.id %}" 
+           onclick="return confirm('Vous voulez annuler votre candidature à {{network.name}} ?')"
+           class="button quitter">Quitter</a>
         {% endif %}
         <a class="button retour" href="javascript:history.back()">Retour</a>
       </div>
