@@ -627,27 +627,31 @@ def view_directory(request, network):
 
 @login_required()
 def view_history(request):
-    # Deliveries in which the current user has purchased something
-    # TODO: make it a single request for purchases, then group them by delivery,
-    # either here in a single pass or in the template with:
-    #
-    #     {% regroup purchases by delivery as purchases_by_delivery %}
-    #     {% for dv_pc in purchases_by_delivery %}
-    #     {% with dv=dv_pc.grouper %}
-    #     {% for pc in dv_pc.list %}
-    deliveries = [
-        {
-            "delivery": dv,
-            "network": dv.network,
-            "purchases": m.Purchase.objects.filter(
-                product__delivery=dv, user=request.user
-            ),
-        }
-        for dv in m.Delivery.objects.filter(product__purchase__user=request.user).distinct()
-    ]
-    for x in deliveries:
-        x["price"] = sum(y.price for y in x["purchases"])
-    vars = {"user": request.user, "deliveries": deliveries}
+
+    purchases = m.Purchase.objects.filter(
+        user=request.user
+    ).select_related('user', 'product', 'product__delivery', 'product__delivery__network')
+
+    total = 0
+    networks = {}  # {nw_name -> {total: float, deliveries: {dv_name -> {total: int, purchases: [purchase+]}}}}
+
+    for pc in purchases:
+        dv = pc.product.delivery
+        if dv.distribution_date is not None:
+            dv_name = str(dv.distribution.date) + '|' + dv.name
+        else:
+            dv_name = dv.name
+        nw_name = pc.product.delivery.network.name
+        if (nw := networks.get(nw_name)) is None:
+            networks[nw_name] = nw = {'total': 0, 'deliveries': {}}
+        if (dv := nw['deliveries'].get(dv_name)) is None:
+            nw['deliveries'][dv_name] = dv = {'total': 0, 'purchases': []}
+        p = pc.price
+        nw['total'] += p
+        dv['total'] += p
+        total += p
+        dv['purchases'].append(pc)
+    vars = {"user": request.user, "networks": networks, "total": total}
     return render(request, "view_history.html", vars)
 
 
