@@ -1,7 +1,3 @@
-#!/usr/bin/python3
-# -*- coding: utf-8 -*-
-
-import django
 from django.template.context_processors import csrf
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required

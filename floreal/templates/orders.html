@@ -43,7 +43,7 @@
           <a href="{% url 'buy' delivery=dv.id %}">
           {% endif %}
             <span class="couleur-prim">
-            {% if has_distribution_date %}{{dv.distribution}} | {% endif %}
+            {% if has_distribution_date %}{{dv.distribution|short_date}} | {% endif %}
             {{nw.name}} |
             </span>
             {{dv.name}} 

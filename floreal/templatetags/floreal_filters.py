@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 
 from django import template
 from django.utils.dateparse import parse_date
@@ -77,3 +77,17 @@ def is_in_the_future(date):
         date = parse_date(date)
     return date > datetime.now().date()
 
+SHORT_MONTHS = [None] + "janv. févr. mars avr. mai juin juil. août sept. oct. nov. déc.".split()
+MONTHS = [None] + "janvier février mars avril mai juin juillet août septembre octobre novembre décembre".split()
+
+@register.filter
+def short_date(d):
+    if isinstance(d, str):
+        d = date.fromisoformat(d)
+    return f"{d.day} {SHORT_MONTHS[d.month]}"
+
+@register.filter
+def date(d):
+    if isinstance(d, str):
+        d = date.fromisoformat(d)
+    return f"{d.day} {MONTHS[d.month]}"

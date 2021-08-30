@@ -170,6 +170,10 @@
   /* TODO: add multiplication/pluralization when applicable. */
   function render_unit(u) { return u; }
 
+  function render_date(txt, options={}) {
+    return new Intl.DateTimeFormat('fr', {day: 'numeric', month: 'short', ...options}).format(new Date(txt));
+  }
+
   /* Reflect the content of `DATA` into widgets. */
   function render() {
     $(".delivery-name").text(DATA.delivery.name);
@@ -192,14 +196,15 @@
       $(".if-producer").remove();
     }
     if(DATA.delivery.freeze) {
-      $(".freeze-date").text(DATA.delivery.freeze);
+      $(".freeze-date").text(render_date(DATA.delivery.freeze, {month: 'long'}));
     } else {
       $(".if-freeze-date").remove();
     }
     if(DATA.delivery.distribution) {
+      const dd = render_date(DATA.delivery.distribution)
       $(".distribution-date")
-        .text(DATA.delivery.distribution)
-        .attr("title", "Distribution le "+DATA.delivery.distribution)
+        .text(dd)
+        .attr("title", "Distribution le "+dd)
         .attr("data-toggle", "tooltip")
     } else {
       $(".if-distribution-date").remove();
