@@ -794,9 +794,24 @@ def network_description_and_image(request, network):
     nw = get_network(network)
     return _description_and_image(request, nw, f"Présentation du réseau {nw.name}")
 
-@nw_admin_required()
 def user_description_and_image(request, user):
     flu = m.FlorealUser.objects.get(user_id=user)
+    if request.user.is_staff:
+        pass  # global admins can edit everyone
+    elif flu.user == request.user:
+        pass  # one can always edit oneself
+    elif m.NetworkMembership.objects.filter(
+        valid_until=None,     # Edited user...
+        user=flu.user,        # ...is currently...
+        is_producer=True,     # ...a producer in a network...
+        network__networkmembership__user=request.user,  # ...where the requester...
+        network__networkmembership__valid_until=None,   # ...is currently...
+        network__networkmembership__is_staff=True,      # ...an administrator
+    ).exists():
+        pass  # request.user administrates a network in which flu is a producer
+    else:
+        return HttpResponseForbidden("Vous n'avez pas le droit d'éditer cette fiche")
+
     return _description_and_image(request, flu, f"Présentation de {flu.user.first_name} {flu.user.last_name}")
 
 
