@@ -474,14 +474,22 @@ def create_delivery(request, network, dv_model=None):
             pd.delivery_id = new_dv.id
             pd.save()  # Will duplicate because pk==None
 
-    if not m.NetworkMembership.objects.filter(network_id=nw.id, user_id=request.user.id, valid_until=None).exists():
-        # I'm not staff, I must at least be producer of this network.
-        # And the created delivery will be mine.
-        if nw.producers.filter(id=request.user.id).exists():
-            new_dv.producer_id = request.user.id
-            new_dv.save()
-        else:
-            return HttpResponseForbidden("Must be admin or producer of this network")
+    # Authorizations
+    user = request.user
+    if user.is_staff:
+        pass  # Global admin
+    elif m.NetworkMembership.objects.filter(
+        network=nw, user=user, is_staff=True, valid_until=None
+    ).exists():
+        pass  # Network admin
+    elif m.NetworkMembership.objects.filter(
+        network=nw, user=user, is_producer=True, valid_until=None
+    ).exists():
+        # Network producer can only create deliveries for themselves
+        new_dv.producer_id = request.user.id
+        new_dv.save()
+    else:
+        return HttpResponseForbidden("Must be admin or producer of this network")
 
     m.JournalEntry.log(
         request.user,
