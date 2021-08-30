@@ -159,24 +159,23 @@ def admin(request):
 
 @login_required()
 def orders(request):
-    networks = [
-        mb.network
-        for mb in m.NetworkMembership.objects
-        .filter(user=request.user, is_buyer=True, valid_until=None, active=True)
-        .select_related("network")
-        .only("network")
-    ]
-    deliveries = (m.Delivery.objects
-        .filter(network__in=networks)
-        .filter(state__in="BCD")
+    networks = m.Network.objects.filter(
+        networkmembership__user=request.user,
+        networkmembership__is_buyer=True,
+        networkmembership__valid_until=None,
+        active=True,
     )
-    purchases = (m.Purchase.objects
-        .filter(product__delivery__in=deliveries)
-        .filter(user=request.user)
-        .select_related("product")
+    deliveries = m.Delivery.objects.filter(
+        network__in=networks,
+        state__in="BCD",
     )
-    messages = (m.AdminMessage.objects
-        .filter(network__in=networks)
+    purchases = m.Purchase.objects.filter(
+        product__delivery__in=deliveries,
+        user=request.user,
+    ).select_related("product")
+
+    messages = m.AdminMessage.objects.filter(
+        network__in=networks
     )
 
     nw_by_id = {}
