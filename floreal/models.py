@@ -233,7 +233,8 @@ class Network(IdentifiedBySlug, Mapped):
         User, related_name="member_of_network", through=NetworkMembership
     )
     auto_validate = models.BooleanField(default=False)
-    visible =models.BooleanField(default=True)
+    active = models.BooleanField(default=True)
+    visible = models.BooleanField(default=True)
     description = models.TextField(null=True, blank=True, default=None)
     short_description = models.TextField(null=True, blank=True, default=None)
     image_description = models.ImageField(null=True, blank=True, default=None)

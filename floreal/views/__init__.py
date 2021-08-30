@@ -57,13 +57,12 @@ def index(request):
     except AttributeError:
         accueil = "Penser à renseigner le texte d'accueil :-)"
     if request.user.is_anonymous:
-        my_networks = list()
-        vars = {"networks": m.Network.objects.exclude(visible=False), "accueil": accueil}
+        vars = {"networks": m.Network.objects.exclude(visible=False).exclude(active=False), "accueil": accueil}
         vars.update(csrf(request))
         return render(request, "index_unlogged.html", vars)
     else:
         mbships = list(m.NetworkMembership.objects
-            .filter(user=request.user, valid_until=None)
+            .filter(user=request.user, valid_until=None, network__active=True)
         )
         for nm in mbships:
             hoo = (
@@ -81,7 +80,8 @@ def index(request):
             "memberships": mbships,
             "unsubscribed": m.Network.objects \
                 .exclude(members=request.user) \
-                .exclude(visible=False)
+                .exclude(visible=False) \
+                .exclude(active=False)
         }
         return render(request, "index_logged.html", vars)
 
@@ -95,10 +95,11 @@ def admin(request):
             networkmembership__valid_until=None,
         )
     elif request.user.is_staff:
-        networks = m.Network.objects.all()
+        networks = m.Network.objects.filter(active=True)
     else:
         networks = (m.Network.objects
-            .filter(networkmembership__user=request.user,
+            .filter(active=True,
+                    networkmembership__user=request.user,
                     networkmembership__is_staff=True,
                     networkmembership__valid_until=None)
         )
@@ -161,7 +162,7 @@ def orders(request):
     networks = [
         mb.network
         for mb in m.NetworkMembership.objects
-        .filter(user=request.user, is_buyer=True, valid_until=None)
+        .filter(user=request.user, is_buyer=True, valid_until=None, active=True)
         .select_related("network")
         .only("network")
     ]
