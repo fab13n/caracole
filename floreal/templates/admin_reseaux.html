@@ -327,14 +327,14 @@
                 <td>
                         <strong>
                             {% if dv.freeze_date %}{# if in_the_past and there's a distri date, display the latter. #}
-                            <span title="Commandes jusqu'au {{dv.freeze_date|date:'SHORT_DATE_FORMAT'}}"
+                            <span title="Commandes jusqu'au {{dv.freeze_date|date}}"
                                 data-toggle="tooltip">
-                                {{dv.freeze_date|date:"SHORT_DATE_FORMAT"}}
+                                {{dv.freeze_date|short_date}}
                             </span> |
                             {% elif dv.distribution_date %}
-                            <span title="Distribution le {{dv.distribution_date|date:'SHORT_DATE_FORMAT'}}"
+                            <span title="Distribution le {{dv.distribution_date|date}}"
                                 data-toggle="tooltip">
-                                {{dv.distribution_date|date:"SHORT_DATE_FORMAT"}} |
+                                {{dv.distribution_date|short_date}} |
                             </span>
                             {% endif %}
                             <span class='dv-name'>{{dv.name}}</span>
