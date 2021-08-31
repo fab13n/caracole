@@ -419,12 +419,13 @@ def list_delivery_models(request, network, all_networks=False, producer=False):
             networkmembership__user=request.user, 
             networkmembership__is_staff=True,
             networkmembership__valid_until=None)
-        deliveries = m.Delivery.objects.filter(network__in=authorized_networks)
+        deliveries = m.Delivery.objects.filter(network__in=authorized_networks).select_related("network")
     else:
         deliveries = m.Delivery.objects.filter(network=nw)
     if producer:
         # Producer can only use their own commands as templates
         deliveries = deliveries.filter(producer_id=request.user.id)
+
     vars = {
         "user": request.user,
         "nw": nw,
