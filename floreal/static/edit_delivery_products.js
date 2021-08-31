@@ -289,7 +289,7 @@ function submit_if_valid(then_leave) {
 
     /* Check that delivery has been named */
     if($("#dv-name").val().trim() == "") {
-        alert("Avant de pouvoir sauvegarder, il faut donner un nom à la livraison, en haut du formulaire !");
+        alert("Avant de pouvoir sauvegarder, il faut donner un nom à la commande, en haut du formulaire !");
         return;
     }
   

@@ -270,11 +270,11 @@
       <div class="col-xs-4">
         <table id="dv-table">
           <tr>
-            <th><label for="dv-name">Nom de la livraison :</label></th>
+            <th><label for="dv-name">Nom de la commande :</label></th>
             <td><input id="dv-name" maxlength="64" name="dv-name" type="text" value="" required /></td>
           </tr>
           <tr>
-            <th><label for="dv-state">État de la livraison :</label></th>
+            <th><label for="dv-state">État de la commande :</label></th>
             <td>
               <select id="dv-state" name="dv-state">
                 {% for key, name in delivery.STATE_CHOICES.items %}
@@ -292,7 +292,7 @@
             <td><input type="date" id="freeze-date" name="freeze-date"></td>
           </tr>
           <tr>
-            <th><label for="distribution-date">Jour de livraison :</label></th>
+            <th><label for="distribution-date">Jour de commande :</label></th>
             <td><input type="date" id="distribution-date" name="distribution-date"></td>
           </tr>
         </table>
@@ -301,8 +301,8 @@
       <div class="col-xs-8">
         <h3>Description de la commande</h3>
         <div class="when-some-producer">
-          <p>La commande a un producteur sélectionné ;<br/>
-          c'est la description de ce producteur qui sera affichée.<br/>
+          <p>Vous avez renseigné un producteur pour cette commande, <br/>
+            c'est la description standard de ce producteur qui sera affichée.<br/>
           <a id="edit-producer" href="{% url 'edit_user_description' user=9999 %}?">Éditer la présentation du producteur</a>.
         </p></div>
         <div class="when-no-producer">
