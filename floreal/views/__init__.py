@@ -738,7 +738,7 @@ def set_message(request):
             if text.endswith("</p>"):
                 text = text[:-4]
         msg = m.AdminMessage.objects.create(message=text, network_id=network_id)
-        m.JournalEntry.log(request.user, "Posted a message to %s", f"nw-{network_id}" if network_id else "everyone")
+        m.JournalEntry.log(request.user, "Posted message %i to %s", msg.id, f"nw-{network_id}" if network_id else "everyone")
         target = request.GET.get("next", "index")
         return redirect(target)
     else:
@@ -767,7 +767,9 @@ def set_message(request):
 def unset_message(request, id):
     # TODO check that user is allowed for that message
     # To be done in a m.Message method
-    m.AdminMessage.objects.get(id=int(id)).delete()
+    msg = m.AdminMessage.objects.get(id=int(id))
+    m.JournalEntry.log(request.user, "Deleted message %i to %s", msg.id, f"nw-{msg.network_id}" if msg.network_id else "everyone")
+    msg.delete()
     target = request.GET.get("next", "index")
     return redirect(target)
 
