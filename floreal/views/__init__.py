@@ -96,6 +96,7 @@ def admin(request):
         )
     elif request.user.is_staff:
         networks = m.Network.objects.filter(active=True)
+        messages = m.AdminMessage.objects.all()
     else:
         networks = (m.Network.objects
             .filter(active=True,
@@ -103,6 +104,7 @@ def admin(request):
                     networkmembership__is_staff=True,
                     networkmembership__valid_until=None)
         )
+        messages = m.AdminMessage.objects.filter(network__in=networks)
     deliveries = (m.Delivery.objects
         .filter(network__in=networks, state__in="ABCD")
         .select_related("producer")
@@ -150,7 +152,7 @@ def admin(request):
 
     context = {
         "user": request.user,
-        "messages": m.AdminMessage.objects.filter(network=None),
+        "messages": messages,
         "networks": jnetworks.values(),
         "Delivery": m.Delivery,
     }
