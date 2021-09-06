@@ -25,10 +25,11 @@
               S'inscrire</a>
             {% elif user_status == 'member' %}
             <a href="circuit.html" class="button inscrit">Inscrit</a>
-            <a href="#" class="button quitter">Quitter</a>
+            <a href="#" class="button quitter">Quitter ce réseau ⚠️</a>
+
             {% elif user_status == 'candidate' %}
             <a href="circuit.html" class="button attente">En attente</a>
-            <a href="#" class="button quitter">Quitter</a>
+            <a href="#" class="button quitter">Annuler la candidature</a>
             {% endif %}
           </div>
         </div>
