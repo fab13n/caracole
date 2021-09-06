@@ -743,7 +743,7 @@ def set_message(request):
         u = request.user
         if u.is_staff:
             options = [("Tout le monde", "everyone")] + [
-            ("Réseau %s" % nw.name, "nw-%d" % nw.id) for nw in m.m.Network.objects.all()]
+            ("Réseau %s" % nw.name, "nw-%d" % nw.id) for nw in m.Network.objects.all()]
         else:
             options = [
                 ("Réseau %s" % nw.name, "nw-%d" % nw.id) 
