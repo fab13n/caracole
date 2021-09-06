@@ -9,6 +9,7 @@ from django.shortcuts import render, redirect
 from django.template.context_processors import csrf
 from django.http import HttpResponseForbidden
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
 from io import BytesIO
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from PIL import Image
@@ -104,7 +105,7 @@ def edit_delivery_products(request, delivery):
         _parse_form(request, is_staff)
         m.JournalEntry.log(request.user, "Edited products for delivery dv-%d", dv.id)
         if request.POST['then_leave'].lower() == 'true':
-            return redirect('admin')
+            return redirect(reverse('admin') + f"#nw-{dv.network_id}")
         else:
             return redirect('edit_delivery_products', dv.id)  # TODO retrieve URL from request?
 

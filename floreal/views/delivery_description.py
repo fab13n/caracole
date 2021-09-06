@@ -26,7 +26,7 @@ from collections import defaultdict
 from .. import models as m
 from abc import ABC, abstractmethod
 from functools import cached_property
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Q
 from decimal import Decimal
 
 T = TypeVar("T")

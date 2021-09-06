@@ -72,7 +72,7 @@
 
     let template = data.networks.map(nw => `
       <tr>
-        <th colspan="2">Réseau ${nw.name} (${nw.id})</th>
+        <th colspan="2">Réseau ${nw.name}</th>
       </tr>
       <tr>
         <td>Acheteur:</td>
@@ -115,8 +115,7 @@
 
     // Insert and force bootstrap-style toggle look&feel
     $("#user-form")
-      .append(template)
-      .hide(); // will be shown upon user selection
+      .append(template);
     $("#user-form [type=checkbox]").bootstrapToggle();
     // Bootstrap toggle layout is buggy inside tables.
     $("#user-form div.toggle").css("width", "58").css("height", "36")
@@ -243,8 +242,6 @@
         render_user(u);
         CURRENT_USER = u;
         MODIFIED_USER = false;
-        $("#user-form").show();
-
       }, 0);
     } else {
       // Open the selection widget; won't work synchronously,

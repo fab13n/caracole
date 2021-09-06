@@ -306,11 +306,13 @@ def producer(request, network):
 
 
 def _dv_has_no_purchase(dv):
-    for pd in dv.product_set.all():
-        if pd.purchase_set.exists():
-            return False
-    return True
-
+    # for pd in dv.product_set.all():
+    #     if pd.purchase_set.exists():
+    #         return False
+    # return True
+    return not m.Purchase.objects.filter(
+        product__delivery=dv,
+    ).exists()
 
 @nw_admin_required()
 def archived_deliveries(request, network):
@@ -425,6 +427,11 @@ def list_delivery_models(request, network, all_networks=False, producer=False):
     if producer:
         # Producer can only use their own commands as templates
         deliveries = deliveries.filter(producer_id=request.user.id)
+
+    # Remove deliveries without products nor description
+    deliveries = deliveries \
+        .filter(Q(product__isnull=False)|Q(description__isnull=False)) \
+        .distinct()
 
     vars = {
         "user": request.user,
@@ -647,7 +654,7 @@ def view_history(request):
     for pc in purchases:
         dv = pc.product.delivery
         if dv.distribution_date is not None:
-            dv_name = str(dv.distribution.date) + '|' + dv.name
+            dv_name = str(dv.distribution_date) + '|' + dv.name
         else:
             dv_name = dv.name
         nw_name = pc.product.delivery.network.name
