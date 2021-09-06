@@ -58,12 +58,12 @@
         {% endif %}
         <a href="{% url 'leave_network' network=network.id %}" 
            onclick="return confirm('Vous voulez définitivement quitter {{network.name}} ?')"
-           class="button quitter">Quitter</a>
+           class="button quitter">Quitter ce réseau ⚠️</a>
         {% elif user_status == 'candidate' %}
         <span class="button attente">En attente</span>
         <a href="{% url 'leave_network' network=network.id %}" 
            onclick="return confirm('Vous voulez annuler votre candidature à {{network.name}} ?')"
-           class="button quitter">Quitter</a>
+           class="button quitter">Annuler la candidature</a>
         {% endif %}
         <a class="button retour" href="javascript:history.back()">Retour</a>
       </div>
