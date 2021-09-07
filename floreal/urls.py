@@ -84,7 +84,7 @@ urlpatterns = [
     # path('dv-<id:delivery>/staff', views.edit_delivery_staff, name='edit_delivery_staff'),
     path('admin/dv-<id:delivery>/purchases', views.edit_delivery_purchases, name='edit_delivery_purchases'),
     path('admin/dv-<id:delivery>/edit', views.edit_delivery_products, name='edit_delivery_products'),
-    path('admin/dv-<id:delivery>/json', views.delivery_products_json, name='delivery_json'),
+    path('dv-<id:delivery>/products.json', views.delivery_products_json, name='delivery_json'),
     
 
     # API calls
@@ -109,7 +109,8 @@ urlpatterns = [
     path('dv-<id:delivery>.pdf', views.view_purchases_latex_table, name='view_delivery_purchases_latex'),
     path('dv-<id:delivery>-cards.pdf', views.view_purchases_latex_cards, name='view_delivery_purchases_cards'),
     path('dv-<id:delivery>.xlsx', views.view_purchases_xlsx, name='view_delivery_purchases_xlsx'),
-    path('dv-<id:delivery>.json', views.view_purchases_json, name='view_delivery_purchases_json'),
+    path('dv-<id:delivery>/purchases.json', views.view_purchases_json, name='view_delivery_purchases_json'),
+    path('dv-<id:delivery>/products.json', views.delivery_products_json, name='delivery_json'),
 
     path('dv-<id:delivery>/delete', views.delete_archived_delivery, name='delete_archived_delivery'),
     path('nw-<id:network>/delete-empty-archives', views.delete_all_archived_deliveries, name='delete_all_archived_deliveries'),

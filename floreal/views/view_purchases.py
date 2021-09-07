@@ -40,9 +40,9 @@ def render_description(request, delivery, renderer, extension, subgroup=None, us
     dv = get_delivery(delivery)
     # Permission
     if not user and not request.user.is_staff and not m.NetworkMembership.objects.filter(
-        user=user, network=dv.network, is_staff=True, valid_until=None
+        Q(is_staff=True) | Q(is_producer=True),
+        user=user, network=dv.network, valid_until=None
     ).exists():
-        # TODO authorize producers
         return HttpResponseForbidden(f"Pas autorisé pour {dv.network.name}")
 
     if user:
@@ -56,8 +56,8 @@ def render_description(request, delivery, renderer, extension, subgroup=None, us
         dd = FlatDeliveryDescription(dv)
 
     name_stem = dd.delivery.name if download else None
-    if not isinstance(dd, UserDeliveryDescription) and not (dd.rows and dd.products):
-        return HttpResponse("Aucun achat dans cette commande", status=404)
+    #if not isinstance(dd, UserDeliveryDescription) and not (dd.rows and dd.products):
+    #    return HttpResponse("Aucun achat dans cette commande", status=404)
     return non_html_response(name_stem, extension, renderer(dd))
 
 

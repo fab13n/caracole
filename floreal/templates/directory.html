@@ -47,7 +47,7 @@
       data-toggle="tooltip" title="Copier les emails des {{catname}} dans le presse-papiers">
       Copier les e-mails</a>
     </th></tr>
-    {% for u in members|dictsort:"last_name" %}
+    {% for u in members %}
     <tr class="cat-{{cat}}">
       <td>{{u.first_name}} {{u.last_name}}</td><td><a class="email" href="mailto://{{u.email}}">{{u.email}}</a></td>
       <td>{% with fu=u.florealuser %}{% if not fu %}-{% elif fu.uri %}<a href="{{fu.uri}}">{{fu.display_number}}</a>{% else %}{{u.florealuser.display_number|default:"-"}}{% endif %}{% endwith %}</td>

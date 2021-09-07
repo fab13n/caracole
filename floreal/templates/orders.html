@@ -17,11 +17,16 @@
       {% for nw in networks %}
       <a id="{{nw.slug}}"></a>
 
-      {% for m in nw.messages %}
+      {% if nw.messages|length == 1 %}
       <div class="">
-        <strong>Message des responsables du réseau {{nw.name}} :</strong> {{m|safe}}
+        <strong>Message des responsables du réseau {{nw.name}} :</strong> {{nw.messages.0|safe}}
       </div>
+      {% elif nw.messages|length > 1 %}
+      <div class=""><strong>Messages des responsables du réseau {{nw.name}} :</strong></div>
+      {% for m in nw.messages %}
+      <div class="">{{m|safe}}</div>
       {% endfor %}
+      {% endif %}
 
       {% for dv in nw.deliveries %}
       {% if dv.purchases or dv.state == Delivery.ORDERING_ALL %}
