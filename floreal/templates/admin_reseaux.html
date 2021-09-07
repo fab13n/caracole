@@ -309,6 +309,7 @@
 
         <h5 class="txt-left couleur-sec margebotS">Commandes</h5>
         <ul>
+            {% if nw.is_network_staff %}
             <li><a href="{% url 'list_delivery_models' network=nw.id %}">Créer une <strong>nouvelle commande</strong>.</a></li>
             {% if nw.active_deliveries %}
             <li>
@@ -317,6 +318,7 @@
                 <strong><a href="{% url 'all_deliveries_latex' network=nw.id states='BCD' %}">en PDF</a></strong>
             </li>
             <li><a href="{% url 'invoice_mail_form' network=nw.id %}">Envoyer un <strong>mail de rappel</strong> pour les commandes gelées</a>.</li>
+            {% endif %}
             {% endif %}
             <li><a href="{% url 'archived_deliveries' network=nw.id %}">Voir les commandes <strong>archivées</strong></a>.</li>
         </ul>
