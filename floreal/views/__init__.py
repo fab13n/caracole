@@ -87,6 +87,8 @@ def index(request):
         return render(request, "index_logged.html", vars)
 
 
+from collections import defaultdict
+
 def admin(request):
     if (only := request.GET.get('only')):
         networks = m.Network.objects.filter(
@@ -95,22 +97,34 @@ def admin(request):
             networkmembership__is_staff=True,
             networkmembership__valid_until=None,
         )
+        is_network_staff = {int(only): True}
     elif request.user.is_staff:
         networks = m.Network.objects.filter(active=True)
         messages = m.AdminMessage.objects.all()
+        is_network_staff = defaultdict(lambda: True)
     else:
-        networks = (m.Network.objects
-            .filter(active=True,
+        staff_networks = (m.Network.objects
+            .filter(networkmembership__is_staff=True,
+                    active=True,
                     networkmembership__user=request.user,
-                    networkmembership__is_staff=True,
                     networkmembership__valid_until=None)
         )
+        prod_networks = (m.Network.objects
+            .filter(networkmembership__is_producer=True,
+                    active=True,
+                    networkmembership__user=request.user,
+                    networkmembership__valid_until=None)
+        )
+        networks = staff_networks | prod_networks
         messages = m.AdminMessage.objects.filter(network__in=networks)
+        is_network_staff = defaultdict(lambda: False)
+        for nw in staff_networks:
+            is_network_staff[nw.id] = True
+
     deliveries = (m.Delivery.objects
         .filter(network__in=networks, state__in="ABCD")
         .select_related("producer")
     )
-
     candidacies = (m.NetworkMembership.objects
         .filter(network__in=networks,
                 is_candidate=True,
@@ -128,7 +142,7 @@ def admin(request):
             "candidates": [],
             "deliveries": [],
             "active_deliveries": 0,
-            "is_network_staff": True,  # will change for producers
+            "is_network_staff": is_network_staff[nw.id],  # Otherwise producer
             "visible": nw.visible,
             "auto_validate": nw.auto_validate,
         }
@@ -137,6 +151,10 @@ def admin(request):
         jnetworks[cd.network_id]["candidates"].append(cd.user)
 
     for dv in deliveries:
+        jnw = jnetworks[dv.network_id]
+        if not jnw["is_network_staff"] and dv.producer_id != request.user.id:
+            # Producers only see their deliveries
+            continue
         jdv = {
             "id": dv.id,
             "state": dv.state,
@@ -146,7 +164,6 @@ def admin(request):
             "distribution_date": dv.distribution_date,
             "producer": dv.producer
         }
-        jnw = jnetworks[dv.network_id]
         if dv.state in "BCD":
             jnw["active_deliveries"] += 1
         jnw["deliveries"].append(jdv)
@@ -416,7 +433,7 @@ def edit_delivery_staff(request, delivery):
     return render(request, "edit_delivery_staff.html", vars)
 
 
-def list_delivery_models(request, network, all_networks=False, producer=False):
+def list_delivery_models(request, network, all_networks=False):
     """Propose to create a delivery based on a previous delivery."""
     nw = m.Network.objects.get(id=network)
     if all_networks:
@@ -427,8 +444,12 @@ def list_delivery_models(request, network, all_networks=False, producer=False):
         deliveries = m.Delivery.objects.filter(network__in=authorized_networks).select_related("network")
     else:
         deliveries = m.Delivery.objects.filter(network=nw)
-    if producer:
-        # Producer can only use their own commands as templates
+    is_producer = not request.user.is_staff and not m.NetworkMembership.objects.filter(
+        user=request.user,
+        is_staff=True,
+        valid_until=None
+    ).exists()
+    if is_producer: # Producer can only use their own commands as templates
         deliveries = deliveries.filter(producer_id=request.user.id)
 
     # Remove deliveries without products nor description

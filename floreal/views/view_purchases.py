@@ -41,7 +41,7 @@ def render_description(request, delivery, renderer, extension, subgroup=None, us
     # Permission
     if not user and not request.user.is_staff and not m.NetworkMembership.objects.filter(
         Q(is_staff=True) | Q(is_producer=True),
-        user=user, network=dv.network, valid_until=None
+        user=request.user, network=dv.network, valid_until=None
     ).exists():
         return HttpResponseForbidden(f"Pas autorisé pour {dv.network.name}")
 

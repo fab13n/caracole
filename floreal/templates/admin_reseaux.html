@@ -351,6 +351,7 @@
                         {% endfor %}
                     </select>
                 </td>
+                {% if nw.is_network_staff %}
                 <td>
                     <select class="button admin pseudo-menu" onchange="on_modify({{dv.id}}, event.target.value)">
                         <option value="none">Modifier...</option>
@@ -359,6 +360,7 @@
                         <option value="name">Le nom</option>
                     </select>
                 </td>
+                {% endif %}
                 <td>
                     <select class="button admin pseudo-menu" onchange="on_view({{dv.id}}, event.target.value)">
                         <option value="none">Voir...</option>

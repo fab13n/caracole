@@ -136,7 +136,9 @@ class FlorealUser(IdentifiedBySlug, Mapped):
     @cached_property
     def has_some_admin_rights(self):
         u = self.user
-        return u.is_staff or NetworkMembership.objects.filter(user_id=u.id, valid_until=None, is_staff=True).exists()
+        return u.is_staff or NetworkMembership.objects.filter(
+            Q(is_staff=True) | Q(is_producer=True),
+            user_id=u.id, valid_until=None, ).exists()
 
 
 class NetworkSubgroup(IdentifiedBySlug):
