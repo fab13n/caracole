@@ -313,7 +313,6 @@ class Delivery(IdentifiedBySlug):
     )
     freeze_date = models.DateField(null=True, blank=True, default=None)
     distribution_date = models.DateField(null=True, blank=True, default=None)
-    visible = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
