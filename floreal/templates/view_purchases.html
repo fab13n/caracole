@@ -128,16 +128,25 @@
   }
 
   async function load_delivery() {
+    let res = null;
     {% if subgroup %}
-    const res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id subgroup=subgroup.id %}");
+    res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id subgroup=subgroup.id %}");
     {% else %}
-    const res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id %}");
+    res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id %}");
     {% endif %}
-    DATA = await res.json();
-    if(DATA.subgroups) {
-      render_grouped(DATA);
+    console.log(res);
+    if( res.status === 404) {
+      $("#content").html(`
+      <h1> Aucun achat pour cette commande </h1>
+      <div><a class="button retour" href="javascript:history.back()">Retour</a></div>
+      `);
     } else {
-      render_flat(DATA);
+      DATA = await res.json();
+      if(DATA.subgroups) {
+        render_grouped(DATA);
+      } else {
+        render_flat(DATA);
+      }
     }
   }
 
@@ -155,7 +164,7 @@
 
 {% block content %}
 
-<section class="container margetopXl margebot">
+<section class="container margetopXl margebot" id="content">
 
 <h1>Commande « <span class="dv-name">...</span> »</h1>
 
