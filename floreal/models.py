@@ -4,7 +4,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.db.models.functions import Now
+from django.db.models.functions import TruncDate, Now
 from django.db import models
 from django.db.models import Sum, Q
 from html2text import html2text

@@ -547,7 +547,7 @@ def set_delivery_state(request, delivery, state):
         return HttpResponseBadRequest(state + " n'est pas un état valide.")
     dv.state = state
     if state >= m.Delivery.FROZEN and dv.freeze_date is None:
-        dv.freeze_date = m.Now()
+        dv.freeze_date = m.TruncDate(m.Now())
     dv.save()
     m.JournalEntry.log(request.user, "Set state=%s in dv-%d", state, dv.id)
 
