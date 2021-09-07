@@ -6,9 +6,9 @@ Voici le récapitulatif de vos commandes.
 
 {% load floreal_filters %}
 {% for delivery in purchases_by_delivery %}
-{{delivery.dv.name}}: {{delivery.total|price}}
+{{delivery.name}}: {{delivery.total|price}}
 ---
-{% for purchase in item.pcs %}
+{% for purchase in delivery.purchases %}
 - {{purchase}}{% endfor %}
 -------------------------------------------------------------------------------
 {% endfor %}
