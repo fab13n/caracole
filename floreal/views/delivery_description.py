@@ -27,7 +27,9 @@ from .. import models as m
 from abc import ABC, abstractmethod
 from functools import cached_property
 from django.db.models import QuerySet, Q
+from django.db.models.functions import Lower
 from decimal import Decimal
+
 
 T = TypeVar("T")
 
@@ -206,6 +208,7 @@ class FlatDeliveryDescription(object):
                         networkmembership__network_id=dv.network_id,
                         networkmembership__is_buyer = True
                     )
+                self.users = self.users.order_by(Lower("last_name"), Lower("first_name"))
             else:
                 raise NotImplementedError("Filter by subgroup")
                 self.users = subgroup.buyers

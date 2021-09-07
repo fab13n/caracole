@@ -14,6 +14,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils import html
 from django.template.context_processors import csrf, request
 from django.db.models import Count, Q
+from django.db.models.functions import Lower
 from openlocationcode import openlocationcode
 
 from villes import plus_code
@@ -178,7 +179,7 @@ def orders(request):
 
     messages = m.AdminMessage.objects.filter(
         network__in=networks
-    )
+    ).order_by("id")
 
     nw_by_id = {}
     dv_by_id = {}
@@ -626,7 +627,8 @@ def view_directory(request, network):
     for mb in (m.NetworkMembership.objects
         .filter(network_id=nw, valid_until=None)
         .select_related("user")
-        .select_related("user__florealuser")):
+        .select_related("user__florealuser")
+        .order_by(Lower("user__last_name"), Lower("user__first_name"))):
         if mb.is_staff:
             cat = 'Administrateurs'
         elif mb.is_producer:
