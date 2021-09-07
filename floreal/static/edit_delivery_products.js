@@ -348,10 +348,7 @@ async function load_delivery() {
   /* Upgrade widgets to bootstrap-select. */
   $("select").selectpicker;
 
-  /* Only fill the name for non-newly-created deliveries.
-   * For new ones the user has to set it explicitly. */
-  const url_params = new URLSearchParams(window.location.search);
-  if(! url_params.get('new')) { $("#dv-name").val(dv.name); }
+  $("#dv-name").val(dv.name);
 
   /* Generate and fill product rows */
   dv.products.forEach(pd => fill_row(add_row(), pd));

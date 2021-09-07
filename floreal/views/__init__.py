@@ -469,43 +469,13 @@ def list_delivery_models(request, network, all_networks=False):
 
 def create_delivery(request, network, dv_model=None):
 
-    """Create a new delivery, then redirect to its edition page."""
-    nw = get_network(network)
-
-    months = [
-        "Janvier",
-        "Février",
-        "Mars",
-        "Avril",
-        "Mai",
-        "Juin",
-        "Juillet",
-        "Août",
-        "Septembre",
-        "Octobre",
-        "Novembre",
-        "Décembre",
-    ]
-    now = datetime.now()
-    name = "%s %d" % (months[now.month - 1], now.year)
-    fmt = "%dème de " + name
-    n = 1
-    while m.Delivery.objects.filter(network=nw, name=name).exists():
-        n += 1
-        name = fmt % n
-    new_dv = m.Delivery.objects.create(
-        name=name, network=nw, state=m.Delivery.PREPARATION
-    )
     if dv_model:
         dv_model = m.Delivery.objects.get(id=dv_model)
-        new_dv.description = dv_model.description
-        new_dv.producer_id = dv_model.producer_id
-        new_dv.save()
-        for pd in dv_model.product_set.all():
-            pd.pk = None
-            pd.delivery_id = new_dv.id
-            pd.save()  # Will duplicate because pk==None
+    else:
+        dv_model = None
 
+    """Create a new delivery, then redirect to its edition page."""
+    nw = get_network(network)
     # Authorizations
     user = request.user
     if user.is_staff:
@@ -516,23 +486,51 @@ def create_delivery(request, network, dv_model=None):
         pass  # Network admin
     elif m.NetworkMembership.objects.filter(
         network=nw, user=user, is_producer=True, valid_until=None
-    ).exists():
-        # Network producer can only create deliveries for themselves
-        new_dv.producer_id = request.user.id
-        new_dv.save()
+    ).exists() and dv_model.producer_id == request.user.id:
+        pass  # Producers can only clone their own deliveries
     else:
         return HttpResponseForbidden("Must be admin or producer of this network")
+
+    if dv_model is not None:
+        new_dv = m.Delivery.objects.create(
+            name=dv_model.name, 
+            network=nw, 
+            state=m.Delivery.PREPARATION,
+            producer_id=dv_model.producer_id,
+            description=dv_model.description,
+        )
+        for pd in dv_model.product_set.all():
+            pd.pk = None
+            pd.delivery_id = new_dv.id
+            pd.save()  # Will duplicate because pk==None
+    else:
+        # Come up with a name, set producer if producer-created, and that's it
+        now = datetime.now()
+        months = 'Janvier Février Mars Avril Mai Juin Juillet Août Septembre Octobre Novembre Décembre'.split()
+
+        name = "%s %d" % (months[now.month - 1], now.year)
+        fmt = "%dème de " + name
+        n = 1
+        while m.Delivery.objects.filter(network=nw, name=name).exists():
+            n += 1
+            name = fmt % n
+        new_dv = m.Delivery.objects.create(
+            name=name, 
+            network=nw, 
+            state=m.Delivery.PREPARATION,
+        )
+        
 
     m.JournalEntry.log(
         request.user,
         "Created new delivery dv-%d %s in nw-%d %s",
         new_dv.id,
-        name,
+        new_dv.name,
         nw.id,
         nw.name,
     )
     return redirect(
-        reverse("edit_delivery_products", kwargs={"delivery": new_dv.id}) + "?new=true"
+        reverse("edit_delivery_products", kwargs={"delivery": new_dv.id})
     )
 
 def set_delivery_state(request, delivery, state):
