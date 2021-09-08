@@ -131,6 +131,10 @@ def admin(request):
                 valid_until=None)
         .select_related("user")
     )
+    deliveries_without_purchase = {dv.id for dv in m.Delivery.objects
+        .exclude(state='E')
+        .exclude(product__purchase__isnull=False)
+    }
 
     jnetworks = {}
 
@@ -162,7 +166,8 @@ def admin(request):
             "name": dv.name,
             "freeze_date": dv.freeze_date,
             "distribution_date": dv.distribution_date,
-            "producer": dv.producer
+            "producer": dv.producer,
+            "has_purchases": dv.id not in deliveries_without_purchase,
         }
         if dv.state in "BCD":
             jnw["active_deliveries"] += 1

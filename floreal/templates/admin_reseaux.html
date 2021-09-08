@@ -364,12 +364,18 @@
                 </td>
                 {% endif %}
                 <td>
+                    {% if dv.has_purchases %}
                     <select class="button admin pseudo-menu" onchange="on_view({{dv.id}}, event.target.value)">
                         <option value="none">Voir...</option>
                         <option value="online">En ligne</option>
                         <option value="table">En tableau à imprimer</option>
                         <option value="cards">En cartes à imprimer</option>
                     </select>
+                    {% else %}
+                    <select class="button admin">
+                        <option value="cards">Aucun achat</option>
+                    </select>
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}

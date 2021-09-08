@@ -29,25 +29,26 @@ def non_html_response(name_bits, name_extension, content):
 
 def invoice_mail_form(request, network):
     nw = get_network(network)
-    deliveries = m.Delivery.objects.filter(network_id=network, state=m.Delivery.FROZEN)
+    
     if request.method == "POST":
         P = request.POST
         recipients = {u.strip() for u in P["recipients"].split(",")}
         return send_invoice_mail(
-            request, deliveries, recipients, P["subject"], P["body"]
+            request, network, recipients, P["subject"], P["body"]
         )
-    elif not deliveries:
-        return HttpResponse(
-            "Aucune commande actuellement gelée dans le réseau" + nw.name
-        )
-    else:
+    else:        
+        deliveries = m.Delivery.objects.filter(network_id=network, state=m.Delivery.FROZEN)
+        if not deliveries:
+            return HttpResponse("Aucune commande actuellement gelée dans le réseau" + nw.name)
         vars = {
             "nw": nw,
             "user": request.user,
             "deliveries": deliveries,
             "recipients": m.User.objects.filter(
-                purchase__product__delivery__state=m.Delivery.FROZEN, is_active=True
-            ),
+                purchase__product__delivery__network=nw,
+                purchase__product__delivery__state=m.Delivery.FROZEN, 
+                is_active=True
+            ).distinct(),
             "subject": "Commande " + nw.name,
             "body": get_template("invoice_mail.txt").template.source,
         }
@@ -55,26 +56,25 @@ def invoice_mail_form(request, network):
         return render(request, "invoice_mail_form.html", vars)
 
 
-def send_invoice_mail(request, deliveries, recipients, subject, body):
-    r = {}  # u -> dv -> [pc+]
-    t = {}  # (u, dv) -> total
+def send_invoice_mail(request, network, recipients, subject, body):
 
-    dv_dict = {dv.id: dv for dv in deliveries}
-    purchases_by_user_and_delivery = {}  # user.id -> { user, deliveries: dv.id -> {name, purchases, total}}
+    purchases_by_user_and_delivery = {
+        u.email: { 
+            'user': u, 
+            'network': network, 
+            'purchases_by_delivery': {}  # dv.id -> {name, purchases, total}
+        }
+        for u in m.User.objects.filter(email__in=recipients)
+    }
 
     for pc in m.Purchase.objects.filter(
-        product__delivery__in=deliveries,
+        product__delivery__network=network,
+        product__delivery__state=m.Delivery.FROZEN,
     ).select_related("user", "product", "product__delivery", "product__delivery__network"):
         pd = pc.product
-        if (ju := purchases_by_user_and_delivery.get(pc.user_id)) is None:
-            # print("New user ", pc.user)
-            ju = purchases_by_user_and_delivery[pc.user_id] = {
-                'user': pc.user, 
-                'network': pd.delivery.network,
-                'purchases_by_delivery': (purchases_by_delivery := {})
-            }
-        else:
-            purchases_by_delivery = ju['purchases_by_delivery']
+        if (ju := purchases_by_user_and_delivery.get(pc.user.email)) is None:
+            continue  # User discarded
+        purchases_by_delivery = ju['purchases_by_delivery']
         if (jdv := purchases_by_delivery.get(pd.delivery_id)) is None:
             # print("New delivery ", pd.delivery, " for user ", pc.user)
             jdv = purchases_by_delivery[pd.delivery_id] = {
