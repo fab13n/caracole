@@ -173,11 +173,11 @@ def user_update(request):
             attr = "is_" + key
             old_val = getattr(old_nm, attr, False)
             new_val = nw_id in data[key]
-            if old_val != new_val:
-                setattr(new_nm, attr, new_val)
+            if bool(old_val) != bool(new_val):
                 some_fields_changed = True
             if new_val:
                 some_fields_true = True
+            setattr(new_nm, attr, new_val)
 
         if some_fields_changed:
             if old_nm is not None:
