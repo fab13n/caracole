@@ -174,7 +174,14 @@
   }
 
   /* TODO: add multiplication/pluralization when applicable. */
-  function render_unit(u) { return u; }
+  function render_unit(u) { 
+    const k=u[0];
+    if("0" <= k && k <= "9") {
+      return "×" + u;
+    } else {
+      return u; 
+    }
+  }
 
   function render_date(txt, options={}) {
     return new Intl.DateTimeFormat('fr', {day: 'numeric', month: 'short', ...options}).format(new Date(txt));
