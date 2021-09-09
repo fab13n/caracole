@@ -15,6 +15,8 @@ from . import latex
 from .spreadsheet import spreadsheet
 from .delivery_description import FlatDeliveryDescription, GroupedDeliveryDescription, UserDeliveryDescription
 from .. import models as m
+from .latex import render_latex
+
 
 MIME_TYPE = {
     'json': "text/json", # TODO check correct name
