@@ -75,9 +75,16 @@ def index(request):
             )
             nm.has_open_orders = hoo
 
+        number_of_deliveries = m.Delivery.objects.filter(
+            state=m.Delivery.ORDERING_ALL,
+            network__networkmembership__user=request.user,
+            network__networkmembership__valid_until=None,
+            network__networkmembership__is_buyer=True,
+        ).count()
         vars = {
             "user": request.user,
             "accueil": accueil,
+            "number_of_deliveries": number_of_deliveries,
             "memberships": mbships,
             "unsubscribed": m.Network.objects \
                 .exclude(members=request.user) \
@@ -97,6 +104,7 @@ def admin(request):
             networkmembership__is_staff=True,
             networkmembership__valid_until=None,
         )
+        messages = m.AdminMessage.objects.filter(network_id=only)
         is_network_staff = {int(only): True}
     elif request.user.is_staff:
         networks = m.Network.objects.filter(active=True)
@@ -124,6 +132,11 @@ def admin(request):
     deliveries = (m.Delivery.objects
         .filter(network__in=networks, state__in="ABCD")
         .select_related("producer")
+    ).order_by(
+        "state",
+        "distribution_date",
+        "freeze_date",
+        "id"
     )
     candidacies = (m.NetworkMembership.objects
         .filter(network__in=networks,
@@ -294,42 +307,6 @@ def reseau(request, network):
     }
     return render(request, "reseau.html", vars)
 
-
-
-@nw_admin_required()
-def network_admin(request, network):
-    user = request.user
-    nw = get_network(network)
-    vars = {
-        "user": user,
-        "nw": nw,
-        "deliveries": m.Delivery.objects.filter(network=nw).exclude(
-            state=m.Delivery.TERMINATED
-        ),
-        "Delivery": m.Delivery,
-    }
-    return render(request, "network_admin.html", vars)
-
-
-def producer(request, network):
-    vars = {
-        "Delivery": m.Delivery,
-        "deliveries": m.Delivery.objects.filter(
-            network_id=network,
-            state__in=(
-                m.Delivery.PREPARATION,
-                m.Delivery.ORDERING_ALL,
-                m.Delivery.ORDERING_ADMIN,
-            ),
-        ),
-        "user": request.user,
-        "network": get_network(network),
-    }
-    if not vars["network"].producers.filter(id=vars["user"].id).exists():
-        raise ValueError("Forbidden")
-    return render(request, "producer.html", vars)
-
-
 def _dv_has_no_purchase(dv):
     # for pd in dv.product_set.all():
     #     if pd.purchase_set.exists():
@@ -466,7 +443,7 @@ def list_delivery_models(request, network, all_networks=False):
         "user": request.user,
         "nw": nw,
         "all_networks": all_networks,
-        "producer": producer,
+        "producer": request.user if is_producer else None,
         "deliveries": deliveries.order_by("network", "-id"),
     }
     return render(request, "list_delivery_models.html", vars)

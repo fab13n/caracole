@@ -15,6 +15,12 @@
         z-index: 100000;
     }
 
+    @media (max-width: 980px) {
+        .top-links {
+            top: 60px;
+        }
+    }
+
     .top-links li::before {
         top: 6px;
     }
@@ -88,8 +94,10 @@
 
     function rename_delivery(dv_id, dv_name) {
         const new_name = window.prompt(`Renommer la commande ${dv_name} :`, dv_name);
-        const url = "{% url 'set_delivery_name' delivery='DVID' name='NAME' %}".replace('DVID', dv_id).replace('NAME', new_name);
         if (new_name) {
+            const url = "{% url 'set_delivery_name' delivery='9999' name='NAME' %}"
+                .replace('9999', dv_id)
+                .replace('NAME', encodeURIComponent(new_name));
             $.ajax(url, { success: function () { window.location.reload(); } });
         }
     }
@@ -341,7 +349,7 @@
                             {% endif %}
                             <span class='dv-name'>{{dv.name}}</span>
                             {% if dv.producer %}
-                            - {{dv.producer.first_name}} {{dv.producer.last_name}}
+                            | {{dv.producer.first_name}} {{dv.producer.last_name}}
                             {% endif %}
                         </strong>
                 </td>
@@ -372,8 +380,8 @@
                         <option value="cards">En cartes à imprimer</option>
                     </select>
                     {% else %}
-                    <select class="button admin">
-                        <option value="cards">Aucun achat</option>
+                    <select class="button admin" disabled="disabled">
+                        <option value="cards">Encore aucun achat</option>
                     </select>
                     {% endif %}
                 </td>

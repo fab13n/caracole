@@ -6,7 +6,7 @@ from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 import json
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Set
 
 from django.conf import settings
 from .decorators import nw_admin_required
@@ -110,49 +110,46 @@ def view_purchases_json(request, delivery, subgroup=None, user: bool = False):
     )
 
 
-@nw_admin_required()
 def all_deliveries(request, network, states):
+
+    if request.user.is_staff:
+        pass # Global admin
+    elif m.NetworkMembership.objects.filter(
+        is_staff=True,
+        user=request.user,
+        valid_until=None,
+        network_id=int(network)
+    ).exists():
+        pass  # Admin for this network
+    else:
+        raise ValueError("Accès interdit")
+
     nw = get_network(network)
 
-    if False:
-        # TODO the whole thing could be done in a single query as follows,
-        # with the main issue being that only the user and delivery ids,
-        # not actual objects, are extracted by .values().
-        q = (m.Purchase.objects.filter(
-                product__delivery__state__in=states, 
-                product__delivery__network=nw)
-                .values('user', 'product__delivery')
-                .distinct()
-        )
-        # This allows to get back full objects quickly, but that's still ugly
-        deliveries = m.Delivery.objects.filter(id__in=[x['product_delivery'] for x in q])
-        users = m.User.objects.filter(id__in=[x['user'] for x in q])
-    
+    purchases = (m.Purchase.objects.filter(
+            product__delivery__state__in=states, 
+            product__delivery__network=nw)
+            .select_related('user', 'product__delivery')
+            .distinct()
+    )
 
-    deliveries = list(m.Delivery.objects.filter(network=nw, state__in=states))
-    users = m.User.objects.filter(member_of_network=nw, is_active=True)
+    all_deliveries = m.Delivery.objects.filter(network=nw, state__in=states)
 
-    # u_id -> dv -> has_purchased
-    users_with_purchases = {u: {dv: False for dv in deliveries} for u in users}
+    # User -> set of devliveries where he ordered
+    d: Dict[m.User, Set[m.Delivery]] = {}
 
-    for dv in deliveries:
-        # TODO here's the nasty query-in-a-loop
-        for u in users.filter(purchase__product__delivery=dv).distinct():
-            users_with_purchases[u][dv] = True
-
-    # Remove users with no purchases in any selected delivery
-    users_with_purchases = {
-        u: dv_pc
-        for u, dv_pc in users_with_purchases.items()
-        if any(v for v in dv_pc.values())
-    }
-            
+    for pc in purchases:
+        dv = pc.product.delivery
+        if (deliveries := d.get(pc.user)) is None:
+            deliveries = d[pc.user] = {dv}
+        else:
+            deliveries.add(dv)
+ 
     t: List[Tuple[m.User, List[Tuple[m.Delivery, bool]]]] = [
-            (u, [(dv, dv_pc[dv]) 
-            for dv in deliveries]) 
-            for u, dv_pc in users_with_purchases.items()
+        (u, [(dv, dv in with_purchases) for dv in all_deliveries])
+        for u, with_purchases in d.items()
     ]
-    t.sort(key=lambda x: (x[0].last_name, x[0].first_name))
+    t.sort(key=lambda x: (x[0].last_name.lower(), x[0].first_name.lower()))
 
     return {'states': states, 'network': nw, 'table': t}
 

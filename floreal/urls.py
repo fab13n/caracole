@@ -88,7 +88,7 @@ urlpatterns = [
 
     # API calls
     path('dv-<id:delivery>/set-state/<state>', views.set_delivery_state, name='set_delivery_state'),
-    path('dv-<id:delivery>/set-name/<name>', views.set_delivery_name, name='set_delivery_name'),
+    re_path(r'^dv-(?P<delivery>[0-9]+)/set-name/(?P<name>.*)$', views.set_delivery_name, name='set_delivery_name'),
     path('set-message', views.set_message, name='set_message'),
     path('unset-message/<id:id>', views.unset_message, name='unset_message'),
     path('nw-<id:network>/set-visibility/<val>', views.set_network_visibility, name='set_network_visibility'),

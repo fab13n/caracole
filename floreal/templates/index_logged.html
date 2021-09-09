@@ -2,7 +2,14 @@
 {% load static %}
 {% load floreal_filters %}
 
-{% block document_ready %}
+{% block head %}
+{% if number_of_deliveries %}
+<script type='text/javascript'>
+$(document).ready(() =>
+  $('nav .orders a').append(`&nbsp;<span class="badge badge-pill badge-danger">{{number_of_deliveries}}</span>`)
+)
+</script>
+{% endif %}
 {% endblock %}
 
 {% block content %}

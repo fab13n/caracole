@@ -68,12 +68,12 @@
       </div>
       <ul>
         {% block header_items %}
-        <li class="current_page_item"><a href="{% url 'index' %}">Accueil</a></li>
-        <li><a href="{% url 'orders' %}">Commandes</a></li>
+        <li class="index current_page_item"><a href="{% url 'index' %}">Accueil</a></li>
+        <li class="orders"><a href="{% url 'orders' %}">Commandes</a></li>
 	      {% endblock %}
 	
-        <li><a href="{% url 'map' %}">Carte des réseaux</a></li>
-        <li><a href="" onclick='alert("Coming soon ☺");'>Lancez votre réseau !</a></li>
+        <li class="map"><a href="{% url 'map' %}">Carte des réseaux</a></li>
+        <li class="ressources"><a href="" onclick='alert("Coming soon ☺");'>Lancez votre réseau !</a></li>
         
         {% if not user.is_anonymous %}
         <li><a href="{% url 'user' %}">Mon compte<span class="loggedin"> : {{user.first_name}} {{user.last_name}}</span></a></li>
