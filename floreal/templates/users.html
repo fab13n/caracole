@@ -153,6 +153,9 @@
       )
     );
     $(`[name=is_staff]`).bootstrapToggle(u.is_staff ? "on" : "off");
+    ["first_name", "last_name", "florealuser__phone", "email"].forEach((name) => 
+      $(`[name=${name}]`).val(u[name])
+    );
     $("#save").prop("disabled", true); // will be re-enabled upon modification
   }
 
@@ -227,6 +230,14 @@
       result['is_staff'] = $("[name=is_staff]")[0].checked;
     }
 
+    {% if user.is_staff %}
+    $("input.identity").each((i, input) => {
+      const name = $(input).attr('name');
+      const val = $(input).val();
+      result[name] = val;
+    });
+    {% endif %}
+
     return result;
   }
 
@@ -263,7 +274,19 @@
     </select>
   </p>
 
-  <a href="#" id="edit-description" target="_blank">Éditer la Description de l'utilisateur / producteur</a>
+  <table>
+  <tr>
+    <td colspan="2">
+      <a href="#" id="edit-description" target="_blank">Éditer la Description de l'utilisateur / producteur</a>
+    </td>
+  </tr>
+  {% if user.is_staff %}
+  <tr><th>Nom</th><td><input type="text" name="first_name" class="user-modifier identity"/></td></tr>
+  <tr><th>Prénom</th><td><input type="text" name="last_name" class="user-modifier identity"/></td></tr>
+  <tr><th>Téléphone</th><td><input type="text" name="florealuser__phone" class="user-modifier identity"/></td></tr>
+  <tr><th>Mail</th><td><input type="text" name="email" class="user-modifier identity"/></td></tr>
+  {% endif %} 
+</table>
 
   <table id="user-form"></table>
 </section>

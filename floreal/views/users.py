@@ -63,7 +63,7 @@ def users_get(request):
             # "florealuser__image_description",
             # "florealuser__latitude",
             # "florealuser__longitude",
-            # "florealuser__phone",
+            "florealuser__phone",
         )
     }
 
@@ -131,30 +131,20 @@ def user_update(request):
         user.is_staff = data["is_staff"]
         user.save()
 
-    # fu = user.florealuser
-    # if fu is None:
-    #     fu = m.FlorealUser.objects.create(user=user)
-    #     user.refresh_from_db()
+    if request.user.is_staff:
+        user.florealuser.phone = data["florealuser__phone"]
+        user.florealuser.save()
 
-    # fu.latitude = float(data["florealuser__latitude"])
-    # fu.longitude = float(data["florealuser__longitude"])
-    # fu.phone = data["florealuser__phone"]
-    # fu.description = data["florealuser__description"]
-
-    # # handle image_description
-    # img = data.get("florealuser__image_description")
-    # if img is not None:
-    #     img = data["florealuser__image_description"]
-    #     content = img["content"].encode("latin1")
-    #     reader = io.BytesIO(content)
-    #     fu.image_description.save(img["name"], reader)
-
-    # fu.save()
+        user.email = user.username = data["email"]
+        user.first_name = data["first_name"]
+        user.last_name = data["last_name"]
+        user.save()
 
     for nw_id in network_ids:
 
         # TODO: get all memberships in a single request
         # .filter(user=user, valid_until=None, network_id__in=network_ids)
+        # out of the loop, then retrieve the matching network in each loop iteration.
 
         old_nm = m.NetworkMembership.objects.filter(
             user=user,
