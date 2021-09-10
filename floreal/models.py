@@ -98,7 +98,7 @@ class FlorealUser(IdentifiedBySlug, Mapped):
     pseudonym = models.CharField(max_length=User.username.field.max_length, null=True, blank=True, default=None)
 
     def __str__(self):
-        return self.pseudonym
+        return self.pseudonym or f"{self.user.first_name} {self.user.last_name}"
 
     def slug_prefix(self):
         return slugify(f"{self.user.first_name} {self.user.last_name}")
