@@ -16,6 +16,7 @@ from django.template.context_processors import csrf, request
 from django.db.models import Count, Q
 from django.db.models.functions import Lower
 from openlocationcode import openlocationcode
+import pytz
 
 from villes import plus_code
 from pages.models import TexteDAccueil
@@ -696,12 +697,14 @@ def journal(request):
     days = []
     current_day = None
     n = request.GET.get('n', 1024)
+    tz = pytz.timezone(settings.TIME_ZONE)
     for entry in m.JournalEntry.objects.all().select_related("user").order_by("-date")[:n]:
-        today = entry.date.strftime("%x")
+        date = entry.date.astimezone(tz)
+        today = date.strftime("%x")
         action = journal_link_re.sub(add_link_to_actions, html.escape(entry.action))
         record = {
             "user": entry.user,
-            "hour": entry.date.strftime("%XZ"),
+            "hour": date.strftime("%X"),
             "action": action,
         }
         if not current_day or current_day["day"] != today:
