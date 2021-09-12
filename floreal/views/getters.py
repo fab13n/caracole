@@ -4,6 +4,9 @@
 from numbers import Number
 
 from floreal import models as m
+from django.core.exceptions import PermissionDenied
+from typing import Union, Optional
+from django.db.models import Q
 
 
 def model_getter(cls):
@@ -21,3 +24,50 @@ get_network = model_getter(m.Network)
 get_delivery = model_getter(m.Delivery)
 get_subgroup = model_getter(m.NetworkSubgroup)
 get_user = model_getter(m.User)
+
+def must_be_staff(request, network: Union[m.Network, int, str, None] = None) -> None:
+    if network is None:
+        pass
+    elif isinstance(network, m.Network):
+        pass
+    else:
+        network = m.Network.objects.get(id=network)
+    
+    u = request.user
+    if network is None and not u.is_staff:
+        raise PermissionDenied
+    
+    nm = m.NetworkMembership.objects.filter(
+        is_staff=True,
+        user=u,
+        valid_until=None,
+        network=network
+    )
+
+    if not nm.exists():
+        raise PermissionDenied
+
+
+def must_be_prod_or_staff(request, network=None):
+    if network is None:
+        pass
+    elif isinstance(network, m.Network):
+        pass
+    else:
+        network = m.Network.objects.get(id=network)
+    
+    u = request.user
+    if network is None and not u.is_staff:
+        raise PermissionDenied
+    
+    nm = m.NetworkMembership.objects.filter(
+        Q(is_staff=True) | Q(is_producer=True),
+        user=u,
+        valid_until=None,
+        network=network
+    ).first()
+
+    if nm is not None:
+        return "staff" if nm.is_staff else "producer"
+    else:
+        raise PermissionDenied

@@ -14,8 +14,7 @@ from io import BytesIO
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from PIL import Image
 
-from .getters import get_delivery
-from .decorators import nw_admin_required
+from .getters import get_delivery, must_be_staff, must_be_prod_or_staff
 from .. import models as m
 from ..penury import set_limit
 from django.http import JsonResponse
@@ -42,15 +41,9 @@ def _serialize_product(pd):
 def delivery_products_json(request, delivery):
     # TODO: this ought to be a delivery_description
     dv = get_delivery(delivery)
-    is_staff = request.user.is_staff or m.NetworkMembership.objects.filter(
-        user=request.user, valid_until=None, network_id=dv.network_id, is_staff=True
-    ).exists()
-    is_producer = dv.producer_id == request.user.id
-
-    if not is_staff and not is_producer:
-        return HttpResponseForbidden("Réservé aux admins ou au producteur")
+    which = must_be_prod_or_staff(request, dv.network)
     
-    if is_staff:
+    if which == "staff":
         # If I'm staff, I can choose any producer I want
         dv_producers = m.User.objects.filter(
             networkmembership__network_id=dv.network_id,
@@ -67,12 +60,12 @@ def delivery_products_json(request, delivery):
                 if item['id'] == dv.producer_id:
                     item["selected"] = True
                     break
-    elif is_producer:
+    elif which == "producer":
         # If I'm not staff but I'm the producer, I can't change the choice
         u = dv.producer
         producers = [{"id": u.id, "name": u.first_name+" "+u.last_name, "selected": True}]
     else:
-        return HttpResponseForbidden("Admins and producers only")
+        assert False
 
     return JsonResponse({
         'id': dv.id,
@@ -93,16 +86,10 @@ def edit_delivery_products(request, delivery):
     # Check authorizations: reserved to this network's staff and producers    
 
     dv = get_delivery(delivery)
-    is_staff = request.user.is_staff or m.NetworkMembership.objects.filter(
-        user=request.user, valid_until=None, network_id=dv.network_id, is_staff=True
-    ).exists()
-    is_producer = dv.producer_id == request.user.id
-
-    if not is_staff and not is_producer:
-        return HttpResponseForbidden("Réservé aux admins ou au producteur")
+    which = must_be_prod_or_staff(request, dv.network)
 
     if request.method == 'POST':  # Handle submitted data
-        _parse_form(request, is_staff)
+        _parse_form(request, which == "staff")
         m.JournalEntry.log(request.user, "Edited products for delivery dv-%d", dv.id)
         if request.POST['then_leave'].lower() == 'true':
             return redirect(reverse('admin') + f"#nw-{dv.network_id}")
@@ -110,7 +97,7 @@ def edit_delivery_products(request, delivery):
             return redirect('edit_delivery_products', dv.id)  # TODO retrieve URL from request?
 
     else:  # Create and populate forms to render
-        vars = {'user': request.user, 'delivery': dv, 'is_producer': is_producer}
+        vars = {'user': request.user, 'delivery': dv, 'is_producer': which == "producer"}
         vars.update(csrf(request))
         return render(request,'edit_delivery_products.html', vars)
 

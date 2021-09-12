@@ -97,11 +97,7 @@ urlpatterns = [
     path('candidacy/nw-<network>/u-<user>/set-response/<response>', views.validate_candidacy, name='validate_candidacy'),
     path('nw-<id:network>/leave', views.leave_network, name='leave_network'),
     path('candidacy/nw-<id:network>', views.create_candidacy, name='create_candidacy'),
-
-    # No more archiving, let's give dates to memberships instead!
-    # path('dv-<id:delivery>/archive.<suffix>', views.get_archive, name='get_archive'),
  
-    # path('candidacy', views.candidacy, name='candidacy'),
     path('candidacy/staff', views.manage_candidacies, name='manage_candidacies'),
 
     path('dv-<id:delivery>.html', views.view_purchases_html, name='view_delivery_purchases_html'),
@@ -125,7 +121,6 @@ urlpatterns = [
  
     path('accounts/register', views.user_register, name="user_register"),
     path('accounts/update', views.user_update, name="user_update"),
-    # path('accounts/registration_post.html', views.candidacy, name="registration_post"),
     # TODO Test usefulness of final /
     re_path('^accounts/password/reset/?$', PasswordResetView.as_view(), name="password_reset"),
     re_path('^accounts/password/reset_done/?$', PasswordResetDoneView.as_view(), name="password_reset_done"),

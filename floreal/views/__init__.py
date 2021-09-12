@@ -22,8 +22,7 @@ from villes import plus_code
 from pages.models import TexteDAccueil
 
 from .. import models as m
-from .getters import get_network, get_delivery
-from .decorators import nw_admin_required, regulator_required
+from .getters import get_network, get_delivery, must_be_prod_or_staff, must_be_staff
 
 from .edit_delivery_purchases import edit_delivery_purchases
 from .buy import buy
@@ -35,13 +34,11 @@ from .view_purchases import (
     view_purchases_xlsx,
     view_purchases_latex_cards,
     view_purchases_json,
-    get_archive,
     all_deliveries_html,
     all_deliveries_latex,
 )
 from .spreadsheet import spreadsheet
 from .candidacies import (
-    candidacy,
     cancel_candidacy,
     validate_candidacy,
     leave_network,
@@ -51,6 +48,7 @@ from .candidacies import (
 from .invoice_mail import invoice_mail_form
 from .users import users_json, users_html
 from . import delivery_description as dd
+from . import latex
 
 
 def index(request):
@@ -98,6 +96,8 @@ def index(request):
 from collections import defaultdict
 
 def admin(request):
+    if request.user.is_anonymous:
+        return HttpResponseForbidden("Réservé aux administrateurs et producteurs")
     if (only := request.GET.get('only')):
         networks = m.Network.objects.filter(
             id=only,
@@ -108,10 +108,12 @@ def admin(request):
         messages = m.AdminMessage.objects.filter(network_id=only)
         is_network_staff = {int(only): True}
     elif request.user.is_staff:
+        # Global staff
         networks = m.Network.objects.filter(active=True)
         messages = m.AdminMessage.objects.all()
         is_network_staff = defaultdict(lambda: True)
     else:
+        # Only staff / prod of some networks
         staff_networks = (m.Network.objects
             .filter(networkmembership__is_staff=True,
                     active=True,
@@ -317,8 +319,9 @@ def _dv_has_no_purchase(dv):
         product__delivery=dv,
     ).exists()
 
-@nw_admin_required()
+
 def archived_deliveries(request, network):
+    must_be_prod_or_staff(request, network)
     user = request.user
     nw = get_network(network)
     vars = {"user": user, "nw": nw}
@@ -331,9 +334,9 @@ def archived_deliveries(request, network):
     return render(request, "archived_deliveries.html", vars)
 
 
-@nw_admin_required()
 def delete_archived_delivery(request, delivery):
     dv = get_delivery(delivery)
+    must_be_prod_or_staff(request, dv.network)
     if not _dv_has_no_purchase(dv):
         return HttpResponseForbidden(
             "Cette commande n'est pas vide, passer par l'admin DB"
@@ -351,9 +354,9 @@ def delete_archived_delivery(request, delivery):
     return redirect(target) if target else redirect("archived_deliveries", nw.id)
 
 
-@nw_admin_required()
 def delete_all_archived_deliveries(request, network):
     nw = get_network(network)
+    must_be_prod_or_staff(request, nw)
     deliveries = m.Delivery.objects.filter(network=nw, state=m.Delivery.TERMINATED)
     ids = []  # For logging purposes
     for dv in deliveries:
@@ -387,58 +390,30 @@ def create_network(request, nw_name):
     return redirect(target) if target else redirect("network_admin", network=nw.id)
 
 
-def edit_delivery_staff(request, delivery):
-    """Edit a delivery as a full network admin: act upon its lifecycle, control which subgroups have been validated,
-    change the products characteristics, change other users' orders."""
-    dv = m.Delivery.objects.get(id=delivery)
-    if not m.NetworkMembership.objects.filter(
-        user=request.user, network=dv.network, is_staff=True, valid_until=None
-    ).exists():
-        HttpResponseForbidden("Réservé aux admins")
-    vars = {
-        "user": request.user,
-        "dv": dv,
-        "network": dv.network,
-        "Delivery": m.Delivery,
-        "steps": [
-            {
-                "s": s,
-                "text": m.Delivery.STATE_CHOICES[s],
-                "is_done": dv.state >= s,
-                "is_current": dv.state == s,
-            }
-            for s in "ABCDE"
-        ],
-        "CAN_EDIT_PURCHASES": dv.state
-        in [m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN],
-        "CAN_EDIT_PRODUCTS": dv.state != m.Delivery.TERMINATED,
-    }
-    return render(request, "edit_delivery_staff.html", vars)
-
-
 def list_delivery_models(request, network, all_networks=False):
-    """Propose to create a delivery based on a previous delivery."""
+    """Propose to create a delivery based on a previous delivery.
+    Can draw models from a signle network, or from eveyr network one's
+    staff or producer of.
+    """
     nw = m.Network.objects.get(id=network)
     if all_networks:
         authorized_networks = m.Network.objects.filter(
-            networkmembership__user=request.user, 
             networkmembership__is_staff=True,
+            networkmembership__user=request.user, 
             networkmembership__valid_until=None)
         deliveries = m.Delivery.objects.filter(network__in=authorized_networks).select_related("network")
+        is_producer = False
     else:
+        which = must_be_prod_or_staff(request, nw)
         deliveries = m.Delivery.objects.filter(network=nw)
-    is_producer = not request.user.is_staff and not m.NetworkMembership.objects.filter(
-        user=request.user,
-        is_staff=True,
-        valid_until=None
-    ).exists()
-    if is_producer: # Producer can only use their own commands as templates
-        deliveries = deliveries.filter(producer_id=request.user.id)
+        if which == "producer":
+            deliveries = deliveries.filter(producer_id=request.user.id)
 
     # Remove deliveries without products nor description
-    deliveries = deliveries \
-        .filter(Q(product__isnull=False)|Q(description__isnull=False)) \
+    deliveries = (deliveries 
+        .filter(Q(product__isnull=False)|Q(description__isnull=False))
         .distinct()
+    )
 
     vars = {
         "user": request.user,
@@ -459,20 +434,9 @@ def create_delivery(request, network, dv_model=None):
 
     """Create a new delivery, then redirect to its edition page."""
     nw = get_network(network)
-    # Authorizations
-    user = request.user
-    if user.is_staff:
-        pass  # Global admin
-    elif m.NetworkMembership.objects.filter(
-        network=nw, user=user, is_staff=True, valid_until=None
-    ).exists():
-        pass  # Network admin
-    elif m.NetworkMembership.objects.filter(
-        network=nw, user=user, is_producer=True, valid_until=None
-    ).exists() and dv_model.producer_id == request.user.id:
-        pass  # Producers can only clone their own deliveries
-    else:
-        return HttpResponseForbidden("Must be admin or producer of this network")
+    which = must_be_prod_or_staff(request, nw)
+    if which == "producer" and dv_model.producer_id != request.user.id:
+        return HttpResponseForbidden("Les producteurs ne peuvent cloner que leurs propres commandes")
 
     if dv_model is not None:
         new_dv = m.Delivery.objects.create(
@@ -502,7 +466,6 @@ def create_delivery(request, network, dv_model=None):
             network=nw, 
             state=m.Delivery.PREPARATION,
         )
-        
 
     m.JournalEntry.log(
         request.user,
@@ -516,14 +479,10 @@ def create_delivery(request, network, dv_model=None):
         reverse("edit_delivery_products", kwargs={"delivery": new_dv.id})
     )
 
+
 def set_delivery_state(request, delivery, state):
     dv = get_delivery(delivery)
-    if not request.user.is_staff and not m.NetworkMembership.objects.filter(
-        user=request.user, network=dv.network, is_staff=True, valid_until=None
-    ).exists():
-        return HttpResponseForbidden(
-            "Réservé aux administrateurs du réseau " + dv.network.name
-        )
+    must_be_prod_or_staff(request, delivery.network)
     if state not in m.Delivery.STATE_CHOICES:
         return HttpResponseBadRequest(state + " n'est pas un état valide.")
     dv.state = state
@@ -538,16 +497,12 @@ def set_delivery_state(request, delivery, state):
 
     return _set_delivery_field(request, delivery, 'state', state)
 
+
 def _set_network_field(request, network, name, val):
     """Change a delivery's state."""
     nw = get_network(network)
-    if not m.NetworkMembership.objects.filter(
-        user=request.user, network=network, is_staff=True, valid_until=None
-    ).exists():
-        return HttpResponseForbidden(
-            "Réservé aux administrateurs du réseau " + network.name
-        )
-
+    must_be_prod_or_staff(request, nw)
+    
     setattr(nw, name, val)
     nw.save()
     m.JournalEntry.log(
@@ -566,10 +521,10 @@ def set_network_validation(request, network, val):
     b = val.lower() in ('on', 'true', '1')
     return _set_network_field(request, network, 'auto_validate', b)
 
-@nw_admin_required(lambda a: get_delivery(a["delivery"]).network)
 def set_delivery_name(request, delivery, name):
     """Change a delivery's name."""
     dv = get_delivery(delivery)
+    must_be_prod_or_staff(request, dv.network)
     prev_name = dv.name
     dv.name = name
     dv.save()
@@ -585,37 +540,24 @@ def set_delivery_name(request, delivery, name):
     return HttpResponse("")
 
 
-def save_delivery(dv):
-    """Save an Excel spreadsheet and a PDF table of a delivery that's just been completed."""
-    file_name_xlsx = os.path.join(settings.DELIVERY_ARCHIVE_DIR, "dv-%d.xlsx" % dv.id)
-    with open(file_name_xlsx, "wb") as f:
-        f.write(spreadsheet(dv, [dv.network]))
-    # file_name_pdf = os.path.join(settings.DELIVERY_ARCHIVE_DIR, "dv-%d.pdf" % dv.id)
-    # with open(file_name_pdf, 'wb') as f:
-    #     f.write(latex_delivery_table(dv))
-
-
-@nw_admin_required()
 def view_emails_pdf(request, network):
     nw = get_network(network)
+    must_be_staff(request, nw)
     return latex.emails(nw)
 
 
-@login_required()
 def view_emails(request, network):
-    user = request.user
-    vars = {"user": user}
     nw = get_network(network)
-    vars["network"] = nw
-    if user not in nw.staff.all():
-        return HttpResponseForbidden("Réservé aux admins")
+    must_be_staff(request, nw)
+    user = request.user
+    vars = {"user": user, "network": nw}
     return render(request, "emails.html", vars)
 
 
-@login_required()
 def view_directory(request, network):
-    user = request.user
     nw = get_network(network)
+    must_be_staff(request, nw)
+    user = request.user
     members = {
         "Administrateurs": [],
         "Producteurs": [],
@@ -685,8 +627,8 @@ JOURNAL_LINKS = {
 }
 
 
-@nw_admin_required()
 def journal(request):
+    must_be_staff(request)
     journal_link_re = re.compile(r"\b([a-z][a-z]?)-([0-9]+)")
 
     def add_link_to_actions(m):
@@ -726,18 +668,19 @@ def editor(
     return render(request, template, ctx)
 
 
-@nw_admin_required()
 def set_message(request):
     if request.method == "POST":
         P = request.POST
         d = P["destination"].split("-")
-        # TODO: check that user has the admin rights suitable for the destination
         if d[0] == "everyone":
             network_id = None
         elif d[0] == "nw":
             network_id = int(d[1])
         else:
             assert False
+
+        must_be_prod_or_staff(request, network_id)
+        
         text = P["editor"]
         if text.startswith("<p>"):
             text = text[3:]
@@ -756,8 +699,8 @@ def set_message(request):
             options = [
                 ("Réseau %s" % nw.name, "nw-%d" % nw.id) 
                 for nw in m.Network.objects.filter(
+                    Q(networkmembership__is_staff=True) | Q(networkmembership__is_producer=True),
                     networkmembership__user_id=u.id,
-                    networkmembership__is_staff=True,
                     networkmembership__valid_until=None
                 )] 
         return editor(
@@ -769,20 +712,22 @@ def set_message(request):
         )
 
 
-@nw_admin_required()
 def unset_message(request, id):
     # TODO check that user is allowed for that message
     # To be done in a m.Message method
     msg = m.AdminMessage.objects.get(id=int(id))
+    must_be_prod_or_staff(request, msg.network)
     m.JournalEntry.log(request.user, "Deleted message %i to %s", msg.id, f"nw-{msg.network_id}" if msg.network_id else "everyone")
     msg.delete()
     target = request.GET.get("next", "index")
     return redirect(target)
 
+
 # Used to decode short Google "plus codes"
 CENTRAL_LATITUDE = 43.5
 CENTRAL_LONGITUDE = 1.5
 POSITION_REGEXP = re.compile(r"([+-]?\d+(?:\.\d*)?),([+-]?\d+(?:\.\d*)?)")
+
 
 def _description_and_image(request, obj, title):
     if request.method == "POST":
@@ -815,10 +760,12 @@ def _description_and_image(request, obj, title):
             has_short_description=hasattr(obj, "short_description")
         )
 
-@nw_admin_required()
+
 def network_description_and_image(request, network):
     nw = get_network(network)
+    must_be_staff(request, nw)
     return _description_and_image(request, nw, f"Présentation du réseau {nw.name}")
+
 
 def user_description_and_image(request, user):
     flu = m.FlorealUser.objects.get(user_id=user)
@@ -826,6 +773,8 @@ def user_description_and_image(request, user):
         pass  # global admins can edit everyone
     elif flu.user == request.user:
         pass  # one can always edit oneself
+        # TODO: but there's no link pointing there yet.
+        # Add the option to producers in admin page.
     elif m.NetworkMembership.objects.filter(
         valid_until=None,     # Edited user...
         user=flu.user,        # ...is currently...

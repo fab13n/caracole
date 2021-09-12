@@ -9,8 +9,7 @@ import json
 from typing import List, Tuple, Dict, Set
 
 from django.conf import settings
-from .decorators import nw_admin_required
-from .getters import get_delivery, get_network, get_subgroup
+from .getters import get_delivery, get_network, get_subgroup, must_be_staff, must_be_prod_or_staff
 from . import latex
 from .spreadsheet import spreadsheet
 from .delivery_description import FlatDeliveryDescription, GroupedDeliveryDescription, UserDeliveryDescription
@@ -40,13 +39,9 @@ def render_description(request, delivery, renderer, extension, subgroup=None, us
     Retrieve the delivery description associated with those url params if permissions allow.
     """
     dv = get_delivery(delivery)
-    # Permission
-    if not user and not request.user.is_staff and not m.NetworkMembership.objects.filter(
-        Q(is_staff=True) | Q(is_producer=True),
-        user=request.user, network=dv.network, valid_until=None
-    ).exists():
-        return HttpResponseForbidden(f"Pas autorisé pour {dv.network.name}")
-
+    if not user:
+        must_be_prod_or_staff(request, dv.network)
+   
     if user:
         dd = UserDeliveryDescription(dv, request.user, empty_products=True)
     elif subgroup is not None:
@@ -114,19 +109,8 @@ def view_purchases_json(request, delivery, subgroup=None, user: bool = False):
 
 def all_deliveries(request, network, states):
 
-    if request.user.is_staff:
-        pass # Global admin
-    elif m.NetworkMembership.objects.filter(
-        is_staff=True,
-        user=request.user,
-        valid_until=None,
-        network_id=int(network)
-    ).exists():
-        pass  # Admin for this network
-    else:
-        raise ValueError("Accès interdit")
-
     nw = get_network(network)
+    must_be_prod_or_staff(request, nw)
 
     purchases = (m.Purchase.objects.filter(
             product__delivery__state__in=states, 
@@ -165,14 +149,3 @@ def all_deliveries_latex(request, network, states):
     ctx = all_deliveries(request, network, states)
     content = render_latex("all_deliveries.tex", ctx)
     return non_html_response(get_network(network).name, "pdf", content)
-
-
-@nw_admin_required(lambda a: get_delivery(a['delivery']).network)
-def get_archive(request, delivery, suffix):
-    """Retrieve the PDF/MS-Excel file versions of a terminated delivery which have been saved upontermination."""
-    dv = get_delivery(delivery)
-    file_name = os.path.join(settings.DELIVERY_ARCHIVE_DIR, "dv-%d.%s" % (dv.id, suffix))
-    with open(file_name, 'rb') as f:
-        content = f.read()
-    name_bits = (dv.network.name, dv.name)
-    return non_html_response(name_bits, suffix, content)

@@ -9,28 +9,7 @@ from django.db.models.functions import Now
 
 from django.conf import settings
 from .. import models as m
-from .getters import get_network, get_user
-from .decorators import nw_admin_required
-
-
-@login_required()
-def candidacy(request):
-    """Generate a page to choose and request candidacy among the legal ones."""
-    # TODO Lots of unnecessary SQL queries; subgroups sorted by network should be queried all at once.
-    user = request.user
-    networks = []
-    for nw in m.Network.objects.all():
-        # For each network, one can be member, candidate or nothing.
-        # If you're candidate you can't be
-        item = {
-            "name": nw.name,
-            "id": nw.id,
-            "description": nw.description or "",
-            "is_member": nw.members.filter(id=user.id).exists(),
-            "is_candidate": nw.candidates.filter(id=user.id).exists(),
-        }
-        networks.append(item)
-    return render(request, "candidacy.html", {"user": user, "networks": networks})
+from .getters import get_network, get_user, must_be_staff
 
 
 @login_required()
@@ -58,7 +37,7 @@ def create_candidacy(request, network):
     ):
         # This user has already been accepted somewhere at least once
         m.JournalEntry.log(user, "Applied for nw-%d, automatically granted", nw.id)
-        validate_candidacy_without_checking(
+        _validate_candidacy_without_checking(
             request, network=nw, user=user, response="Y", send_confirmation_mail=True
         )
     else:
@@ -84,20 +63,10 @@ def cancel_candidacy(request, network):
     return redirect(request.GET.get(next, "index"))
 
 
-@nw_admin_required()
 def validate_candidacy(request, network, user, response):
     nw = get_network(network)
+    must_be_staff(request, nw)
     u = get_user(user)
-    staff_user = request.user
-    if (
-        not staff_user.is_staff
-        and not m.NetworkMembership.objects.filter(
-            network_id=nw.id, user_id=staff_user.id, valid_until=None
-        ).exists()
-    ):
-        return HttpResponseForbidden(
-            "Réservé aux administrateurs du réseau " + network.name
-        )
 
     m.JournalEntry.log(
         request.user,
@@ -106,18 +75,18 @@ def validate_candidacy(request, network, user, response):
         nw.id,
         ("Granted" if response == "Y" else "Rejected"),
     )
-    return validate_candidacy_without_checking(
+    return _validate_candidacy_without_checking(
         request, user=u, network=nw, response=response, send_confirmation_mail=True
     )
 
 
-@nw_admin_required()
 def manage_candidacies(request):
     if request.user.is_staff:
         candidacies = m.NetworkMembership.objects.filter(
             is_candidate=True, valid_until=None
         )
     else:
+        # TODO could be merged into a single request
         staff_of_networks = m.Network.objects.filter(
             networkmembership__user=request.user,
             networkmembership__is_staff=True,
@@ -136,7 +105,7 @@ def manage_candidacies(request):
     )
 
 
-def validate_candidacy_without_checking(
+def _validate_candidacy_without_checking(
     request, network, user, response, send_confirmation_mail
 ):
     """A (legal) candidacy has been answered by an admin.

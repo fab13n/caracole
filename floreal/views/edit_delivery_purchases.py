@@ -10,18 +10,14 @@ from django.http import HttpResponseForbidden
 
 from .. import models as m
 from ..penury import set_limit
-from .getters import get_network, get_delivery
-from .decorators import regulator_required
+from .getters import get_network, get_delivery, must_be_staff
+
 
 def edit_delivery_purchases(request, delivery):
     """Allows to change the purchases of user's subgroup. Subgroup staff only."""
     user = request.user
     dv = get_delivery(delivery)
-
-    if not request.user.is_staff and not m.NetworkMembership.objects.filter(
-        user=user, network=dv.network, is_staff=True, valid_until=None
-    ).exists():
-        return HttpResponseForbidden(f"Réservé aux admins du réseau {dv.network.name}")
+    must_be_staff(request, delivery.network)
 
     if request.method == 'POST':
         _parse_form(request, dv)
