@@ -40,16 +40,16 @@ urlpatterns = [
     path('admin/impersonate/', include(impersonate.urls)),
     # Security: only global staff 
     path('admin/journal', views.journal, name='view_journal'),
- 
-    # Everyone, logged and unlogged
+    # Security: only lists networks one's staff of
+    path('admin/candidacies', views.manage_candidacies, name='manage_candidacies'),
+
+    # Everyone, logged and unlogged    
     path('', views.index, name='index'),
+
     # Security: based on memberhsip.is_buyer
     path('orders.html', views.orders, name='orders'),
     # Security: Only me
     path('user.html', views.user, name='user'),
-
-    # superseded by users.html
-    # path('u-<id:user>/description-and-image', views.user_description_and_image, name='user_description_and_image'),
 
     # Security: logged in + visibility
     path('nw-<id:network>/presentation.html', views.reseau, name='reseau'),
@@ -66,9 +66,6 @@ urlpatterns = [
     path('new-dv/nw-<id:network>/dv-<dv_model>', views.create_delivery, name='create_delivery_copy'),
     path('new-dv/nw-<id:network>', views.create_delivery, kwargs={'dv_model': None}, name='create_empty_delivery'),
     
-    # Merged in main admin page
-    # path('nw-<id:network>', views.network_admin, name='network_admin'),
-    # path('nw-<id:network>/producer', views.producer, name='producer'),
     path('nw-<id:network>/archives', views.archived_deliveries, name='archived_deliveries'),
     path('nw-<id:network>/edit-description', views.network_description_and_image, name='edit_network_description'),
     path('u-<id:user>/edit-description', views.user_description_and_image, name='edit_user_description'),
@@ -76,12 +73,6 @@ urlpatterns = [
     re_path(r'^nw-(?P<network>[0-9]+)/all-deliveries/(?P<states>[A-Z]+)\.pdf$', views.all_deliveries_latex, name='all_deliveries_latex'),
     path('nw-<id:network>/invoice-mail-form', views.invoice_mail_form, name='invoice_mail_form'),
 
-    # path('dv-<id:delivery>', views.buy, name='buy'),
-    # path('dv-<id:delivery>-u.json', views.view_purchases_json, kwargs={"user": True}, name='user_purchases_json'),
-
-
-    # Merged in main admin page
-    # path('dv-<id:delivery>/staff', views.edit_delivery_staff, name='edit_delivery_staff'),
     path('admin/dv-<id:delivery>/purchases', views.edit_delivery_purchases, name='edit_delivery_purchases'),
     path('admin/dv-<id:delivery>/edit', views.edit_delivery_products, name='edit_delivery_products'),
     
@@ -98,7 +89,6 @@ urlpatterns = [
     path('nw-<id:network>/leave', views.leave_network, name='leave_network'),
     path('candidacy/nw-<id:network>', views.create_candidacy, name='create_candidacy'),
  
-    path('candidacy/staff', views.manage_candidacies, name='manage_candidacies'),
 
     path('dv-<id:delivery>.html', views.view_purchases_html, name='view_delivery_purchases_html'),
     path('dv-<id:delivery>.pdf', views.view_purchases_latex_table, name='view_delivery_purchases_latex'),
@@ -110,14 +100,9 @@ urlpatterns = [
     path('dv-<id:delivery>/delete', views.delete_archived_delivery, name='delete_archived_delivery'),
     path('nw-<id:network>/delete-empty-archives', views.delete_all_archived_deliveries, name='delete_all_archived_deliveries'),
 
-    # path('nw-<id:network>/emails', views.view_emails, name='emails_network'),
-    path('nw-<id:network>/emails.pdf', views.view_emails_pdf, name='emails_network_pdf'),
-
     path('nw-<id:network>/directory', views.view_directory, name='directory_network'),
     
-    # Tous les vieux achats d'un utilisateur. Encore utile?
     path('history', views.view_history, name='view_history'),
- 
  
     path('accounts/register', views.user_register, name="user_register"),
     path('accounts/update', views.user_update, name="user_update"),
@@ -127,8 +112,6 @@ urlpatterns = [
     path('accounts/', include('registration.backends.simple.urls')),
     path('accounts/deactivate', views.user_deactivate, name='user_deactivate'), 
 
-    # TODO a mettre dans les infos personnelles
-    # path('add-phone-number/<phone>', views.phone.add_phone_number, name="add_phone_number"),
     # TODO what for!?
     path('edit/<title>/<path:target>', views.editor, name='editor'),
 
