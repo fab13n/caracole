@@ -1,5 +1,6 @@
 {% extends 'layout.html' %}
 {% load static %}
+{% load humanize %}
 {% load floreal_filters %}
 
 {% block head %}
@@ -26,7 +27,7 @@
         <li>Réseau <strong>{{group.grouper.name}}</strong> :
             <ul>
                 {% for nm in group.list %}
-                <li>{{nm.user.first_name}} {{nm.user.last_name}} ({{nm.user.email}}) :
+                <li>{{nm.user.first_name}} {{nm.user.last_name}} ({{nm.user.email}}) {{nm.valid_from|naturaltime}} :
                     <a href="{% url 'validate_candidacy' user=nm.user_id network=nm.network_id response='Y' %}?next={% url 'manage_candidacies' %}">Accepter</a>
                     /
                     <a href="{% url 'validate_candidacy' user=nm.user_id network=nm.network_id response='N' %}?next={% url 'manage_candidacies' %}">Refuser</a>

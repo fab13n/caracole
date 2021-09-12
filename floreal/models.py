@@ -198,7 +198,8 @@ class NetworkMembership(models.Model):
     valid_until = models.DateTimeField(default=None, null=True, blank=True)
 
     def __str__(self):
-        r = self.user.username + " ∈ " + self.network.name
+        r = "" if self.valid_until is None else "(FORMER) "
+        r += self.user.username + " ∈ " + self.network.name
         if self.subgroup is not None:
             r += "/" + self.subgroup.name
         roles = [

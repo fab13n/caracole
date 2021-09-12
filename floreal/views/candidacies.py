@@ -25,29 +25,44 @@ def leave_network(request, network):
 
 @login_required()
 def create_candidacy(request, network):
-    """Create the candidacy or act immediately if no validation is needed."""
+    """Create either the candidacy or the buyer membership, depending on whether validation is needed."""
     user = request.user
     nw = get_network(network)
-    if nw.members.filter(id=user.id).exists():
-        m.JournalEntry.log(user, "Applied for nw-%d, but was already member", nw.id)
-        pass  # already member
-    elif (
-        nw.auto_validate
-        and m.NetworkMembership.objects.filter(user=user, is_candidate=False).exists()
-    ):
+    r = redirect(request.GET.get("next", "index"))
+    nm = m.NetworkMembership.objects.filter(
+        valid_until=None,
+        user=user,
+        network=nw   
+    ).first()
+
+    if nm is not None and nm.is_candidate:
+        m.JournalEntry.log(user, "Applied for nw-%d, but was already candidate", nw.id)
+        return r
+    if nm is not None and nm.is_buyer:
+        m.JournalEntry.log(user, "Applied for nw-%d, but was already a buyer", nw.id)
+        return r
+
+    if nw.auto_validate:
+        already_known = m.NetworkMembership.objects.filter(user=user, is_candidate=False).exists()
+        if already_known:
+            # This user has already been accepted somewhere at least once
+            m.JournalEntry.log(user, "Applied for nw-%d, automatically granted", nw.id)
+            _validate_candidacy_without_checking(
+                request, network=nw, user=user, response="Y", send_confirmation_mail=True
+            )
+            return r
+
+    if nm is not None and nm.is_staff:
         # This user has already been accepted somewhere at least once
-        m.JournalEntry.log(user, "Applied for nw-%d, automatically granted", nw.id)
+        m.JournalEntry.log(user, "Staff for nw-%d made themself a buyer", nw.id)
         _validate_candidacy_without_checking(
             request, network=nw, user=user, response="Y", send_confirmation_mail=True
         )
-    else:
-        m.NetworkMembership.objects.create(
-            network=nw, user=user, is_candidate=True, is_buyer=False
-        )
-        m.JournalEntry.log(user, "Applied for nw-%d, candidacy pending", nw.id)
+        return r
 
-    target = request.GET.get("next")
-    return redirect(target or "index")
+    m.NetworkMembership.objects.create(network=nw, user=user, is_candidate=True, is_buyer=False)
+    m.JournalEntry.log(user, "Applied for nw-%d, candidacy pending", nw.id)
+    return r
 
 
 @login_required()
@@ -108,14 +123,20 @@ def manage_candidacies(request):
 def _validate_candidacy_without_checking(
     request, network, user, response, send_confirmation_mail
 ):
-    """A (legal) candidacy has been answered by an admin.
+    """A candidacy has been answered by an admin.
     Perform corresponding membership changes and notify user through e-mail."""
     adm = request.user
     adm = "%s %s (%s)" % (adm.first_name, adm.last_name, adm.email)
     mail = ["Bonjour %s, \n\n" % (user.first_name,)]
-    nm = m.NetworkMembership.objects.get(
+
+    # Terminate candidacy validity
+    nm = m.NetworkMembership.objects.filter(
         user=user, network=network, is_candidate=True, valid_until=None
-    )
+    ).first()
+    if nm is not None:
+        nm.valid_until = Now()
+        nm.save()
+
     if response == "Y":
         mail += f"Votre adhésion au réseau {network.name} a été acceptée"
         mail += f" par {adm}. " if adm else " automatiquement. "
@@ -124,7 +145,10 @@ def _validate_candidacy_without_checking(
             mail += "Une commande est actuellement en cours, dépêchez vous de vous connecter sur le site pour y participer !"
         else:
             mail += "Vos responsables de réseau vous préviendront par mail quand une nouvelle commande sera ouverte."
+
+        # Create mambership record
         m.NetworkMembership.objects.create(user=user, network=network, is_buyer=True)
+
     elif adm:  # Negative response from an admin
         mail += (
             f"Votre demande d'adhésion au réseau {network.name} a été refusée par {adm}. "
@@ -136,10 +160,6 @@ def _validate_candidacy_without_checking(
             f"Votre demande d'adhésion au réseau {network.name} a été refusée automatiquement."
             "Si cette décision vous surprend, contactez les administrateurs du réseau."
         )
-
-    # Terminate candidacy validity
-    nm.valid_until = Now()
-    nm.save()
 
     mail += "\n\nCordialement, le robot du site de commande des Circuits Courts Civam."
     mail += "\n\nLien vers le site : http://solalim.civam-occitanie.fr"

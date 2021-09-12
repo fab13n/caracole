@@ -621,9 +621,9 @@ def view_history(request):
 
 JOURNAL_LINKS = {
     "cd": "/admin/floreal/candidacy/%d/",
-    "nw": "/nw-%d",
-    "u": "/admin/auth/user/%d/",
-    "dv": "/dv-%d/staff",
+    "nw": "/admin/reseaux.html#nw-%d",
+    "u": "/admin/users.html?selected=%d",
+    "dv": "/admin/dv-%d/edit",
 }
 
 
