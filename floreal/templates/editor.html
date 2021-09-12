@@ -11,7 +11,8 @@
 $(document).ready(function(){
   /* Turn plain textareas into TinyMCE WYSIWYG editors. */
   tinymce.init({
-      plugins: 'link',
+      plugins: 'link lists autolink hr',
+      toolbar: 'numlist bullist hr',
       selector: '.editor',
       content_css: "{% static 'floreal.css' %}",
       language: 'fr_FR'
