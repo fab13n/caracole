@@ -482,7 +482,7 @@ def create_delivery(request, network, dv_model=None):
 
 def set_delivery_state(request, delivery, state):
     dv = get_delivery(delivery)
-    must_be_prod_or_staff(request, delivery.network)
+    must_be_prod_or_staff(request, dv.network)
     if state not in m.Delivery.STATE_CHOICES:
         return HttpResponseBadRequest(state + " n'est pas un état valide.")
     dv.state = state

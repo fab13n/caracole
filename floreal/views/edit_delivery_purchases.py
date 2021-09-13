@@ -17,7 +17,7 @@ def edit_delivery_purchases(request, delivery):
     """Allows to change the purchases of user's subgroup. Subgroup staff only."""
     user = request.user
     dv = get_delivery(delivery)
-    must_be_staff(request, delivery.network)
+    must_be_staff(request, dv.network)
 
     if request.method == 'POST':
         _parse_form(request, dv)
