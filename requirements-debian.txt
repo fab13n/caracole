@@ -1,5 +1,6 @@
 gdal-bin
 libgdal-dev
 texlive
+texlive-lang-french
 texlive-latex-extra
 uwsgi-plugin-python3

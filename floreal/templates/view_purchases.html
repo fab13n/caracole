@@ -3,6 +3,21 @@
 {% load static %}
 
 {% block head %}
+<style type="text/css">
+  td.yes { background-color: #ccffcc; color: green; font-size: larger; }
+  .highlight { background-color: #ffaaaa; }
+  tr:first-child > th {
+      vertical-align: bottom;
+  }
+  tr:first-child > th > span {
+      writing-mode: vertical-lr;
+  }
+  th {
+      white-space: nowrap;
+      text-align: right;
+  }
+</style>
+
 <script type='text/javascript'>
 
   let DATA;
@@ -26,7 +41,8 @@
 
       /* Set product name */
       $("#product-names").append(
-        `<th class="rotate"><div><div>${pd.name}</div></div></th>`
+        `<th><span>${pd.name}</span></th>
+`
       );
 
       /* Fill total product quantities, and package + loose break-up */
