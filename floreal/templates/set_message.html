@@ -2,7 +2,7 @@
 {% block custom %}
 <p>Message à destination de :
   <select name="destination">
-    {% for kv in options %}<option value="{{kv.1}}">{{kv.0}}</option>{% endfor %}
+    {% for kv in options %}<option value="{{kv.1}}"{% if kv.1 == selected_option %}selected="selected"{% endif %}>{{kv.0}}</option>{% endfor %}
   </select>
 </p>
 {% endblock %}

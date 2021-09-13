@@ -668,7 +668,13 @@ def editor(
     return render(request, template, ctx)
 
 
-def set_message(request):
+def set_message(request, id=None):
+    if id is not None:
+        msg = m.AdminMessage.objects.get(pk=id)
+        must_be_prod_or_staff(request, msg.network_id)
+    else:
+        msg = None
+
     if request.method == "POST":
         P = request.POST
         d = P["destination"].split("-")
@@ -686,29 +692,43 @@ def set_message(request):
             text = text[3:]
             if text.endswith("</p>"):
                 text = text[:-4]
-        msg = m.AdminMessage.objects.create(message=text, network_id=network_id)
-        m.JournalEntry.log(request.user, "Posted message %i to %s", msg.id, f"nw-{network_id}" if network_id else "everyone")
+        if msg is not None:
+            msg.message = text
+            msg.network_id = network_id
+            msg.save()
+            m.JournalEntry.log(request.user, "Modified message msg-%i to %s", msg.id, f"nw-{network_id}" if network_id else "everyone")
+        else:
+            msg = m.AdminMessage.objects.create(message=text, network_id=network_id)
+            m.JournalEntry.log(request.user, "Posted message msg-%i to %s", msg.id, f"nw-{network_id}" if network_id else "everyone")
         target = request.GET.get("next", "index")
         return redirect(target)
     else:
         u = request.user
         if u.is_staff:
             options = [("Tout le monde", "everyone")] + [
-            ("Réseau %s" % nw.name, "nw-%d" % nw.id) for nw in m.Network.objects.all()]
+            ("Réseau %s" % nw.name, f"nw-{nw.id}") for nw in m.Network.objects.all()]
         else:
             options = [
-                ("Réseau %s" % nw.name, "nw-%d" % nw.id) 
+                ("Réseau %s" % nw.name, f"nw-{nw.id}") 
                 for nw in m.Network.objects.filter(
                     Q(networkmembership__is_staff=True) | Q(networkmembership__is_producer=True),
                     networkmembership__user_id=u.id,
                     networkmembership__valid_until=None
-                )] 
+                )]
+        if msg is None:
+            selected_option = options[0][0]
+        elif msg.network_id is None:
+            selected_option = "everyone"
+        else:
+            selected_option = f"nw-{msg.network_id}"
         return editor(
             request,
             title="Message administrateur",
             template="set_message.html",
-            target="/set-message",
+            target=f"/set-message/{id}" if msg is not None else "/set-message",
             options=options,
+            content=msg.message if msg is not None else "",
+            selected_option=selected_option
         )
 
 

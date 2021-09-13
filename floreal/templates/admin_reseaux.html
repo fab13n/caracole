@@ -253,6 +253,8 @@
                         {% endif %}
                         « {{msg.message|safe}} »
                         <a class='button button-primary compact'
+                            href="{% url 'edit_message' id=msg.id %}?next={% url 'admin' %}">éditer</a>
+                            <a class='button button-primary compact'
                             href="{% url 'unset_message' id=msg.id %}?next={% url 'admin' %}">effacer</a>
                     </li>
                     {% empty %}
