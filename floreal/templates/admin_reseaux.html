@@ -181,6 +181,9 @@
             case "online":
                 window.location.href = "{% url 'view_delivery_purchases_html' delivery=9999 %}".replace("9999", dv_id);
                 break;
+            case "spreadsheet":
+                window.location.href = "{% url 'view_delivery_purchases_xlsx' delivery=9999 %}".replace("9999", dv_id);
+                break;
             case "table":
                 window.location.href = "{% url 'view_delivery_purchases_latex' delivery=9999 %}".replace("9999", dv_id);
                 break;
@@ -381,6 +384,7 @@
                     <select class="button admin pseudo-menu" onchange="on_view({{dv.id}}, event.target.value)">
                         <option value="none">Voir...</option>
                         <option value="online">En ligne</option>
+                        <option value="spreadsheet">En tableau Excel</option>
                         <option value="table">En tableau à imprimer</option>
                         <option value="cards">En cartes à imprimer</option>
                     </select>
