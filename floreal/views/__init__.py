@@ -419,7 +419,7 @@ def list_delivery_models(request, network, all_networks=False):
         "user": request.user,
         "nw": nw,
         "all_networks": all_networks,
-        "producer": request.user if is_producer else None,
+        "producer": request.user if which == "producer" else None,
         "deliveries": deliveries.order_by("network", "-id"),
     }
     return render(request, "list_delivery_models.html", vars)
