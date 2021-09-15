@@ -277,10 +277,10 @@
     <div class="divider acces-rapide couleur-sec">
         <a id="nw-{{nw.id}}"></a>
         <h5 class="center divider couleur-sec">Réseau <span class="couleur-prim">{{nw.name}}</span></h5>
-        {% if user.is_staff or nw.is_staff or nw.candidates %}
+        {% if user.is_staff or nw.is_network_staff or nw.candidates %}
         <h5 class="txt-left couleur-sec margebotS">Configuration</h5>
         <ul>
-            {% if user.is_staff or nw.is_staff %}
+            {% if user.is_staff or nw.is_network_staff %}
             <li><a href="{% url 'edit_network_description' network=nw.id %}">
                 Éditer la <strong>description du réseau</strong></a></li>
             <li><a href="{% url 'directory_network' network=nw.id %}"><strong>Annuaire</strong> des membres</a></li>
@@ -303,7 +303,7 @@
                     {% if nw.auto_validate %}checked="checked"{% endif %}
                 />
             </li>
-            {% endif %}{# user/nw.is_staff #}
+            {% endif %}{# user/nw.is_network_staff #}
             {% if not nw.candidates %}
             {# pass #}
             {% elif nw.candidates|length < 4 %}
@@ -323,7 +323,7 @@
             <li><a href="{% url 'manage_candidacies' %}"><strong>{{nw.candidates|length}} candidatures</strong> à valider</a>.</li>
             {% endif %}{# few or many candidatures #}
         </ul>
-        {% endif %}{# is_staff or candidates #}
+        {% endif %}{# is_staff or is_network_staff or candidates #}
 
         <h5 class="txt-left couleur-sec margebotS">Commandes</h5>
         <ul>
