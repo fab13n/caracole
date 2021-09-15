@@ -22,7 +22,7 @@
               {% csrf_token %}
             <div class="row">
               <button id="btn-login" type="submit" name="button">S'identifier</button>
-              <p><a href="#" id="btn-mdp" href="#">Mot de passe oublié ?</a></p>
+              <p><a href="{% url 'password_reset' %}" id="btn-mdp">Mot de passe oublié ?</a></p>
             </div>
           </form>
         </div>
