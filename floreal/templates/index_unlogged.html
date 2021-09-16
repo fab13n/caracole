@@ -70,14 +70,6 @@
         </a>
         <a href="{% url 'reseau' network=nw.id %}"><h3>{{nw.name}}</h3></a>
         {{nw.short_description|safe}}
-        <div class="row">
-            <!--
-            {% if user.is_staff %}
-            <a href="{% url 'reseau' network=nw.id %}" class="button admin">Administrer</a>
-            {% endif %}
-            -->
-            <a href="{% url 'reseau' network=nw.id %}" class="button button-primary">Rejoindre</a>
-        </div>
       </div>
       {% endfor %}
     </div>

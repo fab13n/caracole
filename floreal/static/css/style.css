@@ -4,12 +4,11 @@ Theme Name: Solalim
 Theme URI: http://raf.pm
 Author: Raf
 Version: 2021
-License: GNU General Public License
-License URI: https://www.gnu.org/licenses/gpl.html
+License: MIT public license
 
 */
-/* Typography
 
+/* Typography
 –––––––––––––––––––––––––––––––––––––––––––––––––– */
 @font-face {
   font-family: "oswald";
@@ -621,28 +620,6 @@ ul.circuit-admin-list ul li {
   margin-left: 1rem;
 }
 
-/* This must be controlled from local pages
-#products-table th, #products-table td {
-  padding: 1rem .5rem;
-}
-
-#products-table .name {
-  width: 40%;
-}
-#products-table .price, #products-table .unit {
-  width: 48px;
-}
-#products-table .devise {
-  width: 20px;
-}
-#products-table .quantity_per_package input,
-#products-table .quantity_limit input,
-#products-table .quantum input,
-#products-table .unit_weight input {
-  width: 48px;
-}
-*/
-
 label {
   position: relative;
 }
@@ -736,6 +713,20 @@ td.description {
   top: 30%;
   left: 0;
   width: 97%;
+}
+
+table.vertical-headers tr:first-child > th {
+  vertical-align: bottom;
+}
+
+table.vertical-headers tr:first-child > th > span {
+  writing-mode: vertical-lr;
+  transform: rotate(180deg);
+}
+
+table.vertical-headers th {
+  white-space: nowrap;
+  text-align: right;
 }
 
 /* Base Styles

@@ -7,18 +7,11 @@
   html, body {
     overflow-x: unset;
   }
+  
   td.yes { background-color: #ccffcc; color: green; font-size: larger; }
+  
   .highlight { background-color: #ffaaaa; }
-  tr:first-child > th {
-      vertical-align: bottom;
-  }
-  tr:first-child > th > span {
-      writing-mode: vertical-lr;
-  }
-  th {
-      white-space: nowrap;
-      text-align: right;
-  }
+
 </style>
 
 <script type='text/javascript'>
@@ -187,7 +180,7 @@
 
 <h1>Commande « <span class="dv-name">...</span> »</h1>
 
-<table class="with-border" id="purchases">
+<table class="with-border vertical-headers" id="purchases">
 
     <tr id="product-names">
         <td class="blank" colspan="2">

@@ -7,14 +7,8 @@
       {% if network.image_description %}
       <img src="{{network.image_description.url}}" width="100%"/>
       {% endif %}
+      {% comment %}
       <div class="row">
-        <!--
-        <div class="col">
-          <p class="circuits-info">Lieu de livraison : <strong>Endroit renseigné</strong></p>
-          <p class="circuits-info">Jour : <strong>Jour et fréquence</strong></p>
-          <p class="circuits-info">Crée le 3 juin 2019</p>
-        </div>
-        -->
         {% if network.description %}
         <div class="col">
           <div class="row end">
@@ -42,6 +36,7 @@
         <a class="button button-primary" href="{% url 'orders' %}#nw-{{network.id}}">Commander</a>
       </p></div>
       {% endif %}
+      {% endcomment %}
 
       <div class="circuits-info-editor">
         {% if network.description %}

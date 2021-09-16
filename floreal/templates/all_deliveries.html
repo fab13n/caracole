@@ -5,23 +5,6 @@
 <style type="text/css">
 td.yes { background-color: #ccffcc; color: green; font-size: larger; }
 .highlight { background-color: #ffaaaa; }
-tr:first-child > th {
-    vertical-align: bottom;
-}
-tr:first-child > th > span {
-    writing-mode: vertical-lr;
-}
-th {
-    white-space: nowrap;
-    text-align: right;
-}
-td, th {
-    padding: 0px;
-}
-
-td:nth-child(4n) {
-    border-right: 1px solid #E1E1E1;
-}
 
 /* Allow horizontal scrolling. */
 html, body {
@@ -52,7 +35,7 @@ html, body {
 <section class="container margetopXl margebot">
 
 <h1>{{table|length}} Commandes en cours pour le réseau {{network.name}}</h1>
-<table>
+<table class="vertical-headers">
     <tr>
         <td></td>
         {% for dv, has_purchased in table.0.1 %}

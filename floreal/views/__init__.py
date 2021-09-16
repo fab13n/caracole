@@ -57,7 +57,12 @@ def index(request):
     except AttributeError:
         accueil = "Penser à renseigner le texte d'accueil :-)"
     if request.user.is_anonymous:
-        vars = {"networks": m.Network.objects.exclude(visible=False).exclude(active=False), "accueil": accueil}
+        vars = {"networks": m.Network.objects
+            .exclude(visible=False)
+            .exclude(active=False)
+            .exclude(active=False),
+            "accueil": accueil
+        }
         vars.update(csrf(request))
         return render(request, "index_unlogged.html", vars)
     else:
