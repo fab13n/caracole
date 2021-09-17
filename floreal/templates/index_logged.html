@@ -112,15 +112,15 @@ $(document).ready(() =>
                       background-size: cover; 
                       background-position: center;">
             <div class="image-controls">
+              {% if user.is_staff %}
+              <a href="{% url 'admin' %}#nw-{{mb.network.id}}" class="button">Administrer</a>
+              {% endif %}
               <a href="{% url 'reseau' network=nw.id %}" class="button">Description</a>
               <a href="{% url 'reseau' network=nw.id %}" class="button">Rejoindre</a>
             </div>                    
           </div>
           {% endwith %}
         </a>
-        {% if user.is_staff %}
-        <a href="{% url 'admin' %}#nw-{{mb.network.id}}" class="button">Administrer</a>
-        {% endif %}
         <a href="{% url 'reseau' network=nw.id %}"><h3>{{nw.name}}</h3></a>
         {{nw.short_description|safe}}
       </div>
