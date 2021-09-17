@@ -105,9 +105,9 @@ def admin(request):
         return HttpResponseForbidden("Réservé aux administrateurs et producteurs")
     if (only := request.GET.get('only')):
         networks = m.Network.objects.filter(
+            Q(networkmembership__is_staff=True)|Q(networkmembership__is_staff=True),
             id=only,
             networkmembership__user=request.user,
-            networkmembership__is_staff=True,
             networkmembership__valid_until=None,
         )
         messages = m.AdminMessage.objects.filter(network_id=only)
@@ -143,8 +143,7 @@ def admin(request):
     ).order_by(
         "state",
         "distribution_date",
-        "freeze_date",
-        "id"
+        "name"
     )
     candidacies = (m.NetworkMembership.objects
         .filter(network__in=networks,

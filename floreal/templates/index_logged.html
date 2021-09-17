@@ -77,7 +77,7 @@ $(document).ready(() =>
               <a href="{% url 'orders' %}#{{mb.network.slug}}" class="button">Commander</a>
               {% endif %}
 
-              {% if mb.is_staff or mb.is_subgroup_staff or mb.is_producer or mb.user.is_staff %}
+              {% if mb.is_staff or mb.is_subgroup_staff or mb.is_producer or user.is_staff %}
               <a href="{% url 'admin' %}#nw-{{mb.network.id}}" class="button">Administrer</a>
               {% endif %}
 
@@ -118,6 +118,9 @@ $(document).ready(() =>
           </div>
           {% endwith %}
         </a>
+        {% if user.is_staff %}
+        <a href="{% url 'admin' %}#nw-{{mb.network.id}}" class="button">Administrer</a>
+        {% endif %}
         <a href="{% url 'reseau' network=nw.id %}"><h3>{{nw.name}}</h3></a>
         {{nw.short_description|safe}}
       </div>

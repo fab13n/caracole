@@ -22,7 +22,8 @@
     }
 
     .top-links li::before {
-        top: 6px;
+        top: 5px;
+        margin-left: 5px;
     }
 
     .top-links li {
@@ -218,6 +219,7 @@
 <div class="top-links">
     Aller à :
     <ul>
+        <li><a href="#top">↑ Haut</a></li>
         {% for nw in networks %}
         <li><a href="#nw-{{nw.id}}">{{nw.name}}</a></li>
         {% endfor %}
@@ -226,6 +228,7 @@
 {% endif %}
 
 <section class="container margetopXl margebot">
+    <a id="top"></a>
     <h1>Administration</h1>
 
     {% if user.is_staff %}
