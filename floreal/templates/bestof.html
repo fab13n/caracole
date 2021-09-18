@@ -20,16 +20,21 @@
   <script type='text/javascript'>
   const max = {{max}};
   $(document).ready(() => {
+    let total = 0;
     $(".bar").each((i, e) => {
       const val = Number($(e).text().replace(/[^.0-9]/, ""));
-      $(e).css("width", val / max * 50 + "vw");      
+      $(e).css("width", val / max * 50 + "vw");
+      total += val;
     })
+    $(".total").text(Number(total.toFixed(2)).toLocaleString() + "€")
   });
   </script>
 {% endblock %}
 {% block content %}
   <section class="container margetopXl margebot">
   <h1>Le Palmarès :-) <img src="{% static 'images/Mr_Monopoly.gif' %}"/></h1>
+  <p>Depuis 2012, <strong><span class="total"></span></strong> de commandes ont été passées par ce logiciel !
+    Merci à nos mangeurs, par ordre d'appétit décroissant :</p>
   {% for name, total in bestof.items %}
   <div class="line">
   <div class="legend">#{{forloop.counter}} {{name}}:</div><div class="bar">{{total|price}}</div>
