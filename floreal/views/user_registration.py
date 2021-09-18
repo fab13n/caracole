@@ -112,7 +112,7 @@ def user_update(request):
             user.save()
             user.florealuser.save()
             m.JournalEntry.log(user, "Updated user account")
-            return HttpResponseRedirect('/#reseaux')
+            return HttpResponseRedirect('/user.html')
         else:  # invalid form
             d = form.data
             m.JournalEntry.log(None, "Failed account update")
