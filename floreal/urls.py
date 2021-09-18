@@ -56,6 +56,7 @@ urlpatterns = [
 
     # Security: check both get and post
     path('dv-<id:delivery>/buy.html', views.buy, name='buy'),
+    path('dv-<id:delivery>/preview.html', views.buy, kwargs={'preview': True}, name='preview'),
     path('dv-<id:delivery>/buy.json', views.view_purchases_json, kwargs={"user": True}, name='user_purchases_json'),
 
     path('new-nw/<path:nw_name>', views.create_network, name='create_network'),

@@ -5,24 +5,28 @@ from django.http import HttpResponseForbidden
 
 from .. import models as m
 from ..penury import set_limit
-from .getters import get_delivery
+from .getters import get_delivery, must_be_prod_or_staff
 
 
 @login_required()
-def buy(request, delivery):
+def buy(request, delivery, preview=False):
     """Let user order for himself, or modify an order on an open delivery."""
     delivery = get_delivery(delivery)
     user = request.user
-    if delivery.state != delivery.ORDERING_ALL:
-        return HttpResponseForbidden("Cette commande n'est pas ouverte.")
-    if not m.NetworkMembership.objects.filter(
+    
+    if preview:
+        must_be_prod_or_staff(request, delivery.network)
+    elif delivery.state != delivery.ORDERING_ALL:
+        return HttpResponseForbidden("Cette commande n'est pas ouverte.")        
+    elif not m.NetworkMembership.objects.filter(
         user=request.user, network_id=delivery.network_id, is_buyer=True, valid_until=None
     ).exists():
         return HttpResponseForbidden(
-            "Réservé aux membres du réseau " + delivery.network.name
+            "Réservé aux mangeurs du réseau " + delivery.network.name
         )
 
     if request.method == 'POST':
+        assert not preview
         if _parse_form(request):
             return redirect("orders")
         else:
@@ -30,6 +34,7 @@ def buy(request, delivery):
             return redirect("buy", delivery=delivery.id)
     else:
         vars = {
+            'preview': preview,
             'delivery': delivery,
         }
         vars.update(csrf(request))

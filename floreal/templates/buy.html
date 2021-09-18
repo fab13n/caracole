@@ -340,6 +340,7 @@
 {% block content %}
 <section class="container margetopXl margebot">
   <h1 class=" h2-like couleur-prim"><span class='distribution-date'>—</span> | <span class='network-name'>...</span> | <span class='delivery-name'>...</span></h1>
+  {% if preview %}<h2>(Prévisualisation)</h2>{% endif %}
   <p class="if-freeze-date">Commandez avant le <span class="freeze-date">...</span>.</p>
 
   <div class="container margetop row stretch cent">
@@ -373,8 +374,13 @@
       </table>
 
       <div class="row container xslim">
+        {% if preview %}
+        <a class="button retour" href="{% url 'admin' %}#nw-{{delivery.network_id}}">Valider la prévisualisation</a>
+        <a class="button retour" href="{% url 'edit_delivery_products' delivery=delivery.id %}">Retour à l'édition</a>
+        {% else %}
         <input class="button-primary" type="submit" value="Valider la commande">
         <a class="button retour" href="javascript:confirm_cancel()">Retour</a>
+        {% endif %}
       </div>
       <input type='hidden' id='delivery-id' name='delivery-id' value='...' />
       {% csrf_token %}
