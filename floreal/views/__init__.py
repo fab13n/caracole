@@ -154,6 +154,7 @@ def admin(request):
     deliveries_without_purchase = {dv.id for dv in m.Delivery.objects
         .exclude(state='E')
         .exclude(product__purchase__isnull=False)
+        .order_by("distribution_date", "state", "name")
     }
 
     jnetworks = {}
