@@ -840,3 +840,43 @@ def map(request):
         'networks': networks,
         'producers': producers,    
     })
+
+
+def generate_bestof_file(path):
+    import json
+    from django.db.models import F
+    r = defaultdict(float)
+    for pc in (m.Purchase.objects.all()
+       .select_related("user", "product")
+      .annotate(pp=F("product__price")*F("quantity"))
+    ):
+        r[pc.user] += float(pc.pp)
+    data = {}
+    for i, (u, p) in enumerate(sorted(r.items(), key=lambda item: item[1], reverse=True)):
+        k = f"{u.first_name} {u.last_name}"
+        if k in data:
+            print("Warning, several users named "+k)
+        else:
+            data[k] = round(p, 2)
+    with path.open("w") as f:
+        json.dump(data, f)
+ 
+
+def bestof(request):
+    import os
+    import json
+    from datetime import datetime, timedelta
+    from pathlib import Path
+    file = Path("/tmp/bestof.json")
+    try:
+        last_modified = datetime.fromtimestamp(os.path.getmtime(file))
+    except FileNotFoundError:
+        last_modified = datetime(1970, 1, 1)
+    if datetime.now() - last_modified > timedelta(days=1):
+        generate_bestof_file(file)
+    with file.open("r") as f:
+        data = json.load(f)
+    return render(request, "bestof.html",{
+        "bestof": data,
+        "max": max(data.values())
+    })

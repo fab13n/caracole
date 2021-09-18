@@ -128,6 +128,8 @@ urlpatterns = [
     # Wagtail's serving mechanism
     path('pages/', include(wagtail_urls)),
 
+    path("bestof", views.bestof),
+
 ]
 
 from django.conf import settings
