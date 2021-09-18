@@ -215,6 +215,9 @@ def orders(request):
     deliveries = m.Delivery.objects.filter(
         network__in=networks,
         state__in="BCD",
+    ).order_by(
+        "distribution_date",
+        "name"
     )
     purchases = m.Purchase.objects.filter(
         product__delivery__in=deliveries,
