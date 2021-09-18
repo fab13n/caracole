@@ -491,7 +491,8 @@ class AdminMessage(models.Model):
     network = models.ForeignKey(
         Network, null=True, default=None, on_delete=models.CASCADE
     )
-    message = models.TextField()
+    title = models.CharField(max_length=80, default="Message")
+    message = models.CharField(max_length=280)
 
     def __str__(self):
         who = "Tout le monde" if self.network is None else "Réseau " + self.network.name

@@ -10,13 +10,15 @@
 <script type='text/javascript'>
 $(document).ready(function(){
   /* Turn plain textareas into TinyMCE WYSIWYG editors. */
-  tinymce.init({
+  if(is_rich) {
+    tinymce.init({
       plugins: 'link lists autolink hr',
       toolbar: 'numlist bullist hr',
       selector: '.editor',
       content_css: "{% static 'floreal.css' %}",
       language: 'fr_FR'
-  });
+    });
+  }
 });
 </script>
 {% endblock %}
@@ -26,7 +28,7 @@ $(document).ready(function(){
   <h1>{{title}}</h1>
 <form method="POST" action="{{target}}{% if next %}?next={{next}}{% endif %}">
   {% block custom %}{% endblock %}
-  <textarea name="editor" class="editor">{{content|safe}}</textarea>
+  <textarea name="editor" class="editor"{%if maxlength%}maxlength="{{maxlength}}"{%endif%}>{{content|safe}}</textarea>
   <input type="submit" value="Sauvegarder" name="save"/>
   {% csrf_token %}
 </form>

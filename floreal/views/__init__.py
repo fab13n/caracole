@@ -169,6 +169,7 @@ def admin(request):
             "is_network_staff": is_network_staff[nw.id],  # Otherwise producer
             "visible": nw.visible,
             "auto_validate": nw.auto_validate,
+            "messages": [msg for msg in messages if msg.network_id == nw.id]
         }
 
     for cd in candidacies:
@@ -195,7 +196,7 @@ def admin(request):
 
     context = {
         "user": request.user,
-        "messages": messages,
+        "messages": [msg for msg in messages if msg.network_id is None],
         "networks": jnetworks.values(),
         "Delivery": m.Delivery,
     }
@@ -662,17 +663,17 @@ def journal(request):
 
 
 def editor(
-    request, target=None, title="Éditer", template="editor.html", content=None, **kwargs
+    request, target=None, title="Éditer", template="editor.html", content=None, is_rich=True, **kwargs
 ):
     ctx = dict(
         title=title, target=target or request.path, content=content or "", 
-        next=request.GET.get('next'), **kwargs
+        next=request.GET.get('next'), is_rich=is_rich, **kwargs
     )
     ctx.update(csrf(request))
     return render(request, template, ctx)
 
 
-def set_message(request, id=None):
+def set_message(request, destination=None, id=None):
     if id is not None:
         msg = m.AdminMessage.objects.get(pk=id)
         must_be_prod_or_staff(request, msg.network_id)
@@ -698,15 +699,16 @@ def set_message(request, id=None):
                 text = text[:-4]
         if msg is not None:
             msg.message = text
+            msg.title = P["message_title"]
             msg.network_id = network_id
             msg.save()
             m.JournalEntry.log(request.user, "Modified message msg-%i to %s", msg.id, f"nw-{network_id}" if network_id else "everyone")
         else:
-            msg = m.AdminMessage.objects.create(message=text, network_id=network_id)
+            msg = m.AdminMessage.objects.create(message=text, network_id=network_id, title=P["message_title"])
             m.JournalEntry.log(request.user, "Posted message msg-%i to %s", msg.id, f"nw-{network_id}" if network_id else "everyone")
         target = request.GET.get("next", "index")
         return redirect(target)
-    else:
+    else:  # request method == GET
         u = request.user
         if u.is_staff:
             options = [("Tout le monde", "everyone")] + [
@@ -719,20 +721,26 @@ def set_message(request, id=None):
                     networkmembership__user_id=u.id,
                     networkmembership__valid_until=None
                 )]
+        
         if msg is None:
-            selected_option = options[0][0]
+            selected_option = destination or options[0][0]
         elif msg.network_id is None:
             selected_option = "everyone"
         else:
             selected_option = f"nw-{msg.network_id}"
+        
         return editor(
             request,
             title="Message administrateur",
             template="set_message.html",
-            target=f"/set-message/{id}" if msg is not None else "/set-message",
+            target=f"/edit-message/{id}" if msg is not None else "/set-message",
             options=options,
+            message_title = msg.title if msg else m.AdminMessage.title.field.default,
+            title_maxlength=m.AdminMessage.title.field.max_length,
+            maxlength=m.AdminMessage.message.field.max_length,
             content=msg.message if msg is not None else "",
-            selected_option=selected_option
+            selected_option=selected_option,
+            is_rich=False
         )
 
 
