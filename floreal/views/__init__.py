@@ -863,6 +863,8 @@ def generate_bestof_file(path):
  
 
 def bestof(request):
+    must_be_staff(request)
+
     import os
     import json
     from datetime import datetime, timedelta

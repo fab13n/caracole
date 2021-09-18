@@ -3,6 +3,9 @@
 {% load floreal_filters %}
 {% block head %}
   <style type="text/css">
+     .line {
+       white-space: nowrap;
+     }
      .legend {
        display: inline-block;
        width: 300px;
@@ -28,7 +31,7 @@
   <section class="container margetopXl margebot">
   <h1>Le Palmarès :-) <img src="{% static 'images/Mr_Monopoly.gif' %}"/></h1>
   {% for name, total in bestof.items %}
-  <div>
+  <div class="line">
   <div class="legend">#{{forloop.counter}} {{name}}:</div><div class="bar">{{total|price}}</div>
   </div>
   {% endfor %}
