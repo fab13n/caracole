@@ -15,6 +15,11 @@
 
     <div class="container slim margetop">
       {% for nw in networks %}
+
+      {% if forloop.counter > 1 %}
+      <!-- TODO séparateur entre réseaux -->
+      {% endif %}
+
       <a id="{{nw.slug}}"></a>
 
       {% if nw.messages|length == 1 %}
