@@ -13,7 +13,7 @@ from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpRespo
 from django.contrib.auth.decorators import login_required
 from django.utils import html
 from django.template.context_processors import csrf, request
-from django.db.models import Count, Q
+from django.db.models import Count, Q, F
 from django.db.models.functions import Lower
 from openlocationcode import openlocationcode
 import pytz
@@ -333,12 +333,20 @@ def archived_deliveries(request, network):
     must_be_prod_or_staff(request, network)
     user = request.user
     nw = get_network(network)
-    vars = {"user": user, "nw": nw}
-    vars["deliveries"] = m.Delivery.objects.filter(
-        network=nw, state=m.Delivery.TERMINATED
-    )
+    vars = {
+        "user": user, 
+        "nw": nw,
+        "Delivery": m.Delivery,
+        "deliveries": m.Delivery.objects.filter(
+            network=nw, state=m.Delivery.TERMINATED
+        ).
+        order_by(F("distribution_date").desc(nulls_last=True), "name")
+    }
     vars["empty_deliveries"] = (
-        vars["deliveries"].filter(product__purchase__isnull=True).distinct()
+        vars["deliveries"]
+        .filter(product__purchase__isnull=True)
+        .distinct()
+        .order_by("-distribution_date", "name")
     )
     return render(request, "archived_deliveries.html", vars)
 
