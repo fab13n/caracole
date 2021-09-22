@@ -414,12 +414,16 @@ def list_delivery_models(request, network, all_networks=False):
     """
     nw = m.Network.objects.get(id=network)
     if all_networks:
-        authorized_networks = m.Network.objects.filter(
-            networkmembership__is_staff=True,
-            networkmembership__user=request.user, 
-            networkmembership__valid_until=None)
+        if request.user.is_staff:
+            authorized_networks = m.Network.objects.filter(active=True)
+        else:
+            authorized_networks = m.Network.objects.filter(
+                networkmembership__is_staff=True,
+                networkmembership__user=request.user, 
+                networkmembership__valid_until=None)
         deliveries = m.Delivery.objects.filter(network__in=authorized_networks).select_related("network")
         is_producer = False
+        which = "staff"
     else:
         which = must_be_prod_or_staff(request, nw)
         deliveries = m.Delivery.objects.filter(network=nw)
