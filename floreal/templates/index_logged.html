@@ -5,9 +5,21 @@
 {% block head %}
 {% if number_of_deliveries %}
 <script type='text/javascript'>
-$(document).ready(() =>
-  $('nav .orders a').append(`&nbsp;<span class="badge badge-pill badge-danger">{{number_of_deliveries}}</span>`)
-)
+$(document).ready(() => {
+  $('nav .orders a').append(`&nbsp;<span class="badge badge-pill badge-danger">{{number_of_deliveries}}</span>`);
+  $('#recherche').on("input", (event) => {
+    const txt = $("#recherche").val().toLowerCase(); 
+    $("div.circuit").each((i, _e) => {
+      const e = $(_e);
+      const name = $(e).find("a>h3").text();
+      if(e.attr("data-search-string").includes(txt)) {
+        e.show();
+      } else {
+        e.hide();
+      }
+    })
+  });
+});
 </script>
 {% endif %}
 {% endblock %}
@@ -47,7 +59,7 @@ $(document).ready(() =>
     </div>
     <div class="row infini">
       {% for mb in memberships %}
-      <div class="col33">
+      <div class="col33 circuit" data-search-string="{{mb.network.search_string}}">
         {% with img=mb.network.image_description %}
         <a href="{% url 'reseau' network=mb.network.id %}">
 
@@ -59,7 +71,11 @@ $(document).ready(() =>
         </a>
         {% endwith %}
         <a href="{% url 'reseau' network=mb.network.id %}"><h3>{{mb.network.name}}</h3></a>
-        <p class="circuits-info"><strong>Commune, XX</strong></p>
+        {% if  mb.network.ville %}
+        <p class="circuits-info"><strong>{{mb.network.ville.nom_reel}}, {{mb.network.ville.departement}}</strong></p>
+        {% else %}
+        <p class="circuits-info"><strong>—</strong></p>
+        {% endif %}
         <p>{{mb.network.short_description|safe}}</p>
         <div class="row">
               {% if mb.has_open_orders %}
@@ -86,7 +102,7 @@ $(document).ready(() =>
       </div>
       {% endfor %}
       {% for nw in unsubscribed %}
-      <div class="col33">
+      <div class="col33 circuit" data-search-string="{{nw.search_string}}">
         <a href="{% url 'reseau' network=nw.id %}">
           {% with img=nw.image_description %}
           <div class="circuits-image" 
@@ -97,7 +113,11 @@ $(document).ready(() =>
           {% endwith %}
         </a>
         <a href="{% url 'reseau' network=nw.id %}"><h3>{{nw.name}}</h3></a>
-        <p class="circuits-info"><strong>Commune, XX</strong></p>
+        {% if  nw.ville %}
+        <p class="circuits-info"><strong>{{nw.ville.nom_reel}}, {{nw.ville.departement}}</strong></p>
+        {% else %}
+        <p class="circuits-info"><strong>—</strong></p>
+        {% endif %}
         <p>{{nw.short_description|safe}}</p>
         {% if user.is_staff %}
         <div class="row">
