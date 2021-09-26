@@ -3,27 +3,6 @@
 {% load floreal_filters %}
 
 {% block head %}
-<style type="text/css">
-  .circuits-image {
-    position: relative;
-  }
-
-  .circuits-image .image-controls {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-  }
-
-  @media (hover: hover) {
-    .circuits-image .image-controls {
-      display: none;
-    }
-    .circuits-image:hover .image-controls {
-      display: unset;
-    }
-  }
-</style>
 {% if number_of_deliveries %}
 <script type='text/javascript'>
 $(document).ready(() =>
@@ -59,7 +38,13 @@ $(document).ready(() =>
 
   <section id="circuits" class=" container margetop">
     <a id="réseaux"></a>
-    <h2>Les réseaux</h2>
+    <div class="row rechercheReseaux baseline start">
+      <h2>Les réseaux</h2>
+      <div class="col33">
+        <input type="text" id="recherche" name="recherche" placeholder="Commune, département, nom du groupement,...">
+      </div>
+      <input class="recherche" type="button" value="Rechercher">
+    </div>
     <div class="row infini">
       {% for mb in memberships %}
       <div class="col33">
@@ -70,23 +55,25 @@ $(document).ready(() =>
                style="background-image: url('{% if img %}{{img.url}}{% else %}{% static  'images/image-reseau.jpg' %}{% endif %}'); 
                       background-size: cover; 
                       background-position: center;">
-
-            <div class="image-controls">
-
+          </div>
+        </a>
+        {% endwith %}
+        <a href="{% url 'reseau' network=mb.network.id %}"><h3>{{mb.network.name}}</h3></a>
+        <p class="circuits-info"><strong>Commune, XX</strong></p>
+        <p>{{mb.network.short_description|safe}}</p>
+        <div class="row">
               {% if mb.has_open_orders %}
-              <a href="{% url 'orders' %}#{{mb.network.slug}}" class="button">Commander</a>
+              <a href="{% url 'orders' %}#{{mb.network.slug}}" class="button button-primary">Commander</a>
               {% endif %}
 
               {% if mb.is_staff or mb.is_subgroup_staff or mb.is_producer or user.is_staff %}
-              <a href="{% url 'admin' %}#nw-{{mb.network.id}}" class="button">Administrer</a>
+              <a href="{% url 'admin' %}#nw-{{mb.network.id}}" class="button attente">Administrer</a>
               {% endif %}
-
-              <a href="{% url 'reseau' network=mb.network.id %}" class="button">Description</a>
 
               {% if mb.is_buyer %}
               <a href="{% url 'leave_network' network=mb.network.id %}" 
                 onclick="return confirm('Vous voulez définitivement quitter {{mb.network.name}}?')"
-                class="button">Se  désinscrire</a>
+                class="button quitter">Se  désinscrire</a>
               {% endif %}
               
               {% if mb.is_candidate %}
@@ -95,12 +82,7 @@ $(document).ready(() =>
                 onclick="return confirm('Vous voulez annuler votre candidature à {{mb.network.name}}?')"
                 class="button">Annuler candidature</a>
               {% endif %}
-            </div>
-          </div>
-        </a>
-        {% endwith %}
-        <a href="{% url 'reseau' network=mb.network.id %}"><h3>{{mb.network.name}}</h3></a>
-        {{mb.network.short_description|safe}}
+        </div>
       </div>
       {% endfor %}
       {% for nw in unsubscribed %}
@@ -110,19 +92,19 @@ $(document).ready(() =>
           <div class="circuits-image" 
                style="background-image: url('{% if img %}{{img.url}}{% else %}{% static  'images/image-reseau.jpg' %}{% endif %}'); 
                       background-size: cover; 
-                      background-position: center;">
-            <div class="image-controls">
-              {% if user.is_staff %}
-              <a href="{% url 'admin' %}#nw-{{mb.network.id}}" class="button">Administrer</a>
-              {% endif %}
-              <a href="{% url 'reseau' network=nw.id %}" class="button">Description</a>
-              <a href="{% url 'reseau' network=nw.id %}" class="button">Rejoindre</a>
-            </div>                    
+                      background-position: center;">                  
           </div>
           {% endwith %}
         </a>
         <a href="{% url 'reseau' network=nw.id %}"><h3>{{nw.name}}</h3></a>
-        {{nw.short_description|safe}}
+        <p class="circuits-info"><strong>Commune, XX</strong></p>
+        <p>{{nw.short_description|safe}}</p>
+        {% if user.is_staff %}
+        <div class="row">
+              <a href="{% url 'admin' %}#nw-{{mb.network.id}}" class="button attente">Administrer</a>
+              {% endif %}
+              <a href="{% url 'reseau' network=nw.id %}" class="button button-primary">Rejoindre</a>
+        </div>
       </div>
       {% endfor %}
     </div>

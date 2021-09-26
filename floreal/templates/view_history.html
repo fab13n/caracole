@@ -19,7 +19,7 @@ li.purchase {
 <h1>Historique des commandes de {{user.first_name}} {{user.last_name}}</h1>
 <ul class="commandes">
   {% for nw_name, nw in networks.items %}
-  <li class="network-name">Circuit {{nw_name}}: <span class="prix">{{nw.total|price}}</span>
+  <li class="network-name">Circuit {{nw_name}}: <span class="prix total">{{nw.total|price}}</span>
     <ul>
       {% for dv_name, dv in nw.deliveries.items %}
       <li class="delivery-name">
@@ -36,7 +36,7 @@ li.purchase {
     </ul>
   </li>
   {% endfor %}
-  <li class="total">Total cumulé : <span class="prix">{{total|price}}</span></li>
+  <li class="total"><strong>Total cumulé : <span class="prix total">{{total|price}}</span></strong></li>
 </ul>
 
 <p><a class="button retour" href="javascript:history.back()">Retour</a></p>
