@@ -8,7 +8,7 @@
 $(document).ready(() => {
   $('nav .orders a').append(`&nbsp;<span class="badge badge-pill badge-danger">{{number_of_deliveries}}</span>`);
   $('#recherche').on("input", (event) => {
-    const txt = $("#recherche").val().toLowerCase(); 
+    const txt = $("#recherche").val().toLowerCase().replace(/[^a-z0-9]+/g, ' ');
     $("div.circuit").each((i, _e) => {
       const e = $(_e);
       const name = $(e).find("a>h3").text();
@@ -19,6 +19,13 @@ $(document).ready(() => {
       }
     })
   });
+  const urlSearchParams = new URLSearchParams(window.location.search);
+  const params = Object.fromEntries(urlSearchParams.entries());
+  if(params.filter) {
+    $("#recherche")
+      .val(params.filter)
+      .trigger("input");
+  }
 });
 </script>
 {% endif %}
