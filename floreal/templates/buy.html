@@ -35,7 +35,6 @@
   }
 
   #products-table .product-image {
-    width: 92px;
     margin: 0px;
     padding: 0px;
   }
@@ -82,7 +81,7 @@
     margin: 0px !important;
     padding-left: 20px;
     position: relative;
-    top: 1.8rem;
+    top: 2rem;
     z-index: 1;
     text-align: right;
     color: #ED5C01;
@@ -98,12 +97,17 @@
     width: 93px;
     height: 93px;
   }
-
+  .product-name {
+    font-weight: 500;
+  }
   .quantity-nav {
     position: relative;
     top: -1.8rem;
     height: 42px;
     z-index: 0;
+    left: 10px;
+    z-index: 2;
+    width: 1px;
   }
 
   .quantity-button {
@@ -153,9 +157,40 @@
   .delivery-image-description {
     object-fit: cover;
     object-position: center;
-    flex: 0 0 34%;
-    width: 200px;
+    width: 100%;
   }
+  @media (max-width: 580px) {
+    .row-produit {
+      display: block;
+    }
+    .row-produit td, #products-table td {
+      display: block;
+      text-align: left;
+    }
+    #products-table .row-produit td.quantity, #products-table .row-produit td.product-unit {
+      display: inline-block;
+    }
+    #products-table td.quantity {
+      max-width: 7rem;
+    }
+    .quantity-nav {
+      left: 4rem;
+      z-index: 2;
+      width: 1px;
+    }
+    tr.total {
+      display: block;
+      width:100%;
+    }
+    tr.legende {
+      display: none;
+    }
+    #products-table tr.texte-produit {
+      display: block;
+    max-width: 100%;
+  }
+
+}
 
 </style>
  
@@ -240,11 +275,7 @@
         rows += `
             <tr id="row-${pd.id}" class="row-produit" data-toggle="tooltip" 
               ${maxq == null ? '' : 'title="Reste ' + maxq + ' ' +pd.unit+'"'}>
-              {# If there's a description, the image occupies both rows. #}
-              <td rowspan="${pd.description ? 2 : 1}" class="product-image">
-                ${pd.image ? '<img src="' + pd.image + '"/>' : ''}
-              </td>
-              <td class="product-name">${pd.name}</td>
+              <td colspan="2" class="product-name">${pd.name}</td>
               <td class="quantity">
                 <input
                   class="ordered_quantity"
@@ -262,11 +293,15 @@
                 </div>
                 </td>
               <td class="product-unit"> ${render_unit(pd.unit)}</td>
-              <td class="unit-price">${pd.price.toFixed(2)} € / ${pd.unit}</td>
-              <td class="price">${pc.price.toFixed(2)} €</td>
+              <td class="unit-price">${pd.price.toFixed(2)}&nbsp;€ / ${pd.unit}</td>
+              <td class="price">${pc.price.toFixed(2)}&nbsp;€</td>
             </tr>`;
         if (pd.description) rows += `
             <tr class="texte-produit">
+            {# If there's a description, the image occupies both rows. #}
+              <td class="product-image">
+                ${pd.image ? '<img src="' + pd.image + '"/>' : ''}
+              </td>
               <td colspan="5">
                 ${pd.description}
               </td>
@@ -340,12 +375,14 @@
 {% block content %}
 <section class="container margetopXl margebot">
   <h1 class=" h2-like couleur-prim"><span class='distribution-date'>—</span> | <span class='network-name'>...</span> | <span class='delivery-name'>...</span></h1>
+  {% if preview %}<h2>(Prévisualisation)</h2>{% endif %}
   <p class="if-freeze-date">Commandez avant le <span class="freeze-date">...</span>.</p>
 
-  <div class="container margetop row stretch cent">
-    <p class="commandes-detail-intro delivery-description">
-    </p>
+  <div class="container slim margetop margebot">
+
     <img class="delivery-image-description"/>
+    <p class="commandes-detail-intro delivery-description"></p>
+
   </div>
 
   <div class="container">
@@ -355,26 +392,31 @@
       <table id="products-table">
         <tbody>
 
-          <tr>
-            <th></th>
-            <th>Produit</th>
-            <th colspan="2">Quantité</th>
-            <th>Prix unitaire</th>
-            <th>Sous-Total</th>
-          </tr>
-
           <tr class="total">
             <td colspan="4"></td>
             <td class="total-padding">Total</td>
             <td class="total_cell"><span class="total_price">0.00</span>&nbsp;€</td>
           </tr>
+          
+          <tr class="legende">
+            <th colspan="2">Produit</th>
+            <th colspan="2">Quantité</th>
+            <th>Prix unitaire</th>
+            <th>Sous-Total</th>
+          </tr>
+
 
         </tbody>
       </table>
 
       <div class="row container xslim">
+        {% if preview %}
+        <a class="button retour" href="{% url 'admin' %}#nw-{{delivery.network_id}}">Valider la prévisualisation</a>
+        <a class="button retour" href="{% url 'edit_delivery_products' delivery=delivery.id %}">Retour à l'édition</a>
+        {% else %}
         <input class="button-primary" type="submit" value="Valider la commande">
         <a class="button retour" href="javascript:confirm_cancel()">Retour</a>
+        {% endif %}
       </div>
       <input type='hidden' id='delivery-id' name='delivery-id' value='...' />
       {% csrf_token %}

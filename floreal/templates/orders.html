@@ -7,24 +7,32 @@
 
 {% block content %}
 <section class="container margetopXl margebot">
+    
     {% for m in general_messages %}
-    {{m|safe}}
+    <div class="container slim margetop">
+      <p class="commandes-detail-intro"><strong>Messages à tous : </strong>{{m|safe}}</p>
+    </div>
     {% endfor %}
     
     <h1>Commandes en cours</h1>
 
     <div class="container slim margetop">
       {% for nw in networks %}
+
+      {% if forloop.counter > 1 %}
+      <!-- TODO séparateur entre réseaux -->
+      {% endif %}
+
       <a id="{{nw.slug}}"></a>
 
       {% if nw.messages|length == 1 %}
-      <div class="">
-        <strong>Message des responsables du réseau {{nw.name}} :</strong> {{nw.messages.0|safe}}
+      <div class="margebotS commandes-detail-intro">
+        <p><strong>Message des responsables du réseau {{nw.name}} :</strong> {{nw.messages.0|safe}}</p>
       </div>
       {% elif nw.messages|length > 1 %}
-      <div class=""><strong>Messages des responsables du réseau {{nw.name}} :</strong></div>
+      <div class="margebotS commandes-detail-intro"><p><strong>Messages des responsables du réseau {{nw.name}} :</strong></p></div>
       {% for m in nw.messages %}
-      <div class="">{{m|safe}}</div>
+      <div class="margebotS commandes-detail-intro"><p>{{m|safe}}</p></div>
       {% endfor %}
       {% endif %}
 

@@ -91,9 +91,12 @@ def edit_delivery_products(request, delivery):
     if request.method == 'POST':  # Handle submitted data
         _parse_form(request, which == "staff")
         m.JournalEntry.log(request.user, "Edited products for delivery dv-%d", dv.id)
-        if request.POST['then_leave'].lower() == 'true':
+        then_what = request.POST['then_what']
+        if then_what == 'leave':
             return redirect(reverse('admin') + f"#nw-{dv.network_id}")
-        else:
+        elif then_what == 'preview':
+            return redirect('preview', dv.id)  # TODO retrieve URL from request?
+        else:  # then_what == 'continue'
             return redirect('edit_delivery_products', dv.id)  # TODO retrieve URL from request?
 
     else:  # Create and populate forms to render

@@ -13,7 +13,7 @@ from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpRespo
 from django.contrib.auth.decorators import login_required
 from django.utils import html
 from django.template.context_processors import csrf, request
-from django.db.models import Count, Q
+from django.db.models import Count, Q, F
 from django.db.models.functions import Lower
 from openlocationcode import openlocationcode
 import pytz
@@ -154,6 +154,7 @@ def admin(request):
     deliveries_without_purchase = {dv.id for dv in m.Delivery.objects
         .exclude(state='E')
         .exclude(product__purchase__isnull=False)
+        .order_by("distribution_date", "state", "name")
     }
 
     jnetworks = {}
@@ -169,6 +170,7 @@ def admin(request):
             "is_network_staff": is_network_staff[nw.id],  # Otherwise producer
             "visible": nw.visible,
             "auto_validate": nw.auto_validate,
+            "messages": [msg for msg in messages if msg.network_id == nw.id]
         }
 
     for cd in candidacies:
@@ -195,7 +197,7 @@ def admin(request):
 
     context = {
         "user": request.user,
-        "messages": messages,
+        "messages": [msg for msg in messages if msg.network_id is None],
         "networks": jnetworks.values(),
         "Delivery": m.Delivery,
     }
@@ -213,6 +215,9 @@ def orders(request):
     deliveries = m.Delivery.objects.filter(
         network__in=networks,
         state__in="BCD",
+    ).order_by(
+        "distribution_date",
+        "name"
     )
     purchases = m.Purchase.objects.filter(
         product__delivery__in=deliveries,
@@ -328,12 +333,20 @@ def archived_deliveries(request, network):
     must_be_prod_or_staff(request, network)
     user = request.user
     nw = get_network(network)
-    vars = {"user": user, "nw": nw}
-    vars["deliveries"] = m.Delivery.objects.filter(
-        network=nw, state=m.Delivery.TERMINATED
-    )
+    vars = {
+        "user": user, 
+        "nw": nw,
+        "Delivery": m.Delivery,
+        "deliveries": m.Delivery.objects.filter(
+            network=nw, state=m.Delivery.TERMINATED
+        ).
+        order_by(F("distribution_date").desc(nulls_last=True), "name")
+    }
     vars["empty_deliveries"] = (
-        vars["deliveries"].filter(product__purchase__isnull=True).distinct()
+        vars["deliveries"]
+        .filter(product__purchase__isnull=True)
+        .distinct()
+        .order_by("-distribution_date", "name")
     )
     return render(request, "archived_deliveries.html", vars)
 
@@ -666,17 +679,17 @@ def journal(request):
 
 
 def editor(
-    request, target=None, title="Éditer", template="editor.html", content=None, **kwargs
+    request, target=None, title="Éditer", template="editor.html", content=None, is_rich=True, **kwargs
 ):
     ctx = dict(
         title=title, target=target or request.path, content=content or "", 
-        next=request.GET.get('next'), **kwargs
+        next=request.GET.get('next'), is_rich=is_rich, **kwargs
     )
     ctx.update(csrf(request))
     return render(request, template, ctx)
 
 
-def set_message(request, id=None):
+def set_message(request, destination=None, id=None):
     if id is not None:
         msg = m.AdminMessage.objects.get(pk=id)
         must_be_prod_or_staff(request, msg.network_id)
@@ -702,15 +715,16 @@ def set_message(request, id=None):
                 text = text[:-4]
         if msg is not None:
             msg.message = text
+            msg.title = P["message_title"]
             msg.network_id = network_id
             msg.save()
             m.JournalEntry.log(request.user, "Modified message msg-%i to %s", msg.id, f"nw-{network_id}" if network_id else "everyone")
         else:
-            msg = m.AdminMessage.objects.create(message=text, network_id=network_id)
+            msg = m.AdminMessage.objects.create(message=text, network_id=network_id, title=P["message_title"])
             m.JournalEntry.log(request.user, "Posted message msg-%i to %s", msg.id, f"nw-{network_id}" if network_id else "everyone")
         target = request.GET.get("next", "index")
         return redirect(target)
-    else:
+    else:  # request method == GET
         u = request.user
         if u.is_staff:
             options = [("Tout le monde", "everyone")] + [
@@ -723,20 +737,26 @@ def set_message(request, id=None):
                     networkmembership__user_id=u.id,
                     networkmembership__valid_until=None
                 )]
+        
         if msg is None:
-            selected_option = options[0][0]
+            selected_option = destination or options[0][0]
         elif msg.network_id is None:
             selected_option = "everyone"
         else:
             selected_option = f"nw-{msg.network_id}"
+        
         return editor(
             request,
             title="Message administrateur",
             template="set_message.html",
-            target=f"/set-message/{id}" if msg is not None else "/set-message",
+            target=f"/edit-message/{id}" if msg is not None else "/set-message",
             options=options,
+            message_title = msg.title if msg else m.AdminMessage.title.field.default,
+            title_maxlength=m.AdminMessage.title.field.max_length,
+            maxlength=m.AdminMessage.message.field.max_length,
             content=msg.message if msg is not None else "",
-            selected_option=selected_option
+            selected_option=selected_option,
+            is_rich=False
         )
 
 
@@ -831,4 +851,46 @@ def map(request):
         "user": request.user, 
         'networks': networks,
         'producers': producers,    
+    })
+
+
+def generate_bestof_file(path):
+    import json
+    from django.db.models import F
+    r = defaultdict(float)
+    for pc in (m.Purchase.objects.all()
+       .select_related("user", "product")
+      .annotate(pp=F("product__price")*F("quantity"))
+    ):
+        r[pc.user] += float(pc.pp)
+    data = {}
+    for i, (u, p) in enumerate(sorted(r.items(), key=lambda item: item[1], reverse=True)):
+        k = f"{u.first_name} {u.last_name}"
+        if k in data:
+            print("Warning, several users named "+k)
+        else:
+            data[k] = round(p, 2)
+    with path.open("w") as f:
+        json.dump(data, f)
+ 
+
+def bestof(request):
+    must_be_staff(request)
+
+    import os
+    import json
+    from datetime import datetime, timedelta
+    from pathlib import Path
+    file = Path("/tmp/bestof.json")
+    try:
+        last_modified = datetime.fromtimestamp(os.path.getmtime(file))
+    except FileNotFoundError:
+        last_modified = datetime(1970, 1, 1)
+    if datetime.now() - last_modified > timedelta(days=1):
+        generate_bestof_file(file)
+    with file.open("r") as f:
+        data = json.load(f)
+    return render(request, "bestof.html",{
+        "bestof": data,
+        "max": max(data.values())
     })

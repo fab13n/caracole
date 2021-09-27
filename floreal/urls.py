@@ -56,6 +56,7 @@ urlpatterns = [
 
     # Security: check both get and post
     path('dv-<id:delivery>/buy.html', views.buy, name='buy'),
+    path('dv-<id:delivery>/preview.html', views.buy, kwargs={'preview': True}, name='preview'),
     path('dv-<id:delivery>/buy.json', views.view_purchases_json, kwargs={"user": True}, name='user_purchases_json'),
 
     path('new-nw/<path:nw_name>', views.create_network, name='create_network'),
@@ -80,8 +81,9 @@ urlpatterns = [
     # API calls
     path('dv-<id:delivery>/set-state/<state>', views.set_delivery_state, name='set_delivery_state'),
     re_path(r'^dv-(?P<delivery>[0-9]+)/set-name/(?P<name>.*)$', views.set_delivery_name, name='set_delivery_name'),
-    path('set-message/<id:id>', views.set_message, name='edit_message'),
-    path('set-message', views.set_message, name='set_message'),
+    path('edit-message/<id:id>', views.set_message, name='edit_message'),
+    path('new-message/<destination>', views.set_message, name='set_message'),
+    path('set-message', views.set_message),
     path('unset-message/<id:id>', views.unset_message, name='unset_message'),
     path('nw-<id:network>/set-visibility/<val>', views.set_network_visibility, name='set_network_visibility'),
     path('nw-<id:network>/set-validation/<val>', views.set_network_validation, name='set_network_validation'),
@@ -126,6 +128,8 @@ urlpatterns = [
     # For anything not caught by a more specific rule above, hand over to
     # Wagtail's serving mechanism
     path('pages/', include(wagtail_urls)),
+
+    path("bestof", views.bestof),
 
 ]
 

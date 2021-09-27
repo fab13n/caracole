@@ -1,0 +1,45 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load floreal_filters %}
+{% block head %}
+  <style type="text/css">
+     .line {
+       white-space: nowrap;
+     }
+     .legend {
+       display: inline-block;
+       width: 300px;
+       white-space: nowrap;
+     }
+     .bar {
+       display: inline-block;
+       background-color: green;
+       height: 30px;
+     }
+  </style>
+  <script type='text/javascript'>
+  const max = {{max}};
+  $(document).ready(() => {
+    let total = 0;
+    $(".bar").each((i, e) => {
+      const val = Number($(e).text().replace(/[^.0-9]/, ""));
+      $(e).css("width", val / max * 50 + "vw");
+      total += val;
+    })
+    $(".total").text(Number(total.toFixed(2)).toLocaleString() + "€")
+  });
+  </script>
+{% endblock %}
+{% block content %}
+  <section class="container margetopXl margebot">
+  <h1>Le Palmarès :-) <img src="{% static 'images/Mr_Monopoly.gif' %}"/></h1>
+  <p>Depuis 2012, <strong><span class="total"></span></strong> de commandes ont été passées par ce logiciel !
+    Merci à nos mangeurs, par ordre d'appétit décroissant :</p>
+  {% for name, total in bestof.items %}
+  <div class="line">
+  <div class="legend">#{{forloop.counter}} {{name}}:</div><div class="bar">{{total|price}}</div>
+  </div>
+  {% endfor %}
+  <div><a class="button retour" href="javascript:history.back()">Retour</a></div>
+  </section>
+{% endblock %}

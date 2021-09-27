@@ -247,14 +247,14 @@
             <li><a href="{% url 'view_journal' %}">Journal des actions utilisateur</a></li>
             <li> <a href="#" onclick="prompt_network_creation()">Créer un nouveau circuit</a> </li>
             {% endif %}
-            <li>Messages aux utilisateurs :
+            <li>Messages à tous les utilisateurs :
                 <ul>
                     {% for msg in messages %}
                     <li>
                         {% if msg.network %}
                         <strong>Réseau {{msg.network.name}} :</strong>
                         {% endif %}
-                        « {{msg.message|safe}} »
+                        <strong>{{msg.title}}</strong>: « {{msg.message}} »
                         <a class='button button-primary compact'
                             href="{% url 'edit_message' id=msg.id %}?next={% url 'admin' %}">éditer</a>
                             <a class='button button-primary compact'
@@ -263,7 +263,7 @@
                     {% empty %}
                     <li>Aucun message</li>
                     {% endfor %}
-                    <li><a href="{% url 'set_message' %}?next=admin">Poster un nouveau message</a></li>
+                    <li><a href="{% url 'set_message' destination='everyone'%}?next=admin">Poster un nouveau message</a></li>
                 </ul>
             </li>
         </ul>
@@ -325,6 +325,24 @@
             {% else %}{# too many candidatures #}
             <li><a href="{% url 'manage_candidacies' %}"><strong>{{nw.candidates|length}} candidatures</strong> à valider</a>.</li>
             {% endif %}{# few or many candidatures #}
+
+            {# TODO: should producers be allowed to handle messages directly? #}
+            <li>Messages au réseau :
+                <ul>
+                    {% for msg in nw.messages %}
+                    <li>
+                        <strong>{{msg.title}}</strong>: « {{msg.message}} »
+                        <a class='button button-primary compact'
+                            href="{% url 'edit_message' id=msg.id %}?next={% url 'admin' %}">éditer</a>
+                            <a class='button button-primary compact'
+                            href="{% url 'unset_message' id=msg.id %}?next={% url 'admin' %}">effacer</a>
+                    </li>
+                    {% empty %}
+                    <li>Aucun message</li>
+                    {% endfor %}
+                    <li><a href="{% url 'set_message' destination='nw-{{nw.id}}'%}?next=admin">Poster un nouveau message</a></li>
+                </ul>
+            </li>
         </ul>
         {% endif %}{# is_staff or is_network_staff or candidates #}
 

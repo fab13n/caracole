@@ -3,6 +3,15 @@
 {% load static %}
 
 {% block head %}
+<script type='text/javascript'>
+async function unarchive(dv_id) {
+   const set_state = "{% url 'set_delivery_state' delivery=9999 state=Delivery.FROZEN %}".replace('9999', dv_id);
+   const edit = "{% url 'edit_delivery_products' delivery=9999 %}".replace(9999, dv_id);
+   await fetch(set_state);
+   window.location.href = edit;
+   return false;
+}
+</script>
 {% endblock head %}
 
 
@@ -12,11 +21,26 @@
 <h2>Livraisons archivées du réseau {{nw.name}}</h2>
 <ul>
     {% for dv in deliveries %}
-    <!-- TODO proposer de reactiver, en commande gelee -->
-    <li><a href="">{{dv.name}} <img src="{% static 'images/edit.png' %}"/></a>
-        ({{dv.state_name}})</li>
+    <li>
+        <a
+           href="{% url 'view_delivery_purchases_html' delivery=dv.id %}"
+           title="Voir la commande"
+           data-toggle="tooltip">
+        {% if dv.distribution_date %}
+          <span class="couleur-prim">{{dv.distribution_date|short_date}} | </span>
+        {% endif %}
+        {{dv.name}} 
+        </a>
+        &nbsp;
+        <a class='button button-primary compact'
+           onclick="return unarchive({{dv.id}})"
+           title="Remette la commande {{dv.name}} en état « gelé »" 
+           data-toggle="tooltip">
+           Désarchiver
+        </a>
+    </li>
     {% empty %}
-    <li>(aucune commande)</li>
+    <li>(aucune commande terminée)</li>
     {% endfor %}
 </ul>
 

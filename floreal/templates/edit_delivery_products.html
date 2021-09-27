@@ -299,7 +299,7 @@
     }
   }
 
-  function submit_if_valid(then_leave) {
+  function submit_if_valid(then_what) {
 
       /* Check that delivery has been named */
       if($("#dv-name").val().trim() == "") {
@@ -329,7 +329,7 @@
         }
       }
 
-      $("[name=then_leave]").val(then_leave);
+      $('[name=then_what]').val(then_what);
 
       /* All sanity checks passed: submit the form */
       $("#form").submit()
@@ -737,11 +737,12 @@
     </table>
     <p>
       <button type='button' onclick="add_blank_products();">Ajouter des produits</button>
-      <button type="button" onclick="submit_if_valid(false);">Sauver</button>
-      <button type="button" onclick="submit_if_valid(true);">Sauver &amp; retourner</button>
+      <button type="button" onclick="submit_if_valid('continue');">Sauver</button>
+      <button type="button" onclick="submit_if_valid('leave');">Sauver &amp; retourner</button>
+      <button type="button" onclick="submit_if_valid('preview');">Previsualiser</button>
       <input type='hidden' name='dv-id' id='dv-id' value='' />
       <input type='hidden' name='n_rows' id="n_rows" value='0' />
-      <input type='hidden' name='then_leave' id="then_leave" value='' />
+      <input type='hidden' name='then_what' id="leave" value='' />
       {% csrf_token %}
     </p>
   </form>
