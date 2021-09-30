@@ -302,6 +302,7 @@ class Delivery(IdentifiedBySlug):
     producer = models.ForeignKey(
         User, null=True, default=None, on_delete=models.SET_NULL
     )
+    creation_date = models.DateTimeField(auto_now_add=True)
     freeze_date = models.DateField(null=True, blank=True, default=None)
     distribution_date = models.DateField(null=True, blank=True, default=None)
 
