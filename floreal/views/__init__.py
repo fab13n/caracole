@@ -262,6 +262,7 @@ def orders(request):
         pd = pc.product
         jdv = dv_by_id[pd.delivery_id]
         jpc = {
+            "pd_id": pd.id,
             "name": pd.name,
             "unit": pd.unit,
             "quantity": float(pc.quantity),
@@ -894,3 +895,23 @@ def bestof(request):
         "bestof": data,
         "max": max(data.values())
     })
+
+
+def active_products(request):
+    """
+    Serve every product in every active delivery to which the current user
+    is subscribed. Intended to complete, on demand, the "orders.html" page.
+    """
+    u = request.user
+    products = m.Product.objects.filter(
+        delivery__network__networkmembership__is_buyer=True,
+        delivery__state__in='BDC',
+        delivery__network__networkmembership__user=request.user,
+        delivery__network__networkmembership__valid_until=None,
+    )
+
+    d = defaultdict(list)  # {network: {delivery: [product*]}}
+    for pd in products:
+        d[pd.delivery_id].append({'id': pd.id, 'name': pd.name, 'price': pd.price, 'unit': pd.unit})
+
+    return JsonResponse(d)
