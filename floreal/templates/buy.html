@@ -200,12 +200,15 @@
   let PRODUCTS = {}; // id -> product record
 
   /* Load products, delivery, and saved purchases description */
-  async function load_purchases() {
-    const res = await fetch("{% url 'user_purchases_json' delivery=delivery.id %}");
-    DATA = await res.json();
-    //SOME_PACKAGED = DATA.products.find(pd => pd.quantity_per_package !== null) !== undefined;
-    //SOME_WEIGHTED = DATA.products.find(pd => pd.unit_weight !== 0) !== undefined;
-    DATA.products.forEach(pd => { PRODUCTS[pd.id] = pd; })
+  function load_purchases() {
+    return fetch("{% url 'user_purchases_json' delivery=delivery.id %}")
+    .then((res) => res.json())
+    .then((json) => {
+      DATA = json;
+      //SOME_PACKAGED = DATA.products.find(pd => pd.quantity_per_package !== null) !== undefined;
+      //SOME_WEIGHTED = DATA.products.find(pd => pd.unit_weight !== 0) !== undefined;
+      DATA.products.forEach(pd => { PRODUCTS[pd.id] = pd; })
+    });
   }
 
   /* TODO: add multiplication/pluralization when applicable. */
@@ -218,8 +221,12 @@
     }
   }
 
-  function render_date(txt, options={}) {
-    return new Intl.DateTimeFormat('fr', {day: 'numeric', month: 'short', ...options}).format(new Date(txt));
+  function render_date_short_month(txt) {
+    return new Intl.DateTimeFormat('fr', {day: 'numeric', month: 'short'}).format(new Date(txt));
+  }
+
+  function render_date_long_month(txt) {
+    return new Intl.DateTimeFormat('fr', {day: 'numeric', month: 'long'}).format(new Date(txt));
   }
 
   /* Reflect the content of `DATA` into widgets. */
@@ -228,12 +235,13 @@
     $("#delivery-id").val(DATA.delivery.id);
     $(".network-name").text(DATA.network.name);
     $(".user-name").text(DATA.user.first_name + " " + DATA.user.last_name);
-    if(DATA.producer?.description){
+    const maybe_prod = DATA.producer || {};
+    if(maybe_prod.description){
       $(".delivery-description").html(DATA.producer.description);
     } else if (DATA.delivery.description) {
       $(".delivery-description").html(DATA.delivery.description);
     }
-    if(DATA.producer?.image_description) {
+    if(maybe_prod.image_description) {
       $(".delivery-image-description").attr("src", DATA.producer.image_description);
     } else if(DATA.network.image_description) {
       $(".delivery-image-description").attr("src", DATA.network.image_description);
@@ -244,12 +252,12 @@
       $(".if-producer").remove();
     }
     if(DATA.delivery.freeze) {
-      $(".freeze-date").text(render_date(DATA.delivery.freeze, {month: 'long'}));
+      $(".freeze-date").text(render_date_long_month(DATA.delivery.freeze));
     } else {
       $(".if-freeze-date").remove();
     }
     if(DATA.delivery.distribution) {
-      const dd = render_date(DATA.delivery.distribution)
+      const dd = render_date_short_month(DATA.delivery.distribution);
       $(".distribution-date")
         .text(dd)
         .attr("title", "Distribution le "+dd)
@@ -362,11 +370,8 @@
       window.history.back();
     }
   }
-  $(document).ready(async () => {
-    /* Turn plain inputs into Bootstrap inputs. */
-    await load_purchases();
-    render();
-    /* Recompute totals after each change as well as after laoding. */
+  $(document).ready(() => {
+    load_purchases().then(render);
   });
 </script>
 {% endblock %}
