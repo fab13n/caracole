@@ -52,7 +52,7 @@ def users_get(request):
         )
 
     user_records = {
-        u_rec["id"]: dict(**u_rec, **{k: [] for k in KEYS})
+        u_rec["id"]: dict(**u_rec, **{k: [] for k in KEYS}, subgroups={})
         for u_rec in users.values(
             "id",
             "first_name",
@@ -87,7 +87,10 @@ def users_get(request):
             for key in KEYS:
                 if getattr(nm, "is_" + key):
                     u_rec[key].append(nw.id)
-
+            if (sg_id := nm.subgroup_id) is not None:
+                u_rec['subgroups'][nw.id] = sg_id
+        nw_rec['subgroups'] = list(nw.networksubgroup_set.all().values("id", "name")) or None
+    
     return JsonResponse(
         {
             "is_staff": staff.is_staff,
@@ -168,6 +171,12 @@ def user_update(request):
             if new_val:
                 some_fields_true = True
             setattr(new_nm, attr, new_val)
+
+        new_sg_id = data["subgroups"].get(str(nw_id))
+        if new_sg_id is not None and int(new_sg_id) != old_nm.subgroup_id:
+            some_fields_changed = some_fields_true = True
+            assert m.NetworkSubgroup.objects.get(pk=new_sg_id).network_id == nw_id
+            new_nm.subgroup_id = new_sg_id
 
         if some_fields_changed:
             if old_nm is not None:
