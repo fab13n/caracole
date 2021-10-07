@@ -125,6 +125,7 @@ def admin(request):
         networks = m.Network.objects.filter(active=True)
         messages = m.AdminMessage.objects.all()
         is_network_staff = defaultdict(lambda: True)
+        is_producer = defaultdict(lambda: False)
         # TODO Also list subgroup staff capabilities?
         # For now subgroups can only view and modify subgroup purchases.
     else:
@@ -151,8 +152,12 @@ def admin(request):
         networks = staff_networks | prod_networks | subgroup_staff_networks
         messages = m.AdminMessage.objects.filter(network__in=networks)
         is_network_staff = defaultdict(lambda: False)
+        is_producer = defaultdict(lambda: False)
         for nw in staff_networks:
             is_network_staff[nw.id] = True
+        for nw in prod_networks:
+            if not is_network_staff[nw.id]:
+                is_producer[nw.id] = True
         for nw in subgroup_staff_networks:
             # Get the subgroups, not only the information that a membership exists
             subgroups = m.NetworkSubgroup.objects.filter(
@@ -176,9 +181,10 @@ def admin(request):
     ).select_related("user")
     deliveries_without_purchase = {
         dv.id
-        for dv in m.Delivery.objects.exclude(state="E")
-        .exclude(product__purchase__isnull=False)
-        .order_by("distribution_date", "state", "name")
+        for dv in m.Delivery.objects
+            .exclude(state="E")
+            .exclude(product__purchase__isnull=False)
+            .order_by("distribution_date", "state", "name")
     }
 
     jnetworks = {}
@@ -191,7 +197,8 @@ def admin(request):
             "candidates": [],
             "deliveries": [],
             "active_deliveries": 0,
-            "is_network_staff": is_network_staff[nw.id],  # Otherwise producer and/or subgroup staff
+            "is_network_staff": is_network_staff[nw.id],
+            "is_producer": is_producer[nw.id],
             "subgroup_staff_of": subgroup_staff_of.get(nw.id),
             "visible": nw.visible,
             "auto_validate": nw.auto_validate,
@@ -203,7 +210,7 @@ def admin(request):
 
     for dv in deliveries:
         jnw = jnetworks[dv.network_id]
-        if not jnw["is_network_staff"] and dv.producer_id != request.user.id:
+        if not (jnw["is_network_staff"] or jnw['subgroup_staff_of']) and dv.producer_id != request.user.id:
             # Producers only see their own deliveries
             continue
         jdv = {

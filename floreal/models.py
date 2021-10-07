@@ -138,7 +138,7 @@ class FlorealUser(IdentifiedBySlug, Mapped):
     def has_some_admin_rights(self):
         u = self.user
         return u.is_staff or NetworkMembership.objects.filter(
-            Q(is_staff=True) | Q(is_producer=True),
+            Q(is_staff=True) | Q(is_producer=True) | Q(is_subgroup_staff=True),
             user_id=u.id, valid_until=None, ).exists()
 
 

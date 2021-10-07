@@ -4,13 +4,14 @@
 
 {% block head %}
 <style type="text/css">
-  html, body {
-    overflow-x: unset;
-  }
-  
-  td.yes { background-color: #ccffcc; color: green; font-size: larger; }
-  
+  html, body { overflow-x: unset; }
+  td.yes { background-color: #ccffcc; color: green; font-size: larger; }  
   .highlight { background-color: #ffaaaa; }
+  .sg-row, .sg-row th { color: white; background-color: #a75a50; font-weight: bold; }
+  .sg-row:hover { cursor: pointer; }
+  .four  { background-color: #d5b1ac; }
+  .blank  { text-align: left; }
+  table { margin-top: 30px; }
 
 </style>
 
@@ -165,13 +166,6 @@
   $(document).ready(load_delivery);
 </script>
 
-<style type="text/css">
-  .sg-row, .sg-row th { color: white; background-color: #a75a50; font-weight: bold; }
-  .sg-row:hover { cursor: pointer; }
-  .four  { background-color: #d5b1ac; }
-  .blank  { text-align: left; }
-  table { margin-top: 30px; }
-</style>
 {% endblock %}
 
 {% block content %}

@@ -36,7 +36,7 @@
         border-bottom: none;
     }
 
-    .active-deliveries select {
+    .active-deliveries .pseudo-menu {
         margin: 1px;
     }
 
@@ -64,6 +64,10 @@
     }
 
     .active-deliveries tr:nth-child(even) {
+        background-color: #e5fabd;
+    }
+
+    .active-deliveries tr:nth-child(odd) .pseudo-menu {
         background-color: #e5fabd;
     }
 
@@ -347,7 +351,7 @@
                 </ul>
             </li>
         </ul>
-        {% endif %}{# is_staff or is_network_staff or candidates #}
+        {% endif %}{# is_staff or is_network_staff or candidates but neither prods nor subgroup staff #}
 
         <h5 class="txt-left couleur-sec margebotS">Commandes</h5>
         <ul>
@@ -389,19 +393,20 @@
                         {% endif %}
                     </strong>
                 </td>
-                {% if nw.is_subgroup_staff and not nw.is_producer and not nw.is_network_staff %}
-                <td colspan=2>TODO subgroup admin</td>
-                {% else %}
-                <td>
-                    <select id="dv-{{dv.id}}-state" name="dv-{{dv.id}}-state" class="button admin"
+                {% if nw.is_network_staff or nw.is_producer %}
+                <td>{# change of state #}
+                    <select id="dv-{{dv.id}}-state" name="dv-{{dv.id}}-state" class="button admin pseudo-menu"
                         onchange="on_state_change({{dv.id}}, event.target.value)">
                         {% for key, name in Delivery.STATE_CHOICES.items %}
                         <option value="{{key}}" {% if key == dv.state %}selected="selected" {% endif %}>{{name}}</option>
                         {% endfor %}
                     </select>
                 </td>
+                {% else %}{# subgroup staff only #}
+                <td>({{nw.subgroup_staff_of.name}})</td>
+                {% endif %}
                 {% if nw.is_network_staff %}
-                <td>
+                <td>{# Modify everything #}
                     <select class="button admin pseudo-menu" onchange="on_modify({{dv.id}}, event.target.value)">
                         <option value="none">Modifier...</option>
                         <option value="products">La commande</option>
@@ -409,9 +414,10 @@
                         <option value="name">Le nom</option>
                     </select>
                 </td>
+                {% else %}{# subgroup staff or producer: only purchases can be modified #}
+                <td><a class = "button admin pseudo-menu" href="{% url 'edit_delivery_purchases' delivery=dv.id %}">Modifier les achats</a></td>
                 {% endif %}{# network staff #}
-                {% endif %}{# network staff or admin #}
-                <td>
+                <td>{# everyone can view purchases #}
                     {% if dv.has_purchases %}
                     <select class="button admin pseudo-menu" onchange="on_view({{dv.id}}, event.target.value)">
                         <option value="none">Voir...</option>
@@ -421,7 +427,7 @@
                         <option value="cards">En cartes à imprimer</option>
                     </select>
                     {% else %}
-                    <select class="button admin" disabled="disabled">
+                    <select class="button admin pseudo-menu" disabled="disabled">
                         <option value="cards">Encore aucun achat</option>
                     </select>
                     {% endif %}
