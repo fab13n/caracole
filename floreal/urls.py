@@ -48,6 +48,8 @@ urlpatterns = [
 
     # Security: based on memberhsip.is_buyer
     path('orders.html', views.orders, name='orders'),
+    path("orders/products.json", views.active_products, name='active_products'),
+
     # Security: Only me
     path('user.html', views.user, name='user'),
 

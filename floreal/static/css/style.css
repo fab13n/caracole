@@ -228,6 +228,9 @@ h1:first-of-type, .h1-like:first-of-type {
   align-items: baseline;
 }
 
+.row.rechercheReseaux .col33{
+  margin: 0 3rem;
+}
 .rowlogo a img {
   max-width: 80%;
 }
@@ -426,6 +429,39 @@ img {
 
 .circuits-image {
   height: 23rem;
+  position: relative;
+}
+
+.circuits-image::before {
+  content:"";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color:rgba(0, 0, 0, 0);
+  transition: .2s;
+}
+
+.circuits-image:hover::before, .circuits-image.active::before {
+  background-color:rgba(0, 0, 0, .5);
+}
+
+.circuits-image::after {
+  content: "+";
+  position: absolute;
+  font-size: 15rem;
+  transition: .2s;
+  left: 0;
+  top: 0;
+  transform-origin: center center;
+  transform: translate(38% , 9rem);
+  width: 100%;
+  opacity: 0;
+  transition: .4s;
+  color: #84B818 !important;
+}
+
+.circuits-image:hover::after, .circuits-image.active::after {
+  opacity:1;
 }
 
 .circuits-info {
@@ -434,9 +470,6 @@ img {
   margin-bottom: 1rem;
 }
 
-.circuits-info:last-of-type {
-  margin-bottom: 2.5rem;
-}
 
 .commandes-detail-intro {
   padding: 4rem;
@@ -858,6 +891,9 @@ header {
   color: #84B818;
 }
 
+
+
+
 .lienSupNav {
   position: absolute;
   left: 6rem;
@@ -991,6 +1027,12 @@ header {
     height: auto;
     position: relative;
   }
+  .orders {
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 1.2rem 2rem  !important;
+  }
 }
 
 /* Listes -------------------------------------------------- */
@@ -1095,7 +1137,11 @@ ul.commandes li span.jours, span.prix {
 span.prix {
   background-color: #ED5C01;
 }
-
+span.prix.total {
+  background-color: #fff;
+  border: solid 1px #ED5C01;
+  color: #ED5C01;
+}
 p.commandes-entete {
   font-family: 'oswald', sans-serif;
   font-size: 1.6rem;
@@ -1164,7 +1210,7 @@ p.commandes-entete span {
 .button, button, input[type="submit"], input[type="reset"], input[type="button"] {
   display: inline-block;
   height: 3.4rem;
-  width: 17.8rem;
+  width: auto;
   max-width: 98%;
   color: #000;
   text-align: center;
@@ -1179,7 +1225,6 @@ p.commandes-entete span {
   transition: .3s;
   font-family: "oswald", sans-serif;
   position: relative;
-  min-width: 16rem;
   padding: 0 2rem;
   border-radius: 1.7rem;
   border: none;
@@ -1228,10 +1273,15 @@ p.commandes-entete span {
   min-width: 1rem;
 }
 
-.button.retour, .button.admin:hover {
+.button.retour, .button.admin:hover, input.recherche:hover {
   color: #84B818;
   background-color: #fff;
   border: 1px solid #84B818;
+}
+input.recherche {
+  color: #000;
+  background-color: #fff;
+  border: 1px solid #000;
 }
 
 .button.modif {
@@ -1239,7 +1289,7 @@ p.commandes-entete span {
   background-color: #fff;
   border: 1px solid #ED5C01;
 }
-
+rgb(58, 32, 16)
 .button.retour:hover, .button.modif:hover, .button.admin {
   color: #733A00;
   background-color: #fff;
@@ -1262,9 +1312,7 @@ button.button-third, .button.button-third {
 }
 
 @media (max-width: 980px) {
-  .button.quitter {
-    width: 8rem;
-  }
+
 }
 
 @media (max-width: 720px) {

@@ -283,6 +283,7 @@ def orders(request):
         pd = pc.product
         jdv = dv_by_id[pd.delivery_id]
         jpc = {
+            "pd_id": pd.id,
             "name": pd.name,
             "unit": pd.unit,
             "quantity": float(pc.quantity),
@@ -438,15 +439,16 @@ def list_delivery_models(request, network, all_networks=False):
     """
     nw = m.Network.objects.get(id=network)
     if all_networks:
-        authorized_networks = m.Network.objects.filter(
-            networkmembership__is_staff=True,
-            networkmembership__user=request.user,
-            networkmembership__valid_until=None,
-        )
-        deliveries = m.Delivery.objects.filter(
-            network__in=authorized_networks
-        ).select_related("network")
+        if request.user.is_staff:
+            authorized_networks = m.Network.objects.filter(active=True)
+        else:
+            authorized_networks = m.Network.objects.filter(
+                networkmembership__is_staff=True,
+                networkmembership__user=request.user, 
+                networkmembership__valid_until=None)
+        deliveries = m.Delivery.objects.filter(network__in=authorized_networks).select_related("network")
         is_producer = False
+        which = "staff"
     else:
         which = must_be_prod_or_staff(request, nw)
         deliveries = m.Delivery.objects.filter(network=nw)
@@ -972,4 +974,27 @@ def bestof(request):
         generate_bestof_file(file)
     with file.open("r") as f:
         data = json.load(f)
-    return render(request, "bestof.html", {"bestof": data, "max": max(data.values())})
+    return render(request, "bestof.html",{
+        "bestof": data,
+        "max": max(data.values())
+    })
+
+
+def active_products(request):
+    """
+    Serve every product in every active delivery to which the current user
+    is subscribed. Intended to complete, on demand, the "orders.html" page.
+    """
+    u = request.user
+    products = m.Product.objects.filter(
+        delivery__network__networkmembership__is_buyer=True,
+        delivery__state__in='BDC',
+        delivery__network__networkmembership__user=request.user,
+        delivery__network__networkmembership__valid_until=None,
+    )
+
+    d = defaultdict(list)  # {network: {delivery: [product*]}}
+    for pd in products:
+        d[pd.delivery_id].append({'id': pd.id, 'name': pd.name, 'price': pd.price, 'unit': pd.unit})
+
+    return JsonResponse(d)

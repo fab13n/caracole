@@ -1,19 +1,21 @@
 #!/usr/bin/python3
 import re
 from datetime import datetime
+from functools import cached_property
+from typing import List
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.db.models.functions import TruncDate, Now
 from django.db import models
-from django.db.models import Sum, Q
-from html2text import html2text
+from django.db.models import Q, Sum
+from django.db.models.functions import Now, TruncDate
 from django.utils import timezone
 from django.utils.text import slugify
-from typing import List
-from floreal.francais import Plural, articulate, plural
-from functools import cached_property
+from html2text import html2text
+from unidecode import unidecode
 
+from floreal.francais import Plural, articulate, plural
+from villes.models import Ville
 
 class IdentifiedBySlug(models.Model):
     """
@@ -238,35 +240,14 @@ class Network(IdentifiedBySlug, Mapped):
     description = models.TextField(null=True, blank=True, default=None)
     short_description = models.TextField(null=True, blank=True, default=None)
     image_description = models.ImageField(null=True, blank=True, default=None)
+    ville = models.ForeignKey(Ville, null=True, blank=True, default=None, on_delete=models.SET_NULL)
+    search_string = models.TextField(max_length=256, default="")
 
     class Meta:
         ordering = ("name",)
 
     def __str__(self):
         return self.name
-
-    # def _filtered_members(self, **kwargs):
-    #     return User.objects.filter(
-    #         networkmembership__in=NetworkMembership.objects.filter(
-    #             network=self, **kwargs
-    #         )
-    #     )
-
-    # @property
-    # def staff(self):
-    #     return self._filtered_members(is_staff=True)
-
-    # @property
-    # def buyers(self):
-    #     return self._filtered_members(is_buyer=True)
-
-    # @property
-    # def producers(self):
-    #     return self._filtered_members(is_producer=True)
-
-    # @property
-    # def candidates(self):
-    #     return self._filtered_members(is_candidate=True)
 
     @property
     def description_text(self):
@@ -276,8 +257,21 @@ class Network(IdentifiedBySlug, Mapped):
     def grouped(self):
         return self.networksubgroup_set.exists()
 
-    # def active_deliveries(self):
-    #     return self.delivery_set.filter(state__in="ABCD")
+    def save(self, **kwargs):
+        s = [
+            self.name,
+            self.short_description or "",   
+        ]
+        if self.ville:
+            s += [
+                self.ville.nom_simple,
+                str(self.ville.departement)
+            ]
+        self.search_string = re.sub(r"[^a-z0-9]+", " ", unidecode(" ".join(s).lower()))
+        if self.ville and self.latitude is None:
+            self.latitude = self.ville.latitude_deg
+            self.longitude = self.ville.longitude_deg
+        return super().save(**kwargs)
 
 
 class Delivery(IdentifiedBySlug):
@@ -305,6 +299,7 @@ class Delivery(IdentifiedBySlug):
     producer = models.ForeignKey(
         User, null=True, default=None, on_delete=models.SET_NULL
     )
+    creation_date = models.DateTimeField(auto_now_add=True)
     freeze_date = models.DateField(null=True, blank=True, default=None)
     distribution_date = models.DateField(null=True, blank=True, default=None)
 

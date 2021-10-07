@@ -2,13 +2,38 @@
 {% load static %}
 {% load floreal_filters %}
 
-{% block document_ready %}
+{% block head %}
+<script type='text/javascript'>
+function insert_active_products() {
+  // Trying to stick to ES2015, as this is a buyers' page. No async/await.
+  fetch("{% url 'active_products' %}")
+  .then((response) => response.json())
+  .then((json) => {
+    const purchased_product_ids = $(".purchased-product")
+      .map((i, e) => Number(e.id.replace(/^pd-/, ''))).toArray();
+    Object.entries(json).forEach(([dv_id, products]) => {
+      const products_html = products
+        .filter((pd) => !purchased_product_ids.includes(pd.id))
+        .map((pd) => `
+          <li class='product active-product' id='pd-${pd.id}'>
+            <span class='product-name'>${pd.name}</span>:
+            <span class='product-price'>${pd.price}€/${pd.unit}</span>
+          </li>`)
+        .join('\n');
+      $(`#dv-${dv_id} ul.purchases`).append(products_html);
+    });   
+  })
+}
+</script>
 {% endblock %}
 
 {% block content %}
 <section class="container margetopXl margebot">
+    
     {% for m in general_messages %}
-    {{m|safe}}
+    <div class="container slim margetop">
+      <p class="commandes-detail-intro"><strong>Messages à tous : </strong>{{m|safe}}</p>
+    </div>
     {% endfor %}
     
     <h1>Commandes en cours</h1>
@@ -23,13 +48,13 @@
       <a id="{{nw.slug}}"></a>
 
       {% if nw.messages|length == 1 %}
-      <div class="">
-        <strong>Message des responsables du réseau {{nw.name}} :</strong> {{nw.messages.0|safe}}
+      <div class="margebotS commandes-detail-intro">
+        <p><strong>Message des responsables du réseau {{nw.name}} :</strong> {{nw.messages.0|safe}}</p>
       </div>
       {% elif nw.messages|length > 1 %}
-      <div class=""><strong>Messages des responsables du réseau {{nw.name}} :</strong></div>
+      <div class="margebotS commandes-detail-intro"><p><strong>Messages des responsables du réseau {{nw.name}} :</strong></p></div>
       {% for m in nw.messages %}
-      <div class="">{{m|safe}}</div>
+      <div class="margebotS commandes-detail-intro"><p>{{m|safe}}</p></div>
       {% endfor %}
       {% endif %}
 
@@ -37,7 +62,7 @@
       {% if dv.purchases or dv.state == Delivery.ORDERING_ALL %}
       {% with has_freeze_date=dv.freeze|is_in_the_future has_distribution_date=dv.distribution %}
       <ul class="commandes">
-        <li>
+        <li id="dv-{{dv.id}}">
             {% if dv.state > Delivery.ORDERING_ALL %}
             <span class="jours">{{dv.state_name}}</span>  
             {% elif has_freeze_date %}
@@ -60,13 +85,13 @@
           {% if dv.state == Delivery.ORDERING_ALL %}
           </a>
           {% endif %}
-        </li>
-          <ul>
+          <ul class="purchases">
             {% for pc in dv.purchases %}
-            <li><strong>{{pc.quantity|floatformat}}</strong>{{pc.unit|unit_multiple}} de <strong>{{pc.name}}</strong></li>
+            <li class="product purchased-product" id="pd-{{pc.pd_id}}"><strong>{{pc.quantity|floatformat}}</strong>{{pc.unit|unit_multiple}} de <strong>{{pc.name}}</strong></li>
             {% endfor %}
             {% if dv.total_price %} <span class="prix">{{dv.total_price|price}}</span> {% endif %}
           </ul>
+        </li>
       </ul>
       {% endwith %}{# has_freeze_date has_distribution_date #}
       {% endif %} {# can order or has ordered #}
@@ -76,7 +101,8 @@
 
     <div class="container slim margetop">
       <ul>
-        <li> <a href="{% url 'view_history' %}">Historique des commandes passées</a> </li>
+        <li> <a href="{% url 'view_history' %}">Historique des commandes passées.</a> </li>
+        <li> <a href="#" onclick="insert_active_products()">Voir tous les produits de toutes les commandes.</a></li>
       </ul>
     </div>
 
