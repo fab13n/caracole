@@ -12,6 +12,7 @@
   .four  { background-color: #d5b1ac; }
   .blank  { text-align: left; }
   table { margin-top: 30px; }
+  th, td { padding: 3px 5px; }
 
 </style>
 
@@ -96,9 +97,11 @@
 
   function render_users(g) {
     /* Individual user quantities. */
+    let n_cycle = 0; // May decorrelate from index i because of non-purchasing users
     g.purchases.forEach((row, i) => {
       const u = g.users[i];
-      const cycle = ['one', 'two', 'three', 'four'][i%4];
+      if(u.total.price === 0) { return; }
+      const cycle = ['one', 'two', 'three', 'four'][n_cycle++ % 4];
       const subgroup_class = g.subgroup ? `sg-row-${g.subgroup.id}-user`: ``;
       $("#purchases").append(`
         <tr class="u-row ${subgroup_class} ${cycle}" id="u-row-${u.id}">
