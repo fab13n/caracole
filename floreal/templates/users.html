@@ -102,10 +102,6 @@
       <tr>
         <td>Producteur:</td>
         <td>${oui_non("producer-" + nw.id)}</td>
-      </tr>
-      <tr>
-        <td>Régulateur:</td>
-        <td>${oui_non("regulator-" + nw.id)}</td>
       </tr>`).join("\n");
 
     if (data.is_staff) {
@@ -165,7 +161,7 @@
     const edit_description_url = "{% url 'edit_user_description' user=9999 %}".replace(9999, u.id) + "?next={% url 'users_html' %}";
     $("#edit-description").attr("href", edit_description_url);
     Object.values(NETWORKS).forEach(nw => {
-      ["buyer", "staff", "producer", "regulator"].forEach(field =>
+      ["buyer", "staff", "producer"].forEach(field =>
         $(`[name=${field}-${nw.id}]`).bootstrapToggle(u[field].includes(nw.id) ? "on" : "off")
       );
       $(`[name=subgroup-${nw.id}]`).val(u.subgroups[nw.id]);
@@ -236,7 +232,7 @@
       subgroups: {} // nw_id -> sg_id
     };
 
-    ['buyer', 'staff', 'producer', 'regulator'].forEach(field => {
+    ['buyer', 'staff', 'producer'].forEach(field => {
       result[field] = [];
       $(`input[name^=${field}-]`).each((_, x) => {
         if (x.checked) {

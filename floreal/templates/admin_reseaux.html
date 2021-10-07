@@ -280,7 +280,7 @@
     <div class="divider acces-rapide couleur-sec">
         <a id="nw-{{nw.id}}"></a>
         <h5 class="center divider couleur-sec">Réseau <span class="couleur-prim">{{nw.name}}</span></h5>
-        {% if user.is_staff or nw.is_network_staff or nw.candidates %}
+        {% if user.is_staff or nw.is_network_staff or nw.candidates %}{# not for subgroup staff nor producers #}
         <h5 class="txt-left couleur-sec margebotS">Configuration</h5>
         <ul>
             {% if user.is_staff or nw.is_network_staff %}
@@ -293,6 +293,7 @@
                     {% if nw.visible %}checked="checked" {%else%}data-invisible="1" {% endif %} />
                 <span id="visibility-state-{{nw.id}}"></span>
             </li>
+            {# TODO eventually, subgroup staff will be able to validate subgroup candidacies #}
             <li>Candidatures <strong>validées</strong> :
                 <input 
                     class="auto-validate"
@@ -314,6 +315,7 @@
                 <a id="nw-{{nw.id}}-candidacies"></a>
                 <ul>
                     {% for u in nw.candidates %}
+                    {# TODO mark action here #}
                     <li>{{u.first_name}} {{u.last_name}} ({{u.email}}):
                         <a href="{% url 'validate_candidacy' user=u.id network=nw.id response='Y' %}?next={% url 'admin' %}#nw-{{nw.id}}-candidacies">Accepter</a>
                         /
@@ -323,6 +325,7 @@
                 </ul>
             </li>
             {% else %}{# too many candidatures #}
+            {# TODO Mark action here #}
             <li><a href="{% url 'manage_candidacies' %}"><strong>{{nw.candidates|length}} candidatures</strong> à valider</a>.</li>
             {% endif %}{# few or many candidatures #}
 
@@ -366,24 +369,29 @@
             {% for dv in nw.deliveries %}
             <tr id="dv-{{dv.id}}">
                 <td>
-                        <strong>
-                            {% if dv.distribution_date %}
-                            <span title="Distribution le {{dv.distribution_date|date}}"
-                                data-toggle="tooltip">
-                                {{dv.distribution_date|short_date}} |
-                            </span>
-                            {% elif dv.freeze_date %}{# if in_the_past and there's a distri date, display the latter. #}
-                            <span title="Commandes jusqu'au {{dv.freeze_date|date}}"
-                                data-toggle="tooltip">
-                                {{dv.freeze_date|short_date}}
-                            </span> |
-                            {% endif %}
-                            <span class='dv-name'>{{dv.name}}</span>
-                            {% if dv.producer %}
-                            | {{dv.producer.first_name}} {{dv.producer.last_name}}
-                            {% endif %}
-                        </strong>
+                    <strong>
+                        {# TODO if freeze date passed and state<FROZEN, TODO mark action here #}
+                        {# TODO if distribution date passed and state<TERMINATED, TODO mark action here #}
+                        {% if dv.distribution_date %}
+                        <span title="Distribution le {{dv.distribution_date|date}}"
+                            data-toggle="tooltip">
+                            {{dv.distribution_date|short_date}} |
+                        </span>
+                        {% elif dv.freeze_date %}{# if in_the_past and there's a distri date, display the latter. #}
+                        <span title="Commandes jusqu'au {{dv.freeze_date|date}}"
+                            data-toggle="tooltip">
+                            {{dv.freeze_date|short_date}}
+                        </span> |
+                        {% endif %}
+                        <span class='dv-name'>{{dv.name}}</span>
+                        {% if dv.producer %}
+                        | {{dv.producer.first_name}} {{dv.producer.last_name}}
+                        {% endif %}
+                    </strong>
                 </td>
+                {% if nw.is_subgroup_staff and not nw.is_producer and not nw.is_network_staff %}
+                <td colspan=2>TODO subgroup admin</td>
+                {% else %}
                 <td>
                     <select id="dv-{{dv.id}}-state" name="dv-{{dv.id}}-state" class="button admin"
                         onchange="on_state_change({{dv.id}}, event.target.value)">
@@ -401,7 +409,8 @@
                         <option value="name">Le nom</option>
                     </select>
                 </td>
-                {% endif %}
+                {% endif %}{# network staff #}
+                {% endif %}{# network staff or admin #}
                 <td>
                     {% if dv.has_purchases %}
                     <select class="button admin pseudo-menu" onchange="on_view({{dv.id}}, event.target.value)">

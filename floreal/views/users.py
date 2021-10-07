@@ -8,7 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .. import models as m
 
-KEYS = ("buyer", "staff", "producer", "regulator")
+BOOL_KEYS = ("buyer", "staff", "producer")
 
 
 def users_html(request):
@@ -52,7 +52,7 @@ def users_get(request):
         )
 
     user_records = {
-        u_rec["id"]: dict(**u_rec, **{k: [] for k in KEYS}, subgroups={})
+        u_rec["id"]: dict(**u_rec, **{k: [] for k in BOOL_KEYS}, subgroups={})
         for u_rec in users.values(
             "id",
             "first_name",
@@ -84,7 +84,7 @@ def users_get(request):
             u_rec = user_records.get(nm.user_id)
             if u_rec is None:
                 continue  # Inactive. Membership should be deleted
-            for key in KEYS:
+            for key in BOOL_KEYS:
                 if getattr(nm, "is_" + key):
                     u_rec[key].append(nw.id)
             if (sg_id := nm.subgroup_id) is not None:
@@ -162,7 +162,7 @@ def user_update(request):
         some_fields_changed = False
         some_fields_true = False
 
-        for key in KEYS:
+        for key in BOOL_KEYS:
             attr = "is_" + key
             old_val = getattr(old_nm, attr, False)
             new_val = nw_id in data[key]
