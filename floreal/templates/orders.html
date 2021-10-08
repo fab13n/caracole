@@ -29,13 +29,21 @@ function insert_active_products() {
 
 {% block content %}
 <section class="container margetopXl margebot">
-    
+
+    {% if general_messages|length == 1 %}
+    <div class="container slim margetop commandes-detail-intro">
+      <p><strong>Message à tous :</strong> {{general_messages.0|safe}}</p>
+    </div>
+
+    {% elif general_messages|length > 1 %}
+    <div class="container"><p><strong>Messages à tous :</strong></p></div>
     {% for m in general_messages %}
-    <div class="container slim margetop">
-      <p class="commandes-detail-intro"><strong>Messages à tous : </strong>{{m|safe}}</p>
+    <div class="container slim margetop commandes-detail-intro">
+      <p>{{m|safe}}</p>
     </div>
     {% endfor %}
-    
+    {% endif %}{# nw.messages #}
+   
     <h1>Commandes en cours</h1>
 
     <div class="container slim margetop">
@@ -52,7 +60,7 @@ function insert_active_products() {
         <p><strong>Message des responsables du réseau {{nw.name}} :</strong> {{nw.messages.0|safe}}</p>
       </div>
       {% elif nw.messages|length > 1 %}
-      <div class="margebotS commandes-detail-intro"><p><strong>Messages des responsables du réseau {{nw.name}} :</strong></p></div>
+      <div class="margebotS"><p><strong>Messages des responsables du réseau {{nw.name}} :</strong></p></div>
       {% for m in nw.messages %}
       <div class="margebotS commandes-detail-intro"><p>{{m|safe}}</p></div>
       {% endfor %}

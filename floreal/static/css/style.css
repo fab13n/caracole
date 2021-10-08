@@ -479,6 +479,10 @@ img {
   box-sizing: border-box;
 }
 
+.commandes-detail-intro p:last-child {
+  margin-bottom: 0px;
+}
+
 .photo-producteur {
   background-size: cover;
   flex: 0 0 34%;
