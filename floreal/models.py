@@ -316,6 +316,19 @@ class Delivery(IdentifiedBySlug):
     def description_text(self):
         return html2text(self.description) if self.description is not None else ""
 
+    @classmethod
+    def freeze_overdue_deliveries(cls):
+        """
+        Put in "FREEZE" state the deliveries which are still open, but whose freeze date is passed.
+        To be called before rendering index, orders and admin pages.
+        """
+        cls.objects.filter(
+            state=cls.ORDERING_ALL,
+            freeze_date__lt=timezone.localdate()
+        ).update(
+            state=cls.FROZEN
+        )
+
     class Meta:
         verbose_name_plural = "Deliveries"
         ordering = ("-id",)
