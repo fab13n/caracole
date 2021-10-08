@@ -19,7 +19,7 @@
       const q = Number($(`[name=pd-${pd.id}-u-${u.id}]`).val());
       pd_quantity += q;
     });
-    $(`#product-prices .pd-${pd.id}`).text(pd_quantity * pd.price);
+    $(`#product-prices .pd-${pd.id}`).text((pd_quantity * pd.price).toFixed(2));
     $(`td.pd-${pd.id} .quantity`).text(pd_quantity);
     if(pd.quantity_per_package) {
       const packages = Math.trunc(pd_quantity / pd.quantity_per_package);
@@ -35,12 +35,12 @@
       const q = Number($(`[name=pd-${pd.id}-u-${u.id}]`).val());
       u_price += q * pd.price;
     });
-    $(`#u-row-${u.id} .price`).text(u_price);
+    $(`#u-row-${u.id} span.price`).text(u_price.toFixed(2));
 
     /* Update grand total. */
     let price = 0;
     // Recompute from product prices, might have been user prices as well
-    $("#product-prices .price").each((_, td) => {
+    $("#product-prices span.price").each((_, td) => {
       price += Number($(td).text());
     });
     $("#total-price").text(price.toFixed(2));
@@ -85,7 +85,7 @@
         // unpackaged product
         $("#quantity-per-package").append(`<td> - </td>`);
         $("#packaging").append(`
-          <td class="$pd-{pd.id}">
+          <td class="pd-${pd.id}">
             <span class="quantity">${pd.total.quantity}</span>${render_unit(pd.unit)}
           </td>`);
       }
@@ -125,6 +125,15 @@
     });
   }
 
+  function render_subgroup_header(sg, colspan) {
+    $("#purchases").append(`
+      <tr class="sg-header" id="sg-row-${sg.id}">
+        <td colspan="2"></td>
+        <th colspan="${colspan}">${sg.name}</th>
+      </tr>
+    `);
+  }
+
   function render_single_group(nw) {
 
     $(".dv-name").text(nw.delivery.name + " " + nw.network.name);
@@ -134,10 +143,28 @@
     render_network_users(nw);
   }
 
+  function render_multiple_groups(nw) {
+
+    $(".dv-name").text(nw.delivery.name + " " + nw.network.name);
+    $("#total-price").text(nw.total.price.toFixed(2));
+    nw.users = [];  // Rebuild a list of all users in every subgroup, for updating scripts
+
+    render_products_header(nw.products);
+    nw.subgroups.forEach((sg) => {
+      render_subgroup_header(sg.subgroup, nw.products.length);
+      render_network_users(sg);
+      nw.users.push(...sg.users);
+    })
+  }
+
   async function load_delivery() {
     const res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id %}");
     DATA = await res.json();
-    render_single_group(DATA);
+    if(DATA.subgroups) {
+      render_multiple_groups(DATA);
+    } else {
+      render_single_group(DATA);
+    }
   }
 
   /* Cancel all orders of a product, presumably not delivered. */
@@ -170,23 +197,30 @@
   $(document).ready(load_delivery);
 
 </script>
-<style type="text/css">
+<style type="text/css">  
+  html, body { overflow-x: unset; }
   .nw-row, .nw-row th { color: white; background-color: #a75a50; font-weight: bold; }
+  tr th:first-child { white-space: nowrap; text-align: end; padding-right: 5px; }
+  tr.u-row td.price { text-align: end; }
+  tr.sg-header { background: #811305; color: white; }
   .nw-row:hover { cursor: pointer; }
   .four  { background-color: #d5b1ac; }
   .blank  { text-align: left; }
   table { margin-top: 30px; /*table-layout: fixed;*/ }
+  td, th { padding: 0px; border: none; }
   tr:first-child > th { vertical-align: bottom; }
   tr:first-child > th > span { writing-mode: vertical-lr; }
   td.quantity { border: none; width: 50px; }
   tr.extra, tr.extra input[type=number] {  background-color: #c08982; border: 1px solid #811305; }
+  tr#product-prices td { padding-left: 5px; padding-right: 5px; }
   .if-out-of-package { font-weight: bold;}
   input[type=number] { 
     border: 1px solid #c08982;
     text-align: right;
     height: 100%;
     width: calc(100% - 3px);
-    padding:0px; 
+    padding:0px;
+    margin: 0px;
   }
   input[type=number].modified {
     font-weight: bold;
@@ -209,11 +243,13 @@
       </tr>
 
       <tr id="quantity-per-package">
-          <th class="left" colspan="2">Quantité par carton</th>
+          <th>Quantité par carton</th>
+          <td></td>
       </tr>
 
       <tr id="packaging">
-          <th class="left" colspan="2">Packaging</th>
+          <th>Packaging</th>
+          <td></td>
       </tr>
 
       <tr id="product-prices">
@@ -226,3 +262,5 @@
 </form>
 </section>
 {% endblock %}
+
+{% block footer %}{% endblock %}

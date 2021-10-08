@@ -5,6 +5,8 @@ from django.db.models import Q
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+
 import json
 from typing import List, Tuple, Dict, Set
 
@@ -38,14 +40,28 @@ def render_description(request, delivery, renderer, extension, subgroup=None, us
     """
     Retrieve the delivery description associated with those url params if permissions allow.
     """
+    # TODO test memberships based on distribution date, not on current memberships 
     dv = get_delivery(delivery)
     if not user:
-        must_be_prod_or_staff(request, dv.network)
-   
+        try:
+            must_be_prod_or_staff(request, dv.network)
+            sg = None
+        except PermissionDenied as e:
+            # Try to restrict to subgroup if user is subgroup staff
+            sg = m.NetworkSubgroup.objects.filter(
+                networkmembership__valid_until=None,
+                networkmembership__user_id = request.user.id,
+                networkmembership__is_subgroup_staff=True,
+                network__id=dv.network_id,
+            ).first()
+            if sg is None:
+                raise
+
     if user:
         dd = UserDeliveryDescription(dv, request.user, empty_products=True)
-    elif subgroup is not None:
-        sg = get_subgroup(subgroup)
+    elif subgroup is not None or sg is not None:
+        if sg is None:
+            sg = get_subgroup(subgroup)
         dd = FlatDeliveryDescription(dv, subgroup=sg)
     elif dv.network.grouped:
         dd = GroupedDeliveryDescription(dv)

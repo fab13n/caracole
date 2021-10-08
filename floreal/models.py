@@ -85,7 +85,6 @@ class Mapped(models.Model):
 # User.buyer_of_network = _user_network_getter(is_buyer=True)
 # User.producer_of_network = _user_network_getter(is_producer=True)
 # User.candidate_of_network = _user_network_getter(is_candidate=True)
-# User.regulator_of_network = _user_network_getter(is_regulator=True)
 
 
 class FlorealUser(IdentifiedBySlug, Mapped):
@@ -139,7 +138,7 @@ class FlorealUser(IdentifiedBySlug, Mapped):
     def has_some_admin_rights(self):
         u = self.user
         return u.is_staff or NetworkMembership.objects.filter(
-            Q(is_staff=True) | Q(is_producer=True),
+            Q(is_staff=True) | Q(is_producer=True) | Q(is_subgroup_staff=True),
             user_id=u.id, valid_until=None, ).exists()
 
 
@@ -193,7 +192,6 @@ class NetworkMembership(models.Model):
     is_subgroup_staff = models.BooleanField(default=False)
     is_producer = models.BooleanField(default=False)
     is_buyer = models.BooleanField(default=True)
-    is_regulator = models.BooleanField(default=False)
     is_candidate = models.BooleanField(default=False)
 
     valid_from = models.DateTimeField(default=timezone.now)
@@ -211,7 +209,6 @@ class NetworkMembership(models.Model):
                 "subgroup_staff",
                 "producer",
                 "buyer",
-                "regulator",
                 "candidate",
             )
             if getattr(self, "is_" + q)
