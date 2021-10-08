@@ -316,15 +316,22 @@ class Delivery(IdentifiedBySlug):
     @classmethod
     def freeze_overdue_deliveries(cls):
         """
-        Put in "FREEZE" state the deliveries which are still open, but whose freeze date is passed.
-        To be called before rendering index, orders and admin pages.
+        Put in "FREEZE" state the deliveries which are still open,
+        and whose freeze date was yesterday.
         """
-        cls.objects.filter(
+        overdue = cls.objects.filter(
             state=cls.ORDERING_ALL,
-            freeze_date__lt=timezone.localdate()
-        ).update(
-            state=cls.FROZEN
+            freeze_date=timezone.localdate() - timedelta(days=1)
         )
+
+        if len(overdue) > 0:
+            overdue.update(
+                state=cls.FROZEN
+            )
+            overdue_ids = ", ".join([f"dv-{dv.id}" for dv in overdue])
+            JournalEntry.log(None, "Auto-froze overdue deliveries %s", overdue_ids)
+        else:
+            JournalEntry.log(None, "No overdue deliveries to freeze")
 
     class Meta:
         verbose_name_plural = "Deliveries"

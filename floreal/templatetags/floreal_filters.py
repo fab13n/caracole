@@ -75,7 +75,7 @@ def is_in_the_future(date):
         return False
     if isinstance(date, str):
         date = parse_date(date)
-    return date > datetime.now().date()
+    return date >= datetime.now().date()
 
 SHORT_MONTHS = [None] + "janv. févr. mars avr. mai juin juil. août sept. oct. nov. déc.".split()
 MONTHS = [None] + "janvier février mars avril mai juin juillet août septembre octobre novembre décembre".split()

@@ -1,4 +1,5 @@
 Django
+django-apscheduler
 django-debug-toolbar
 django-extensions
 django-registration-redux
