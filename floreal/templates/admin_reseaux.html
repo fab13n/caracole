@@ -235,7 +235,6 @@
     <a id="top"></a>
     <h1>Administration</h1>
 
-    {% if user.is_staff %}
     <div id="staff-admin" class="margetop">
         <h2>Administration globale</h2>
         <ul>
@@ -250,7 +249,6 @@
             {% endif %}
             <li><a href="{% url 'view_journal' %}">Journal des actions utilisateur</a></li>
             <li> <a href="#" onclick="prompt_network_creation()">Créer un nouveau circuit</a> </li>
-            {% endif %}
             <li>Messages à tous les utilisateurs :
                 <ul>
                     {% for msg in messages %}
@@ -270,9 +268,9 @@
                     <li><a href="{% url 'set_message' destination='everyone'%}?next=admin">Poster un nouveau message</a></li>
                 </ul>
             </li>
+            {% endif %}
         </ul>
     </div>
-    {% endif %}
 
     {% if networks|length > 1 %}
     <h2>Administration des réseaux</h2>
