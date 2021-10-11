@@ -5,26 +5,29 @@
 {% block head %}
 {% if number_of_deliveries %}
 <script type='text/javascript'>
+  
+function filter_networks() {
+  const txt = $("#recherche").val().toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+  $("div.circuit").each((i, _e) => {
+    const e = $(_e);
+    const name = $(e).find("a>h3").text();
+    if(e.attr("data-search-string").includes(txt)) {
+      e.show();
+    } else {
+      e.hide();
+    }
+  })
+}
+
 $(document).ready(() => {
   $('nav .orders a').append(`&nbsp;<span class="badge badge-pill badge-danger">{{number_of_deliveries}}</span>`);
-  $('#recherche').on("input", (event) => {
-    const txt = $("#recherche").val().toLowerCase().replace(/[^a-z0-9]+/g, ' ');
-    $("div.circuit").each((i, _e) => {
-      const e = $(_e);
-      const name = $(e).find("a>h3").text();
-      if(e.attr("data-search-string").includes(txt)) {
-        e.show();
-      } else {
-        e.hide();
-      }
-    })
-  });
+  $('#recherche').on("keyup", filter_networks);
+  $('#recherche-bouton').on("click", filter_networks);
   const urlSearchParams = new URLSearchParams(window.location.search);
   const params = Object.fromEntries(urlSearchParams.entries());
   if(params.filter) {
-    $("#recherche")
-      .val(params.filter)
-      .trigger("input");
+    $("#recherche").val(params.filter);
+    filter_networks();
   }
 });
 </script>
@@ -62,7 +65,7 @@ $(document).ready(() => {
       <div class="col33">
         <input type="text" id="recherche" name="recherche" placeholder="Commune, département, nom du groupement,...">
       </div>
-      <input class="recherche" type="button" value="Rechercher">
+      <input class="recherche" id="recherche-bouton" type="button" value="Rechercher">
     </div>
     <div class="row infini">
       {% for mb in memberships %}

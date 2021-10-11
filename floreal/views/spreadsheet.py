@@ -253,41 +253,38 @@ def spreadsheet(dd):
             if name[0:2] == 'qty':
                 f.set_locked(False)
 
-    single_network = isinstance(dd, FlatDeliveryDescription)
+    single_group = isinstance(dd, FlatDeliveryDescription)
 
-    if single_network:
-        network_descriptions = [dd]
+    if single_group:
+        group_descriptions = [dd]
     else:
-        raise NotImplementedError("TODO grouped delivery descriptions")
-        # There are several networks, they will have one page each, plus the recap
-        network_descriptions = dd.network_descriptions
-
-        buyers = [nwd.network.name for nwd in dd.network_descriptions]
-        def purchases(nw_idx, pd_idx):
-            pc = dd.columns[nw_idx].purchases[pd_ix]
-            return pc.quantity if pc is not None else 0
+        # There are several groups, they will have one page each, plus the recap
+        group_descriptions = dd.subgroup_descriptions
+        buyers = [sgd.subgroup.name for sgd in group_descriptions]
+        def purchases(sg_idx, pd_idx):
+            return dd.subgroup_descriptions[sg_idx].columns[pd_idx].quantity
             # return x['table'][sg_idx]['totals'][pd_idx]['quantity']
-        def purchase_fmls(nw_idx, pd_idx):
-            nw = dd.network_descriptions[nw_idx].network.name
-            col = col_name(pd_idx + COL_OFFSET)
-            return f"={nw}!{col}$7"
+        def purchase_fmls(sg_idx, pd_idx):
+            sg = dd.subgroup_descriptions[sg_idx].subgroup.name
+            col = _col_name(pd_idx + COL_OFFSET)
+            return f"={sg}!{col}$7"
             # return "=%(subgroup)s!%(colname)s$7" % {
             #     'subgroup':x['table'][sg_idx]['subgroup'].name,
             #     'colname':_col_name(pd_idx+COL_OFFSET)}
 
-        _make_sheet(book, "Commande", fmt, buyers, x['products'], purchases, purchase_fmls,
+        _make_sheet(book, "Commande", fmt, buyers, dd.products, purchases, purchase_fmls,
                     recopy_products=False)
 
-    # Each network has its sheet
-    for ndd in network_descriptions:
-        title = _u8(ndd.network.name)
-        buyers = [u.first_name + " " + u.last_name for u in ndd.users]
+    # Each subgroup has its sheet
+    for gd in group_descriptions:
+        title = _u8(dd.delivery.name if single_group else gd.subgroup.name)
+        buyers = [u.first_name + " " + u.last_name for u in gd.users]
         def purchases(u_idx, pd_idx):
-            pc = ndd.columns[pd_idx].purchases[u_idx]
+            pc = gd.columns[pd_idx].purchases[u_idx]
             return pc.quantity if pc is not None else 0
-        _make_sheet(book, title, fmt, buyers, ndd.products, 
+        _make_sheet(book, title, fmt, buyers, gd.products, 
                     purchases, purchase_fmls=None,
-                    recopy_products=not single_network)
+                    recopy_products=not single_group)
 
     book.close()
     return bytes_buffer.getvalue()

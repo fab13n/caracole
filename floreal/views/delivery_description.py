@@ -192,26 +192,31 @@ class FlatDeliveryDescription(object):
         if users is not None:
             self.users = users
         else:
-            if subgroup is None:
-                date = dv.freeze_date
-                if date is not None:
-                    self.users = m.User.objects.filter(
-                        Q(networkmembership__valid_until__gte=date)|
-                        Q(networkmembership__valid_until=None),
-                        networkmembership__valid_from__lte=date,
-                        networkmembership__network_id=dv.network_id,
-                        networkmembership__is_buyer = True
-                    )
-                else:
-                   self.users = m.User.objects.filter(
-                        networkmembership__valid_until=None,
-                        networkmembership__network_id=dv.network_id,
-                        networkmembership__is_buyer = True
-                    )
-                self.users = self.users.order_by(Lower("last_name"), Lower("first_name"))
+            args = [
+                Q(networkmembership__valid_until=None),
+                Q(networkmembership__network_id=dv.network_id),
+                Q(networkmembership__is_buyer=True)
+            ]
+            date = dv.freeze_date
+            if date is not None:
+                args +=[
+                    Q(networkmembership__valid_until__gte=date)|
+                    Q(networkmembership__valid_until=None),
+                    Q(networkmembership__valid_from__lte=date)
+                ]
             else:
-                raise NotImplementedError("Filter by subgroup")
-                self.users = subgroup.buyers
+                args += [
+                    Q(networkmembership__valid_until=None)
+                ]
+           
+            if subgroup is not None:
+                args += [
+                    Q(networkmembership__subgroup_id=subgroup.id)
+                ]
+            self.users = (m.User.objects
+                .filter(*args)
+                .order_by(Lower("last_name"), Lower("first_name"))
+            )
             # Remove those who didn't order
             if not empty_users:
                 self.users = self.users.filter(

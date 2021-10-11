@@ -89,6 +89,7 @@ INSTALLED_APPS = (
     'leaflet', # needs gdal, https://mothergeo-py.readthedocs.io/en/latest/development/how-to/gdal-ubuntu-pkg.html
     # also https://gis.stackexchange.com/questions/28966/python-gdal-package-missing-header-file-when-installing-via-pip (need for env PATH vars)
     'villes',
+    'django_apscheduler',
 )
 
 

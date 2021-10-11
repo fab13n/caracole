@@ -57,17 +57,19 @@ def index(request):
     except AttributeError:
         accueil = "Penser à renseigner le texte d'accueil :-)"
     if request.user.is_anonymous:
-        vars = {"networks": m.Network.objects
-            .exclude(visible=False)
+        vars = {
+            "networks": m.Network.objects.exclude(visible=False)
             .exclude(active=False)
             .exclude(active=False),
-            "accueil": accueil
+            "accueil": accueil,
         }
         vars.update(csrf(request))
         return render(request, "index_unlogged.html", vars)
     else:
-        mbships = list(m.NetworkMembership.objects
-            .filter(user=request.user, valid_until=None, network__active=True)
+        mbships = list(
+            m.NetworkMembership.objects.filter(
+                user=request.user, valid_until=None, network__active=True
+            )
         )
         for nm in mbships:
             hoo = (
@@ -90,22 +92,28 @@ def index(request):
             "accueil": accueil,
             "number_of_deliveries": number_of_deliveries,
             "memberships": mbships,
-            "unsubscribed": m.Network.objects \
-                .exclude(members=request.user) \
-                .exclude(visible=False) \
-                .exclude(active=False)
+            "unsubscribed": m.Network.objects.exclude(members=request.user)
+            .exclude(visible=False)
+            .exclude(active=False),
         }
         return render(request, "index_logged.html", vars)
 
 
 from collections import defaultdict
 
+
 def admin(request):
     if request.user.is_anonymous:
         return HttpResponseForbidden("Réservé aux administrateurs et producteurs")
-    if (only := request.GET.get('only')):
+    subgroup_staff_of = defaultdict(lambda: None)
+    if only := request.GET.get("only"):
+        raise NotImplemented
+        # TODO Decide whether it's necessary (currently used by admin button in home page?)
+        # if so, handle is_subgroup_staff and is_producer.
         networks = m.Network.objects.filter(
-            Q(networkmembership__is_staff=True)|Q(networkmembership__is_staff=True),
+            Q(networkmembership__is_staff=True)
+            | Q(networkmembership__is_subgroup_staff=True)
+            | Q(networkmembership__is_producer=True),
             id=only,
             networkmembership__user=request.user,
             networkmembership__valid_until=None,
@@ -117,44 +125,66 @@ def admin(request):
         networks = m.Network.objects.filter(active=True)
         messages = m.AdminMessage.objects.all()
         is_network_staff = defaultdict(lambda: True)
+        is_producer = defaultdict(lambda: False)
+        # TODO Also list subgroup staff capabilities?
+        # For now subgroups can only view and modify subgroup purchases.
     else:
         # Only staff / prod of some networks
-        staff_networks = (m.Network.objects
-            .filter(networkmembership__is_staff=True,
-                    active=True,
-                    networkmembership__user=request.user,
-                    networkmembership__valid_until=None)
+        staff_networks = m.Network.objects.filter(
+            networkmembership__is_staff=True,
+            active=True,
+            networkmembership__user=request.user,
+            networkmembership__valid_until=None,
         )
-        prod_networks = (m.Network.objects
-            .filter(networkmembership__is_producer=True,
-                    active=True,
-                    networkmembership__user=request.user,
-                    networkmembership__valid_until=None)
+        subgroup_staff_networks = m.Network.objects.filter(
+            networkmembership__is_subgroup_staff=True,
+            active=True,
+            networkmembership__user=request.user,
+            networkmembership__valid_until=None,
         )
-        networks = staff_networks | prod_networks
+        prod_networks = m.Network.objects.filter(
+            networkmembership__is_producer=True,
+            active=True,
+            networkmembership__user=request.user,
+            networkmembership__valid_until=None,
+        )
+        # TODO check for multiple occurences, test distinct()
+        networks = staff_networks | prod_networks | subgroup_staff_networks
         messages = m.AdminMessage.objects.filter(network__in=networks)
         is_network_staff = defaultdict(lambda: False)
+        is_producer = defaultdict(lambda: False)
         for nw in staff_networks:
             is_network_staff[nw.id] = True
-
-    deliveries = (m.Delivery.objects
-        .filter(network__in=networks, state__in="ABCD")
-        .select_related("producer")
-    ).order_by(
-        "state",
-        "distribution_date",
-        "name"
-    )
-    candidacies = (m.NetworkMembership.objects
-        .filter(network__in=networks,
-                is_candidate=True,
-                valid_until=None)
-        .select_related("user")
-    )
-    deliveries_without_purchase = {dv.id for dv in m.Delivery.objects
-        .exclude(state='E')
-        .exclude(product__purchase__isnull=False)
-        .order_by("distribution_date", "state", "name")
+        for nw in prod_networks:
+            if not is_network_staff[nw.id]:
+                is_producer[nw.id] = True
+        for nw in subgroup_staff_networks:
+            # Get the subgroups, not only the information that a membership exists
+            subgroups = m.NetworkSubgroup.objects.filter(
+                network__active=True,
+                network__networkmembership__valid_until=None,
+                network__networkmembership__user=request.user,
+                network__networkmembership__is_subgroup_staff=True
+            ).values("network_id", "id", "name")
+            # TODO in theory, one could be subgroup staff of more than one subgroup,
+            # although the UI won't allow to specify it.
+            for sg in subgroups:
+                subgroup_staff_of[sg['network_id']] = sg
+        
+    deliveries = (
+        m.Delivery.objects.filter(
+            network__in=networks, state__in="ABCD"
+        ).select_related("producer")
+    ).order_by("state", "distribution_date", "name")
+    candidacies = m.NetworkMembership.objects.filter(
+        network__in=networks, is_candidate=True, valid_until=None
+    ).select_related("user")
+    deliveries_without_purchase = {
+        dv.id
+        for dv in m.Delivery.objects
+            .exclude(state="E")
+            .exclude(product__purchase__isnull=False)
+            .order_by("distribution_date", "state", "name")
     }
 
     jnetworks = {}
@@ -167,10 +197,12 @@ def admin(request):
             "candidates": [],
             "deliveries": [],
             "active_deliveries": 0,
-            "is_network_staff": is_network_staff[nw.id],  # Otherwise producer
+            "is_network_staff": is_network_staff[nw.id],
+            "is_producer": is_producer[nw.id],
+            "subgroup_staff_of": subgroup_staff_of.get(nw.id),
             "visible": nw.visible,
             "auto_validate": nw.auto_validate,
-            "messages": [msg for msg in messages if msg.network_id == nw.id]
+            "messages": [msg for msg in messages if msg.network_id == nw.id],
         }
 
     for cd in candidacies:
@@ -178,8 +210,8 @@ def admin(request):
 
     for dv in deliveries:
         jnw = jnetworks[dv.network_id]
-        if not jnw["is_network_staff"] and dv.producer_id != request.user.id:
-            # Producers only see their deliveries
+        if not (jnw["is_network_staff"] or jnw['subgroup_staff_of']) and dv.producer_id != request.user.id:
+            # Producers only see their own deliveries
             continue
         jdv = {
             "id": dv.id,
@@ -201,8 +233,9 @@ def admin(request):
         "networks": jnetworks.values(),
         "Delivery": m.Delivery,
     }
-    
+    print(context)
     return render(request, "admin_reseaux.html", context)
+
 
 @login_required()
 def orders(request):
@@ -215,22 +248,17 @@ def orders(request):
     deliveries = m.Delivery.objects.filter(
         network__in=networks,
         state__in="BCD",
-    ).order_by(
-        "distribution_date",
-        "name"
-    )
+    ).order_by("distribution_date", "name")
     purchases = m.Purchase.objects.filter(
         product__delivery__in=deliveries,
         user=request.user,
     ).select_related("product")
 
-    messages = m.AdminMessage.objects.filter(
-        network__in=networks
-    ).order_by("id")
+    messages = m.AdminMessage.objects.filter(network__in=networks).order_by("id")
 
     nw_by_id = {}
     dv_by_id = {}
- 
+
     for nw in networks:
         jnw = {
             "id": nw.id,
@@ -238,7 +266,7 @@ def orders(request):
             "slug": nw.slug,
             "messages": [],
             "deliveries": [],
-        } 
+        }
         nw_by_id[nw.id] = jnw
 
     for msg in messages:
@@ -251,34 +279,36 @@ def orders(request):
             "state": dv.state,
             "state_name": dv.state_name(),
             "purchases": [],
-            "total_price": 0.,
+            "total_price": 0.0,
             "freeze": dv.freeze_date,
             "distribution": dv.distribution_date,
         }
         dv_by_id[dv.id] = jdv
-        nw_by_id[dv.network_id]['deliveries'].append(jdv)
+        nw_by_id[dv.network_id]["deliveries"].append(jdv)
 
     for pc in purchases:
         pd = pc.product
         jdv = dv_by_id[pd.delivery_id]
         jpc = {
+            "pd_id": pd.id,
             "name": pd.name,
             "unit": pd.unit,
             "quantity": float(pc.quantity),
-            "price": float(pc.price)
+            "price": float(pc.price),
         }
         jdv["purchases"].append(jpc)
         jdv["total_price"] += float(pc.price)
 
-    active_networks = [jnw
-        for jnw in nw_by_id.values()
-        if jnw['messages'] or jnw['deliveries']
+    active_networks = [
+        jnw for jnw in nw_by_id.values() if jnw["messages"] or jnw["deliveries"]
     ]
     context = {
         "user": request.user,
         "Delivery": m.Delivery,
         "networks": active_networks,
-        "general_messages": [msg.message for msg in m.AdminMessage.objects.filter(network=None)]
+        "general_messages": [
+            msg.message for msg in m.AdminMessage.objects.filter(network=None)
+        ],
     }
     return render(request, "orders.html", context)
 
@@ -300,7 +330,9 @@ def reseau(request, network):
     if request.user.is_anonymous:
         mb = None
     else:
-        mb = m.NetworkMembership.objects.filter(user=request.user, network=nw, valid_until=None).first()
+        mb = m.NetworkMembership.objects.filter(
+            user=request.user, network=nw, valid_until=None
+        ).first()
     status = (
         "non-member"
         if mb is None
@@ -314,10 +346,13 @@ def reseau(request, network):
         "network": nw,
         "user": request.user,
         "has_open_deliveries": status == "member"
-        and m.Delivery.objects.filter(state=m.Delivery.ORDERING_ALL, network=nw).exists(),
+        and m.Delivery.objects.filter(
+            state=m.Delivery.ORDERING_ALL, network=nw
+        ).exists(),
         "user_status": status,
     }
     return render(request, "reseau.html", vars)
+
 
 def _dv_has_no_purchase(dv):
     # for pd in dv.product_set.all():
@@ -334,13 +369,12 @@ def archived_deliveries(request, network):
     user = request.user
     nw = get_network(network)
     vars = {
-        "user": user, 
+        "user": user,
         "nw": nw,
         "Delivery": m.Delivery,
         "deliveries": m.Delivery.objects.filter(
             network=nw, state=m.Delivery.TERMINATED
-        ).
-        order_by(F("distribution_date").desc(nulls_last=True), "name")
+        ).order_by(F("distribution_date").desc(nulls_last=True), "name"),
     }
     vars["empty_deliveries"] = (
         vars["deliveries"]
@@ -367,7 +401,7 @@ def delete_archived_delivery(request, delivery):
         dv.name,
         nw.name,
     )
-    target = request.GET.get('next')
+    target = request.GET.get("next")
     return redirect(target) if target else redirect("archived_deliveries", nw.id)
 
 
@@ -386,7 +420,7 @@ def delete_all_archived_deliveries(request, network):
         ", ".join("dv-%d" % i for i in ids),
         nw.name,
     )
-    target = request.GET.get('next')
+    target = request.GET.get("next")
     return redirect(target) if target else redirect("archived_deliveries", network)
 
 
@@ -398,9 +432,7 @@ def create_network(request, nw_name):
         return HttpResponseBadRequest("Il y a déjà un réseau nommé " + nw_name)
     nw = m.Network.objects.create(name=nw_name)
     mb = m.NetworkMembership.objects.create(
-        network=nw,
-        user=request.user,
-        is_staff=True
+        network=nw, user=request.user, is_staff=True
     )
     m.JournalEntry.log(user, "Created network nw-%d: %s", nw.id, nw_name)
     target = request.GET.get("next")
@@ -431,10 +463,9 @@ def list_delivery_models(request, network, all_networks=False):
             deliveries = deliveries.filter(producer_id=request.user.id)
 
     # Remove deliveries without products nor description
-    deliveries = (deliveries 
-        .filter(Q(product__isnull=False)|Q(description__isnull=False))
-        .distinct()
-    )
+    deliveries = deliveries.filter(
+        Q(product__isnull=False) | Q(description__isnull=False)
+    ).distinct()
 
     vars = {
         "user": request.user,
@@ -457,12 +488,14 @@ def create_delivery(request, network, dv_model=None):
     nw = get_network(network)
     which = must_be_prod_or_staff(request, nw)
     if which == "producer" and dv_model.producer_id != request.user.id:
-        return HttpResponseForbidden("Les producteurs ne peuvent cloner que leurs propres commandes")
+        return HttpResponseForbidden(
+            "Les producteurs ne peuvent cloner que leurs propres commandes"
+        )
 
     if dv_model is not None:
         new_dv = m.Delivery.objects.create(
-            name=dv_model.name, 
-            network=nw, 
+            name=dv_model.name,
+            network=nw,
             state=m.Delivery.PREPARATION,
             producer_id=dv_model.producer_id,
             description=dv_model.description,
@@ -474,7 +507,7 @@ def create_delivery(request, network, dv_model=None):
     else:
         # Come up with a name, set producer if producer-created, and that's it
         now = datetime.now()
-        months = 'Janvier Février Mars Avril Mai Juin Juillet Août Septembre Octobre Novembre Décembre'.split()
+        months = "Janvier Février Mars Avril Mai Juin Juillet Août Septembre Octobre Novembre Décembre".split()
 
         name = "%s %d" % (months[now.month - 1], now.year)
         fmt = "%dème de " + name
@@ -483,8 +516,8 @@ def create_delivery(request, network, dv_model=None):
             n += 1
             name = fmt % n
         new_dv = m.Delivery.objects.create(
-            name=name, 
-            network=nw, 
+            name=name,
+            network=nw,
             state=m.Delivery.PREPARATION,
         )
 
@@ -496,9 +529,7 @@ def create_delivery(request, network, dv_model=None):
         nw.id,
         nw.name,
     )
-    return redirect(
-        reverse("edit_delivery_products", kwargs={"delivery": new_dv.id})
-    )
+    return redirect(reverse("edit_delivery_products", kwargs={"delivery": new_dv.id}))
 
 
 def set_delivery_state(request, delivery, state):
@@ -515,32 +546,31 @@ def set_delivery_state(request, delivery, state):
     target = request.GET.get("next")
     return redirect(target) if target else HttpResponse("")
 
-
-    return _set_delivery_field(request, delivery, 'state', state)
+    return _set_delivery_field(request, delivery, "state", state)
 
 
 def _set_network_field(request, network, name, val):
     """Change a delivery's state."""
     nw = get_network(network)
     must_be_prod_or_staff(request, nw)
-    
+
     setattr(nw, name, val)
     nw.save()
-    m.JournalEntry.log(
-        request.user,
-        "Set %s=%s in nw-%d",
-        name, val, nw.id)
+    m.JournalEntry.log(request.user, "Set %s=%s in nw-%d", name, val, nw.id)
 
     target = request.GET.get("next")
     return redirect(target) if target else HttpResponse("")
 
+
 def set_network_visibility(request, network, val):
-    b = val.lower() in ('on', 'true', '1')
-    return _set_network_field(request, network, 'visible', b)
+    b = val.lower() in ("on", "true", "1")
+    return _set_network_field(request, network, "visible", b)
+
 
 def set_network_validation(request, network, val):
-    b = val.lower() in ('on', 'true', '1')
-    return _set_network_field(request, network, 'auto_validate', b)
+    b = val.lower() in ("on", "true", "1")
+    return _set_network_field(request, network, "auto_validate", b)
+
 
 def set_delivery_name(request, delivery, name):
     """Change a delivery's name."""
@@ -584,26 +614,30 @@ def view_directory(request, network):
         "Producteurs": [],
         "Régulateurs": [],
         "Acheteurs": [],
-        "Candidats": []
+        "Candidats": [],
     }
-    vars = {"user": user, "nw": nw, "members": members} 
-    if not user.is_staff and not m.NetworkMembership.objects.filter(network_id=nw.id, user_id=user.id, valid_until=None, is_staff=True).exists():
+    vars = {"user": user, "nw": nw, "members": members}
+    if (
+        not user.is_staff
+        and not m.NetworkMembership.objects.filter(
+            network_id=nw.id, user_id=user.id, valid_until=None, is_staff=True
+        ).exists()
+    ):
         return HttpResponseForbidden("Réservé aux admins")
-    for mb in (m.NetworkMembership.objects
-        .filter(network_id=nw, valid_until=None)
+    for mb in (
+        m.NetworkMembership.objects.filter(network_id=nw, valid_until=None)
         .select_related("user")
         .select_related("user__florealuser")
-        .order_by(Lower("user__last_name"), Lower("user__first_name"))):
+        .order_by(Lower("user__last_name"), Lower("user__first_name"))
+    ):
         if mb.is_staff:
-            cat = 'Administrateurs'
+            cat = "Administrateurs"
         elif mb.is_producer:
-            cat = 'Producteurs'
-        elif mb.is_regulator:
-            cat = 'Régulateurs'
+            cat = "Producteurs"
         elif mb.is_buyer:
-            cat = 'Acheteurs'
+            cat = "Acheteurs"
         elif mb.is_candidate:
-            cat = 'Candidats'
+            cat = "Candidats"
         else:
             continue
         members[cat].append(mb.user)
@@ -613,29 +647,31 @@ def view_directory(request, network):
 @login_required()
 def view_history(request):
 
-    purchases = m.Purchase.objects.filter(
-        user=request.user
-    ).select_related('user', 'product', 'product__delivery', 'product__delivery__network')
+    purchases = m.Purchase.objects.filter(user=request.user).select_related(
+        "user", "product", "product__delivery", "product__delivery__network"
+    )
 
     total = 0
-    networks = {}  # {nw_name -> {total: float, deliveries: {dv_name -> {total: int, purchases: [purchase+]}}}}
+    networks = (
+        {}
+    )  # {nw_name -> {total: float, deliveries: {dv_name -> {total: int, purchases: [purchase+]}}}}
 
     for pc in purchases:
         dv = pc.product.delivery
         if dv.distribution_date is not None:
-            dv_name = str(dv.distribution_date) + '|' + dv.name
+            dv_name = str(dv.distribution_date) + "|" + dv.name
         else:
             dv_name = dv.name
         nw_name = pc.product.delivery.network.name
         if (nw := networks.get(nw_name)) is None:
-            networks[nw_name] = nw = {'total': 0, 'deliveries': {}}
-        if (dv := nw['deliveries'].get(dv_name)) is None:
-            nw['deliveries'][dv_name] = dv = {'total': 0, 'purchases': []}
+            networks[nw_name] = nw = {"total": 0, "deliveries": {}}
+        if (dv := nw["deliveries"].get(dv_name)) is None:
+            nw["deliveries"][dv_name] = dv = {"total": 0, "purchases": []}
         p = pc.price
-        nw['total'] += p
-        dv['total'] += p
+        nw["total"] += p
+        dv["total"] += p
         total += p
-        dv['purchases'].append(pc)
+        dv["purchases"].append(pc)
     vars = {"user": request.user, "networks": networks, "total": total}
     return render(request, "view_history.html", vars)
 
@@ -659,9 +695,11 @@ def journal(request):
 
     days = []
     current_day = None
-    n = request.GET.get('n', 1024)
+    n = request.GET.get("n", 1024)
     tz = pytz.timezone(settings.TIME_ZONE)
-    for entry in m.JournalEntry.objects.all().select_related("user").order_by("-date")[:n]:
+    for entry in (
+        m.JournalEntry.objects.all().select_related("user").order_by("-date")[:n]
+    ):
         date = entry.date.astimezone(tz)
         today = date.strftime("%x")
         action = journal_link_re.sub(add_link_to_actions, html.escape(entry.action))
@@ -679,11 +717,21 @@ def journal(request):
 
 
 def editor(
-    request, target=None, title="Éditer", template="editor.html", content=None, is_rich=True, **kwargs
+    request,
+    target=None,
+    title="Éditer",
+    template="editor.html",
+    content=None,
+    is_rich=True,
+    **kwargs,
 ):
     ctx = dict(
-        title=title, target=target or request.path, content=content or "", 
-        next=request.GET.get('next'), is_rich=is_rich, **kwargs
+        title=title,
+        target=target or request.path,
+        content=content or "",
+        next=request.GET.get("next"),
+        is_rich=is_rich,
+        **kwargs,
     )
     ctx.update(csrf(request))
     return render(request, template, ctx)
@@ -707,7 +755,7 @@ def set_message(request, destination=None, id=None):
             assert False
 
         must_be_prod_or_staff(request, network_id)
-        
+
         text = P["editor"]
         if text.startswith("<p>"):
             text = text[3:]
@@ -718,45 +766,60 @@ def set_message(request, destination=None, id=None):
             msg.title = P["message_title"]
             msg.network_id = network_id
             msg.save()
-            m.JournalEntry.log(request.user, "Modified message msg-%i to %s", msg.id, f"nw-{network_id}" if network_id else "everyone")
+            m.JournalEntry.log(
+                request.user,
+                "Modified message msg-%i to %s",
+                msg.id,
+                f"nw-{network_id}" if network_id else "everyone",
+            )
         else:
-            msg = m.AdminMessage.objects.create(message=text, network_id=network_id, title=P["message_title"])
-            m.JournalEntry.log(request.user, "Posted message msg-%i to %s", msg.id, f"nw-{network_id}" if network_id else "everyone")
+            msg = m.AdminMessage.objects.create(
+                message=text, network_id=network_id, title=P["message_title"]
+            )
+            m.JournalEntry.log(
+                request.user,
+                "Posted message msg-%i to %s",
+                msg.id,
+                f"nw-{network_id}" if network_id else "everyone",
+            )
         target = request.GET.get("next", "index")
         return redirect(target)
     else:  # request method == GET
         u = request.user
         if u.is_staff:
             options = [("Tout le monde", "everyone")] + [
-            ("Réseau %s" % nw.name, f"nw-{nw.id}") for nw in m.Network.objects.all()]
+                ("Réseau %s" % nw.name, f"nw-{nw.id}") for nw in m.Network.objects.all()
+            ]
         else:
             options = [
-                ("Réseau %s" % nw.name, f"nw-{nw.id}") 
+                ("Réseau %s" % nw.name, f"nw-{nw.id}")
                 for nw in m.Network.objects.filter(
-                    Q(networkmembership__is_staff=True) | Q(networkmembership__is_producer=True),
+                    Q(networkmembership__is_staff=True)
+                    | Q(networkmembership__is_producer=True),
                     networkmembership__user_id=u.id,
-                    networkmembership__valid_until=None
-                )]
-        
+                    networkmembership__valid_until=None,
+                )
+            ]
+
         if msg is None:
             selected_option = destination or options[0][0]
         elif msg.network_id is None:
             selected_option = "everyone"
         else:
             selected_option = f"nw-{msg.network_id}"
-        
+
         return editor(
             request,
             title="Message administrateur",
             template="set_message.html",
             target=f"/edit-message/{id}" if msg is not None else "/set-message",
             options=options,
-            message_title = msg.title if msg else m.AdminMessage.title.field.default,
+            message_title=msg.title if msg else m.AdminMessage.title.field.default,
             title_maxlength=m.AdminMessage.title.field.max_length,
             maxlength=m.AdminMessage.message.field.max_length,
             content=msg.message if msg is not None else "",
             selected_option=selected_option,
-            is_rich=False
+            is_rich=False,
         )
 
 
@@ -765,7 +828,12 @@ def unset_message(request, id):
     # To be done in a m.Message method
     msg = m.AdminMessage.objects.get(id=int(id))
     must_be_prod_or_staff(request, msg.network)
-    m.JournalEntry.log(request.user, "Deleted message %i to %s", msg.id, f"nw-{msg.network_id}" if msg.network_id else "everyone")
+    m.JournalEntry.log(
+        request.user,
+        "Deleted message %i to %s",
+        msg.id,
+        f"nw-{msg.network_id}" if msg.network_id else "everyone",
+    )
     msg.delete()
     target = request.GET.get("next", "index")
     return redirect(target)
@@ -780,32 +848,33 @@ POSITION_REGEXP = re.compile(r"([+-]?\d+(?:\.\d*)?),([+-]?\d+(?:\.\d*)?)")
 def _description_and_image(request, obj, title):
     if request.method == "POST":
         obj.description = request.POST["editor"]
-        img = request.FILES.get('image')
+        img = request.FILES.get("image")
         if img:
             obj.image_description = img
 
-        if (pos := request.POST.get('position')):
+        if pos := request.POST.get("position"):
             try:
                 (obj.latitude, obj.longitude) = plus_code.to_lat_lon(pos)
             except ValueError:
-                if (match := POSITION_REGEXP.match(pos.replace(' ', ''))):
+                if match := POSITION_REGEXP.match(pos.replace(" ", "")):
                     (obj.latitude, obj.longitude) = (float(x) for x in match.groups())
                 else:
                     return HttpResponseBadRequest("Position invalide")
 
-        if (sdescr := request.POST.get('short_description')) is not None:
+        if (sdescr := request.POST.get("short_description")) is not None:
             obj.short_description = sdescr
 
         obj.save()
 
-        return redirect(request.GET.get('next', 'admin'))
+        return redirect(request.GET.get("next", "admin"))
     else:
         return editor(
-            request, title=title,
-            template='description_and_image.html',
+            request,
+            title=title,
+            template="description_and_image.html",
             content=obj.description,
             obj=obj,
-            has_short_description=hasattr(obj, "short_description")
+            has_short_description=hasattr(obj, "short_description"),
         )
 
 
@@ -824,55 +893,76 @@ def user_description_and_image(request, user):
         # TODO: but there's no link pointing there yet.
         # Add the option to producers in admin page.
     elif m.NetworkMembership.objects.filter(
-        valid_until=None,     # Edited user...
-        user=flu.user,        # ...is currently...
-        is_producer=True,     # ...a producer in a network...
+        valid_until=None,  # Edited user...
+        user=flu.user,  # ...is currently...
+        is_producer=True,  # ...a producer in a network...
         network__networkmembership__user=request.user,  # ...where the requester...
-        network__networkmembership__valid_until=None,   # ...is currently...
-        network__networkmembership__is_staff=True,      # ...an administrator
+        network__networkmembership__valid_until=None,  # ...is currently...
+        network__networkmembership__is_staff=True,  # ...an administrator
     ).exists():
         pass  # request.user administrates a network in which flu is a producer
     else:
         return HttpResponseForbidden("Vous n'avez pas le droit d'éditer cette fiche")
 
-    return _description_and_image(request, flu, f"Présentation de {flu.user.first_name} {flu.user.last_name}")
+    return _description_and_image(
+        request, flu, f"Présentation de {flu.user.first_name} {flu.user.last_name}"
+    )
 
 
 def map(request):
     networks = m.Network.objects.filter(visible=True, latitude__isnull=False)
     if not request.user.is_anonymous:
-        networks = [*networks, *m.Network.objects.filter(visible=False, networkmembership__user=request.user, latitude__isnull=False).distinct()]
-    producers = m.FlorealUser.objects.filter(
-        user__networkmembership__network__in=networks,
-        user__networkmembership__is_producer=True,
-        latitude__isnull=False,
-    ).distinct().select_related('user')
-    return render(request, "map.html", {
-        "user": request.user, 
-        'networks': networks,
-        'producers': producers,    
-    })
+        networks = [
+            *networks,
+            *m.Network.objects.filter(
+                visible=False,
+                networkmembership__user=request.user,
+                latitude__isnull=False,
+            ).distinct(),
+        ]
+    producers = (
+        m.FlorealUser.objects.filter(
+            user__networkmembership__network__in=networks,
+            user__networkmembership__is_producer=True,
+            latitude__isnull=False,
+        )
+        .distinct()
+        .select_related("user")
+    )
+    return render(
+        request,
+        "map.html",
+        {
+            "user": request.user,
+            "networks": networks,
+            "producers": producers,
+        },
+    )
 
 
 def generate_bestof_file(path):
     import json
     from django.db.models import F
+
     r = defaultdict(float)
-    for pc in (m.Purchase.objects.all()
-       .select_related("user", "product")
-      .annotate(pp=F("product__price")*F("quantity"))
+    for pc in (
+        m.Purchase.objects.all()
+        .select_related("user", "product")
+        .annotate(pp=F("product__price") * F("quantity"))
     ):
         r[pc.user] += float(pc.pp)
     data = {}
-    for i, (u, p) in enumerate(sorted(r.items(), key=lambda item: item[1], reverse=True)):
+    for i, (u, p) in enumerate(
+        sorted(r.items(), key=lambda item: item[1], reverse=True)
+    ):
         k = f"{u.first_name} {u.last_name}"
         if k in data:
-            print("Warning, several users named "+k)
+            print("Warning, several users named " + k)
         else:
             data[k] = round(p, 2)
     with path.open("w") as f:
         json.dump(data, f)
- 
+
 
 def bestof(request):
     must_be_staff(request)
@@ -881,6 +971,7 @@ def bestof(request):
     import json
     from datetime import datetime, timedelta
     from pathlib import Path
+
     file = Path("/tmp/bestof.json")
     try:
         last_modified = datetime.fromtimestamp(os.path.getmtime(file))
@@ -894,3 +985,23 @@ def bestof(request):
         "bestof": data,
         "max": max(data.values())
     })
+
+
+def active_products(request):
+    """
+    Serve every product in every active delivery to which the current user
+    is subscribed. Intended to complete, on demand, the "orders.html" page.
+    """
+    u = request.user
+    products = m.Product.objects.filter(
+        delivery__network__networkmembership__is_buyer=True,
+        delivery__state__in='BDC',
+        delivery__network__networkmembership__user=request.user,
+        delivery__network__networkmembership__valid_until=None,
+    )
+
+    d = defaultdict(list)  # {network: {delivery: [product*]}}
+    for pd in products:
+        d[pd.delivery_id].append({'id': pd.id, 'name': pd.name, 'price': pd.price, 'unit': pd.unit})
+
+    return JsonResponse(d)

@@ -85,7 +85,6 @@ class Mapped(models.Model):
 # User.buyer_of_network = _user_network_getter(is_buyer=True)
 # User.producer_of_network = _user_network_getter(is_producer=True)
 # User.candidate_of_network = _user_network_getter(is_candidate=True)
-# User.regulator_of_network = _user_network_getter(is_regulator=True)
 
 
 class FlorealUser(IdentifiedBySlug, Mapped):
@@ -139,7 +138,7 @@ class FlorealUser(IdentifiedBySlug, Mapped):
     def has_some_admin_rights(self):
         u = self.user
         return u.is_staff or NetworkMembership.objects.filter(
-            Q(is_staff=True) | Q(is_producer=True),
+            Q(is_staff=True) | Q(is_producer=True) | Q(is_subgroup_staff=True),
             user_id=u.id, valid_until=None, ).exists()
 
 
@@ -193,7 +192,6 @@ class NetworkMembership(models.Model):
     is_subgroup_staff = models.BooleanField(default=False)
     is_producer = models.BooleanField(default=False)
     is_buyer = models.BooleanField(default=True)
-    is_regulator = models.BooleanField(default=False)
     is_candidate = models.BooleanField(default=False)
 
     valid_from = models.DateTimeField(default=timezone.now)
@@ -211,7 +209,6 @@ class NetworkMembership(models.Model):
                 "subgroup_staff",
                 "producer",
                 "buyer",
-                "regulator",
                 "candidate",
             )
             if getattr(self, "is_" + q)
@@ -302,6 +299,7 @@ class Delivery(IdentifiedBySlug):
     producer = models.ForeignKey(
         User, null=True, default=None, on_delete=models.SET_NULL
     )
+    creation_date = models.DateTimeField(auto_now_add=True)
     freeze_date = models.DateField(null=True, blank=True, default=None)
     distribution_date = models.DateField(null=True, blank=True, default=None)
 
@@ -314,6 +312,26 @@ class Delivery(IdentifiedBySlug):
     @property
     def description_text(self):
         return html2text(self.description) if self.description is not None else ""
+
+    @classmethod
+    def freeze_overdue_deliveries(cls):
+        """
+        Put in "FREEZE" state the deliveries which are still open,
+        and whose freeze date was yesterday.
+        """
+        overdue = cls.objects.filter(
+            state=cls.ORDERING_ALL,
+            freeze_date=timezone.localdate() - timedelta(days=1)
+        )
+
+        if len(overdue) > 0:
+            overdue.update(
+                state=cls.FROZEN
+            )
+            overdue_ids = ", ".join([f"dv-{dv.id}" for dv in overdue])
+            JournalEntry.log(None, "Auto-froze overdue deliveries %s", overdue_ids)
+        else:
+            JournalEntry.log(None, "No overdue deliveries to freeze")
 
     class Meta:
         verbose_name_plural = "Deliveries"

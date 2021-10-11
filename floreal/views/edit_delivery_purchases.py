@@ -6,38 +6,54 @@ import re
 import django
 from django.template.context_processors import csrf
 from django.shortcuts import redirect, render
-from django.http import HttpResponseForbidden
+from django.core.exceptions import PermissionDenied
 
 from .. import models as m
 from ..penury import set_limit
-from .getters import get_network, get_delivery, must_be_staff
+from .getters import get_network, get_delivery, must_be_prod_or_staff
 
 
 def edit_delivery_purchases(request, delivery):
-    """Allows to change the purchases of user's subgroup. Subgroup staff only."""
+    """
+    Allows to change the user purchases for a given delivery. 
+    Access to eitehr every user or a single subgroup depending on requester's status.
+    """
     user = request.user
     dv = get_delivery(delivery)
-    must_be_staff(request, dv.network)
+    try:
+        must_be_prod_or_staff(request, dv.network)
+        sg = None
+    except PermissionDenied:
+        sg = m.NetworkSubgroup.objects.filter(
+            networkmembership__user_id=request.user.id,
+            networkmembership__valid_until=None,
+            networkmembership__is_subgroup_staff=True,
+            network_id=dv.network_id
+        ).first()
+        if sg is None:
+            raise
 
     if request.method == 'POST':
-        _parse_form(request, dv)
+        _parse_form(request, dv, sg)
+        # subgroup, if any, will be inferred from request user status
         return redirect("view_delivery_purchases_html", delivery=dv.id)
     else:
-        vars = {'user': user, 'delivery': dv}
+        vars = {'user': user, 'delivery': dv, 'subgroup': sg}
         vars.update(csrf(request))
         return render(request,'edit_delivery_purchases.html', vars)
 
 
-def _parse_form(request, dv):
+def _parse_form(request, dv, sg):
     """
-    Parse responses from subgroup purchase editions.
+    Parse responses from purchase editions.
     :param request:
     :return:
     """
 
     d = request.POST.dict()
 
-    mods = []
+    #[(product_id, user_id, quantity)*]
+    mods: List[Tuple[int, int, float]] = []
 
     for name, value in d.items():
         bits = name.split('-')
@@ -48,11 +64,23 @@ def _parse_form(request, dv):
             mods.append((pd_id, u_id, q))
 
     if not mods:
-        return True
+        return
 
-    # TODO Check that every user is in that network
+    # Check that every user is in that network / subgroup
+    user_ids = {u_id for (_, u_id, _) in mods}
+    if sg:
+        assert sg.network_id == dv.network_id
+        authorized_users = {u.id for u in m.User.objects.filter(
+            networkmembership__valid_until=None,
+            networkmembership__subgroup_id=sg.id,                        
+        )}
+    else:
+        authorized_users = {u.id for u in m.User.objects.filter(
+            networkmembership__valid_until=None,
+            networkmembership__network_id=dv.network_id,                        
+        )}
 
-    print("MODS:", mods)
+    assert user_ids.issubset(authorized_users)
 
     check_quotas = set()  # Products which might have gone over quota
 
@@ -77,5 +105,3 @@ def _parse_form(request, dv):
             set_limit(pd)
     
     m.JournalEntry.log(request.user, "Modified user purchases in dv-%d", dv.id)
-
-    return True  # true == no error

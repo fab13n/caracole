@@ -70,10 +70,27 @@
       data-off="Non"
     />`;
 
+    const subgroup_select = (nw) => {
+      if(! nw.subgroups) return ``;
+      const options = nw.subgroups
+        .map((sg) => `<option value="${sg.id}">${sg.name}</option>`)
+        .join("\n");
+      return `
+        <tr>
+          <th>Sous-groupe:</th>
+          <td>
+            <select name="subgroup-${nw.id}" class="subgroup-select user-modifier">
+            ${options}
+            </select>
+          </td>
+        </tr>`;
+    }
+      
     let template = data.networks.map(nw => `
       <tr>
         <th colspan="2">Réseau ${nw.name}</th>
       </tr>
+      ${subgroup_select(nw)}
       <tr>
         <td>Acheteur:</td>
         <td>${oui_non("buyer-" + nw.id)}</td>
@@ -85,10 +102,6 @@
       <tr>
         <td>Producteur:</td>
         <td>${oui_non("producer-" + nw.id)}</td>
-      </tr>
-      <tr>
-        <td>Régulateur:</td>
-        <td>${oui_non("regulator-" + nw.id)}</td>
       </tr>`).join("\n");
 
     if (data.is_staff) {
@@ -147,11 +160,12 @@
     console.log("Rendering user ", u);
     const edit_description_url = "{% url 'edit_user_description' user=9999 %}".replace(9999, u.id) + "?next={% url 'users_html' %}";
     $("#edit-description").attr("href", edit_description_url);
-    Object.values(NETWORKS).forEach(nw =>
-      ["buyer", "staff", "producer", "regulator"].forEach(field =>
+    Object.values(NETWORKS).forEach(nw => {
+      ["buyer", "staff", "producer"].forEach(field =>
         $(`[name=${field}-${nw.id}]`).bootstrapToggle(u[field].includes(nw.id) ? "on" : "off")
-      )
-    );
+      );
+      $(`[name=subgroup-${nw.id}]`).val(u.subgroups[nw.id]);
+    });
     $(`[name=is_staff]`).bootstrapToggle(u.is_staff ? "on" : "off");
     ["first_name", "last_name", "florealuser__phone", "email"].forEach((name) => 
       $(`[name=${name}]`).val(u[name])
@@ -215,9 +229,10 @@
     const result = {
       user: CURRENT_USER.id,
       networks: Object.keys(NETWORKS).map(Number),
+      subgroups: {} // nw_id -> sg_id
     };
 
-    ['buyer', 'staff', 'producer', 'regulator'].forEach(field => {
+    ['buyer', 'staff', 'producer'].forEach(field => {
       result[field] = [];
       $(`input[name^=${field}-]`).each((_, x) => {
         if (x.checked) {
@@ -226,9 +241,17 @@
       })
     });
 
-    if ($("[name=is_staff]").length > 0) {
+    if($("[name=is_staff]").length > 0) {
       result['is_staff'] = $("[name=is_staff]")[0].checked;
     }
+
+    $(".subgroup-select").each((i, _e) => {
+      const e = $(_e);
+      const nw_id = e.attr('name').split("-")[1];
+      const sg_id = e.val();
+      console.log(`in network ${nw_id}, subgroup ${sg_id}`);
+      result.subgroups[nw_id] = Number(sg_id);
+    });
 
     {% if user.is_staff %}
     $("input.identity").each((i, input) => {
