@@ -13,6 +13,21 @@
   .btn-primary[disabled] {
     background-color: gray;
   }
+  #user-form {
+    display: flex;
+    width: 100%;
+    flex-flow: row wrap;
+    justify-content: space-between;
+  }
+  #user-form table {
+    flex: 0 0 30%;
+    margin-bottom: 4rem;
+    border: 1px solid #E1E1E1;
+  }
+    #user-form table tr:first-of-type th {
+      text-align:center;
+    }
+
 </style>
 
 <script src="{% static 'tinymce/tinymce.min.js' %}"></script>
@@ -87,6 +102,7 @@
     }
       
     let template = data.networks.map(nw => `
+      <table>
       <tr>
         <th colspan="2">Réseau ${nw.name}</th>
       </tr>
@@ -102,7 +118,8 @@
       <tr>
         <td>Producteur:</td>
         <td>${oui_non("producer-" + nw.id)}</td>
-      </tr>`).join("\n");
+      </tr>
+      </table>`).join("\n");
 
     if (data.is_staff) {
       template += `
@@ -304,10 +321,10 @@
     </td>
   </tr>
   {% if user.is_staff %}
-  <tr><th>Nom</th><td><input type="text" name="first_name" class="user-modifier identity"/></td></tr>
-  <tr><th>Prénom</th><td><input type="text" name="last_name" class="user-modifier identity"/></td></tr>
-  <tr><th>Téléphone</th><td><input type="text" name="florealuser__phone" class="user-modifier identity"/></td></tr>
-  <tr><th>Mail</th><td><input type="text" name="email" class="user-modifier identity"/></td></tr>
+    <tr><th>Nom</th><td><input type="text" name="first_name" class="user-modifier identity"/></td></tr>
+    <tr><th>Prénom</th><td><input type="text" name="last_name" class="user-modifier identity"/></td></tr>
+    <tr><th>Téléphone</th><td><input type="text" name="florealuser__phone" class="user-modifier identity"/></td></tr>
+    <tr><th>Mail</th><td><input type="text" name="email" class="user-modifier identity"/></td></tr>
   {% endif %} 
 </table>
 

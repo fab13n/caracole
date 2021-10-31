@@ -6,18 +6,34 @@
 
 <style type="text/css">
     .top-links {
-        font-size: 12px;
-        background-color: lightgrey;
+        font-size: 1.4rem;
+        background-color: #fff;
+        border: solid 1px #84B818;
         position: fixed;
         top: 0px;
         right: 0px;
-        line-height: 18px;
+        line-height: 2rem;
         z-index: 100000;
+        padding: 1rem;
     }
-
+    .top-links h6 {
+        margin: 1rem auto;
+        font-weight: 400;
+        text-align: center;
+        color: #84B818;
+    }
+    .top-links ul {
+        margin-bottom: 1rem;
+    }
     @media (max-width: 980px) {
         .top-links {
             top: 60px;
+        }
+        .top-links h6 {
+            display: inline-block;
+        }
+        .top-links ul {
+            list-style-type: none;
         }
     }
 
@@ -29,6 +45,14 @@
     .top-links li {
         margin-top: 0px;
         margin-bottom: 0px;
+    }
+    .active-deliveries .button {
+        border: solid 1px #fff;
+        box-sizing: border-box;
+        height: 2.2rem;
+        line-height: 2.2rem;
+        font-size: 1.4rem;
+        width: 100%;
     }
 
     .active-deliveries td {
@@ -221,7 +245,7 @@
 {% block content %}
 {% if networks|length > 1 %}
 <div class="top-links">
-    Aller à :
+    <h6>ALLER À</h6>
     <ul>
         <li><a href="#top">↑ Haut</a></li>
         {% for nw in networks %}
@@ -231,8 +255,7 @@
 </div>
 {% endif %}
 
-<section class="container margetopXl margebot">
-    <a id="top"></a>
+<section id="top" class="container margetopXl margebot">
     <h1>Administration</h1>
 
     <div id="staff-admin" class="margetop">
@@ -279,8 +302,7 @@
     <!-- Pour chaque circuit -->
     {% for nw in networks %}
 
-    <div class="divider acces-rapide couleur-sec">
-        <a id="nw-{{nw.id}}"></a>
+    <div id="nw-{{nw.id}}" class="acces-rapide couleur-sec">
         <h5 class="center divider couleur-sec">Réseau <span class="couleur-prim">{{nw.name}}</span></h5>
         {% if user.is_staff or nw.is_network_staff or nw.candidates %}{# not for subgroup staff nor producers #}
         <h5 class="txt-left couleur-sec margebotS">Configuration</h5>
