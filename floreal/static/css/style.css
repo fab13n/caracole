@@ -186,6 +186,10 @@ h1:first-of-type, .h1-like:first-of-type {
   max-width: 100%;
 }
 
+.row.circuitsBouton {
+  margin: 1rem auto;
+}
+
 .row.infini {
   flex-flow: wrap;
   justify-content: flex-start;
@@ -849,7 +853,7 @@ header {
   width: 100%;
   display: flex;
   align-items: center;
-  z-index: 99999;
+  z-index: 999;
   justify-content: center;
 }
 
@@ -980,6 +984,7 @@ header {
     top: 60px;
     left: -200vw;
     transition: .15s;
+    z-index: -1;
   }
 
   #navigation ul li {
@@ -1313,6 +1318,14 @@ button.button-third, .button.button-third {
 .button.compact {
   min-width: unset;
   width: auto;
+}
+
+.circuitsBouton .button {
+  margin-right: .2rem;
+}
+
+.circuitsBouton .button:last-fo-type {
+  margin-right: 0;
 }
 
 @media (max-width: 980px) {

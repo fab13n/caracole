@@ -86,8 +86,8 @@ $(document).ready(() => {
         {% else %}
         <p class="circuits-info"><strong>—</strong></p>
         {% endif %}
-        <p>{{mb.network.short_description|safe}}</p>
-        <div class="row">
+
+        <div class="row infini circuitsBouton">
               {% if mb.has_open_orders %}
               <a href="{% url 'orders' %}#{{mb.network.slug}}" class="button button-primary">Commander</a>
               {% endif %}
@@ -109,6 +109,7 @@ $(document).ready(() => {
                 class="button">Annuler candidature</a>
               {% endif %}
         </div>
+        <p>{{mb.network.short_description|safe}}</p>
       </div>
       {% endfor %}
       {% for nw in unsubscribed %}
@@ -128,13 +129,13 @@ $(document).ready(() => {
         {% else %}
         <p class="circuits-info"><strong>—</strong></p>
         {% endif %}
-        <p>{{nw.short_description|safe}}</p>
-        {% if user.is_staff %}
-        <div class="row">
-              <a href="{% url 'admin' %}#nw-{{mb.network.id}}" class="button attente">Administrer</a>
-              {% endif %}
-              <a href="{% url 'reseau' network=nw.id %}" class="button button-primary">Rejoindre</a>
+        <div class="row infini  circuitsBouton">
+          {% if user.is_staff %}
+          <a href="{% url 'admin' %}#nw-{{mb.network.id}}" class="button attente">Administrer</a>
+          {% endif %}
+          <a href="{% url 'reseau' network=nw.id %}" class="button button-primary">Rejoindre</a>
         </div>
+        <p>{{nw.short_description|safe}}</p>
       </div>
       {% endfor %}
     </div>
