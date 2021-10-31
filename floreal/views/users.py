@@ -173,7 +173,7 @@ def user_update(request):
             setattr(new_nm, attr, new_val)
 
         new_sg_id = data["subgroups"].get(str(nw_id))
-        if new_sg_id is not None and int(new_sg_id) != old_nm.subgroup_id:
+        if new_sg_id and (old_nm is None or int(new_sg_id) != old_nm.subgroup_id):
             some_fields_changed = some_fields_true = True
             assert m.NetworkSubgroup.objects.get(pk=new_sg_id).network_id == nw_id
             new_nm.subgroup_id = new_sg_id
