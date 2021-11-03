@@ -1,13 +1,15 @@
 #!/usr/bin/python3
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import cached_property
-from typing import List
+from collections import defaultdict
+from decimal import Decimal
+from time import time
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, F
 from django.db.models.functions import Now, TruncDate
 from django.utils import timezone
 from django.utils.text import slugify
@@ -469,6 +471,44 @@ class Purchase(models.Model):
             models.UniqueConstraint(fields=['user', 'product'], name='unique_purchase'),
         ]
         
+class Bestof(models.Model):
+    """
+    Attempt to gamify the system: score users according to their absolute and relative cumulated purchases.
+    """
+    user = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
+    total = models.DecimalField(decimal_places=2, max_digits=10)
+    rank = models.IntegerField()
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user'], name="unique_user"),
+        ]
+        ordering = ["rank"]
+
+    def __str__(self):
+        return f"{self.user.first_name} {self.user.last_name}: #{self.rank}, {self.total}€"
+
+    @classmethod
+    def update(cls):
+        time0 = time()
+        r = defaultdict(Decimal)
+        for pc in (
+            Purchase.objects.all()
+            .select_related("user", "product")
+            .annotate(pp=F("product__price") * F("quantity"))
+        ):
+            r[pc.user_id] += pc.pp
+        batch = [
+            cls(user_id=uid, total=total, rank=rank_from_0+1) 
+            for rank_from_0, (uid, total) in enumerate(
+                sorted(r.items(), key=lambda item: item[1], reverse=True)
+        )]
+
+        cls.objects.all().delete()
+        cls.objects.bulk_create(batch)
+        time1 = time()
+        JournalEntry.log(None, "Updated bestof scores for %d users in %.1f seconds", len(batch), time1-time0)
+
+
 
 class JournalEntry(models.Model):
     """Record of a noteworthy action by an admin, for social debugging purposes: changing delivery statuses,
@@ -486,7 +526,8 @@ class JournalEntry(models.Model):
             if settings.USE_TZ:
                 # Use a timezone if appropriate
                 date = date.astimezone()
-            cls.objects.create(user=u, date=date, action=action)
+            je = cls.objects.create(user=u, date=date, action=action)
+            print(je)
         except Exception:
             cls.objects.create("Failed to log, based on format " + repr(fmt))
 

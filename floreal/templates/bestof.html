@@ -18,13 +18,12 @@
      }
   </style>
   <script type='text/javascript'>
-  const max = {{max}};
+  const max = {{agg.total__max}};
+  const total = {{agg.total__sum}};
   $(document).ready(() => {
-    let total = 0;
     $(".bar").each((i, e) => {
       const val = Number($(e).text().replace(/[^.0-9]/, ""));
       $(e).css("width", val / max * 50 + "vw");
-      total += val;
     })
     $(".total").text(Number(total.toFixed(2)).toLocaleString() + "€")
   });
@@ -35,9 +34,9 @@
   <h1>Le Palmarès :-) <img src="{% static 'images/Mr_Monopoly.gif' %}"/></h1>
   <p>Depuis 2012, <strong><span class="total"></span></strong> de commandes ont été passées par ce logiciel !
     Merci à nos mangeurs, par ordre d'appétit décroissant :</p>
-  {% for name, total in bestof.items %}
+  {% for item in bestof %}
   <div class="line">
-  <div class="legend">#{{forloop.counter}} {{name}}:</div><div class="bar">{{total|price}}</div>
+  <div class="legend">#{{forloop.counter}} {{item.user.first_name}} {{item.user.last_name}}:</div><div class="bar">{{item.total|price}}</div>
   </div>
   {% endfor %}
   <div><a class="button retour" href="javascript:history.back()">Retour</a></div>

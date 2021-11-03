@@ -1,29 +1,27 @@
 #!/usr/bin/python3
 
-from datetime import datetime
-import os
 import re
 from collections import defaultdict
-from django.db.models.query_utils import select_related_descend
-from django.http.response import JsonResponse
+from datetime import datetime
+import pytz
 
+# from django.db.models.query_utils import select_related_descend
+from django.http.response import JsonResponse
 from django.conf import settings
 from django.shortcuts import render, redirect, reverse
 from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.utils import html
 from django.template.context_processors import csrf, request
-from django.db.models import Count, Q, F
+from django.db.models import Q, F, Sum, Max
 from django.db.models.functions import Lower
-from openlocationcode import openlocationcode
-import pytz
+
 
 from villes import plus_code
 from pages.models import TexteDAccueil
 
 from .. import models as m
 from .getters import get_network, get_delivery, must_be_prod_or_staff, must_be_staff
-
 from .edit_delivery_purchases import edit_delivery_purchases
 from .buy import buy
 from .user_registration import user_register, user_update, user_deactivate
@@ -940,50 +938,14 @@ def map(request):
     )
 
 
-def generate_bestof_file(path):
-    import json
-    from django.db.models import F
-
-    r = defaultdict(float)
-    for pc in (
-        m.Purchase.objects.all()
-        .select_related("user", "product")
-        .annotate(pp=F("product__price") * F("quantity"))
-    ):
-        r[pc.user] += float(pc.pp)
-    data = {}
-    for i, (u, p) in enumerate(
-        sorted(r.items(), key=lambda item: item[1], reverse=True)
-    ):
-        k = f"{u.first_name} {u.last_name}"
-        if k in data:
-            print("Warning, several users named " + k)
-        else:
-            data[k] = round(p, 2)
-    with path.open("w") as f:
-        json.dump(data, f)
-
-
 def bestof(request):
     must_be_staff(request)
 
-    import os
-    import json
-    from datetime import datetime, timedelta
-    from pathlib import Path
-
-    file = Path("/tmp/bestof.json")
-    try:
-        last_modified = datetime.fromtimestamp(os.path.getmtime(file))
-    except FileNotFoundError:
-        last_modified = datetime(1970, 1, 1)
-    if datetime.now() - last_modified > timedelta(days=1):
-        generate_bestof_file(file)
-    with file.open("r") as f:
-        data = json.load(f)
+    if not m.Bestof.objects.all().exists():
+        m.Bestof.update()
     return render(request, "bestof.html",{
-        "bestof": data,
-        "max": max(data.values())
+        "bestof": m.Bestof.objects.all().select_related("user"),
+        "agg": m.Bestof.objects.aggregate(Sum("total"), Max("total"))
     })
 
 

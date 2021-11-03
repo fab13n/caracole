@@ -64,6 +64,16 @@ class Command(BaseCommand):
             )
             logger.info("Added job 'auto_freeze_deliveries'")
 
+        if True:
+            scheduler.add_job(
+                m.Bestof.update,
+                trigger=CronTrigger(day="*", hour="00", minute="00"),  # Every day at 00:00AM
+                id="auto_freeze_deliveries",  # The `id` assigned to each job MUST be unique
+                max_instances=1,
+                replace_existing=True,
+            )
+            logger.info("Added job 'update_bestof'")
+
         scheduler.add_job(
             delete_old_job_executions,
             trigger=CronTrigger(

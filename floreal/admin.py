@@ -18,5 +18,6 @@ admin.site.register(
         m.NetworkMembership,
         m.NetworkSubgroup,
         m.JournalEntry,
+        m.Bestof,
     )
 )
