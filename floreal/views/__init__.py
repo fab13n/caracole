@@ -3,6 +3,7 @@
 import re
 from collections import defaultdict
 from datetime import datetime
+from django.db.models.aggregates import Count
 import pytz
 
 # from django.db.models.query_utils import select_related_descend
@@ -319,7 +320,10 @@ def order(request):
 
 @login_required()
 def user(request):
-    vars = {}
+    vars = {
+        "bestof": m.Bestof.objects.filter(user=request.user).first(),
+        "agg": m.Bestof.objects.aggregate(Sum("total"), Max("total"), Count("total"))
+    }
     return render(request, "user.html", vars)
 
 
