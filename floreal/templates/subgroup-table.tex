@@ -6,7 +6,8 @@
 \hline
 & \rb{Total} {% for pd in dd.products %} & \rb{ {{pd.name|tex_safe}} } {% endfor %} \\
 \hline
-Prix unitaire& {{dd.price|price}} {% for pd in dd.products %} & {{pd.price|price}} {% endfor %}\\
+Prix unitaire& {{dd.price|price}} {% for pd in dd.products %} & {{pd.price|price}}{% endfor %}\\
+Unité& {% for pd in dd.products %} & {{pd.unit}} {% endfor %}\\
 \hline
 \endhead
 {% for row in dd.rows %}

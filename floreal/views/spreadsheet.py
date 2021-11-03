@@ -28,7 +28,7 @@ def _col_name(c):
         raise Exception("Too many products")
 
 # By how much the first element of the 2D user/product quantity matrix is shifted
-ROW_OFFSET = 11
+ROW_OFFSET = 10
 COL_OFFSET =  2
 
 V_CYCLE_LENGTH = 5
@@ -61,8 +61,7 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls, re
     sheet.merge_range('A1:J1', products[0].delivery.name, fmt['title'])
     sheet.freeze_panes(ROW_OFFSET, COL_OFFSET)
     for row, title in enumerate(["Prix unitaire", "Poids unitaire", "Nombre par carton",
-                                 "Nombre de pièces", "Nombre de cartons", "Nombre en complément",
-                                 "Poids total"]):
+                                 "Nombre de pièces", "Nombre de cartons", "Nombre en complément", "Prix total"]):
         sheet.write('A%d'%(row+4), title, fmt['hdr_title_right'])
     for r in range(3, 12):
         sheet.write_blank(r, COL_OFFSET-1, None, fmt['hdr_blank'])
@@ -101,7 +100,7 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls, re
     weight_buyer = [0] * n_buyers
     qty_buyer = [0] * n_buyers
     qty_product = [0] * n_products
-    weight_product = [0] * n_products
+    # weight_product = [0] * n_products
 
     # Generate buyer names column.
     for r, name in enumerate(buyers):
@@ -127,10 +126,10 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls, re
             qty_buyer[r] += qty
             qty_product[c] += qty
             price_buyer[r] += qty * pd.price
-            if pd.unit_weight:
-                w = qty * pd.unit_weight
-                weight_buyer[r] += w
-                weight_product[c] += w
+            # if pd.unit_weight:
+            #     w = qty * pd.unit_weight
+            #     weight_buyer[r] += w
+            #     weight_product[c] += w
 
     # Total price per buyer
     for r in range(n_buyers):
@@ -157,9 +156,7 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls, re
     # Total price for all users
     fml = "=SUM(%%(sumcol)s%(firstrow)s:%%(sumcol)s%(lastrow)s)" % \
           {'sumcol': _col_name(COL_OFFSET-1), 'firstrow':ROW_OFFSET+1, 'lastrow': n_buyers+ROW_OFFSET}
-
-    sheet.write(10, 0, "Prix total", fmt['hdr_title_right'])
-    sheet.write(10, 1, fml % {'sumcol': 'B'}, fmt['hdr_price'], sum(price_buyer))
+    sheet.write(9, 1, fml % {'sumcol': 'B'}, fmt['hdr_price'], sum(price_buyer))
 
     # Total quantities and weights per product
     total_packages = 0
@@ -183,13 +180,13 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls, re
         sheet.write(8, c+COL_OFFSET, fml, fmt['hdr_qty'], loose)
 
         # Weight
-        fml = "=IF(ISNUMBER(%(colname)s5), %(colname)s7*%(colname)s5, \"?\")" % vars
-        if pd.unit_weight:
-            weight = pd.unit_weight * qty
-        else:
-            weight = "?"
-        sheet.write(9, c+COL_OFFSET, fml, fmt['hdr_weight'], weight)
-        sheet.write_blank(10, c+COL_OFFSET, None, fmt['hdr_blank'])
+        # fml = "=IF(ISNUMBER(%(colname)s5), %(colname)s7*%(colname)s5, \"?\")" % vars
+        # if pd.unit_weight:
+        #     weight = pd.unit_weight * qty
+        # else:
+        #     weight = "?"
+        # sheet.write(9, c+COL_OFFSET, fml, fmt['hdr_weight'], weight)
+        # sheet.write_blank(10, c+COL_OFFSET, None, fmt['hdr_blank'])
 
         # Total price per product
         fml = "=%(colname)s4*%(colname)s7" % vars
@@ -199,8 +196,8 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls, re
     vars = {'firstcol': _col_name(COL_OFFSET), 'lastcol': _col_name(n_products+COL_OFFSET-1)}
     fml = "=SUM(%(firstcol)s8:%(lastcol)s8)" % vars
     sheet.write(7, COL_OFFSET-1, fml, fmt['hdr_qty'], total_packages)
-    fml = "=SUM(%(firstcol)s10:%(lastcol)s10)" % vars
-    sheet.write(9, COL_OFFSET-1, fml, fmt['hdr_weight'], sum(weight_product))
+    # fml = "=SUM(%(firstcol)s10:%(lastcol)s10)" % vars
+    # sheet.write(9, COL_OFFSET-1, fml, fmt['hdr_weight'], sum(weight_product))
 
 
 def _red(n):
