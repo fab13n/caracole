@@ -24,8 +24,9 @@ def wait_for_postgres():
 
 
 if __name__ == "__main__":
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "solalim.settings")
-    if os.environ.get('POSTGRES_DBNAME'):
+    e = os.environ
+    e.setdefault("DJANGO_SETTINGS_MODULE", "solalim.settings")
+    if e.get('POSTGRES_DBNAME'):
         wait_for_postgres()
     
 

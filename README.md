@@ -1,4 +1,16 @@
-Ce site web permet de gérer la commande et la livraison de produits en
+CAVEAT: ce document décrit la version originale d'un outil de commandes 
+en ligne, initialement développé pour l'association Caracole. Cette
+version a profondément été revue, suite aux marchés confinés Covid
+de 2020 qui ont fait exploser le nombre d'utilisateurs, puis sur
+demande du FR CIVAM 31, pour permettre à un public plus nombreux
+et moins expérimenté de lancer ses propres circuits. L'ébauche
+de document de design ci-dessous n'est plus à jour de cette version
+modifiée en profondeur.
+
+Original README
+===============
+
+Ce site web permet de gérer la commande et la commande de produits en
 vrac. Il a été développé pour l'association Caracole, qui cherche à
 favoriser la création et l'extension de circuits courts de produits
 alimentaires bio. Il est capable de gérer des réseaux de quelques
@@ -9,7 +21,7 @@ Principes
 
 Un collectif de producteurs et de consommateurs gère un _réseau_
 (_network_), qui propose des _commandes_ (_deliveries_). Chaque
-livraison propose un ensemble de _produits_ (_products_), dotés d'un
+commande propose un ensemble de _produits_ (_products_), dotés d'un
 nom, un prix, une unité de mesure (kilogramme, bouteille, pièce...),
 éventuellement d'un conditionnement (par exemple 10kg/carton, 6
 bouteilles/carton...), qu'un quota (quantité totale disponible).
@@ -23,7 +35,7 @@ quantités, en prix, en poids. Ces informations sont accessibles sur
 une page web, dans un tableau Excel, et sous forme imprimable (PDF); 
 à chaque fois qu'un membre modifie sa commande, tous les tableaux sont
 automatiquement mis à jour. Bien sûr, le producteur peu geler la 
-commande pour arrêter les modifications avant livraison.
+commande pour arrêter les modifications avant commande.
 
 TODO: clarifier user, subroup_admin, network_admin, staff, superuser.
 Faire la distinction django/floreal.
@@ -31,7 +43,7 @@ Faire la distinction django/floreal.
 Passé un certain nombre de membres, il n'est plus pratique de les gérer
 de façon monolythique; les membres d'un réseau sont donc répartis en
 _sous-groupes_ (_subgroups_), qui correspondent généralement aux
-différents lieux de livraison d'une commande.
+différents lieux de commande d'une commande.
 
 Les sous-groupes ont des référants de sous-groupes (_subgroup admins_),
 qui peuvent :
@@ -42,10 +54,10 @@ qui peuvent :
 
 * accepter ou refuser les candidatures de membres à leur sous-groupe.
 
-Ils sont responsables de la livraison pour leur sous-groupe :
+Ils sont responsables de la commande pour leur sous-groupe :
 ils s'assurent que chacun à bien payé et reçu ce qu'il
 doit, éventuellement ils font des ajustements, notamment en gérant le rab
-commandé pour faire des caisses entières. Après la livraison, ils doivent
+commandé pour faire des caisses entières. Après la commande, ils doivent
 mettre à jour les achats sur le site, pour que la comptabilité tombe juste.
 
 Le site tient le compte des sommes dues, mais ne gère pas directement
@@ -67,7 +79,7 @@ l'administrateur du réseeau les ajoute au(x) sous-groupe(s), désigned
 L'ajout de nouveaux sous-groupes doit aussi se faire directement en
 DB.
 
-Cycle de vie d'une livraison
+Cycle de vie d'une commande
 ============================
 
 1. un admin réseau clique sur "Créer une commande"
@@ -78,12 +90,12 @@ Cycle de vie d'une livraison
    à jour sur le site, lien "e-mails du réseau").
 5. après le temps imparti, il ferme la commande aux utilisateurs,
    demande aux admins de sous-groupe de vérifier / compléter la
-   livraison (par exemple s'assurer qu'elle est faite par caisses
+   commande (par exemple s'assurer qu'elle est faite par caisses
    entières).
 6. quand tous les groupes sont régularisés, il prépare la commande,
    d'après la source qu'il préfère (page web, tableau Excel, fiches
    PDF).
-7. après livraison, il demande aux responsables de sous-groupe de
+7. après commande, il demande aux responsables de sous-groupe de
    s'assurer qu'ils ont bien finalisé la commande, c'est-à-dire qu'ils
    ont reporté sur le site tous les éventuels changements de dernière
    minute.

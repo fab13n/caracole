@@ -88,26 +88,26 @@ $(document).ready(() => {
         {% endif %}
 
         <div class="row infini circuitsBouton">
-              {% if mb.has_open_orders %}
-              <a href="{% url 'orders' %}#{{mb.network.slug}}" class="button button-primary">Commander</a>
-              {% endif %}
+          {% if mb.has_open_orders %}
+          <a href="{% url 'orders' %}#{{mb.network.slug}}" class="button button-primary">Commander</a>
+          {% endif %}
 
-              {% if mb.is_staff or mb.is_subgroup_staff or mb.is_producer or user.is_staff %}
-              <a href="{% url 'admin' %}#nw-{{mb.network.id}}" class="button attente">Administrer</a>
-              {% endif %}
+          {% if mb.is_staff or mb.is_subgroup_staff or mb.is_producer or user.is_staff %}
+          <a href="{% url 'admin' %}#nw-{{mb.network.id}}" class="button attente">Administrer</a>
+          {% endif %}
 
-              {% if mb.is_buyer %}
-              <a href="{% url 'leave_network' network=mb.network.id %}" 
-                onclick="return confirm('Vous voulez définitivement quitter {{mb.network.name}}?')"
-                class="button quitter">Se  désinscrire</a>
-              {% endif %}
-              
-              {% if mb.is_candidate %}
-              <a href="{% url 'reseau' network=mb.network.id %}" class="button attente">En attente</a>
-              <a href="{% url 'leave_network' network=mb.network.id %}" 
-                onclick="return confirm('Vous voulez annuler votre candidature à {{mb.network.name}}?')"
-                class="button">Annuler candidature</a>
-              {% endif %}
+          {% if mb.is_buyer %}
+          <a href="{% url 'leave_network' network=mb.network.id %}" 
+            onclick="return confirm('Vous voulez définitivement quitter {{mb.network.name}}?')"
+            class="button quitter">Se  désinscrire</a>
+          {% endif %}
+          
+          {% if mb.is_candidate %}
+          <a href="{% url 'reseau' network=mb.network.id %}" class="button attente">En attente</a>
+          <a href="{% url 'leave_network' network=mb.network.id %}" 
+            onclick="return confirm('Vous voulez annuler votre candidature à {{mb.network.name}}?')"
+            class="button">Annuler candidature</a>
+          {% endif %}
         </div>
         <p>{{mb.network.short_description|safe}}</p>
       </div>
