@@ -52,7 +52,7 @@ from . import latex
 
 def index(request):
     try:
-        accueil = TexteDAccueil.objects.all().first().texte_accueil
+        accueil = TexteDAccueil.objects.all().values('texte_accueil').first()['texte_accueil']
     except AttributeError:
         accueil = "Penser à renseigner le texte d'accueil :-)"
     if request.user.is_anonymous:
@@ -66,19 +66,22 @@ def index(request):
         return render(request, "index_unlogged.html", vars)
     else:
         mbships = list(
-            m.NetworkMembership.objects.filter(
-                user=request.user, valid_until=None, network__active=True
-            )
+            m.NetworkMembership.objects
+                .filter(user=request.user, valid_until=None, network__active=True)
+                .prefetch_related('network', 'network__ville')
         )
+
+        networks_with_open_orders = {
+            nw['id']
+            for nw in 
+            m.Network.objects
+                .filter(id__in=[mb.network_id for mb in mbships], delivery__state=m.Delivery.ORDERING_ALL)
+                .distinct()
+                .values('id')
+        }
+
         for nm in mbships:
-            hoo = (
-                nm.is_buyer
-                # TODO can be performed into a single query with network_id__in
-                and m.Delivery.objects.filter(
-                    network_id=nm.network_id, state=m.Delivery.ORDERING_ALL
-                ).exists()
-            )
-            nm.has_open_orders = hoo
+            nm.has_open_orders = nm.is_buyer and nm.network_id in networks_with_open_orders
 
         number_of_deliveries = m.Delivery.objects.filter(
             state=m.Delivery.ORDERING_ALL,
@@ -91,9 +94,11 @@ def index(request):
             "accueil": accueil,
             "number_of_deliveries": number_of_deliveries,
             "memberships": mbships,
-            "unsubscribed": m.Network.objects.exclude(members=request.user)
-            .exclude(visible=False)
-            .exclude(active=False),
+            "unsubscribed": (m.Network.objects
+                .exclude(members=request.user)
+                .exclude(visible=False)
+                .exclude(active=False)
+                .prefetch_related('ville'))
         }
         return render(request, "index_logged.html", vars)
 
