@@ -383,21 +383,54 @@ class Product(models.Model):
     UNIT_AUTO_TRANSLATE = {
         "1": "pièce",
         "piece": "pièce",
-        "1kg": "kg",
         "kilo": "kg",
+        "gr": "g",
         "unité": "pièce",
         "unite": "pièce",
     }
 
+    UNIT_TRANSLATE_REGEXP = re.compile(r"""
+        ^
+        ([0-9]+) 
+        (?:  [,.]  ([0-9]+)  )?
+        \s*
+        ([A-Za-z]+)
+        $""", re.VERBOSE)
+
+    @classmethod
+    def _normalize_unit(cls, u):
+        w = None
+        if u is None:
+            u = "pièce"
+        elif (rm:=cls.UNIT_TRANSLATE_REGEXP.match(u)):
+            integral, frac, unit_name = rm.groups()
+            # the separator may be a french "," rather than ".";
+            # and we don't want to introduce extra ".0" suffix in integral values
+            value = float(integral + "." + frac) if frac else int(integral) 
+            unit_name = cls.UNIT_AUTO_TRANSLATE.get(unit_name.lower(), unit_name)
+            if value == 1:
+                u = unit_name
+            elif (integral, unit_name) == ("0", "kg"):
+                w = value
+                u = f"{int(1000 * value)}g"
+            elif (integral, unit_name) == ("0", "l"):
+                ml = int(1000 * value)
+                if ml % 10 == 0:
+                    u = f"{ml // 10}cl"
+                else:
+                    u = f"{ml}ml"
+            else:
+                u = str(value) + unit_name
+        else:
+            u = cls.UNIT_AUTO_TRANSLATE.get(u.lower(), u)
+        return u, w
+
     def save(
         self, force_insert=False, force_update=False, using=None, update_fields=None
     ):
-        if self.unit is None:
-            self.unit = "pièce"
-        else:
-            self.unit = self.UNIT_AUTO_TRANSLATE.get(self.unit.lower(), self.unit)
-        if self.unit == "kg":
-            self.unit_weight = 1.0
+        self.unit, w = self._normalize_unit(self.unit)
+        if w is not None:
+            self.unit_weight = w
         super(Product, self).save(force_insert, force_update, using, update_fields)
 
     @property
