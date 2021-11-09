@@ -10,7 +10,7 @@
 <script type='text/javascript'>
 $(document).ready(function(){
   /* Turn plain textareas into TinyMCE WYSIWYG editors. */
-  if(is_rich) {
+  {% if is_rich %}
     tinymce.init({
       plugins: 'link lists autolink hr',
       toolbar: 'numlist bullist hr',
@@ -18,7 +18,7 @@ $(document).ready(function(){
       content_css: "{% static 'floreal.css' %}",
       language: 'fr_FR'
     });
-  }
+  {% endif %}
 });
 </script>
 {% endblock %}
