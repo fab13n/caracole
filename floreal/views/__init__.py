@@ -500,16 +500,28 @@ def create_delivery(request, network, dv_model=None):
         )
 
     if dv_model is not None:
+        prod_id = dv_model.producer_id
+        if (prod_id is not None and 
+            dv_model.network_id != nw.id and 
+            not m.NetworkMembership.objects.filter(
+                nw=nw,
+                valid_until=None,
+                is_producer=True,
+            user_id=prod_id).exists()):
+            # If the model producer isn't a producer in the target network, set it null.
+            prod_id = None
+
         new_dv = m.Delivery.objects.create(
             name=dv_model.name,
             network=nw,
             state=m.Delivery.PREPARATION,
-            producer_id=dv_model.producer_id,
+            producer_id=prod_id,
             description=dv_model.description,
         )
         for pd in dv_model.product_set.all():
             pd.pk = None
             pd.delivery_id = new_dv.id
+            pd.quantity_limit = None  # Don't copy quotas
             pd.save()  # Will duplicate because pk==None
     else:
         # Come up with a name, set producer if producer-created, and that's it
