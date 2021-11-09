@@ -272,12 +272,15 @@
       //const parity = i%2 ? "odd" : "even";
       let input;
       if (pc.max_quantity === 0) {
+        // After all, don't show out-of-stock products at all
+        /* 
         rows += `
           <tr id="row-${pd.id}" class="row-produit">
             <td class="product-image"></td>
             <td class="product-name">${pd.name}</td>
             <td colspan="5" class="out-of-stock">(Produit épuisé)</td>
           </tr>`;
+        */
       } else {
         const maxq = pd.purchase.max_quantity;
         rows += `
