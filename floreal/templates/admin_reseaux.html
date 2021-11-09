@@ -375,7 +375,10 @@
 
         <h5 class="txt-left couleur-sec margebotS">Commandes</h5>
         <ul>
-            {% if nw.is_network_staff %}
+            {% if nw.is_producer %}
+            <li><a href="{% url 'list_delivery_models' network=nw.id %}">Créer une <strong>nouvelle commande</strong>.</a></li>
+            <li><a href="{% url 'edit_user_description' user=user.id %}">Éditer <strong>ma présentation</strong> de producteur</a></li>
+            {% elif nw.is_network_staff %}
             <li><a href="{% url 'list_delivery_models' network=nw.id %}">Créer une <strong>nouvelle commande</strong>.</a></li>
             {% if nw.active_deliveries %}
             <li>
@@ -434,9 +437,11 @@
                         <option value="name">Le nom</option>
                     </select>
                 </td>
-                {% else %}{# subgroup staff or producer: only purchases can be modified #}
+                {% elif nw.is_producer %}
+                <td><a class = "button admin pseudo-menu" href="{% url 'edit_delivery_products' delivery=dv.id %}">Modifier les produits</a></td>
+                {% elif nw.subgroup_staff_of %}
                 <td><a class = "button admin pseudo-menu" href="{% url 'edit_delivery_purchases' delivery=dv.id %}">Modifier les achats</a></td>
-                {% endif %}{# network staff #}
+                {% endif %}{# staff / group staff / producer #}
                 <td>{# everyone can view purchases #}
                     {% if dv.has_purchases %}
                     <select class="button admin pseudo-menu" onchange="on_view({{dv.id}}, event.target.value)">
