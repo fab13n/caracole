@@ -3,6 +3,17 @@
 
 {% block head %}
   <style type="text/css">
+    @media (max-width: 768px)  {
+      tr.user td {
+        display: table-row;
+      }
+      tr.title1 th { 
+        display: none; 
+      }
+      tr.user td:last-child {
+        border-bottom-width: 3px;
+      }
+    }
     tr.title1 th { border: 0px; }
     tr.title2 th {
       background-color: #811305;
@@ -48,7 +59,7 @@
       Copier les e-mails</a>
     </th></tr>
     {% for u in members %}
-    <tr class="cat-{{cat}}">
+    <tr class="cat-{{cat}} user">
       <td>{{u.first_name}} {{u.last_name}}</td><td><a class="email" href="mailto://{{u.email}}">{{u.email}}</a></td>
       <td>{% with fu=u.florealuser %}{% if not fu %}-{% elif fu.uri %}<a href="{{fu.uri}}">{{fu.display_number}}</a>{% else %}{{u.florealuser.display_number|default:"-"}}{% endif %}{% endwith %}</td>
     </tr>
