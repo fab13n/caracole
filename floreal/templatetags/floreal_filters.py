@@ -34,11 +34,15 @@ def email(u):
     return '"%s %s" <%s>' % (u.first_name, u.last_name, u.email)
 
 @register.filter
-def unit_multiple(unit):
+def unit_multiple(unit, n=None):
     if unit[0].isdigit():
         return "×"+unit
     else:
-        return " "+unit
+        return " "+m.plural(unit, n)
+
+@register.filter
+def articulate(name, n=None):
+    return m.articulate(name, n)
 
 @register.filter
 def subgroup_state(sg, dv):

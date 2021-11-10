@@ -180,7 +180,7 @@ p.deliveries-entete span {
           {% endif %}
           <ul class="purchases">
             {% for pc in dv.purchases %}
-            <li class="product purchased-product" id="pd-{{pc.pd_id}}"><strong>{{pc.quantity|floatformat}}</strong>{{pc.unit|unit_multiple}} de <strong>{{pc.name}}</strong></li>
+            <li class="product purchased-product" id="pd-{{pc.pd_id}}"><strong>{{pc.quantity|floatformat}}</strong>{{pc.unit|unit_multiple:pc.quantity}} <strong>{{pc.name|articulate:pc.quantity}}</strong></li>
             {% endfor %}
             {% if dv.total_price %} <span class="prix">{{dv.total_price|price}}</span> {% endif %}
           </ul>
@@ -194,8 +194,8 @@ p.deliveries-entete span {
 
     <div class="container slim margetop">
       <ul>
-        <li> <a href="{% url 'view_history' %}">Historique des deliveries passées.</a> </li>
-        <li> <a href="#" onclick="insert_active_products()">Voir tous les produits de toutes les deliveries.</a></li>
+        <li> <a href="{% url 'view_history' %}">Historique des commandes passées.</a> </li>
+        <li> <a href="#" onclick="insert_active_products()">Voir tous les produits de toutes les commandes ouvertes.</a></li>
       </ul>
     </div>
 

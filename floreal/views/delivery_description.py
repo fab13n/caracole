@@ -289,6 +289,7 @@ class FlatDeliveryDescription(object):
                     "unit_weight": _num(col.product.unit_weight),
                     "unit": col.product.unit,
                     "price": _num(col.product.price),
+                    "plurals": {"name": m.plural(col.product.name), "unit": m.plural(col.product.unit)},
                     "total": {
                         "quantity": _num(col.quantity),
                         "packages": _num(col.packages),
@@ -460,6 +461,7 @@ class GroupedDeliveryDescription(object):
                     "unit_weight": _num(col.product.unit_weight),
                     "unit": col.product.unit,
                     "price": _num(col.product.price),
+                    "plurals": {"name": m.plural(col.product.name), "unit": m.plural(col.product.unit)},
                     "total": {
                         "quantity": _num(col.quantity),
                         "packages": _num(col.packages),
@@ -566,6 +568,7 @@ class UserDeliveryDescription(object):
                     "quantum": _num(pd.quantum),
                     "image": pd.image.url if pd.image else None,
                     "description": pd.description,
+                    "plurals": {"name": m.plural(pd.name), "unit": m.plural(pd.unit)},
                     "purchase": {
                         "id": pc.id,
                         "quantity": _num(pc.quantity),
@@ -600,5 +603,4 @@ class UserDeliveryDescription(object):
                 "price": _num(self.price),
                 "weight": _num(self.weight),
             },
-
         }

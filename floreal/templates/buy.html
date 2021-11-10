@@ -344,7 +344,28 @@
     recompute();
   }
 
-  function recompute() {
+  function recompute(ev) {
+    const pluralize_unit = function(input) {
+      const val  = $(input);
+      const row  = $(input.closest("tr"))
+      const unit = row.find(".product-unit");
+      const pd_id = row.attr("id").split("-")[1];
+      let text = null;
+      if(Number(val.val()) >= 2) {
+        text = PRODUCTS[pd_id].plurals.unit;
+        // console.log("Plural", val.val(), text);
+      } else {
+        text = PRODUCTS[pd_id].unit;
+        // console.log("Singular", val.val(), text);
+      }
+      unit.text(text);
+    }
+
+    if(ev) {
+      pluralize_unit(ev.target);
+    } else {
+      $("#products-table input.ordered_quantity").each((_, e) => pluralize_unit(e));
+    }
     let total_price = 0;
     //let total_weight = 0;
     $(".row-produit").each(function (i, e) {
