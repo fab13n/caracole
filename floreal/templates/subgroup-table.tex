@@ -15,7 +15,7 @@ Unité& {% for pd in dd.products %} & {{pd.unit}} {% endfor %}\\
 {% cycle '\rowcolor{lightgray}'  '' as color_cycle %}
 {{row.user.first_name|tex_safe}} & {% for pc in row.purchases %} & {% if pc.quantity %} {{pc.quantity|qty}} {% else %} \nope {% endif %}{% endfor %} \\
 {{ color_cycle }}
-{{row.user.last_name|tex_safe}} & {{row.price|price}} {% for pc in row.purchases %} & {% if pc.price %}{{pc.price|price}} {% else %}\nope{% endif %} {% endfor %} \\
+\multicolumn{1}{|l|}{ {{row.user.last_name|tex_safe}} } & {{row.price|price}} {% for pc in row.purchases %} & {% if pc.price %}{{pc.price|price}} {% else %}\nope{% endif %} {% endfor %} \\
 {% endif %}
 {% endfor %}
 \hline
