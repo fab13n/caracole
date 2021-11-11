@@ -4,29 +4,35 @@
 {% block head %}
 
 <style type="text/css">
+
   #user-form td:first-child {
     text-align: right;
   }
-  .coord {
-    width: unset !important;
-  }
-  .btn-primary[disabled] {
-    background-color: gray;
-  }
+
   #user-form {
     display: flex;
     width: 100%;
     flex-flow: row wrap;
     justify-content: space-between;
   }
+
   #user-form table {
     flex: 0 0 30%;
     margin-bottom: 4rem;
     border: 1px solid #E1E1E1;
   }
-    #user-form table tr:first-of-type th {
-      text-align:center;
-    }
+
+  #user-form table tr:first-of-type th {
+    text-align:center;
+  }
+
+  .coord {
+    width: unset !important;
+  }
+
+  .btn-primary[disabled] {
+    background-color: gray;
+  }
 
 </style>
 
@@ -281,6 +287,12 @@
     return result;
   }
 
+  function confirm_if_modified() {
+    return ! MODIFIED_USER || confirm(
+      "Vous n'avez pas sauvegardé vos modifications ; "+
+      "annulez et sauvegardez en bas de page si vous ne voulez pas les perdre.");
+  }
+
   $(document).ready(async () => {
     const url = new URL(window.location);
     const selected = url.searchParams.get("selected");
@@ -317,7 +329,7 @@
   <table>
   <tr>
     <td colspan="2">
-      <a href="#" id="edit-description" target="_blank">Éditer la Description de l'utilisateur / producteur</a>
+      <a href="#" id="edit-description" onclick="return confirm_if_modified()">Éditer la Description de l'utilisateur / producteur</a>
     </td>
   </tr>
   {% if user.is_staff %}
