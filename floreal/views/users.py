@@ -121,7 +121,7 @@ def user_update(request):
         pass
     elif all(
         m.NetworkMembership.objects.filter(
-            user=staff, is_staff=True, network_id=nw_id, valid_until=False
+            user=staff, is_staff=True, network_id=nw_id, valid_until=None
         ).exists()
         for nw_id in network_ids
     ):
@@ -129,12 +129,15 @@ def user_update(request):
     else:
         return HttpResponseForbidden("Not enough rights")
 
-    if user.is_staff != data["is_staff"]:
+    if user.is_staff != (new_staff_status := data.get("is_staff", False)):
         # TODO: prevent global staff from removing their own privilege?
-        user.is_staff = data["is_staff"]
+        if not staff.is_staff:
+            # Only global staff can change global staff status of others
+            return HttpResponseForbidden("Not enough rights")
+        user.is_staff = new_staff_status
         user.save()
 
-    if request.user.is_staff:
+    if staff.is_staff:
         user.florealuser.phone = data["florealuser__phone"]
         user.florealuser.save()
 
