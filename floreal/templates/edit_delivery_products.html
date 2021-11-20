@@ -323,7 +323,7 @@
 
         /* But prices have to be valid and strictly positive */
         const price = Number($("[name=r"+i+"-price]").val());
-        if(! (price > 0)) {
+        if(! (price >= 0)) {
           alert(`Le prix de ${name_i} (produit n°${i}) n'est pas valide.`);
           return;
         }
