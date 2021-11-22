@@ -337,7 +337,7 @@
         }
 
         const quota = $(`[name=r${i}-quantity_limit]`).val();
-        if(quota !== null && quota !== "" && !(Number(quota) > 0)) {
+        if(quota !== null && quota !== "" && !(Number(quota) >= 0)) {
           alert(`Le quota de ${name_i} (produit n°${i}) doit être un nombre valide ou laissé vide.`);
         }
       }
