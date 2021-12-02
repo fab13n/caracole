@@ -1,0 +1,472 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load floreal_filters %}
+
+{% block head %}
+
+<style type="text/css">
+    .top-links {
+        font-size: 1.4rem;
+        background-color: #fff;
+        border: solid 1px #84B818;
+        position: fixed;
+        top: 0px;
+        right: 0px;
+        line-height: 2rem;
+        z-index: 100000;
+        padding: 1rem;
+    }
+    .top-links h6 {
+        margin: 1rem auto;
+        font-weight: 400;
+        text-align: center;
+        color: #84B818;
+    }
+    .top-links ul {
+        margin-bottom: 1rem;
+    }
+    @media (max-width: 980px) {
+        .top-links {
+            top: 60px;
+        }
+        .top-links h6 {
+            display: inline-block;
+        }
+        .top-links ul {
+            list-style-type: none;
+        }
+    }
+
+    .top-links li::before {
+        top: 5px;
+        margin-left: 5px;
+    }
+
+    .top-links li {
+        margin-top: 0px;
+        margin-bottom: 0px;
+    }
+    .active-deliveries .button {
+        border: solid 1px #fff;
+        box-sizing: border-box;
+        height: 2.2rem;
+        line-height: 2.2rem;
+        font-size: 1.4rem;
+        width: 100%;
+    }
+
+    .active-deliveries td {
+        padding: 1px 10px 1px 10px;
+        border-bottom: none;
+    }
+
+    .active-deliveries .pseudo-menu {
+        margin: 1px;
+    }
+
+    .active-deliveries {
+        border: 1px solid #84B818;
+        margin-left: 20px;
+        padding: 5px;
+    }
+
+    .active-deliveries td:first-child {
+        font-size: 1.5rem;
+        position: relative;
+    }
+
+    .active-deliveries td:first-child .overlay {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        background-color: #84B818;
+        color: white;
+        font-weight: bold;
+        padding-left: 10px;
+    }
+
+    .active-deliveries tr:nth-child(even) {
+        background-color: #e5fabd;
+    }
+
+    .active-deliveries tr:nth-child(odd) .pseudo-menu {
+        background-color: #e5fabd;
+    }
+
+</style>
+
+<script type='text/javascript'>
+    async function load_impersonate(event) {
+        if ($("#select-impersonate")[0]) {
+            // already loaded
+            return;
+        }
+        const response = await fetch("{% url 'users_json' %}");
+        const json = await response.json();
+        const widget =
+            `&nbsp;<select id="select-impersonate" title="Membres…" data-live-search="true">` +
+            json.users
+                .map(u => `<option value=${u.id}>${u.first_name} ${u.last_name} — ${u.email}</option>`)
+                .join("\n") +
+            `</select>`;
+        $(event.target).append(widget);
+        const select = $("#select-impersonate");
+        select.selectpicker();
+        setTimeout(() => $("#select-impersonate").selectpicker("toggle"), 0);
+        select.on("change", (event) => {
+            window.location = "{% url 'impersonate-start' uid=9999 %}".replace(9999, event.target.value)
+        });
+    }
+
+    function notify_delivery(dv_id, text) {
+        const where = $(`#dv-${dv_id} td:first-child`);
+        where.append(`<div class='overlay'>${text}</div>`);
+        where.find(".overlay").fadeOut(2000);
+    }
+
+    function rename_delivery(dv_id, dv_name) {
+        const new_name = window.prompt(`Renommer la commande ${dv_name} :`, dv_name);
+        if (new_name) {
+            const url = "{% url 'set_delivery_name' delivery='9999' name='NAME' %}"
+                .replace('9999', dv_id)
+                .replace('NAME', encodeURIComponent(new_name));
+            $.ajax(url, { success: function () { window.location.reload(); } });
+        }
+    }
+
+    function on_visibility_change(nw_id, event) {
+        const url = "{% url 'set_network_visibility' network='NWID' val='VALUE' %}".replace('NWID', nw_id).replace('VALUE', event.target.checked);
+        // TODO add "⌛" after event.target
+        $.ajax(url, {success: function() {
+                // TODO remove hourglass
+                console.log("network", nw_id, "visibility is now", event.target.checked);
+        } });
+    }
+
+    function on_validation_change(nw_id, event) {
+        const url = "{% url 'set_network_validation' network='NWID' val='VALUE' %}".replace('NWID', nw_id).replace('VALUE', event.target.checked);
+        // TODO add "⌛" after event.target
+        $.ajax(url, {success: function() {
+                // TODO remove hourglass
+                console.log("network", nw_id, "validation is now", event.target.checked);
+        } });
+    }
+
+    function on_state_change(dv_id, state, event) {
+        const url = "{% url 'set_delivery_state' delivery='DVID' state='STATE' %}".replace('DVID', dv_id).replace('STATE', state);
+        // TODO add "⌛" after event.target
+        $.ajax(url, {success: function() {
+                // TODO remove hourglass
+                notify_delivery(dv_id, "État changé !")
+        } });
+    }
+
+    function on_modify(dv_id, what) {
+        $(`#dv-${dv_id} .pseudo-menu`).val("none");
+        // TODO reset the select
+        switch (what) {
+            case "none":
+                // pass
+                break;
+            case "products":
+                window.location.href = "{% url 'edit_delivery_products' delivery=9999 %}".replace("9999", dv_id);
+                break;
+            case "purchases":
+                window.location.href = "{% url 'edit_delivery_purchases' delivery=9999 %}".replace("9999", dv_id);
+                break;
+            case "name": {
+                const name_element = $(`#dv-${dv_id} .dv-name`);
+                const old_name = name_element.text().trim();
+                const new_name = prompt(`Renommer la commande :`, old_name);
+                if(new_name) {
+                    const url = "{% url 'set_delivery_name' delivery=9999 name='NAME' %}"
+                        .replace(9999, dv_id)
+                        .replace('NAME', new_name); 
+                    fetch(url)
+                        .then(() => {
+                            notify_delivery(dv_id, "Renommée");
+                            name_element.text(new_name);
+                        })
+                        .catch(() => {
+                            alert("Échec du renommage !")
+                        });
+                }
+                break;
+            }
+            default:
+                console.error("Unexpected modify value " + what);
+                break;
+        }
+    }
+
+    function on_view(dv_id, what) {
+        $(`#dv-${dv_id} .pseudo-menu`).val("none");
+        switch (what) {
+            case "none":
+                // pass
+                break;
+            case "online":
+                window.location.href = "{% url 'view_delivery_purchases_html' delivery=9999 %}".replace("9999", dv_id);
+                break;
+            case "spreadsheet":
+                window.location.href = "{% url 'view_delivery_purchases_xlsx' delivery=9999 %}".replace("9999", dv_id);
+                break;
+            case "table":
+                window.location.href = "{% url 'view_delivery_purchases_latex' delivery=9999 %}".replace("9999", dv_id);
+                break;
+            case "cards":
+                window.location.href = "{% url 'view_delivery_purchases_cards' delivery=9999 %}".replace("9999", dv_id);
+                break;
+            default:
+                console.error("Unexpected modify value " + what);
+                break;
+        }
+    }
+
+    async function prompt_network_creation() {
+        const name = prompt("Créer un nouveau réseau nommé :");
+        if(name) {
+            const url = "{% url 'create_network' nw_name='NW_NAME' %}".replace("NW_NAME", name);
+            await fetch(url);
+            document.location.reload();
+        }
+    }
+
+    $(document).ready(() => {
+        $("input.visibility").bootstrapToggle();
+    })
+
+</script>
+
+{% endblock %}
+
+{% block content %}
+{% if networks|length > 1 %}
+<div class="top-links">
+    <h6>ALLER À</h6>
+    <ul>
+        <li><a href="#top">↑ Haut</a></li>
+        {% for nw in networks %}
+        <li><a href="#nw-{{nw.id}}">{{nw.name}}</a></li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<section id="top" class="container margetopXl margebot">
+    <h1>Administration</h1>
+
+    <div id="staff-admin" class="margetop">
+        <h2>Administration globale</h2>
+        <ul>
+            <li><a href="{% url 'users_html'%}">Gérer les utilisateurs</a></li>
+            {% if user.is_staff %}
+            <li><a href="{% url 'admin:index' %}">Accès à la base de donnée</a></li>
+            <li><a href="{% url 'wagtailadmin_home' %}">Gestion du contenu rédactionnel</a>
+                {% if user.is_impersonate %}
+            <li>Vous usurpez actuellement l'identité de {{user.first_name}} {{user.last_name}}</a></li>
+            {% else %}
+            <li><a href="#" onclick="load_impersonate(event);")>Usurper une identité</a></li>
+            {% endif %}
+            <li><a href="{% url 'view_journal' %}">Journal des actions utilisateur</a></li>
+            <li> <a href="#" onclick="prompt_network_creation()">Créer un nouveau circuit</a> </li>
+            <li>Messages à tous les utilisateurs :
+                <ul>
+                    {% for msg in messages %}
+                    <li>
+                        {% if msg.network %}
+                        <strong>Réseau {{msg.network.name}} :</strong>
+                        {% endif %}
+                        <strong>{{msg.title}}</strong>: « {{msg.message}} »
+                        <a class='button button-primary compact'
+                            href="{% url 'edit_message' id=msg.id %}?next={% url 'admin' %}">éditer</a>
+                            <a class='button button-primary compact'
+                            href="{% url 'unset_message' id=msg.id %}?next={% url 'admin' %}">effacer</a>
+                    </li>
+                    {% empty %}
+                    <li>Aucun message</li>
+                    {% endfor %}
+                    <li><a href="{% url 'set_message' destination='everyone'%}?next=admin">Poster un nouveau message</a></li>
+                </ul>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+
+    {% if networks|length > 1 %}
+    <h2>Administration des réseaux</h2>
+    {% endif %}
+
+    <!-- Pour chaque circuit -->
+    {% for nw in networks %}
+
+    <div id="nw-{{nw.id}}" class="acces-rapide couleur-sec">
+        <h5 class="center divider couleur-sec">Réseau <span class="couleur-prim">{{nw.name}}</span></h5>
+        {% if user.is_staff or nw.is_network_staff or nw.candidates %}{# not for subgroup staff nor producers #}
+        <h5 class="txt-left couleur-sec margebotS">Configuration</h5>
+        <ul>
+            {% if user.is_staff or nw.is_network_staff %}
+            <li><a href="{% url 'edit_network_description' network=nw.id %}">
+                Éditer la <strong>description du réseau</strong></a></li>
+            <li><a href="{% url 'directory_network' network=nw.id %}"><strong>Annuaire</strong> des membres</a></li>
+            <li><strong>Visible</strong> par les non-membres :
+                <input class="visibility" id="visibility-{{nw.id}}" name="visibility-{{nw.id}}" type="checkbox"
+                    data-toggle="toggle" data-on="Oui" data-off="Non" onchange="on_visibility_change({{nw.id}}, event)"
+                    {% if nw.visible %}checked="checked" {%else%}data-invisible="1" {% endif %} />
+                <span id="visibility-state-{{nw.id}}"></span>
+            </li>
+            {# TODO eventually, subgroup staff will be able to validate subgroup candidacies #}
+            <li>Candidatures <strong>validées</strong> :
+                <input 
+                    class="auto-validate"
+                    id="auto-validate-{{nw.id}}"
+                    name="auto-validate-{{nw.id}}"
+                    type="checkbox" 
+                    data-toggle="toggle" 
+                    data-on="automatiquement" 
+                    data-off="par&nbsp;les&nbsp;admins"
+                    onchange="on_validation_change({{nw.id}}, event)"
+                    {% if nw.auto_validate %}checked="checked"{% endif %}
+                />
+            </li>
+            {% endif %}{# user/nw.is_network_staff #}
+            {% if not nw.candidates %}
+            {# pass #}
+            {% elif nw.candidates|length < 4 %}
+            <li>Candidatures :
+                <a id="nw-{{nw.id}}-candidacies"></a>
+                <ul>
+                    {% for u in nw.candidates %}
+                    {# TODO mark action here #}
+                    <li>{{u.first_name}} {{u.last_name}} ({{u.email}}):
+                        <a href="{% url 'validate_candidacy' user=u.id network=nw.id response='Y' %}?next={% url 'admin' %}#nw-{{nw.id}}-candidacies">Accepter</a>
+                        /
+                        <a href="{% url 'validate_candidacy' user=u.id network=nw.id response='N' %}?next={% url 'admin' %}#nw-{{nw.id}}-candidacies">Refuser</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </li>
+            {% else %}{# too many candidatures #}
+            {# TODO Mark action here #}
+            <li><a href="{% url 'manage_candidacies' %}"><strong>{{nw.candidates|length}} candidatures</strong> à valider</a>.</li>
+            {% endif %}{# few or many candidatures #}
+
+            {# TODO: should producers be allowed to handle messages directly? #}
+            <li>Messages au réseau :
+                <ul>
+                    {% for msg in nw.messages %}
+                    <li>
+                        <strong>{{msg.title}}</strong>: « {{msg.message}} »
+                        <a class='button button-primary compact'
+                            href="{% url 'edit_message' id=msg.id %}?next={% url 'admin' %}">éditer</a>
+                            <a class='button button-primary compact'
+                            href="{% url 'unset_message' id=msg.id %}?next={% url 'admin' %}">effacer</a>
+                    </li>
+                    {% empty %}
+                    <li>Aucun message</li>
+                    {% endfor %}
+                    <li><a href="{% url 'set_message' destination='nw-{{nw.id}}'%}?next=admin">Poster un nouveau message</a></li>
+                </ul>
+            </li>
+        </ul>
+        {% endif %}{# is_staff or is_network_staff or candidates but neither prods nor subgroup staff #}
+
+        <h5 class="txt-left couleur-sec margebotS">Commandes</h5>
+        <ul>
+            {% if nw.is_producer %}
+            <li><a href="{% url 'list_delivery_models' network=nw.id %}">Créer une <strong>nouvelle commande</strong>.</a></li>
+            <li><a href="{% url 'edit_user_description' user=user.id %}">Éditer <strong>ma présentation</strong> de producteur</a></li>
+            {% elif nw.is_network_staff %}
+            <li><a href="{% url 'list_delivery_models' network=nw.id %}">Créer une <strong>nouvelle commande</strong>.</a></li>
+            {% if nw.active_deliveries %}
+            <li>
+                <strong>{{nw.active_deliveries}} commandes actives</strong> ; qui a commandé où ? Voir
+                <strong><a href="{% url 'all_deliveries_html' network=nw.id states='BCD' %}">en ligne</a></strong>,
+                <strong><a href="{% url 'all_deliveries_latex' network=nw.id states='BCD' %}">en PDF</a></strong>
+            </li>
+            <li><a href="{% url 'invoice_mail_form' network=nw.id %}">Envoyer un <strong>mail de rappel</strong> pour les commandes gelées</a>.</li>
+            {% endif %}
+            {% endif %}
+            <li><a href="{% url 'archived_deliveries' network=nw.id %}">Voir les commandes <strong>archivées</strong></a>.</li>
+        </ul>
+
+        <table class="active-deliveries">
+            {% for dv in nw.deliveries %}
+            <tr id="dv-{{dv.id}}">
+                <td>
+                    <strong>
+                        {# TODO if freeze date passed and state<FROZEN, TODO mark action here #}
+                        {# TODO if distribution date passed and state<TERMINATED, TODO mark action here #}
+                        {% if dv.distribution_date %}
+                        <span title="Distribution le {{dv.distribution_date|date}}"
+                            data-toggle="tooltip">
+                            {{dv.distribution_date|short_date}} |
+                        </span>
+                        {% elif dv.freeze_date %}{# if in_the_past and there's a distri date, display the latter. #}
+                        <span title="Commandes jusqu'au {{dv.freeze_date|date}}"
+                            data-toggle="tooltip">
+                            {{dv.freeze_date|short_date}}
+                        </span> |
+                        {% endif %}
+                        <span class='dv-name'>{{dv.name}}</span>
+                        {% if dv.producer %}
+                        | {{dv.producer.first_name}} {{dv.producer.last_name}}
+                        {% endif %}
+                    </strong>
+                </td>
+                {% if nw.is_network_staff or nw.is_producer %}
+                <td>{# change of state #}
+                    <select id="dv-{{dv.id}}-state" name="dv-{{dv.id}}-state" class="button admin pseudo-menu"
+                        onchange="on_state_change({{dv.id}}, event.target.value)">
+                        {% for key, name in Delivery.STATE_CHOICES.items %}
+                        <option value="{{key}}" {% if key == dv.state %}selected="selected" {% endif %}>{{name}}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                {% else %}{# subgroup staff only #}
+                <td>({{nw.subgroup_staff_of.name}})</td>
+                {% endif %}
+                {% if nw.is_network_staff %}
+                <td>{# Modify everything #}
+                    <select class="button admin pseudo-menu" onchange="on_modify({{dv.id}}, event.target.value)">
+                        <option value="none">Modifier...</option>
+                        <option value="products">La commande</option>
+                        <option value="purchases">Les achats</option>
+                        <option value="name">Le nom</option>
+                    </select>
+                </td>
+                {% elif nw.is_producer %}
+                <td><a class = "button admin pseudo-menu" href="{% url 'edit_delivery_products' delivery=dv.id %}">Modifier les produits</a></td>
+                {% elif nw.subgroup_staff_of %}
+                <td><a class = "button admin pseudo-menu" href="{% url 'edit_delivery_purchases' delivery=dv.id %}">Modifier les achats</a></td>
+                {% endif %}{# staff / group staff / producer #}
+                <td>{# everyone can view purchases #}
+                    {% if dv.has_purchases %}
+                    <select class="button admin pseudo-menu" onchange="on_view({{dv.id}}, event.target.value)">
+                        <option value="none">Voir...</option>
+                        <option value="online">En ligne</option>
+                        <option value="spreadsheet">En tableau Excel</option>
+                        <option value="table">En tableau à imprimer</option>
+                        <option value="cards">En cartes à imprimer</option>
+                    </select>
+                    {% else %}
+                    <select class="button admin pseudo-menu" disabled="disabled">
+                        <option value="cards">Encore aucun achat</option>
+                    </select>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        <!-- end commande-->
+
+    </div>
+    <!-- end circuit -->
+    {% endfor %}
+
+</section>
+
+
+{% endblock %}

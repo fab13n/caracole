@@ -9,13 +9,13 @@ from django.shortcuts import render, redirect
 from django.template.context_processors import csrf
 from django.http import HttpResponseForbidden
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
 from io import BytesIO
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from PIL import Image
 
-from .getters import get_delivery
-from .decorators import nw_admin_required
-from ..models import Product, Delivery, JournalEntry
+from .getters import get_delivery, must_be_staff, must_be_prod_or_staff
+from .. import models as m
 from ..penury import set_limit
 from django.http import JsonResponse
 
@@ -39,19 +39,40 @@ def _serialize_product(pd):
     }
 
 def delivery_products_json(request, delivery):
+    # TODO: this ought to be a delivery_description
     dv = get_delivery(delivery)
-    if dv.network.staff.filter(id=request.user.id).exists():
-        producers = [["Aucun", 0]] + [[u.id, u.first_name+" "+u.last_name] for u in dv.network.producers.all()]
-    elif dv.producer_id == request.user.id:
+    which = must_be_prod_or_staff(request, dv.network)
+    
+    if which == "staff":
+        # If I'm staff, I can choose any producer I want
+        dv_producers = m.User.objects.filter(
+            networkmembership__network_id=dv.network_id,
+            networkmembership__valid_until=None,
+            networkmembership__is_producer=True,
+        ).order_by("last_name", "first_name")
+        producers = (
+            [{"id": 0, "name": "Aucun"}] +
+            [{"id": u.id, "name": u.first_name+" "+u.last_name} for u in dv_producers])
+        if dv.producer is None:
+            producers[0]["selected"] = True
+        else:
+            for item in producers:
+                if item['id'] == dv.producer_id:
+                    item["selected"] = True
+                    break
+    elif which == "producer":
+        # If I'm not staff but I'm the producer, I can't change the choice
         u = dv.producer
-        producers = [[u.id, u.first_name+" "+u.last_name]]
+        producers = [{"id": u.id, "name": u.first_name+" "+u.last_name, "selected": True}]
     else:
-        return HttpResponseForbidden("Admins and producers only")
+        assert False
 
     return JsonResponse({
         'id': dv.id,
         'name': dv.name,
         'state': dv.state,
+        'freeze-date': str(d) if (d:=dv.freeze_date) is not None else None,
+        'distribution-date': str(d) if (d:=dv.distribution_date) is not None else None,
         'description': dv.description,
         'producers': producers,
         'producer': dv.producer.id if dv.producer is not None else 0,
@@ -64,31 +85,28 @@ def edit_delivery_products(request, delivery):
 
     # Check authorizations: reserved to this network's staff and producers    
 
-    delivery = get_delivery(delivery)
-    is_producer = False
-
-    if not delivery.network.staff.filter(id=request.user.id).exists():
-        if delivery.producer_id == request.user.id:
-            is_producer = True
-        else:
-            return HttpResponseForbidden("Réservé aux admins ou au producteur")
+    dv = get_delivery(delivery)
+    which = must_be_prod_or_staff(request, dv.network)
 
     if request.method == 'POST':  # Handle submitted data
-        _parse_form(request)
-        JournalEntry.log(request.user, "Edited products for delivery dv-%d %s/%s", delivery.id, delivery.network.name, delivery.name)
-        if 'save_and_leave' in request.POST:
-            return redirect('edit_delivery', delivery.id)
-        else:
-            return redirect('edit_delivery_products', delivery.id)
+        _parse_form(request, which == "staff")
+        m.JournalEntry.log(request.user, "Edited products for delivery dv-%d", dv.id)
+        then_what = request.POST['then_what']
+        if then_what == 'leave':
+            return redirect(reverse('admin') + f"#nw-{dv.network_id}")
+        elif then_what == 'preview':
+            return redirect('preview', dv.id)  # TODO retrieve URL from request?
+        else:  # then_what == 'continue'
+            return redirect('edit_delivery_products', dv.id)  # TODO retrieve URL from request?
 
     else:  # Create and populate forms to render
-        vars = {'user': request.user, 'delivery': delivery, 'is_producer': is_producer}
+        vars = {'user': request.user, 'delivery': dv, 'is_producer': which == "producer"}
         vars.update(csrf(request))
         return render(request,'edit_delivery_products.html', vars)
 
 def float_i18n(s):
     """Some browsers return French-style commas rather than dot-based floats."""
-    return float(s.replace(",", "."))
+    return float(s.replace(",", ".")) if isinstance(s, str) else s
 
 def _get_pd_fields(d, files, r_prefix):
     """Retrieve form fields representing a product."""
@@ -159,10 +177,10 @@ def _convert_image(pd):
     pd.image.name = name
 
 
-def _parse_form(request):
+def _parse_form(request, is_staff):
     """Parse a delivery edition form and update DB accordingly."""
     d = request.POST
-    dv = Delivery.objects.get(pk=int(d['dv-id']))
+    dv = m.Delivery.objects.get(id=int(d['dv-id']))
 
     # Edit delivery name and state
     dv.name = d['dv-name']
@@ -170,19 +188,28 @@ def _parse_form(request):
     descr = d['dv-description'].strip()
     dv.description = descr or None
 
-    if dv.network.staff.filter(id=request.user.id).exists():
+    if is_staff:
         # Producer can only be changed by staff members
-        if d['producer'] == 0:
+        if int(d['producer']) == 0:
             dv.producer_id = None
         else:
             dv.producer_id = int(d['producer'])
+    if (date:=d['freeze-date']):
+        dv.freeze_date = date
+    if (date:=d['distribution-date']):
+        dv.distribution_date = date
 
     dv.save()
 
-    for r in range(int(d['n_rows'])):
+    n_rows = 1
+    while f"r{n_rows}-id" in d:
+        n_rows += 1
+
+
+    for r in range(1, n_rows):
         fields = _get_pd_fields(d, request.FILES, 'r%d' % r)
         if fields.get('id'):
-            pd = Product.objects.get(pk=fields['id'])
+            pd = m.Product.objects.get(id=fields['id'])
             if pd.delivery == dv:
                 if fields['deleted']:  # Delete previously existing product
                     #print("Deleting product",  pd)
@@ -210,16 +237,17 @@ def _parse_form(request):
                 pass
         else:  # Parse products created from blank lines
             # print("Adding new product from line #%d" % r)
-            pd = Product.objects.create(name=fields['name'],
-                                        description=fields['description'],
-                                        price=fields['price'],
-                                        place=fields['place'],
-                                        quantity_per_package=fields['quantity_per_package'],
-                                        quantity_limit=fields['quantity_limit'],
-                                        unit=fields['unit'],
-                                        unit_weight=fields['unit_weight'],
-                                        delivery=dv,
-                                        image=fields.get('image'))
+            pd = m.Product.objects.create(
+                name=fields['name'],
+                description=fields['description'],
+                price=fields['price'],
+                place=fields['place'],
+                quantity_per_package=fields['quantity_per_package'],
+                quantity_limit=fields['quantity_limit'],
+                unit=fields['unit'],
+                unit_weight=fields['unit_weight'],
+                delivery=dv,
+                image=fields.get('image'))
             pd.save()
 
     # In case of change in quantity limitations, adjust granted quantities for purchases

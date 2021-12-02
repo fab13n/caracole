@@ -1,64 +1,252 @@
 #!/usr/bin/python3
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
+from functools import cached_property
+from collections import defaultdict
+from decimal import Decimal
+from time import time
 
-from django.db import models
-from django.db.models import Sum
+from django.conf import settings
 from django.contrib.auth.models import User
-
-from floreal.francais import articulate, plural, Plural
-from caracole import settings
-
+from django.db import models
+from django.db.models import Q, Sum, F
+from django.db.models.functions import Now, TruncDate
+from django.utils import timezone
+from django.utils.text import slugify
 from html2text import html2text
+from unidecode import unidecode
+
+from floreal.francais import Plural, articulate, plural
+from villes.models import Ville
+
+class IdentifiedBySlug(models.Model):
+    """
+    Common ancestor of classes for which we want a slug,
+    i.e. a URL-friendly unique identifier that's easier to remember than numeric primary keys.
+    """
+
+    slug = models.SlugField(unique=True, null=True)  # TODO eventually null will be false
+
+    class Meta:
+        abstract = True
+
+    def slug_prefix(self):
+        return slugify(self.name)[:24].strip("-")
+
+    def save(self, **kwargs):
+        if self.slug is None:
+            # Find every object whose slug starts with the computed prefix, and add a number suffix if needed.
+            # Make sure to perform only one DB request.
+            #
+            # Notice that this is only used on the first save of reasonably rarely created objects 
+            # (e.g. products and purchases aren't identified by slugs), so it's probably not worth
+            # optimizing with text_pattern_ops DB indexes or the likes.
+            slug_prefix = slug = self.slug_prefix()
+            similar_slugs = self.__class__.objects.filter(slug__startswith=slug_prefix).only("slug")
+            used_suffixes = {slug[len(slug_prefix):] for obj in similar_slugs if (slug:=obj.slug) is not None}
+            if "" not in used_suffixes:
+                self.slug = slug_prefix
+            else:
+                suffix = -1
+                while str(suffix) in used_suffixes:
+                    suffix -= 1
+                self.slug = slug_prefix + str(suffix)
+        super().save(**kwargs)
+
+class Mapped(models.Model):
+
+    longitude = models.FloatField(null=True, blank=True, default=None)
+    latitude = models.FloatField(null=True, blank=True, default=None)
+
+    # TODO add by-class or by-instance icons
+    # TODO add commune
+
+    class Meta:
+        abstract = True
 
 
-class UserPhones(models.Model):
-    """Associate one or several phone numbers to each user."""
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    phone = models.CharField(max_length=20)
+# def _user_network_getter(**kwargs):
+#     """
+#     Users of a network are listed by a ManyToMany+through relationship,
+#     which makes it cumbersome to retrive them with default Django accessors.
+#     This helper allows to add ``<quality>_of_network()`` accessors to auth
+#     user objects.
+#     """
+#     @property
+#     def user_of_network(self):
+#         return Network.objects.filter(
+#             networkmembership__in=NetworkMembership.objects
+#                 .filter(user=self, **kwargs)
+#                 .exclude(valid_from__gt=Now())
+#                 .exclude(valid_until__lt=Now())
+#         )
+
+#     return user_of_network
+
+# User.staff_of_network = _user_network_getter(is_staff=True)
+# User.buyer_of_network = _user_network_getter(is_buyer=True)
+# User.producer_of_network = _user_network_getter(is_producer=True)
+# User.candidate_of_network = _user_network_getter(is_candidate=True)
+
+
+class FlorealUser(IdentifiedBySlug, Mapped):
+    """
+    Associate a phone number to each user.
+    """
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    phone = models.CharField(max_length=20, null=True, blank=True, default=None)
+    description = models.TextField(null=True, blank=True, default=None)
+    image_description = models.ImageField(null=True, blank=True, default=None)
+    pseudonym = models.CharField(max_length=User.username.field.max_length, null=True, blank=True, default=None)
 
     def __str__(self):
-        return "%s %s: %s" % (self.user.first_name, self.user.last_name, self.phone)
+        return self.pseudonym or f"{self.user.first_name} {self.user.last_name}"
+
+    def slug_prefix(self):
+        return slugify(f"{self.user.first_name} {self.user.last_name}")
 
     @property
+    def display_name(self):
+        if self.pseudonym:
+            return self.pseudonym
+        else:
+            u = self.user
+            return u.first_name + " " + u.last_name
+
+    @cached_property
     def display_number(self):
-        if not hasattr(self, '_display_number'):
-            n = "".join(k for k in self.phone if k.isdigit())
-            if len(n) == 10:
-                self._display_number = " ".join(n[i:i+2] for i in range(0, len(n), 2)) 
-            else:
-                self._display_number = self.phone
-        return self._display_number
-
-    @property
+        if self.phone is None:
+            return None
+        n = "".join(k for k in self.phone if k.isdigit())
+        if len(n) == 10:
+            return " ".join(
+                n[i : i + 2] for i in range(0, len(n), 2)
+            )
+        else:
+            return self.phone
+    
+    @cached_property
     def uri(self):
-        if not hasattr(self, '_uri'):
-            n = "".join(k for k in self.phone if k.isdigit())
-            if len(n) == 10:
-                self._uri = "tel:+33" + n[1:]
-            else:
-                self._uri = None
-        return self._uri
+        if self.phone is None:
+            return None
+        n = "".join(k for k in self.phone if k.isdigit())
+        if len(n) == 10:
+            return "tel:+33" + n[1:]
+        else:
+            return None
+
+    @cached_property
+    def has_some_admin_rights(self):
+        u = self.user
+        return u.is_staff or NetworkMembership.objects.filter(
+            Q(is_staff=True) | Q(is_producer=True) | Q(is_subgroup_staff=True),
+            user_id=u.id, valid_until=None, ).exists()
 
 
-class Network(models.Model):
-    """One distribution network. Deliveries are passed for a whole network,
+class NetworkSubgroup(IdentifiedBySlug):
+    network = models.ForeignKey("Network", on_delete=models.CASCADE)
+    name = models.CharField(max_length=32)
+
+    def __str__(self) -> str:
+        return f"{self.network.name} / {self.name}"
+
+    # def _filtered_members(self, date=None, **kwargs):
+    #     date |= Now()
+    #     ids = (
+    #         nm["user_id"]
+    #         for nm in (self.networkmembership_set
+    #             .filter(**kwargs)
+    #             .filter(valid_from__lte=date)
+    #             .filter(Q(valid_to=None)|Q(valid_to__gte=date))
+    #             .values("user_id")
+    #         )
+    #     )
+    #     return User.objects.filter(id__in=ids)
+
+    # @property
+    # def buyers(self):
+    #     return self._filtered_members(is_buyer=True)
+
+    # @property
+    # def staff(self):
+    #     return self._filtered_members(is_subgroup_staff=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['network', 'name'], name='unique_subgroup_name'),
+        ]
+
+class NetworkMembership(models.Model):
+    """
+    Relationship between a user and a network. Users can belong to a network
+    under different qualities (buyer, staff, candidate etc) not mutually exclusive.
+    Optionally they can belong through a subgroup. Partitionning a group into
+    subgroups is an effective way to handle large, self-organized distributions.
+    More on that (in French) in an upcoming guide.
+    """
+    network = models.ForeignKey("Network", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    subgroup = models.ForeignKey(
+        NetworkSubgroup, null=True, default=None, on_delete=models.CASCADE
+    )
+    is_staff = models.BooleanField(default=False)
+    is_subgroup_staff = models.BooleanField(default=False)
+    is_producer = models.BooleanField(default=False)
+    is_buyer = models.BooleanField(default=True)
+    is_candidate = models.BooleanField(default=False)
+
+    valid_from = models.DateTimeField(default=timezone.now)
+    valid_until = models.DateTimeField(default=None, null=True, blank=True)
+
+    def __str__(self):
+        r = "" if self.valid_until is None else "(FORMER) "
+        r += self.user.username + " ∈ " + self.network.name
+        if self.subgroup is not None:
+            r += "/" + self.subgroup.name
+        roles = [
+            q
+            for q in (
+                "staff",
+                "subgroup_staff",
+                "producer",
+                "buyer",
+                "candidate",
+            )
+            if getattr(self, "is_" + q)
+        ]
+        r += " as " + "+".join(roles)
+        return r
+
+    class Meta:
+        constraints = [
+            # The point is, there's only one currently valid (valid_until=None) membership for a user/network
+            models.UniqueConstraint(fields=['network', 'user', 'valid_until'], name='unique_membership'),
+        ]
+
+class Network(IdentifiedBySlug, Mapped):
+    """
+    One distribution network. Deliveries are passed for a whole network,
     then broken up into subgroups.
     The network has staff users, in charge of allowing, forbidding and pricing products
     in commands.
-
-    Staff users are often also users allowed to order, but this isn't mandatory.
-    Regular users are not stored diretly in the network: they're stored in the network's
-    subgroup they belong to."""
+    """
 
     name = models.CharField(max_length=256, unique=True)
-    staff = models.ManyToManyField(User, related_name='staff_of_network')
-    producers = models.ManyToManyField(User, related_name='producer_of_network')
+    members = models.ManyToManyField(
+        User, related_name="member_of_network", through=NetworkMembership
+    )
     auto_validate = models.BooleanField(default=False)
+    active = models.BooleanField(default=True)
+    visible = models.BooleanField(default=True)
     description = models.TextField(null=True, blank=True, default=None)
+    short_description = models.TextField(null=True, blank=True, default=None)
+    image_description = models.ImageField(null=True, blank=True, default=None)
+    ville = models.ForeignKey(Ville, null=True, blank=True, default=None, on_delete=models.SET_NULL)
+    search_string = models.TextField(max_length=256, default="")
 
     class Meta:
-        ordering = ('name',)
+        ordering = ("name",)
 
     def __str__(self):
         return self.name
@@ -67,72 +255,28 @@ class Network(models.Model):
     def description_text(self):
         return html2text(self.description)
 
-class Subgroup(models.Model):
-    """Subgroup of a network. Each subgroup has a set of regular users, and a set of staff
-    users. Staff users are allowed to modify the commands of their group users' purchases,
-    even if the delivery is closed (but not if it's already delivered). Staff users are
-    typically also regular users, but this is not mandatory.
-
-    Each subgroup has an 'Extra' user; staff users can order on behalf of the extra user,
-    so that the subgroup's order sums up to entire boxes, if network staff wishes so.
-    Extra users are allowed to order a negative quantity of products."""
-
-    name = models.CharField(max_length=256)
-    network = models.ForeignKey(Network, on_delete=models.CASCADE)
-    extra_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
-    # Users might only be staff of one subgroup per network
-    staff = models.ManyToManyField(User, related_name='staff_of_subgroup')
-    users = models.ManyToManyField(User, related_name='user_of_subgroup')
-    candidates = models.ManyToManyField(User, related_name='candidate_of_subgroup', through='Candidacy')
-    auto_validate = models.BooleanField(default=False)
-
-    class Meta:
-        unique_together = (('network', 'name'),)
-        ordering = ('name',)
-
-    def __str__(self):
-        return "%s/%s" % (self.network.name, self.name)
-
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        """If the extra user is missing, create it before saving."""
-        if not self.extra_user:
-            missing_extra = True
-            extra_username = "extra-%s" % self.name.lower()
-            if User.objects.filter(username=extra_username).exists():
-                extra_username = "extra-%s-%s" % (self.network.name.lower(), self.name.lower())
-            # TODO: doesn't necessarily end in gmail.com!
-            extra_email = settings.EMAIL_HOST_USER.replace("@gmail.com", "+" + extra_username + "@gmail.com")
-            self.extra_user = User.objects.create(username=extra_username,
-                                                  email=extra_email,
-                                                  first_name="extra",
-                                                  last_name=self.name.capitalize(),
-                                                  last_login=datetime.now())
-        else:
-            missing_extra = False
-        super(Subgroup, self).save(force_insert=force_insert, force_update=force_update,
-                                   using=using, update_fields=update_fields)
-        if missing_extra:
-            self.users.add(self.extra_user)
-
     @property
-    def sorted_users(self):
-        if not self.extra_user:
-            raise ValueError("Subgroup "+self.network.name+"/"+self.name+" has no extra user")
-        normal_users = [u for u in self.users.all() if u != self.extra_user]
-        normal_users.sort(key=lambda u: (u.last_name.lower(), u.first_name.lower()))
-        return [self.extra_user] + normal_users
+    def grouped(self):
+        return self.networksubgroup_set.exists()
+
+    def save(self, **kwargs):
+        s = [
+            self.name,
+            self.short_description or "",   
+        ]
+        if self.ville:
+            s += [
+                self.ville.nom_simple,
+                str(self.ville.departement)
+            ]
+        self.search_string = re.sub(r"[^a-z0-9]+", " ", unidecode(" ".join(s).lower()))
+        if self.ville and self.latitude is None:
+            self.latitude = self.ville.latitude_deg
+            self.longitude = self.ville.longitude_deg
+        return super().save(**kwargs)
 
 
-class Candidacy(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
-    message = models.TextField(null=True, blank=True)  # Currently unused, might be used to communicate with admins
-
-    class Meta:
-        verbose_name_plural = "Candidacies"
-
-
-class Delivery(models.Model):
+class Delivery(IdentifiedBySlug):
     """A command of products, for a given network. It's referenced by product
     descriptions and by purchase orders.
 
@@ -140,73 +284,60 @@ class Delivery(models.Model):
     closed (only subgroup staff members can modify purchases), or
     delivered (nobody can modify it)."""
 
-    PREPARATION    = 'A'
-    ORDERING_ALL   = 'B'
-    ORDERING_ADMIN = 'C'
-    FROZEN         = 'D'
-    REGULATING     = 'E'
-    TERMINATED     = 'F'
+    (PREPARATION, ORDERING_ALL, ORDERING_ADMIN, FROZEN, TERMINATED) = "ABCDE"
     STATE_CHOICES = {
-        PREPARATION:    "En préparation",
-        ORDERING_ALL:   "Ouverte",
+        PREPARATION: "En préparation",
+        ORDERING_ALL: "Ouverte",
         ORDERING_ADMIN: "Admins",
-        FROZEN:         "Gelée",
-        REGULATING:     "Régularisation",
-        TERMINATED:     "Terminée" }
+        FROZEN: "Gelée",
+        TERMINATED: "Terminée",
+    }
     name = models.CharField(max_length=256)
     network = models.ForeignKey(Network, on_delete=models.CASCADE)
-    state = models.CharField(max_length=1, choices=STATE_CHOICES.items(), default=PREPARATION)
+    state = models.CharField(
+        max_length=1, choices=STATE_CHOICES.items(), default=PREPARATION
+    )
     description = models.TextField(null=True, blank=True, default=None)
-    producer = models.ForeignKey(User, null=True, default=None, on_delete=models.SET_NULL)
-
-    def get_stateForSubgroup(self, sg):
-        try:
-            return self.subgroupstatefordelivery_set.get(delivery=self, subgroup=sg).state
-        except models.ObjectDoesNotExist:
-            return SubgroupStateForDelivery.DEFAULT
-
-    def set_stateForSubgroup(self, sg, state):
-        try:
-            x = self.subgroupstatefordelivery_set.get(delivery=self, subgroup=sg)
-            x.state = state
-            x.save()
-        except models.ObjectDoesNotExist:
-            SubgroupStateForDelivery.objects.create(delivery=self, subgroup=sg, state=state)
+    producer = models.ForeignKey(
+        User, null=True, default=None, on_delete=models.SET_NULL
+    )
+    creation_date = models.DateTimeField(auto_now_add=True)
+    freeze_date = models.DateField(null=True, blank=True, default=None)
+    distribution_date = models.DateField(null=True, blank=True, default=None)
 
     def __str__(self):
-        return "%s/%s" % (self.network.name, self.name)
+        return self.name
 
     def state_name(self):
-        return self.STATE_CHOICES.get(self.state, 'Invalid state '+self.state)
-
-    def subgroupMinState(self):
-        states = self.subgroupstatefordelivery_set
-        if states.count() < self.network.subgroup_set.count():
-            return SubgroupStateForDelivery.DEFAULT  # Some unset subgroups
-        else:
-            return min(s.state for s in states.all())
+        return self.STATE_CHOICES.get(self.state, "Etat Invalide " + self.state)
 
     @property
     def description_text(self):
-        return html2text(self.description)
+        return html2text(self.description) if self.description is not None else ""
+
+    @classmethod
+    def freeze_overdue_deliveries(cls):
+        """
+        Put in "FREEZE" state the deliveries which are still open,
+        and whose freeze date was yesterday.
+        """
+        overdue = cls.objects.filter(
+            state=cls.ORDERING_ALL,
+            freeze_date=timezone.localdate() - timedelta(days=1)
+        )
+
+        if len(overdue) > 0:
+            overdue.update(
+                state=cls.FROZEN
+            )
+            overdue_ids = ", ".join([f"dv-{dv.id}" for dv in overdue])
+            JournalEntry.log(None, "Auto-froze overdue deliveries %s", overdue_ids)
+        else:
+            JournalEntry.log(None, "No overdue deliveries to freeze")
 
     class Meta:
         verbose_name_plural = "Deliveries"
-        unique_together = (('network', 'name'),)
-        ordering = ('-id',)
-
-class SubgroupStateForDelivery(models.Model):
-    INITIAL              = 'X'
-    READY_FOR_DELIVERY   = 'Y'
-    READY_FOR_ACCOUNTING = 'Z'
-    DEFAULT = INITIAL
-    STATE_CHOICES = {
-        INITIAL:              "Non validé",
-        READY_FOR_DELIVERY:   "Commande validée",
-        READY_FOR_ACCOUNTING: "Compta validée"}
-    state = models.CharField(max_length=1, choices=list(STATE_CHOICES.items()), default=DEFAULT)
-    delivery = models.ForeignKey(Delivery, on_delete=models.CASCADE)
-    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
+        ordering = ("-id",)
 
 
 class Product(models.Model):
@@ -221,8 +352,10 @@ class Product(models.Model):
     quantity_per_package = models.IntegerField(null=True, blank=True)
     unit = models.CharField(max_length=256, null=True, blank=True)
     quantity_limit = models.IntegerField(null=True, blank=True)
-    unit_weight = models.DecimalField(decimal_places=3, max_digits=6, default=0.0, blank=True)
-    quantum = models.DecimalField(decimal_places=2, max_digits=3, default=1, blank=True)
+    unit_weight = models.DecimalField(
+        decimal_places=3, max_digits=6, default=0.0, blank=True
+    )
+    quantum = models.DecimalField(decimal_places=2, max_digits=5, default=1, blank=True)
     description = models.TextField(null=True, blank=True, default=None)
     place = models.PositiveSmallIntegerField(null=True, blank=True, default=True)
     image = models.ImageField(null=True, default=None, blank=True)
@@ -233,23 +366,71 @@ class Product(models.Model):
         # Moreover, in a future evolution, we'll want to allow several products with the same name but
         # different quantities, and a dedicated UI rendering for them.
         # unique_together = (('delivery', 'name'),)
-        ordering = ('place', '-quantity_per_package', 'name',)
+        ordering = (
+            "place",
+            "-quantity_per_package",
+            "name",
+        )
+        constraints = [
+            # There can be several products named the same, e.g. in different quantities.
+            # models.UniqueConstraint(fields=['delivery', 'name'], name='unique_product'),
+        ]
 
     def __str__(self):
         return self.name
 
-    # Auto-fix frequent mis-usages    
+    # Auto-fix frequent mis-usages
     UNIT_AUTO_TRANSLATE = {
-        "1": "pièce", "piece": "pièce", "1kg": "kg", "kilo": "kg", "unité": "pièce", "unite": "pièce"
+        "1": "pièce",
+        "piece": "pièce",
+        "kilo": "kg",
+        "gr": "g",
+        "unité": "pièce",
+        "unite": "pièce",
     }
 
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        if self.unit is None:
-            self.unit = "pièce"
+    UNIT_TRANSLATE_REGEXP = re.compile(r"""
+        ^
+        ([0-9]+) 
+        (?:  [,.]  ([0-9]+)  )?
+        \s*
+        ([A-Za-z]+)
+        $""", re.VERBOSE)
+
+    @classmethod
+    def _normalize_unit(cls, u):
+        w = None
+        if u is None:
+            u = "pièce"
+        elif (rm:=cls.UNIT_TRANSLATE_REGEXP.match(u)):
+            integral, frac, unit_name = rm.groups()
+            # the separator may be a french "," rather than ".";
+            # and we don't want to introduce extra ".0" suffix in integral values
+            value = float(integral + "." + frac) if frac else int(integral) 
+            unit_name = cls.UNIT_AUTO_TRANSLATE.get(unit_name.lower(), unit_name)
+            if value == 1:
+                u = unit_name
+            elif (integral, unit_name) == ("0", "kg"):
+                w = value
+                u = f"{int(1000 * value)}g"
+            elif (integral, unit_name) == ("0", "l"):
+                ml = int(1000 * value)
+                if ml % 10 == 0:
+                    u = f"{ml // 10}cl"
+                else:
+                    u = f"{ml}ml"
+            else:
+                u = str(value) + unit_name
         else:
-            self.unit = self.UNIT_AUTO_TRANSLATE.get(self.unit.lower(), self.unit)
-        if self.unit == 'kg':
-            self.unit_weight = 1.
+            u = cls.UNIT_AUTO_TRANSLATE.get(u.lower(), u)
+        return u, w
+
+    def save(
+        self, force_insert=False, force_update=False, using=None, update_fields=None
+    ):
+        self.unit, w = self._normalize_unit(self.unit)
+        if w is not None:
+            self.unit_weight = w
         super(Product, self).save(force_insert, force_update, using, update_fields)
 
     @property
@@ -258,7 +439,7 @@ class Product(models.Model):
         if self.quantity_limit is None:
             return None
         else:
-            quantity_ordered = self.purchase_set.aggregate(t=Sum('quantity'))['t'] or 0
+            quantity_ordered = self.purchase_set.aggregate(t=Sum("quantity"))["t"] or 0
             return self.quantity_limit - quantity_ordered
 
     @property
@@ -274,9 +455,9 @@ class Purchase(models.Model):
     user = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.DecimalField(decimal_places=3, max_digits=6)
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        unique_together = (('product', 'user'), )
 
     @property
     def price(self):
@@ -285,6 +466,16 @@ class Purchase(models.Model):
     @property
     def weight(self):
         return self.quantity * self.product.unit_weight
+
+    @property
+    def packages(self):
+        qpp = self.product.quantity_per_package
+        return self.quantity // qpp if qpp else None
+
+    @property
+    def out_of_package(self):
+        packages = self.packages
+        return self.quantity - packages if packages else self.quantity
 
     @property
     def max_quantity(self):
@@ -297,109 +488,65 @@ class Purchase(models.Model):
         fmt = "%(quantity)g%(mult)s%(unit)s %(prod_name)s à %(price).2f€"
         unit = self.product.unit
         result = fmt % {
-            'mult': '×'if len(unit)>0 and unit[0].isdigit() else ' ',
-            'quantity': self.quantity,
-            'unit': plural(self.product.unit, self.quantity),
-            'prod_name': articulate(self.product.name, self.quantity),
-            'price': self.quantity * self.product.price,
-            'user_name': self.user.__str__()
+            "mult": "×" if len(unit) > 0 and unit[0].isdigit() else " ",
+            "quantity": self.quantity,
+            "unit": plural(self.product.unit, self.quantity),
+            "prod_name": articulate(self.product.name, self.quantity),
+            "price": self.quantity * self.product.price,
+            "user_name": self.user.__str__(),
         }
         if specify_user:
             result += " pour %s %s" % (self.user.first_name, self.user.last_name)
         return result
 
-
-class Order(object):
-    """Sum-up of what a given user has ordered in a given delivery. Fields:
-     * `purchases`: iterable on `Purchase` objects, possibly dummy purchase objects when total is 0.
-     * `user`
-     * `price`
-     * `weight`
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'product'], name='unique_purchase'),
+        ]
+        
+class Bestof(models.Model):
     """
+    Attempt to gamify the system: score users according to their absolute and relative cumulated purchases.
+    """
+    user = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
+    total = models.DecimalField(decimal_places=2, max_digits=10)
+    rank = models.IntegerField()
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user'], name="unique_user"),
+        ]
+        ordering = ["rank"]
 
-    class DummyPurchase(object):
-        """"Dummy purchase, to be used as a stand-in in purchas tables when a product
-        hasn't been purchased by a user."""
-        def __init__(self, product, user):
-            self.product = product
-            self.user = user
-            self.price = 0
-            self.weight = 0
-            self.quantity = 0
-
-        def __bool__(self):
-            return False
-        
-        @property
-        def left(self):
-            return self.product.left
-        
-        @property
-        def max_quantity(self):
-            return self.product.left
-
-    def __init__(self, user, delivery, purchases=None, with_dummies=False):
-        """Create the order sum-up.
-        :param user: who ordered
-        :param delivery: when
-        :param purchases: if the list of purchases is passed, it isn't extracted from delivery and user.
-            Intended for internal use.
-        :return: an instance with fields `user`, `delivery`, `price` and `purchases`
-        (an iterable of relevant `Purchase` instances)."""
-
-        self.user = user
-        self.delivery = delivery
-        if purchases:
-            self.purchases = purchases
-            self.price = None
-            self.weight = None
-        else:
-            self.purchases = Purchase.objects.filter(product__delivery=delivery, user=user)#.select_related()
-            self.price = sum(p.price for p in self.purchases)
-            self.weight = sum(p.weight for p in self.purchases)
-        
-        if with_dummies:
-            by_pd_id = {pc.product_id: pc for pc in self.purchases}
-            self.purchases = [
-                by_pd_id[pd.id] if pd.id in by_pd_id else self.DummyPurchase(pd, user) 
-                for pd in delivery.product_set.all()]
+    def __str__(self):
+        return f"{self.user.first_name} {self.user.last_name}: #{self.rank}, {self.total}€"
 
     @classmethod
-    def by_user_and_product(cls, delivery, users, products=None):
-        """Compute a dict of orders, for several users, more efficiently than by performing `len(users)` DB queries.
-        Purchases are in a list, sorted according to the list `product` if passed, by product name otherwise.
-        If a product hasn't been purchased by a user, `None` is used as a placeholder in the purchases list.
+    def update(cls):
+        time0 = time()
+        r = defaultdict(Decimal)
+        for pc in (
+            Purchase.objects.all()
+            .select_related("user", "product")
+            .annotate(pp=F("product__price") * F("quantity"))
+        ):
+            r[pc.user_id] += pc.pp
+        batch = [
+            cls(user_id=uid, total=total, rank=rank_from_0+1) 
+            for rank_from_0, (uid, total) in enumerate(
+                sorted(r.items(), key=lambda item: item[1], reverse=True)
+        )]
 
-        :param delivery: for which delivery
-        :param users: iterable over users
-        :param products: ordered list of products; normally, the products available in `delivery`.
-        :return: a user -> orders_list_indexed_as_products dictionary for all `users`."""
+        cls.objects.all().delete()
+        cls.objects.bulk_create(batch)
+        time1 = time()
+        JournalEntry.log(None, "Updated bestof scores for %d users in %.1f seconds", len(batch), time1-time0)
 
-        if not products:
-            products = delivery.product_set.all().select_related()
-        product_index = {pd.id: i for (i, pd) in enumerate(products)}
-        purchases_by_user_id_and_pd_idx = {u.id: [cls.DummyPurchase(pd, u) for pd in products] for u in users}
-        prices = {u.id: 0 for u in users}
-        weights = {u.id: 0 for u in users}
-
-        all_purchases = Purchase.objects.filter(product__delivery=delivery, user__in=users).select_related("user", "product")
-
-        # TODO SQL compute sums in Order.__init__
-        for pc in all_purchases:
-            purchases_by_user_id_and_pd_idx[pc.user_id][product_index[pc.product_id]] = pc
-            prices[pc.user_id] += pc.price
-            weights[pc.user_id] += pc.weight
-
-        orders = {u: Order(u, delivery, purchases=purchases_by_user_id_and_pd_idx[u.id]) for u in users}
-        for u in users:
-            orders[u].price = prices[u.id]
-            orders[u].weight = weights[u.id]
-        return orders
 
 
 class JournalEntry(models.Model):
     """Record of a noteworthy action by an admin, for social debugging purposes: changing delivery statuses,
     moving users around."""
+
     user = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
     date = models.DateTimeField(default=datetime.now)
     action = models.CharField(max_length=1024)
@@ -412,69 +559,23 @@ class JournalEntry(models.Model):
             if settings.USE_TZ:
                 # Use a timezone if appropriate
                 date = date.astimezone()
-            cls.objects.create(user=u, date=date, action=action)
+            je = cls.objects.create(user=u, date=date, action=action)
+            print(je)
         except Exception:
             cls.objects.create("Failed to log, based on format " + repr(fmt))
 
     def __str__(self):
         n = self.user.email if self.user else "?"
-        return (", ".join((n, self.date.isoformat(), self.action)))
-
-class ProductDiscrepancy(models.Model):
-    """Log of an accounting discrepancy between what's been ordered and what's actually been paid for in a given subgroup.
-    """
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    amount = models.DecimalField(decimal_places=3, max_digits=9)
-    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
-    reason = models.CharField(max_length=256)
-
-    def __str__(self):
-        return "%s/%s: %+g %s of %s for %s: %s" % (
-            self.product.delivery.network.name,
-            self.product.delivery.name,
-            self.amount,
-            self.product.unit,
-            self.product.name,
-            self.subgroup.name,
-            self.reason
-        )
-
-    class Meta:
-        verbose_name_plural = "Product Discrepancies"
-
-class DeliveryDiscrepancy(models.Model):
-    """Log of an accounting discrepancy that cannot be attributed to a specific product."""
-    delivery = models.ForeignKey(Delivery, on_delete=models.CASCADE)
-    amount = models.DecimalField(decimal_places=2, max_digits=9)
-    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE)
-    reason = models.CharField(max_length=256)
-
-    def __unicode__(self):
-        return u"%s/%s: %+g€ for %s: %s" % (
-            self.delivery.network.name,
-            self.delivery.name,
-            self.amount,
-            self.subgroup.name,
-            self.reason
-        )
-
-    class Meta:
-        verbose_name_plural = "Delivery Discrepancies"
+        return ", ".join((n, self.date.isoformat(), self.action))
 
 
 class AdminMessage(models.Model):
-    everyone = models.BooleanField(default=False)
-    network = models.ForeignKey(Network, null=True, blank=True, default=None, on_delete=models.CASCADE)
-    subgroup = models.ForeignKey(Subgroup, null=True, blank=True, default=None, on_delete=models.CASCADE)
-    message = models.TextField()
+    network = models.ForeignKey(
+        Network, null=True, default=None, on_delete=models.CASCADE
+    )
+    title = models.CharField(max_length=80, default="Message")
+    message = models.CharField(max_length=280)
 
     def __str__(self):
-        d = []
-        if self.everyone:
-            d += ["Tout le monde"]
-        if self.network is not None:
-            d += ["Réseau "+self.network.name]
-        if self.subgroup is not None:
-            d += ["Sous-groupe "+self.subgroup.name]
-        return ", ".join(d) + ": " + self.message
-    
+        who = "Tout le monde" if self.network is None else "Réseau " + self.network.name
+        return who + " : " + self.message

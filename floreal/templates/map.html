@@ -1,0 +1,55 @@
+{% extends 'layout.html' %}
+{% load floreal_filters %}
+{% load leaflet_tags %}
+{% load static %}
+
+{% block head %}
+  {% leaflet_js %}
+  {% leaflet_css %}
+
+  <style type="text/css">
+     .leaflet-container {  /* all maps */
+        width:  70vw;
+        height: 90vh;
+    }
+  </style>
+
+  <script type='text/javascript'>
+  function init_map(map, options) {
+      const nw_icon = L.icon({
+          iconUrl: "{% static 'images/marker-blue.svg' %}",
+          iconSize: [36, 56],
+          iconAnchor: [18, 56],
+
+      });
+      const prod_icon = L.icon({
+          //...nw_icon.options,
+          iconUrl: "{% static 'images/marker-red.svg' %}",
+          iconSize: [18, 28],
+          iconAnchor: [9, 28],
+      });
+      const markers = [
+        {% for nw in networks %}L.marker([{{nw.latitude}}, {{nw.longitude}}], {icon: nw_icon, title: "Réseau {{nw.name}}"}).bindPopup("<a href='{% url 'reseau' network=nw.id %}'>{{nw.name}}</a>"), 
+        {% endfor %}
+        {% for fu in producers %}L.marker([{{fu.latitude}}, {{fu.longitude}}], {icon: prod_icon, title: "Producteur {{fu.user.first_name}} {{fu.user.last_name}}"}), 
+        {% endfor %}
+      ];
+      const group = L.featureGroup(markers).addTo(map);
+      map.fitBounds(group.getBounds());
+  }
+
+  $(document).ready(() => {
+    init_map
+  });
+  </script>
+{% endblock %}
+
+{% block content %}
+<section class="container margetopXl margebot">
+
+    <h1>Carte des réseaux et producteurs</h1>
+
+    {% leaflet_map "reseaux" callback="init_map" %}
+
+</section>  
+{% endblock %}

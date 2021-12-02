@@ -1,29 +1,36 @@
-{% extends 'layout_narrow.html' %}
+{% extends 'layout.html' %}
 {% load static %}
 
 {% block head %}
-<script src="tinymce/tinymce.min.js"></script>
-<script src="tinymce/jquery.tinymce.min.js"></script>
-{% endblock %}
-
-{% block document_ready %}
-/* Turn plain textareas into TinyMCE WYSIWYG editors. */
-tinymce.init({
-    selector: 'textarea',
-    content_css: "{% static 'floreal.css' %}",
-    language: 'fr_FR'
+<script src="{% static 'tinymce/tinymce.min.js' %}"></script>
+<script src="{% static 'tinymce/jquery.tinymce.min.js' %}"></script>
+<style type="text/css">
+</style>
+ 
+<script type='text/javascript'>
+$(document).ready(function(){
+  /* Turn plain textareas into TinyMCE WYSIWYG editors. */
+  {% if is_rich %}
+    tinymce.init({
+      plugins: 'link lists autolink hr',
+      toolbar: 'numlist bullist hr',
+      selector: '.editor',
+      content_css: "{% static 'floreal.css' %}",
+      language: 'fr_FR'
+    });
+  {% endif %}
 });
-
-/* Turn plain inputs into Bootstrap inputs. */
-$("input,select").addClass("form-control")
+</script>
 {% endblock %}
 
 {% block content %}
-<h1>{{title}}</h1>
-<form method="POST" action={{target}}>
+<section class="container margetopXl margebot">
+  <h1>{{title}}</h1>
+<form method="POST" action="{{target}}{% if next %}?next={{next}}{% endif %}">
   {% block custom %}{% endblock %}
-  <textarea name="editor" class="editor">{{content|safe}}</textarea>
+  <textarea name="editor" class="editor"{%if maxlength%}maxlength="{{maxlength}}"{%endif%}>{{content|safe}}</textarea>
   <input type="submit" value="Sauvegarder" name="save"/>
   {% csrf_token %}
 </form>
+</section>
 {% endblock %}

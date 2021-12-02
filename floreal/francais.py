@@ -10,8 +10,8 @@ class Plural(models.Model):
     singular = models.CharField(max_length=64, unique=True)
     plural = models.CharField(max_length=64, null=True, blank=True, default=None)
 
-    def __unicode__(self):
-        return "%s/%s" % (self.singular, self.plural)
+    def __str__(self):
+        return "%s/%s" % (self.singular, self.plural or "?")
 
 
 # Cache for plurals, to avoid many DB lookups when a pluralized word appears many times in a page.
@@ -25,6 +25,8 @@ def plural(noun, n=None):
     :param noun: the French noun to try and pluralize
     :param n: number of stuff (optional): don't pluralize if |n| < 2.
     :return: pluralized noun."""
+
+    noun = noun.strip()
 
     if n is not None and -2 < n < 2:
         return noun  # No need to pluralize
@@ -46,7 +48,9 @@ def plural(noun, n=None):
     # Not found in DB, or found to be None: try to guess it
     if " " in noun:
         r = noun  # Don't try to guess whole expressions
-    if noun[-1] == 's' or noun[-1] == 'x':
+    elif any(k.isdigit() for k in noun):
+        r = noun  # Leave numeric units alone as well
+    elif noun[-1] == 's' or noun[-1] == 'x':
         r = noun  # Probably invariant
     elif noun[-2:] == 'al':
         r = noun[:-2] + 'aux'

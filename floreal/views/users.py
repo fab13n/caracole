@@ -1,10 +1,14 @@
+import io
 import json
 
-from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
+from django.conf import settings
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 
 from .. import models as m
+
+BOOL_KEYS = ("buyer", "staff", "producer")
 
 
 def users_html(request):
@@ -13,17 +17,23 @@ def users_html(request):
 
 @csrf_exempt
 def users_json(request):
-    if request.method == 'POST':
-        return users_update(request)
-    elif request.method == 'GET':
+    if (
+        not request.user.is_staff
+        and not m.NetworkMembership.objects.filter(
+            user=request.user, is_staff=True, valid_until=None
+        ).exists()
+    ):
+        return HttpResponseForbidden("Admins only")
+    elif request.method == "POST":
+        return user_update(request)
+    elif request.method == "GET":
         # TODO add optional per-network restriction in URL
         return users_get(request)
     else:
-        return HttpResponseForbidden("Only GET and POST, only by admins")
+        return HttpResponseForbidden("Only GET and POST")
 
 
 def users_get(request):
-    # TODO add optional per-network restriction in URL
     staff = request.user
 
     if staff.is_staff:
@@ -32,105 +42,152 @@ def users_get(request):
         users = m.User.objects.filter(is_active=True)
     else:
         # Only access to network you are staff of, and their users
-        networks = user.staff_of_network.all()
-        users = (
-            m.User.objects.filter(user_of_subgroup__network__in=my_networks) |
-            m.User.objects.filter(producer_of_network__in=my_networks) |
-            m.User.objects.filter(staff_of_network__in=my_networks)
-        ).filter(is_active=True)
-    # Global staff members can move users across all networks as they see fit.
-    # Network staff only move people within (or kick out of) their networks
-    # Subgroup staff don't get to this page.
+        networks = m.Network.objects.filter(
+            networkmembership__user=staff,
+            networkmembership__is_staff=True,
+            networkmembership__valid_until=None,
+        )
+        users = m.User.objects.filter(
+            networkmembership__network__in=networks, is_active=True
+        )
 
-    # id -> {id,first_name, last_name, email, member, nw_staff, sg_staff, producer}
-    # member and sg_staff are lists of subgroup ids.
-    # nw_staff and producer are lists of network ids
-    user_records = { 
-        u['id']: dict(u, sg_member=[], nw_staff=[], sg_staff=[], nw_producer=[])
-        for u in users.values('id', 'first_name', 'last_name', 'email', 'is_staff')
+    user_records = {
+        u_rec["id"]: dict(**u_rec, **{k: [] for k in BOOL_KEYS}, subgroups={})
+        for u_rec in users.values(
+            "id",
+            "first_name",
+            "last_name",
+            "email",
+            "is_staff",
+            # "florealuser__description",
+            # "florealuser__image_description",
+            # "florealuser__latitude",
+            # "florealuser__longitude",
+            "florealuser__phone",
+        )
     }
+
+    # # Convert image URLs
+    # for u in user_records.values():
+    #     url = u["florealuser__image_description"]
+    #     u["florealuser__image_description"] = (
+    #         {"url": settings.MEDIA_URL + url} if url else None
+    #     )
 
     network_records = []
 
     for nw in networks:
-        nw_rec = {"id": nw.id, "name": nw.name, "subgroups": []}
+        nw_rec = {"id": nw.id, "name": nw.name}
         network_records.append(nw_rec)
-        subgroups = nw.subgroup_set.all()
-        for sg in subgroups:
-            nw_rec["subgroups"].append({"id": sg.id, "name": sg.name})
-            for u in sg.users.filter(is_active=True).values("id"):
-                user_records[u["id"]]["sg_member"].append(sg.id)
-            for u in sg.staff.filter(is_active=True).values("id"):
-                user_records[u["id"]]["sg_staff"].append(sg.id)
-        
-        for u in nw.staff.filter(is_active=True).values("id"):
-            user_records[u["id"]]["nw_staff"].append(nw.id)
-        for u in nw.producers.filter(is_active=True).values("id"):
-            user_records[u["id"]]["nw_producer"].append(nw.id)
-            
-    return JsonResponse({
-        "is_staff": staff.is_staff,
-        "networks": sorted(network_records, key=lambda nw: nw['name']),
-        "users": sorted(user_records.values(), key=lambda u: u['last_name'])
-        # "users": dict(sorted(user_records.items(), key=lambda pair: pair[1]['last_name']))
-    })
+        # TODO perform in a single .filter(network__in=networks, valid_until=None) request
+        for nm in m.NetworkMembership.objects.filter(network=nw, valid_until=None):
+            u_rec = user_records.get(nm.user_id)
+            if u_rec is None:
+                continue  # Inactive. Membership should be deleted
+            for key in BOOL_KEYS:
+                if getattr(nm, "is_" + key):
+                    u_rec[key].append(nw.id)
+            if (sg_id := nm.subgroup_id) is not None:
+                u_rec['subgroups'][nw.id] = sg_id
+        nw_rec['subgroups'] = list(nw.networksubgroup_set.all().values("id", "name")) or None
+    
+    return JsonResponse(
+        {
+            "is_staff": staff.is_staff,
+            "networks": sorted(network_records, key=lambda nw: nw["name"]),
+            "users": sorted(user_records.values(), key=lambda u: u["last_name"]),
+        }
+    )
 
 
-def users_update(request):
+def user_update(request):
     """
     The incoming JSON answer to be parsed is an object with fields:
 
     * user: a user id
     * is_staff: should the user be made a global staff?
-    * sg_member: a list of subgroup ids this user should be made member of
-    * sg_staff: a list of subgroup ids this user should be made group-staff of
-    * nw_staff: a list of network ids  this user should be made staff of
-    * nw_producer: a list of network ids  this user should be made producer of
+    * member: a list of network ids this user should be made member of
+    * staff: a list of network ids  this user should be made staff of
+    * producer: a list of network ids  this user should be made producer of
     """
 
     staff = request.user
     data = json.loads(request.body)
-    user = m.User.objects.get(id=data['user'])
+    user = m.User.objects.get(id=data["user"])
 
-    # Get current user status
-    old = dict(
-        sg_member={u['id'] for u in user.user_of_subgroup.all().values("id")},
-        sg_staff={u['id'] for u in user.staff_of_subgroup.all().values("id")},
-        nw_staff={u['id'] for u in user.staff_of_network.all().values("id")},
-        nw_producer={u['id'] for u in user.producer_of_network.all().values("id")},
-        is_staff = user.is_staff
-    )
+    network_ids = data["networks"]
 
-    # Get status goal
-    new = dict(
-        sg_member=set(data['sg_member']),
-        sg_staff=set(data['sg_staff']),
-        nw_staff=set(data['nw_staff']),
-        nw_producer=set(data['nw_producer']),
-        is_staff=data.get('is_staff')
-    )
+    if staff.is_staff:
+        pass
+    elif all(
+        m.NetworkMembership.objects.filter(
+            user=staff, is_staff=True, network_id=nw_id, valid_until=None
+        ).exists()
+        for nw_id in network_ids
+    ):
+        pass
+    else:
+        return HttpResponseForbidden("Not enough rights")
 
-    if not staff.is_staff: # global staff users can do whatever they want
-        # Otherwise, staff must be network admin of all the networks and subgroups mentionned
-        networks = new['nw_producer'] | new["nw_staff"] | old["nw_producer"] | old["nw_staff"]
-        subgroups = new["sg_member"] | new["sg_staff"] | old["sg_member"] | old["sg_staff"]
-        networks |= {sg.network_id for sg in m.Subgroup.objects.filter(id__in=subgroups)}
-        if any(staff not in nw.staff.all() for nw in networks):
-            return HttpResponseForbidden("Not enough admin rights")
-
-    user.user_of_subgroup.set(new["sg_member"])
-    user.staff_of_subgroup.set(new["sg_staff"])
-    user.staff_of_network.set(new["nw_staff"])
-    user.producer_of_network.set(new["nw_producer"])
-
-    print(f"{old['is_staff']=} {new['is_staff']=}")
-    if (new['is_staff'] is not None and 
-        staff.is_staff and 
-        old['is_staff'] != new['is_staff']):
-        user.is_staff = new['is_staff']
+    if user.is_staff != (new_staff_status := data.get("is_staff", False)):
+        # TODO: prevent global staff from removing their own privilege?
+        if not staff.is_staff:
+            # Only global staff can change global staff status of others
+            return HttpResponseForbidden("Not enough rights")
+        user.is_staff = new_staff_status
         user.save()
 
-    m.JournalEntry.log(staff, "Changed u-%d from %s to %s", user.id, old, new)
+    if staff.is_staff:
+        user.florealuser.phone = data["florealuser__phone"]
+        user.florealuser.save()
 
-    # TODO Check that staff user is allowed to make those updates.
-    return HttpResponse(b'OK')
+        user.email = user.username = data["email"]
+        user.first_name = data["first_name"]
+        user.last_name = data["last_name"]
+        user.save()
+
+    for nw_id in network_ids:
+
+        # TODO: get all memberships in a single request
+        # .filter(user=user, valid_until=None, network_id__in=network_ids)
+        # out of the loop, then retrieve the matching network in each loop iteration.
+
+        old_nm = m.NetworkMembership.objects.filter(
+            user=user,
+            network_id=nw_id,
+            valid_until=None,
+        ).first()
+
+        # Object created with the direct constructor, not with .objects.create().
+        # As a result it isn't inserted in DB right now. It will be inserted only
+        new_nm = m.NetworkMembership(user=user, network_id=nw_id, is_buyer=False)
+
+        some_fields_changed = False
+        some_fields_true = False
+
+        for key in BOOL_KEYS:
+            attr = "is_" + key
+            old_val = getattr(old_nm, attr, False)
+            new_val = nw_id in data[key]
+            if bool(old_val) != bool(new_val):
+                some_fields_changed = True
+            if new_val:
+                some_fields_true = True
+            setattr(new_nm, attr, new_val)
+
+        new_sg_id = data["subgroups"].get(str(nw_id))
+        if new_sg_id and (old_nm is None or int(new_sg_id) != old_nm.subgroup_id):
+            some_fields_changed = some_fields_true = True
+            assert m.NetworkSubgroup.objects.get(pk=new_sg_id).network_id == nw_id
+            new_nm.subgroup_id = new_sg_id
+
+        if some_fields_changed:
+            if old_nm is not None:
+                old_nm.valid_until = m.Now()
+                old_nm.save()
+            if some_fields_true:
+                new_nm.save()
+
+    m.JournalEntry.log(staff, "Edited user u-%d", user.id)
+
+    return HttpResponse(b"OK")

@@ -1,4 +1,4 @@
-{% extends 'layout_narrow.html' %}
+{% extends 'layout.html' %}
 {% load floreal_filters %}
 
 {% block head %}
@@ -26,16 +26,21 @@
 
 {% block content %}
 
-<p><a href="{% url 'network_admin' network=nw.id %}">Retour à l'administration du réseau {{nw.name}}</a> ↩</p>
-<p><a href="{% url 'index' %}">Retour à la page principale</a> ↩↩</p>
+<section class="container margetopXl margebot">
 
 <h1>Envoyer un mail récapitulatif</h1>
 
 <p>
     Vous pouvez saisir ici le texte d'un mail récapitulatif, qui sera envoyé aux personnes
     ayant commandé dans une des commandes actuellement gelées du réseau {{nw.name}}.
-    Il s'agit des commandes
-    {% for dv in deliveries %}{{dv.name}}{% if not forloop.last %}, {% endif %}{% endfor %}.
+    {% if deliveries|length == 1 %}Il s'agit de la commande {{deliveries.0.name}}
+    {% else %} Il s'agit des commandes suivantes :
+    <ul>
+        {% for dv in deliveries %}
+        <li>{{dv.name}}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
 </p>
 
 <p>
@@ -69,5 +74,7 @@
     </table>
     <input type="submit" value="Envoyer"/>
 </form>
+
+</section>
 
 {% endblock %}

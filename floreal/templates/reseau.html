@@ -1,0 +1,68 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block content %}
+  <section class="container margetopXl margebot">
+    <h1>{{network.name}}</h1>
+    <div class="container slim margetop">
+      {% if network.image_description %}
+      <img src="{{network.image_description.url}}" width="100%"/>
+      {% endif %}
+      {% comment %}
+      <div class="row">
+        {% if network.description %}
+        <div class="col">
+          <div class="row end">
+            {% if user_status == 'non-member' %}
+            <a class="button button-primary" 
+              onclick="return confirm('Voulez-vous demander à rejoindre le réseau {{network.name}}?')"
+              href="{% url 'create_candidacy' network=network.id %}">
+              S'inscrire</a>
+            {% elif user_status == 'member' %}
+            <a href="circuit.html" class="button inscrit">Inscrit</a>
+            <a href="#" class="button quitter">Quitter ce réseau ⚠️</a>
+
+            {% elif user_status == 'candidate' %}
+            <a href="circuit.html" class="button attente">En attente</a>
+            <a href="#" class="button quitter">Annuler la candidature</a>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if has_open_deliveries and network.description %}
+      <div><p>
+        il y a des commandes en cours : 
+        <a class="button button-primary" href="{% url 'orders' %}#nw-{{network.id}}">Commander</a>
+      </p></div>
+      {% endif %}
+      {% endcomment %}
+
+      <div class="circuits-info-editor">
+        {% if network.description %}
+        {{network.description|safe}}
+        {% elif network.short_description %}
+        {{network.short_description|safe}}
+        {% endif %}
+      </div>
+      <div class="row">
+        {% if user_status == 'non-member' %}
+        <a href="{% url 'create_candidacy' network=network.id %}" class="button button-primary">S'inscrire</a>
+        {% elif user_status == 'member' %}
+        {% if has_open_deliveries %}
+        <a class="button button-primary" href="{% url 'orders' %}#nw-{{network.id}}">Commander</a>
+        {% endif %}
+        <a href="{% url 'leave_network' network=network.id %}" 
+           onclick="return confirm('Vous voulez définitivement quitter {{network.name}} ?')"
+           class="button quitter">Quitter ce réseau ⚠️</a>
+        {% elif user_status == 'candidate' %}
+        <span class="button attente">En attente</span>
+        <a href="{% url 'leave_network' network=network.id %}" 
+           onclick="return confirm('Vous voulez annuler votre candidature à {{network.name}} ?')"
+           class="button quitter">Annuler la candidature</a>
+        {% endif %}
+        <a class="button retour" href="javascript:history.back()">Retour</a>
+      </div>
+    </div>
+  </section>
+{% endblock %}

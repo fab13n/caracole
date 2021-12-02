@@ -1,4 +1,4 @@
-{% extends 'layout_narrow.html' %}
+{% extends 'layout.html' %}
 {% load static %}
 {% load floreal_filters %}
 
@@ -10,18 +10,20 @@
 {% endblock %}
 
 {% block content %}
+<section class="container margetopXl margebot">
+
 <h1>Créer une nouvelle commande dans le réseau {{nw.name}}</h1>
 
-<p>Créer une nouvelle commande :</p>
+<p>Créer une nouvelle commande basée sur :</p>
 
 <ul>
     <li><a href="{% url 'create_empty_delivery' network=nw.id%}">vide</a></li>
     {% for dv in deliveries %}
-    <li>basée sur <a href="{% url 'create_delivery_copy' network=nw.id dv_model=dv.id %}">
+    <li><a href="{% url 'create_delivery_copy' network=nw.id dv_model=dv.id %}">
         {% if all_networks %}
-        {{dv.network.name}}: {{dv.name}}
+        <span class="couleur-prim">{{dv.network.name}}|{% if dv.distribution_date%}{{dv.distribution_date|short_date}}|{% endif %}</span>{{dv.name}}
         {% else %}
-        {{dv.name}}
+        <span class="couleur-prim">{% if dv.distribution_date%}{{dv.distribution_date|short_date}}|{% endif %}</span>{{dv.name}}
         {% endif %}
     </a></li>
     {% endfor %}
@@ -32,6 +34,6 @@
     {% endif %}
 </ul>
 
-<p>Retourner à l'<a href="{% url 'network_admin' network=nw.id %}">administration du réseau {{nw.name}}</a>.</p>
-
+<p><a class="button retour" href="javascript:history.back()">Retour</a></p>
+</section>
 {% endblock %}

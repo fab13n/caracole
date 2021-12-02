@@ -1,0 +1,80 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load floreal_filters %}
+
+{% block document_ready %}
+{% endblock %}
+
+{% block menu_items %}
+{% endblock %}
+
+{% block content %}
+<section class="header-accueil">
+    <div class="container">
+      <div class="row">
+        <div class="col">
+          <h1>Circuits Courts Civam</h1>
+          <p>Gestion associative de commandes en circuits courts</p>
+        </div>
+        <div class="col connexion">
+          <form action="{% url 'auth_login' %}" method="POST">
+            <div id="form-connexion">
+              <a href="#" id="btn-quit"></a>
+              <input type="text" name="username" value="" placeholder="Identifiant">
+              <input type="password" name="password" value="" placeholder="Mot de passe">
+              {% csrf_token %}
+            <div class="row">
+              <button id="btn-login" type="submit" name="button">S'identifier</button>
+              <p><a href="{% url 'password_reset' %}" id="btn-mdp">Mot de passe oublié ?</a></p>
+            </div>
+          </form>
+        </div>
+
+          <div class="row">
+            <div id="btns-default">
+              <button id="btn-connexion" class="button-primary" type="button" name="button">Connexion</button>
+              <a href="{% url 'user_register' %}" id="btn-register" class="button">S'enregistrer</a>
+            </div>
+          </div>
+        </div>
+      </div>
+  </section>
+
+  <section id="intro">
+    <div class="container" style="">
+      Voici la nouvelle version des sites de commande du CIVAM et de Caracole.
+    </div>
+  </section>
+  <section id="intro">
+    <div class="container">
+      <div class="row top">
+        <div class="col">
+          {{accueil|safe}}
+        </div>
+        <div class="col50">
+          <img src="{% static 'images/index-intro.jpg' %}" alt="">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="reseaux" class=" container margetop">
+    <h2>Les réseaux</h2>
+    <div class="row infini">
+      {% for nw in networks %}
+      <div class="col33">
+        <a href="{% url 'reseau' network=nw.id %}">
+          {% with img=nw.image_description %}
+          <div class="circuits-image" 
+               style="background-image: url('{% if img %}{{img.url}}{% else %}{% static 'images/image-reseau.jpg' %}{% endif %}'); 
+                      background-size: cover; 
+                      background-position: center;"></div>
+          {% endwith %}
+        </a>
+        <a href="{% url 'reseau' network=nw.id %}"><h3>{{nw.name}}</h3></a>
+        {{nw.short_description|safe}}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

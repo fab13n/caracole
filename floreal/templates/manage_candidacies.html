@@ -1,5 +1,6 @@
-{% extends 'layout_narrow.html' %}
+{% extends 'layout.html' %}
 {% load static %}
+{% load humanize %}
 {% load floreal_filters %}
 
 {% block head %}
@@ -16,19 +17,25 @@
 {% endblock %}
 
 {% block content %}
-<h1>Candidatures</h1>
 
-<p>Valider ou refuser les candidatures :</p>
-
-<ul>
-{% for cd in candidacies %}
-<li><a href="mailto://{{cd.user.email}}">{{cd.user.first_name}} {{cd.user.last_name}}</a>
-    pour {{cd.subgroup.network.name}}
-    {% if cd.subgroup.name != cd.subgroup.network.name %} / {{cd.subgroup.name}} {%endif %} :
-    <a href="{% url 'validate_candidacy' candidacy=cd.id response='Y' %}?next={% url 'manage_candidacies' %}"><span class="yes">Accepter</span></a>✔
-    /
-    <a href="{% url 'validate_candidacy' candidacy=cd.id response='N' %}?next={% url 'manage_candidacies' %}"><span class="no">Refuser</span></a>✘
-</li>
-{% endfor %}
-</ul>
+<section class="container margetopXl margebot">
+    <h1>Candidatures</h1>
+    <p>Valider ou refuser les candidatures :</p>
+    <ul>
+        {% regroup candidacies by network as network_list %}
+        {% for group in network_list %}
+        <li>Réseau <strong>{{group.grouper.name}}</strong> :
+            <ul>
+                {% for nm in group.list %}
+                <li>{{nm.user.first_name}} {{nm.user.last_name}} ({{nm.user.email}}) {{nm.valid_from|naturaltime}} :
+                    <a href="{% url 'validate_candidacy' user=nm.user_id network=nm.network_id response='Y' %}?next={% url 'manage_candidacies' %}">Accepter</a>
+                    /
+                    <a href="{% url 'validate_candidacy' user=nm.user_id network=nm.network_id response='N' %}?next={% url 'manage_candidacies' %}">Refuser</a>
+                </li>
+                {% endfor %}
+            </ul>
+        {% endfor %}
+        </li>
+    </ul>
+</section>
 {% endblock %}

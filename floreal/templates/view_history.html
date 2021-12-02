@@ -1,20 +1,44 @@
-{% extends 'layout_narrow.html' %}
+{% extends 'layout.html' %}
 {% load floreal_filters %}
 
 {% block head %}
+<style type="text/css">
+li.network-name {
+  font-weight: bold;
+}
+li.delivery-name {
+}
+li.purchase {
+  font-weight: normal;
+}
+</style>
 {% endblock %}
 
 {% block content %}
-<h2>Historique des commandes de {{user.first_name}} {{user.last_name}}</h2>
-<ul>
-  {% for nw, od in orders %}
-  <li>{{nw.name}}, {{od.delivery.name}}, {{od.price|price}}:
+<section class="container margetopXl margebot">
+<h1>Historique des commandes de {{user.first_name}} {{user.last_name}}</h1>
+<ul class="commandes">
+  {% for nw_name, nw in networks.items %}
+  <li class="network-name">Circuit {{nw_name}}: <span class="prix total">{{nw.total|price}}</span>
     <ul>
-      {% for pc in od.purchases %}
-      <li>{{pc}}</li>
+      {% for dv_name, dv in nw.deliveries.items %}
+      <li class="delivery-name">
+        {{dv_name}}: <span class="prix">{{dv.total|price}}</span>
+        <ul>
+          {% for pc in dv.purchases %}
+          <li class="purchase">
+            {{pc}}
+          </li>
+          {% endfor %}
+        </ul>
+      </li>
       {% endfor %}
     </ul>
   </li>
   {% endfor %}
+  <li class="total"><strong>Total cumulé : <span class="prix total">{{total|price}}</span></strong></li>
 </ul>
+
+<p><a class="button retour" href="javascript:history.back()">Retour</a></p>
+</section>
 {% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block head %}
+<script type='text/javascript'>
+  function deactivate_prompt() {
+    if(confirm("Vous aller IRRÉmÉDIABLEMENT QUITTER tous les réseaux CIVAM; "+
+              "vous ne pourrez plus commander dans aucun réseaux.\n\n"+
+              "ÊTES VOUS SÛR·E DE VOULOIR POURSUIVRE ?")) {
+                window.location = "{% url 'user_deactivate' %}"
+              }
+  }
+</script>
+{% endblock %}
+{% block content %}
+  <section class="container margetopXl margebot">
+    <div class="row baseline">
+      <div>
+        <h1>Mon compte</h1>
+        <h2 class="couleur-prim">{{user.first_name}} {{user.last_name}}</h2>
+      </div>
+      <a class="button attente" type="submit" name="button" href="{% url 'auth_logout' %}?next={% url 'index' %}">Se deconnecter</a>
+    </div>
+
+    <div class="container xslim row cent">
+      <ul>
+        <li> <a href="{% url 'view_history' %}">Historique des commandes passées</a> </li>
+        <li> <a href="{% url 'index' %}#réseaux">Gérer mes inscriptions aux réseaux</a> </li>
+        <li> <a href="{% url 'user_update' %}">Modifier mes données personnelles</a> </li>
+        <li> <a href="{% url 'auth_password_change' %}">Changer de mot de passe</a> </li>
+        <li> <a href="#" onclick="deactivate_prompt()">Désinscription</a></li>
+      </ul>
+    </div>
+
+    {% if bestof %}
+    <div>
+      <h3>Participation</h3>
+      <p>
+        Sur {{agg.total__count}} membres actifs du site, vous êtes le
+        {{bestof.rank}}ème mangeur le plus assidu, avec un total de {{bestof.total}}€ commandés.
+        {% widthratio bestof.total agg.total__sum 1000 as perthousand %}
+        {% if perthousand %}
+        À ce titre, vous représentez à vous seul {{perthousand}}‰
+        de l'ensemble de nos achats.
+        {% endif %}
+      </p>
+    </div>
+    {% endif %}
+
+  </section>
+{% endblock %}

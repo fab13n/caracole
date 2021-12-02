@@ -1,21 +1,538 @@
-{% extends 'layout_wide.html' %}
+{% extends 'layout.html' %}
 {% load static %}
 
 {% block head %}
- 
-<script type='text/javascript' src="{% static 'edit_delivery_products.js' %}"></script>
+
+<!-- needed by bootstrap select, has to be loaded before bootstrap -->
+<script src="{% static 'tinymce/tinymce.min.js' %}"></script>
+<script src="{% static 'tinymce/jquery.tinymce.min.js' %}"></script>
+
+<script type='text/javascript'>
+  /* If the "deleted" checkbox is checked, strike the line and disable product edition. */
+  function reflect_deletion(r) {
+    /* TODO: also reflect place renumbering? */
+    /* TODO: hide description of deleted products. */
+    const P = "#r" + r;
+    const deleted = $(P+" .deleted input").is(':checked');
+    const inputs  = $(P+" input[type=number],"+
+                    P+" input[type=text],"+
+                    P+" input[type=file],"+
+                    P+" .described input[type=chechbox],"+
+                    P+"-description textarea");
+    const rows = $(P+","+P+"-description");
+    if(deleted) {
+      rows.addClass('deleted');
+      inputs.attr('disabled', 'disabled');
+    } else {
+      rows.removeClass('deleted');
+      inputs.removeAttr('disabled');
+    }
+  }
+
+  /* Enable/disable description editor
+  * The editor is only loaded when needed.
+  * To remember wehether it is loaded, a "loaded" attribute is added
+  * to the bound <textarea> upon loading.
+  */
+  function reflect_description(r) {
+      const P = "#r" + r;
+      const described = $(P+' .described input').is(':checked');
+      const row = $(P+"-description"); 
+      const ta = $(P+"-description textarea");
+      if( described) {
+          const is_loaded = ta.attr("loaded");
+          row.show();
+          ta.removeAttr("disabled");
+          if(! is_loaded) {
+              ta.attr("loaded", "1");
+              tinymce.init({
+                plugins: "link",
+                selector: P+'-description textarea',
+                content_css: '/static/floreal.css',
+                language: 'fr_FR'
+              });
+          }
+      } else {
+          row.hide();
+          ta.attr("disabled", "disabled");
+      }
+  }
+
+  /* The unit is reapeated all around the row. When the input field changes, reflect it. */
+  function reflect_unit_change(r) {
+      const P = "#r" + r;
+      let content = $(P+" .unit input").val();
+      if(/^\d.*/.test(content)) { content = "×"+content; }
+      $(P+" .unit-mirror").text(content);
+      $(P+" .if-unit-mirror")[content ? 'show' : 'hide']();
+  }
+
+  /* When an image is uploaded, put its content in the previsualization label img. */
+  function reflect_image_change(r, event) {
+      const P = "#r" + r;
+      const img = $(P+" .image-upload img")[0];
+      $(P+" input.image-modified").val("1");
+      img.src = URL.createObjectURL(event.target.files[0]);
+  }
+
+  /* Only support command description when no producer is selected. */
+  function reflect_producer_selection() {
+    const prod_id = $("#producer").val();
+    if(prod_id === "0") {
+      $(".when-some-producer").hide();
+      $(".when-no-producer").show();
+    } else {
+      $(".when-no-producer").hide();
+      $(".when-some-producer").show();
+      const q = $("#edit-producer");
+      const url = q.attr("href").replace("9999", prod_id);
+      q.attr("href", url);
+    }
+  }
+
+
+  /* change the basic textarea into a timyMCE editor. */
+  function load_editor(r) {
+    tinymce.init({
+      plugins: "link",
+      selector: "#r" + r + "-description textarea",
+      content_css: "/static/floreal.css",
+      language: 'fr_FR'
+    });
+  }
+
+  /* Exchange the contents of row r0 and r0+1 */
+  function swap_rows(r0) {
+      const r1 = r0+1;
+      const P0 = "#r" + r0;
+      const P1 = "#r" + r1;
+      console.log("Swapping rows "+r0+" and "+r1);
+
+      /* Swap input values, except file uploads and textarea */
+      const INPUT_FIELDS = ['id', 'name', 'price', 'unit', 'quantity_per_package',
+                          'quantity_limit', 'quantum', 'unit_weight'];
+      
+      INPUT_FIELDS.map(field => {
+          const v0 = $(P0+" ."+field+" input").val();
+          const v1 = $(P1+" ."+field+" input").val();
+          $(P0+" ."+field+" input").val(v1);
+          $(P1+" ."+field+" input").val(v0);
+      });
+
+      /* Swap checkbox states. */
+      const CHECKBOXES =['described', 'deleted'];
+      CHECKBOXES.map(field => {
+          const b0 = $(P0+" ."+field+" input").is(":checked");
+          const b1 = $(P1+" ."+field+" input").is(":checked");
+          $(P0+" ."+field+" input").prop("checked", b1);
+          $(P1+" ."+field+" input").prop("checked", b0);
+      });
+
+      /* Swap descriptions. Need to also check whether there's 0/1/2 descriptions,
+      * to disable/reenable the editors accordingly. */
+      let e0 = tinyMCE.get("r" + r0 + "-description-editor");
+      let e1 = tinyMCE.get("r" + r1 + "-description-editor");
+      /* Load contents to swap if they exist. */
+      const c0 = e0 ? e0.getContent() : null;
+      const c1 = e1 ? e1.getContent() : null;
+      /* Make sure that target editors exist */
+      if(e0 && ! e1) { load_editor(r1); e1 = tinyMCE.get("r" + r1 + "-description-editor"); }
+      if(e1 && ! e0) { load_editor(r0); e0 = tinyMCE.get("r" + r0 + "-description-editor"); }
+      /* Swap contents */
+      if(c0 !== null) e1.setContent(c0); else if(e1) e1.setContent("");
+      if(c1 !== null) e0.setContent(c1); else if(e0) e0.setContent("");
+
+      /* Swap images. This is tricky because file inputs can't have their content altered
+      * for security reasons. Therefore they will be moved and relabelled instead.
+      *
+      * 
+      * Here's the HTML structure we're working on. A hidden "image-modified" field
+      * remembers whether the image must be changed in DB (set to true when an upload
+      * is initiated by the user).
+      *
+      *  <td class="image-upload"><div>
+      *     <input name="rXXX-image-modified" class="image-modified" type="hidden"/>
+      *     <label class="image-display">
+      *       <img class="product-image"/>
+      *       <input name="rXXX-image-upload" type="file"
+      *              onchange="reflect_image_change('rXXX', event)"/></label></div></td>
+      */
+      const img0 = $(P0+" td.image-upload>div");
+      const img1 = $(P1+" td.image-upload>div");
+      // Exchange positions in the document
+      img0.appendTo(P1+" td.image-upload");
+      img1.appendTo(P0+" td.image-upload");
+      // Exchange modification markers
+      img0.find("input[type=hidden]").attr("name", "r"+r1+"-image-modified");
+      img1.find("input[type=hidden]").attr("name", "r"+r0+"-image-modified");
+      // Exchange images
+      img0.find("input[type=file]")
+          .attr("name", "r"+r1+"-image-upload")
+          .attr("onchange", "reflect_image_change("+r1+", event)");
+      img1.find("input[type=file]")
+          .attr("name", "r"+r0+"-image-upload")
+          .attr("onchange", "reflect_image_change("+r0+", event)");
+
+      reflect_deletion(r0);
+      reflect_description(r0);
+      reflect_unit_change(r0);
+      reflect_deletion(r1);
+      reflect_description(r1);
+      reflect_unit_change(r1);
+      /* No reflect_image_change: it only happens when a file is uploaded.
+      * Here the image is in the input's label, they're all swapped together. */
+  }
+
+  let N_ROWS = 0;
+
+  /* Add rows of blank products at the end of the table */
+  // TODO use an HTML5 template
+  function add_row() {
+    N_ROWS += 1;
+    const r = N_ROWS;
+    $("#products-table tbody").append(`
+      <tr id="r${r}">
+          <td class="hidden id">
+            <input name="r${r}-id" type="hidden" />
+          </td>
+          <td class="place">
+            <button type="button" class="up">▲</button> ${r} <button class="down" type="button">▼</button>
+            <input name="r${r}-place" type="hidden" value="${r}"/>
+          </td>
+          <td class="name"><input maxlength="64" name="r${r}-name" type="text" /></td>
+          <td class="price"><input name="r${r}-price" step="0.01" min="0" type="number" /></td>
+          <td>€/</td>
+          <td class="unit"><input maxlength="64" name="r${r}-unit" type="text" /></td>
+          <!-- Package management currently disabled -- 
+          <td class="quantity_per_package"><input name="r${r}-quantity_per_package" type="number" /></td>
+          <td class="unit-label">&nbsp;<span class="unit-mirror"></span><span class="if-unit-mirror">/ct</span></td>
+          -->
+          <td class="quantity_limit" data-toggle="tooltip" title="Quantité totale de produits disponibles. Une fois cette quantité commandée, le produit sera marqué comme épuisé.">
+            <input name="r${r}-quantity_limit" min="0" type="number"/>
+          </td>
+          <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>
+          <td class="quantum" data-toggle="tooltip" title="fraction minimale de commande. Par exemple, sur un produit au kg avec un quantum de 0.1, les commandes se feront par incréments de 100g.">
+            <input name="r${r}-quantum" min="0" type="number" step="0.001"/>
+          </td>
+          <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>
+          <!-- Weight management currently disabled --
+          <td class="unit_weight"><input name="r${r}-unit_weight" min="0" step="0.001" type="number"/></td><td>kg</td>
+          -->
+          <td class="image-upload"><div>
+            <input name="r${r}-image-modified" class="image-modified" type="hidden" value="0"/>
+            <label class="image-display">
+              <img class="product-image" src="/media/none.png"/>
+              <input name="r${r}-image-upload" type="file" accept="image/*"
+                    onchange="reflect_image_change(${r}, event)"/>
+            </label>
+          </div></td>
+
+          <td class="deleted">
+            <label for="r${r}-deleted" class="button button-primary"></label>
+            <input 
+              name="r${r}-deleted" 
+              id="r${r}-deleted" 
+              value="r${r}-deleted" 
+              onchange="reflect_deletion(${r})" 
+              type="checkbox" 
+              style="display: none">
+          </td>
+          <td class="described">
+            <label for="r${r}-described" class="button button-primary">Décrire</label>
+            <input
+              name="r${r}-described" 
+              id="r${r}-described" 
+              value="r${r}-described" 
+              onchange="reflect_description(${r})" 
+              type="checkbox"
+              style="display: none">
+          </td>
+      </tr>
+      <tr id="r${r}-description">
+        <td></td>
+        <td class="pd-description" colspan="15">
+          <textarea name="r${r}-description" id="r${r}-description-editor" rows="5"></textarea>
+        </td>
+      </tr>`);
+
+    // disable last "down" button, re-enable before-last "down" button, which was previously last
+    $("#r"+(r-1)+" td.place button.down").removeAttr("disabled");
+    $("#r"+r+" td.place button.down").attr("disabled", "disabled");
+
+    // wire place-swapping buttons
+    $("#r"+r+" td.place button.up").click(function() { swap_rows(r-1); })
+    $("#r"+r+" td.place button.down").click(function() { swap_rows(r); })
+
+    // wire unit change reflections upon keystrokes
+    $("#r"+r+" .unit input").keyup(function() { reflect_unit_change(r); });
+    reflect_unit_change(r);
+
+    return r;
+  }
+
+  /* Fill a product row with the content of JSON record */
+  function fill_row(r, record) {
+      const P = "#r" + r;
+      $.each(record, function(k, v) {
+          $(P+' .'+k+" input").val(v);
+      });
+      reflect_unit_change(r);
+      if(record.description) {
+          $(P+" .described input")[0].checked=true;
+          $(P+"-description textarea").val(record.description);
+      }
+      reflect_description(r); // hide or enable editor
+      if(record.image) {
+          $(P+" .product-image").attr("src", record.image);
+      }
+      // TODO need a way to erase images
+  }
+
+  /* Add rows of blank products at the end of the table */
+  function add_blank_products() {
+    const N_ADDED_ROWS = 3;
+    for(let i=0; i<N_ADDED_ROWS; i++) {
+      var r = add_row();
+      reflect_description(r); // hide description textarea
+      // No need to reflect deletion, they aren't deleted by default.
+      // No need to reflect image, there isn't any.
+    }
+  }
+
+  function submit_if_valid(then_what) {
+
+      /* Check that delivery has been named */
+      if($("#dv-name").val().trim() == "") {
+          alert("Avant de pouvoir sauvegarder, il faut donner un nom à la commande, en haut du formulaire !");
+          return;
+      }
+    
+      /* Check that non-deleted products have a unique name and a valid price. */
+      for(let i=1; $(`#r${i}`).length; i++) {
+        console.log("Checking r"+i);
+
+        /* Don't check deleted products */
+        if($("[name=r"+i+"-deleted]").is(":checked")) { continue; }
+        const name_i = $("input[name=r"+i+"-name]").val().trim();
+
+        /* nameless products are as good as deleted */
+        if(name_i === "") { 
+          $(`[name=r${i}-deleted]`).prop("checked", true);
+          continue;
+        }
+
+        /* But prices have to be valid and strictly positive */
+        const price = Number($("[name=r"+i+"-price]").val());
+        if(! (price >= 0)) {
+          alert(`Le prix de ${name_i} (produit n°${i}) n'est pas valide.`);
+          return;
+        }
+
+        const unit = $(`[name=r${i}-unit]`).val();
+        if(unit === null || unit === "") { $(`[name=r${i}-unit`).val("pièce"); }
+
+        const quantum = $(`[name=r${i}-quantum]`).val();
+        if(quantum !== null && quantum !== "" && !(Number(quantum) > 0)) {
+          alert(`Le quantum de ${name_i} (produit n°${i}) doit être un nombre valide ou laissé vide.`);
+        }
+
+        const quota = $(`[name=r${i}-quantity_limit]`).val();
+        if(quota !== null && quota !== "" && !(Number(quota) >= 0)) {
+          alert(`Le quota de ${name_i} (produit n°${i}) doit être un nombre valide ou laissé vide.`);
+        }
+      }
+
+      $('[name=then_what]').val(then_what);
+
+      /* All sanity checks passed: submit the form */
+      $("#form").submit()
+  }
+
+  /* Will contain dowloaded delivery, helps debug. */
+  var DELIVERY = null; 
+
+  async function load_delivery() {
+    const response = await fetch("products.json");
+    const dv = await response.json();
+    DELIVERY = dv;
+
+    $("#dv-id").val(dv.id);
+    $("#dv-state").val(dv.state);
+    // TODO I should restrict allowed states when the delivery is producer-edited
+
+    if(dv['freeze-date']) {
+      $("#freeze-date").val(dv['freeze-date']);
+    }
+    if(dv['distribution-date']) {
+      $("#distribution-date").val(dv['distribution-date']);
+    }
+
+    dv.producers.forEach(p => {
+      $("#producer").append(`<option value="${p.id}" ${p.selected?"selected":""}>${p.name}</option>`);
+    });
+    $("#producer").val(dv.producer);
+
+    /* Upgrade widgets to bootstrap-select. */
+    $("select").selectpicker;
+
+    $("#dv-name").val(dv.name);
+
+    /* Generate and fill product rows */
+    dv.products.forEach(pd => fill_row(add_row(), pd));
+
+    /* Add a couple of empty rows & disable the "move up" button of the first one.
+    * "move down" of the last one is handled whenever blank lines are inserted. */
+    add_blank_products();
+    $("#r1 td.place button.up").attr("disabled", "disabled");
+
+    /* Set the description. In a timeout, in order to wait for tinyMCE to load. */
+    
+    setTimeout(
+      () => {
+        tinyMCE.get("dv-description").setContent(dv.description || "");
+        reflect_producer_selection();
+      },
+      0
+    );
+
+
+  }
+
+  $(document).ready(function() {
+
+      /* Turn plain inputs into Bootstrap inputs. */
+      $("select").addClass("form-control");
+
+      /* Turn plain textareas into TinyMCE WYSIWYG editors. */
+      tinymce.init({
+        plugins: "link",
+        selector: 'textarea',
+        width: 640,
+        content_css: "/static/floreal.css",
+        language: 'fr_FR'
+      });
+
+      load_delivery();
+
+  })
+
+
+</script>
 
 <style type="text/css">
+  /* from raf */
+  #products-table {
+    width: 100%;
+  }
+
+  #products-table td,
+  #products-table th {
+    border: none;
+  }
+
+  #products-table .row-produit {
+    border-top: 1px solid #733A00;
+  }
+
+  #products-table th {
+    font-family: 'oswald', sans-serif;
+    text-align: center;
+    color: #733A00;
+    min-width: 20%;
+  }
+
+  #products-table td {
+    text-align: center;
+  }
+
+  #products-table tr.texte-produit td {
+    text-align: left;
+    padding: 0 2rem 2rem;
+  }
+
+  .quantity input[type="number"],
+  .quantity input[type="number"]:focus {
+    height: auto;
+    padding: .6rem 0 0 0;
+    color: #ED5C01;
+    border: none !important;
+    box-shadow: none;
+    box-sizing: border-box;
+    background-color: transparent;
+    font-family: 'oswald', sans-serif;
+  }
+
+  #limiteCommande label,
+  #limiteCommande input {
+    margin-left: 1rem;
+  }
+
+  #products-table th,
+  #products-table td {
+    padding: 1rem .5rem;
+  }
+
+  #products-table .name {
+    width: 40%;
+  }
+
+  #products-table .price,
+  #products-table .unit {
+    width: 48px;
+  }
+
+  #products-table .devise {
+    width: 20px;
+  }
+
+  #products-table .quantity_per_package input,
+  #products-table .quantity_limit input,
+  #products-table .quantum input,
+  #products-table .unit_weight input {
+    width: 48px;
+  }
+
+  #products-table input {
+    margin: 3px;
+  }
+
+  #products-table td.unit-label {
+    padding-left: 0px;
+  }
+
+  #products-table td.quantity_limit,
+  #products-table td.quantity_limit input,
+  #products-table td.quantum,
+  #products-table td.quantum input {
+    padding-right: 0px;
+    margin-right: 0px;
+  }
+
+
+  label {
+    position: relative;
+  }
+
+  label span {
+    position: absolute;
+    top: -3px;
+    right: 10px;
+    color: #000;
+  }
+
+  /* end raf */
+
   td.place {
     white-space: nowrap;
   }
 
-  td.place button:disabled {
-    color: lightgray;
+  td.place button {
+    min-width: unset;
+    width: unset;
   }
 
-  td.name input {
-    width: 200px;
+  td.place button:disabled {
+    color: lightgray;
   }
 
   td.unit input {
@@ -58,21 +575,38 @@
     text-align: right;
   }
 
-  td.description {
+  td.pd-description {
     text-align: left;
   }
 
-  tr.deleted {
-    text-decoration: line-through;
-  }
-
-  tr.deleted input {
-    text-decoration: line-through;
-  }
-
+  tr.deleted,
+  tr.deleted input,
   tr.deleted textarea {
     text-decoration: line-through;
+    color: gray !important;
   }
+
+  tr.deleted td.deleted label,
+  tr.deleted td.described label {
+    /* Also override hover, for 'deleted' and 'described' => important. */
+    background-color: gray !important;
+  }
+
+  td.deleted label,
+  td.described label {
+    /* Remove extra space left and right of buttons. */
+    min-width: unset;
+    width: unset;
+  }
+
+  td.deleted label::before {
+    content: "Effacer";
+  }
+
+  tr.deleted td.deleted label::before {
+    content: "Rajouter";
+  }
+
 
   #products-table th.non-rotate {
     vertical-align: bottom;
@@ -84,7 +618,7 @@
   }
 
   #products-table input {
-    padding: 1px;
+    padding: 5px;
   }
 
   table .hidden {
@@ -137,73 +671,93 @@
 {% endblock %}
 
 {% block content %}
-<form method="post" action="" enctype="multipart/form-data" id="form">
-  <table id="dv-table">
-    <tr>
-      <th><label for="dv-name">Nom de la livraison :</label></th>
-      <td><input id="dv-name" maxlength="64" name="dv-name" type="text" value="" required /></td>
-    </tr>
-    <tr>
-      <th><label for="dv-state">État de la livraison :</label></th>
-      <td><select id="dv-state" name="dv-state">
-        {% for key, name in delivery.STATE_CHOICES.items %}
-        <option value="{{key}}">{{name}}</option>
-        {% endfor %}
-    </select></td>
-    </tr>
-    <tr>
-      <th><label for="producer">Producteur :</label></th>
-      <td><select id="producer" name="producer"></select></td>
-    </tr>
-  </table>
+<section class="container margetopXl margebot">
+  <h1>Modifier la commande</h1>
+  <form method="post" action="" enctype="multipart/form-data" id="form">
 
-  <div style="height: 50px;"></div>
+    <div class="container">
+    <div class="row align-item-start">
+      <div class="col-xs-4">
+        <table id="dv-table">
+          <tr>
+            <th><label for="dv-name">Nom de la commande :</label></th>
+            <td><input id="dv-name" maxlength="64" name="dv-name" type="text" value="" required /></td>
+          </tr>
+          <tr>
+            <th><label for="dv-state">État de la commande :</label></th>
+            <td>
+              <select id="dv-state" name="dv-state">
+                {% for key, name in delivery.STATE_CHOICES.items %}
+                <option value="{{key}}">{{name}}</option>
+                {% endfor %}
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <th><label for="producer">Producteur :</label></th>
+            <td><select id="producer" name="producer" onchange="reflect_producer_selection()"></select></td>
+          </tr>
+          <tr>
+            <th><label for="freeze-date">Commander avant :</label></th>
+            <td><input type="date" id="freeze-date" name="freeze-date"></td>
+          </tr>
+          <tr>
+            <th><label for="distribution-date">Jour de distribution :</label></th>
+            <td><input type="date" id="distribution-date" name="distribution-date"></td>
+          </tr>
+        </table>
+      </div>
 
-  <h3>Description de la commande</h3>
-  <p>
-    <textarea name="dv-description" id="dv-description" rows="10"></textarea>
-  </p>
+      <div class="col-xs-8">
+        <h3>Description de la commande</h3>
+        <div class="when-some-producer">
+          <p>Vous avez renseigné un producteur pour cette commande, <br/>
+            c'est la description standard de ce producteur qui sera affichée.<br/>
+          <a id="edit-producer" href="{% url 'edit_user_description' user=9999 %}?">Éditer la présentation du producteur</a>.
+        </p></div>
+        <div class="when-no-producer">
+          <textarea name="dv-description" id="dv-description" rows="10"></textarea>
+        </div>
+      </div>
+    </div>
+    </div>
 
-  <table id="products-table">
-    <thead>
-      <tr>
-        <th class="non-rotate hidden"></th>
-        <th class="non-rotate">#</th>
-        <th class="non-rotate">Produit</th>
-        <th class="non-rotate">Prix</th>
-        <th class="non-rotate"></th>
-        <th class="non-rotate">Unité</th>
-        <th colspan="2" class="non-rotate qpp">Par carton</th>
-        <th colspan="2" class="non-rotate quota">Quota</th>
-        </th>
-        <th colspan="2" class="non-rotate">Quantum</th>
-        <th colspan="2" class="non-rotate">Poids</th>
-        <th class="non-rotate">Image</th>
-        <th class="rotate">
-          <div>
-            <div>Effacer ?</div>
-          </div>
-        </th>
-        <th class="rotate">
-          <div>
-            <div>Description ?</div>
-          </div>
-        </th>
-      </tr>
-      <tr>
-        <td>&nbsp;</td>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-  <p>
-
-    <button type='button' onclick="add_blank_products();">Ajouter des produits</button>
-    <input type="submit" value="Sauvegarder et continuer" name="save_and_stay" />
-    <input type="submit" value="Sauvegarder et quitter" name="save_and_leave" />
-    <input type='hidden' name='dv-id' id='dv-id' value='' />
-    <input type='hidden' name='n_rows' id="n_rows" value='0' />
-    {% csrf_token %}
-  </p>
-</form>
+    <h3>Produits proposés</h3>
+    <table id="products-table">
+      <thead>
+        <tr>
+          <th class="hidden"></th>
+          <th class="">#</th>
+          <th class="">Produit</th>
+          <th class="">Prix</th>
+          <th class=""></th>
+          <th class="">Unité</th>
+          {# <th colspan="2" class="qpp">Par carton</th> #}
+          <th colspan="2" class="quota">Quota</th>
+          <th colspan="2" class="">Quantum</th>
+          {#<th colspan="2" class="">Poids</th>#}
+          <th class="">Image</th>
+          <th>
+          </th>
+          <th>
+          </th>
+        </tr>
+        <tr>
+          <td>&nbsp;</td>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p>
+      <button type='button' onclick="add_blank_products();">Ajouter des produits</button>
+      <button type="button" onclick="submit_if_valid('continue');">Sauver</button>
+      <button type="button" onclick="submit_if_valid('leave');">Sauver &amp; retourner</button>
+      <button type="button" onclick="submit_if_valid('preview');">Previsualiser</button>
+      <input type='hidden' name='dv-id' id='dv-id' value='' />
+      <input type='hidden' name='n_rows' id="n_rows" value='0' />
+      <input type='hidden' name='then_what' id="leave" value='' />
+      {% csrf_token %}
+    </p>
+  </form>
+</section>
 {% endblock %}

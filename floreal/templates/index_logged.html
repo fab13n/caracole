@@ -1,0 +1,143 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load floreal_filters %}
+
+{% block head %}
+{% if number_of_deliveries %}
+<script type='text/javascript'>
+  
+function filter_networks() {
+  const txt = $("#recherche").val().toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+  $("div.circuit").each((i, _e) => {
+    const e = $(_e);
+    const name = $(e).find("a>h3").text();
+    if(e.attr("data-search-string").includes(txt)) {
+      e.show();
+    } else {
+      e.hide();
+    }
+  })
+}
+
+$(document).ready(() => {
+  $('nav .orders a').append(`&nbsp;<span class="badge badge-pill badge-danger">{{number_of_deliveries}}</span>`);
+  $('#recherche').on("keyup", filter_networks);
+  $('#recherche-bouton').on("click", filter_networks);
+  const urlSearchParams = new URLSearchParams(window.location.search);
+  const params = Object.fromEntries(urlSearchParams.entries());
+  if(params.filter) {
+    $("#recherche").val(params.filter);
+    filter_networks();
+  }
+});
+</script>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="header-accueil">
+    <div class="container">
+      <div class="row">
+        <div class="col">
+          <h1>Circuits Courts Civam</h1>
+          <p>Gestion associative de commandes en circuits courts</p>
+        </div>
+      </div>
+  </section>
+
+  <section id="intro">
+    <div class="container">
+      <div class="row top">
+        <div class="col">
+          {{accueil|safe}}
+        </div>
+        <div class="col50">
+          <img src="{% static 'images/index-intro.jpg' %}" alt="">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="circuits" class=" container margetop">
+    <a id="réseaux"></a>
+    <div class="row rechercheReseaux baseline start">
+      <h2>Les réseaux</h2>
+      <div class="col33">
+        <input type="text" id="recherche" name="recherche" placeholder="Commune, département, nom du groupement,...">
+      </div>
+      <input class="recherche" id="recherche-bouton" type="button" value="Rechercher">
+    </div>
+    <div class="row infini">
+      {% for mb in memberships %}
+      <div class="col33 circuit" data-search-string="{{mb.network.search_string}}">
+        {% with img=mb.network.image_description %}
+        <a href="{% url 'reseau' network=mb.network.id %}">
+
+          <div class="circuits-image" 
+               style="background-image: url('{% if img %}{{img.url}}{% else %}{% static  'images/image-reseau.jpg' %}{% endif %}'); 
+                      background-size: cover; 
+                      background-position: center;">
+          </div>
+        </a>
+        {% endwith %}
+        <a href="{% url 'reseau' network=mb.network.id %}"><h3>{{mb.network.name}}</h3></a>
+        {% if  mb.network.ville %}
+        <p class="circuits-info"><strong>{{mb.network.ville.nom_reel}}, {{mb.network.ville.departement}}</strong></p>
+        {% else %}
+        <p class="circuits-info"><strong>—</strong></p>
+        {% endif %}
+
+        <div class="row infini circuitsBouton">
+          {% if mb.has_open_orders %}
+          <a href="{% url 'orders' %}#{{mb.network.slug}}" class="button button-primary">Commander</a>
+          {% endif %}
+
+          {% if mb.is_staff or mb.is_subgroup_staff or mb.is_producer or user.is_staff %}
+          <a href="{% url 'admin' %}#nw-{{mb.network.id}}" class="button attente">Administrer</a>
+          {% endif %}
+
+          {% if mb.is_buyer %}
+          <a href="{% url 'leave_network' network=mb.network.id %}" 
+            onclick="return confirm('Vous voulez définitivement quitter {{mb.network.name}}?')"
+            class="button quitter">Se  désinscrire</a>
+          {% endif %}
+          
+          {% if mb.is_candidate %}
+          <a href="{% url 'reseau' network=mb.network.id %}" class="button attente">En attente</a>
+          <a href="{% url 'leave_network' network=mb.network.id %}" 
+            onclick="return confirm('Vous voulez annuler votre candidature à {{mb.network.name}}?')"
+            class="button">Annuler candidature</a>
+          {% endif %}
+        </div>
+        <p>{{mb.network.short_description|safe}}</p>
+      </div>
+      {% endfor %}
+      {% for nw in unsubscribed %}
+      <div class="col33 circuit" data-search-string="{{nw.search_string}}">
+        <a href="{% url 'reseau' network=nw.id %}">
+          {% with img=nw.image_description %}
+          <div class="circuits-image" 
+               style="background-image: url('{% if img %}{{img.url}}{% else %}{% static  'images/image-reseau.jpg' %}{% endif %}'); 
+                      background-size: cover; 
+                      background-position: center;">                  
+          </div>
+          {% endwith %}
+        </a>
+        <a href="{% url 'reseau' network=nw.id %}"><h3>{{nw.name}}</h3></a>
+        {% if  nw.ville %}
+        <p class="circuits-info"><strong>{{nw.ville.nom_reel}}, {{nw.ville.departement}}</strong></p>
+        {% else %}
+        <p class="circuits-info"><strong>—</strong></p>
+        {% endif %}
+        <div class="row infini  circuitsBouton">
+          {% if user.is_staff %}
+          <a href="{% url 'admin' %}#nw-{{mb.network.id}}" class="button attente">Administrer</a>
+          {% endif %}
+          <a href="{% url 'reseau' network=nw.id %}" class="button button-primary">Rejoindre</a>
+        </div>
+        <p>{{nw.short_description|safe}}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

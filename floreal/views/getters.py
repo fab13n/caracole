@@ -4,25 +4,58 @@
 from numbers import Number
 
 from floreal import models as m
+from django.core.exceptions import PermissionDenied
+from typing import Union, Optional
+from django.db.models import Q
 
 
-def model_getter(cls, field_names=None):
+def model_getter(cls):
     def f(x):
         if isinstance(x, str) and x.isdigit() or isinstance(x, Number):
             return cls.objects.get(pk=x)
-        elif isinstance(x, cls):
-            return x
-        elif field_names and isinstance(x, str):
-            field_vals = x.split(":")
-            kwargs = { k+"__iexact": v.replace('+', ' ') for k, v in zip(field_names, field_vals)}
-            return cls.objects.get(**kwargs)
+        elif isinstance(cls, m.IdentifiedBySlug):
+            return cls.objects.get(slug__iexact=x)
         else:
             return None
     return f
 
 
-get_network = model_getter(m.Network, ['name'])
-get_subgroup = model_getter(m.Subgroup, ['network__name', 'name'])
-get_delivery = model_getter(m.Delivery, ['network__name', 'name'])
-get_candidacy = model_getter(m.Candidacy)
+get_network = model_getter(m.Network)
+get_delivery = model_getter(m.Delivery)
+get_subgroup = model_getter(m.NetworkSubgroup)
+get_user = model_getter(m.User)
 
+
+def must_be_prod_or_staff(request, network=None):
+    if network is None:
+        pass
+    elif isinstance(network, m.Network):
+        pass
+    else:
+        network = m.Network.objects.get(id=network)
+    
+    u = request.user
+
+    if u.is_staff:
+        return "staff"
+
+    if network is None:
+        raise PermissionDenied  # User is not global staff, per prev test.
+    
+    nm = m.NetworkMembership.objects.filter(
+        Q(is_staff=True) | Q(is_producer=True),
+        user=u,
+        valid_until=None,
+        network=network
+    ).first()
+
+    if nm is not None:
+        return "staff" if nm.is_staff else "producer"
+    else:
+        raise PermissionDenied
+
+
+def must_be_staff(request, network: Union[m.Network, int, str, None] = None) -> None:
+    which = must_be_prod_or_staff(request, network)
+    if which != "staff":
+        raise PermissionDenied

@@ -7,10 +7,11 @@ from django.http import HttpResponse
 from django.core.mail import send_mail, send_mass_mail
 from django.conf import settings
 from django.shortcuts import redirect, render
-from .getters import get_network, get_subgroup, get_candidacy
+from .getters import get_network
 from django.template.context_processors import csrf
 from django.template.base import Template
 from django.template.context import Context
+
 
 def render_text(template_name, ctx):
     t = get_template(template_name)
@@ -28,64 +29,82 @@ def non_html_response(name_bits, name_extension, content):
 
 def invoice_mail_form(request, network):
     nw = get_network(network)
-    deliveries = m.Delivery.objects.filter(network_id=network, state=m.Delivery.FROZEN)    
-    if request.method == 'POST':
+    
+    if request.method == "POST":
         P = request.POST
-        recipients = {u.strip() for u in P['recipients'].split(',')}
-        return send_invoice_mail(request, deliveries, recipients, P['subject'], P['body'])
-    elif not deliveries:
-        return HttpResponse("Aucune commande actuellement gelée dans le réseau" + nw.name)
-    else:
+        recipients = {u.strip() for u in P["recipients"].split(",")}
+        return send_invoice_mail(
+            request, network, recipients, P["subject"], P["body"]
+        )
+    else:        
+        deliveries = m.Delivery.objects.filter(network_id=network, state=m.Delivery.FROZEN)
+        if not deliveries:
+            return HttpResponse("Aucune commande actuellement gelée dans le réseau" + nw.name)
         vars = {
-            'nw': nw,
-            'user': request.user,
-            'deliveries': deliveries,
-            'recipients': m.User.objects.filter(purchase__product__delivery__state=m.Delivery.FROZEN, is_active=True),
-            'subject': "Commande "+nw.name,
-            'body': get_template('invoice_mail.txt').template.source
+            "nw": nw,
+            "user": request.user,
+            "deliveries": deliveries,
+            "recipients": m.User.objects.filter(
+                purchase__product__delivery__network=nw,
+                purchase__product__delivery__state=m.Delivery.FROZEN, 
+                is_active=True
+            ).distinct(),
+            "subject": "Commande " + nw.name,
+            "body": get_template("invoice_mail.txt").template.source,
         }
         vars.update(csrf(request))
-        return render(request, 'invoice_mail_form.html', vars)
+        return render(request, "invoice_mail_form.html", vars)
 
 
-def send_invoice_mail(request, deliveries, recipients, subject, body):
-    r = {}  # u -> dv -> [pc+]
-    t = {}  # (u, dv) -> total
-    for dv in deliveries:
-        for pd in dv.product_set.all():
-            for pc in pd.purchase_set.all():
-                u = pc.user
-                if u.email not in recipients:
-                    continue
-                if u not in r:
-                    r[u] = {}
-                ru = r[u]
-                if dv not in ru:
-                    ru[dv] = []
-                rudv = ru[dv]
-                rudv.append(pc)
-                k = (u, dv)
-                if k not in t:
-                    t[k] = 0
-                t[k] += pc.price
+def send_invoice_mail(request, network, recipients, subject, body):
+
+    purchases_by_user_and_delivery = {
+        u.email: { 
+            'user': u, 
+            'network': network, 
+            'purchases_by_delivery': {}  # dv.id -> {name, purchases, total}
+        }
+        for u in m.User.objects.filter(email__in=recipients)
+    }
+
+    for pc in m.Purchase.objects.filter(
+        product__delivery__network=network,
+        product__delivery__state=m.Delivery.FROZEN,
+    ).select_related("user", "product", "product__delivery", "product__delivery__network"):
+        pd = pc.product
+        if (ju := purchases_by_user_and_delivery.get(pc.user.email)) is None:
+            continue  # User discarded
+        purchases_by_delivery = ju['purchases_by_delivery']
+        if (jdv := purchases_by_delivery.get(pd.delivery_id)) is None:
+            # print("New delivery ", pd.delivery, " for user ", pc.user)
+            jdv = purchases_by_delivery[pd.delivery_id] = {
+                'name': pd.delivery.name,
+                'purchases': [pc],
+                'total': pc.price
+            }
+        else:
+            # print("+")
+            jdv['purchases'].append(pc)
+            jdv['total'] += pc.price
 
     datalist = []
     body_template = Template(template_string=body)
     subject_template = Template(template_string=subject)
-    for u, dv_pcs in r.items():
-        dest = u.email
-        ctx = Context({
-            'user': u,
-            'network': deliveries[0].network,
-            'purchases_by_delivery': [{'dv': dv, 'pcs': pcs, 'total': t[(u, dv)]} for dv, pcs in dv_pcs.items()]
-        })
+
+    for item in purchases_by_user_and_delivery.values():
+        # Change purchases_by_user_and_delivery[user]['purchases_by_delivery'] from dict to list
+        item['purchases_by_delivery'] = list(item['purchases_by_delivery'].values())
+        dest = item['user'].email
+        ctx = Context(item)
         body = body_template.render(ctx)
         subject = subject_template.render(ctx)
         datalist.append((subject, body, settings.EMAIL_HOST_USER, [dest]))
 
-    if True:
+    if False:
         send_mass_mail(datalist, fail_silently=True)
-    text = "\n\n=====\n\n".join("To: %s; Subject: %s\n%s" % (
-        to, subject, body) for (subject, body, _, [to]) in datalist)
+    text = "\n\n=====\n\n".join(
+        "To: %s; Subject: %s\n%s" % (to, subject, body)
+        for (subject, body, _, [to]) in datalist
+    )
 
     return non_html_response(["mails"], "txt", text)
