@@ -125,6 +125,9 @@ def user_update(request):
         ).exists()
         for nw_id in network_ids
     ):
+        # Requesting user is staff of every network.
+        # TODO: single request by asking all of the network they staff
+        # then checking for set inclusion in Python
         pass
     else:
         return HttpResponseForbidden("Not enough rights")
@@ -138,9 +141,9 @@ def user_update(request):
         user.save()
 
     if staff.is_staff:
+        # Only global staff is allowed to change user identity
         user.florealuser.phone = data["florealuser__phone"]
         user.florealuser.save()
-
         user.email = user.username = data["email"]
         user.first_name = data["first_name"]
         user.last_name = data["last_name"]
