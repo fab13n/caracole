@@ -28,7 +28,7 @@ _unsafe_tex_regex = re.compile('|'.join(re.escape(str(key))
 @register.filter
 def tex_safe(x):
     """Escape TeX's special characters."""
-    return _unsafe_tex_regex.sub(lambda match: _unsafe_tex_chars[match.group()], x)
+    return _unsafe_tex_regex.sub(lambda match: _unsafe_tex_chars[match.group()], x or "")
 
 
 @register.filter
