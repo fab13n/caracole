@@ -3,7 +3,6 @@
 {% load floreal_filters %}
 
 {% block head %}
-{% if number_of_deliveries %}
 <script type='text/javascript'>
   
 function filter_networks() {
@@ -20,7 +19,9 @@ function filter_networks() {
 }
 
 $(document).ready(() => {
+  {% if number_of_deliveries %}
   $('nav .orders a').append(`&nbsp;<span class="badge badge-pill badge-danger">{{number_of_deliveries}}</span>`);
+  {% endif %}
   $('#recherche').on("keyup", filter_networks);
   $('#recherche-bouton').on("click", filter_networks);
   const urlSearchParams = new URLSearchParams(window.location.search);
@@ -31,7 +32,6 @@ $(document).ready(() => {
   }
 });
 </script>
-{% endif %}
 {% endblock %}
 
 {% block content %}

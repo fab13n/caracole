@@ -320,6 +320,9 @@
       }
     });
     $("#products-table tbody").append(rows);
+
+    // TODO remove image column if there is no image.
+
     /* Now let's wire the up/down buttons with the matching inputs. */
     $('.row-produit').each(function () {
       const row = $(this);

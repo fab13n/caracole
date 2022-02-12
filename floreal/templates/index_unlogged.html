@@ -1,11 +1,36 @@
 {% extends 'layout.html' %}
 {% load static %}
 {% load floreal_filters %}
+{% block head %}
+<script type='text/javascript'>
+  
+function filter_networks() {
+  const txt = $("#recherche").val().toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+  $("div.circuit").each((i, _e) => {
+    const e = $(_e);
+    const name = $(e).find("a>h3").text();
+    if(e.attr("data-search-string").includes(txt)) {
+      e.show();
+    } else {
+      e.hide();
+    }
+  })
+}
 
-{% block document_ready %}
-{% endblock %}
-
-{% block menu_items %}
+$(document).ready(() => {
+  {% if number_of_deliveries %}
+  $('nav .orders a').append(`&nbsp;<span class="badge badge-pill badge-danger">{{number_of_deliveries}}</span>`);
+  {% endif %}
+  $('#recherche').on("keyup", filter_networks);
+  $('#recherche-bouton').on("click", filter_networks);
+  const urlSearchParams = new URLSearchParams(window.location.search);
+  const params = Object.fromEntries(urlSearchParams.entries());
+  if(params.filter) {
+    $("#recherche").val(params.filter);
+    filter_networks();
+  }
+});
+</script>
 {% endblock %}
 
 {% block content %}
@@ -41,11 +66,6 @@
   </section>
 
   <section id="intro">
-    <div class="container" style="">
-      Voici la nouvelle version des sites de commande du CIVAM et de Caracole.
-    </div>
-  </section>
-  <section id="intro">
     <div class="container">
       <div class="row top">
         <div class="col">
@@ -58,21 +78,40 @@
     </div>
   </section>
 
-  <section id="reseaux" class=" container margetop">
-    <h2>Les réseaux</h2>
+  <section id="circuits" class=" container margetop">
+    <a id="réseaux"></a>
+    <div class="row rechercheReseaux baseline start">
+      <h2>Les réseaux</h2>
+      <div class="col33">
+        <input type="text" id="recherche" name="recherche" placeholder="Commune, département, nom du groupement,...">
+      </div>
+      <input class="recherche" id="recherche-bouton" type="button" value="Rechercher">
+    </div>
     <div class="row infini">
       {% for nw in networks %}
-      <div class="col33">
+      <div class="col33 circuit" data-search-string="{{nw.search_string}}">
         <a href="{% url 'reseau' network=nw.id %}">
           {% with img=nw.image_description %}
           <div class="circuits-image" 
-               style="background-image: url('{% if img %}{{img.url}}{% else %}{% static 'images/image-reseau.jpg' %}{% endif %}'); 
+               style="background-image: url('{% if img %}{{img.url}}{% else %}{% static  'images/image-reseau.jpg' %}{% endif %}'); 
                       background-size: cover; 
-                      background-position: center;"></div>
+                      background-position: center;">                  
+          </div>
           {% endwith %}
         </a>
         <a href="{% url 'reseau' network=nw.id %}"><h3>{{nw.name}}</h3></a>
-        {{nw.short_description|safe}}
+        {% if  nw.ville %}
+        <p class="circuits-info"><strong>{{nw.ville.nom_reel}}, {{nw.ville.departement}}</strong></p>
+        {% else %}
+        <p class="circuits-info"><strong>—</strong></p>
+        {% endif %}
+        <div class="row infini  circuitsBouton">
+          {% if user.is_staff %}
+          <a href="{% url 'admin' %}#nw-{{mb.network.id}}" class="button attente">Administrer</a>
+          {% endif %}
+          <a href="{% url 'reseau' network=nw.id %}" class="button button-primary">Rejoindre</a>
+        </div>
+        <p>{{nw.short_description|safe}}</p>
       </div>
       {% endfor %}
     </div>

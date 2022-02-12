@@ -304,10 +304,9 @@
 
     <div id="nw-{{nw.id}}" class="acces-rapide couleur-sec">
         <h5 class="center divider couleur-sec">Réseau <span class="couleur-prim">{{nw.name}}</span></h5>
-        {% if user.is_staff or nw.is_network_staff or nw.candidates %}{# not for subgroup staff nor producers #}
+        {% if user.is_staff or nw.is_network_staff %}{# not for subgroup staff nor producers #}
         <h5 class="txt-left couleur-sec margebotS">Configuration</h5>
         <ul>
-            {% if user.is_staff or nw.is_network_staff %}
             <li><a href="{% url 'edit_network_description' network=nw.id %}">
                 Éditer la <strong>description du réseau</strong></a></li>
             <li><a href="{% url 'directory_network' network=nw.id %}"><strong>Annuaire</strong> des membres</a></li>
@@ -331,7 +330,6 @@
                     {% if nw.auto_validate %}checked="checked"{% endif %}
                 />
             </li>
-            {% endif %}{# user/nw.is_network_staff #}
             {% if not nw.candidates %}
             {# pass #}
             {% elif nw.candidates|length < 4 %}
