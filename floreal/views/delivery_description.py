@@ -29,7 +29,7 @@ from functools import cached_property
 from django.db.models import QuerySet, Q
 from django.db.models.functions import Lower
 from decimal import Decimal
-
+from datetime import time, datetime
 
 T = TypeVar("T")
 
@@ -192,38 +192,61 @@ class FlatDeliveryDescription(object):
         if users is not None:
             self.users = users
         else:
-            args = [
-                Q(networkmembership__valid_until=None),
-                Q(networkmembership__network_id=dv.network_id),
-                Q(networkmembership__is_buyer=True)
-            ]
-            date = dv.freeze_date
-            if date is not None:
-                args +=[
-                    Q(networkmembership__valid_until__gte=date)|
-                    Q(networkmembership__valid_until=None),
-                    Q(networkmembership__valid_from__lte=date)
-                ]
-            else:
-                args += [
-                    Q(networkmembership__valid_until=None)
-                ]
-           
-            if subgroup is not None:
-                args += [
-                    Q(networkmembership__subgroup_id=subgroup.id)
-                ]
-            self.users = (m.User.objects
-                .filter(*args)
-                .order_by(Lower("last_name"), Lower("first_name"))
-            )
-            # Remove those who didn't order
             if not empty_users:
-                self.users = self.users.filter(
-                    purchase__product__delivery__in=[dv]
+                # Just look at who actually ordered: freeze dates
+                # may not have been respected by staff, allowing
+                # people who weren't member at freeze date
+                # to order anyway
+                self.users = m.User.objects.filter(
+                    purchase__product__delivery=dv
                 ).distinct()
-            # Sort what's left
-            self.users = self.users.order_by("last_name", "first_name")
+
+                if subgroup is not None:
+                    # filter users by current subgroup membership.
+                    if dv.freeze_date is None:
+                        self.users = self.users.filter(
+                            # subgroup also filters for network
+                            networkmembership__subgroup_id=subgroup.id,
+                            networkmembership__valid_until=None
+                        ).distinct()
+                    else:
+                        # Only keep users who were subgroup members at delivery freeze date
+                        valid_datetime = datetime.combine(dv.freeze_date, time(23, 59, 59)).astimezone()
+                        self.users = self.users.filter(
+                            # subgroup also filters for network
+                            (Q(networkmembership__valid_until__gte=valid_datetime) |
+                             Q(networkmembership__valid_until=None)),
+                            networkmembership__valid_from__lte=valid_datetime,
+                            networkmembership__subgroup_id=subgroup.id
+                        ).distinct()
+
+                self.users = self.users.order_by(Lower("last_name"), Lower("first_name"))
+
+            else:
+                # Non-ordering users are kept:
+                # retrieve them from membership at freeze date,
+                # or current membership if there is no freeze date.
+                args = [
+                    Q(networkmembership__network_id=dv.network_id),
+                    Q(networkmembership__is_buyer=True)
+                ]
+                if dv.freeze_date is None:
+                    # Keep current member
+                    args += [Q(networkmembership__valid_until=None)]
+                else:
+                    # Keep users who were members at freeze date
+                    valid_datetime = datetime.combine(dv.freeze_date, time(23, 59, 59)).astimezone()
+                    args += [
+                        (Q(networkmembership__valid_until__gte=valid_datetime) |
+                         Q(networkmembership__valid_until=None)),
+                        Q(networkmembership__valid_from__lte=valid_datetime)
+                    ]
+                if subgroup is not None:
+                    args += [Q(networkmembership__subgroup_id=subgroup.id)]
+                self.users = (m.User.objects
+                    .filter(*args)
+                    .order_by(Lower("last_name"), Lower("first_name"))
+                )
 
         if products:
             self.products = products
