@@ -50,8 +50,13 @@
   }
 
   function render_unit(unit) {
-    // TODO add "×" when starting with a number
-    return unit;
+    if("0" <= unit[0] && unit[0] <= "9") {
+      return "×"+unit;
+    } else if(["pièce", "piece", "pièces", "piece"].includes(unit.toLowerCase())) {
+      return "pc";
+    } else {
+      return unit;
+    }
   }
 
   function render_products_header(products) {
@@ -136,7 +141,8 @@
 
   function render_single_group(nw) {
 
-    $(".dv-name").text(nw.delivery.name + " " + nw.network.name);
+    $(".nw-name").text(nw.network.name);
+    $(".dv-name").text(nw.delivery.name);
     $("#total-price").text(nw.total.price.toFixed(2));
 
     render_products_header(nw.products);
@@ -145,7 +151,8 @@
 
   function render_multiple_groups(nw) {
 
-    $(".dv-name").text(nw.delivery.name + " " + nw.network.name);
+    $(".nw-name").text(nw.network.name);
+    $(".dv-name").text(nw.delivery.name);
     $("#total-price").text(nw.total.price.toFixed(2));
     nw.users = [];  // Rebuild a list of all users in every subgroup, for updating scripts
 
@@ -233,7 +240,8 @@
 {% block content %}
 <section class="container margetopXl margebot">
 
-<h1>Commande « <span class="dv-name">...</span> »</h1>
+<h2><span class="nw-name">…</span></h2>
+<h1><span class="dv-name">…</span></h1>
 
 <form method="post" action="">
   <table class="with-border" id="purchases">

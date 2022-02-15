@@ -376,6 +376,7 @@
     $("select").selectpicker;
 
     $("#dv-name").val(dv.name);
+    $("#nw-name").text(dv.network.name);
 
     /* Generate and fill product rows */
     dv.products.forEach(pd => fill_row(add_row(), pd));
@@ -679,6 +680,10 @@
     <div class="row align-item-start">
       <div class="col-xs-4">
         <table id="dv-table">
+          <tr>
+            <th>Circuit :</th>
+            <td><span id="nw-name">…</span></td>
+          </tr>
           <tr>
             <th><label for="dv-name">Nom de la commande :</label></th>
             <td><input id="dv-name" maxlength="64" name="dv-name" type="text" value="" required /></td>

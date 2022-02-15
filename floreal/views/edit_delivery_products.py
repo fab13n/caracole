@@ -71,6 +71,7 @@ def delivery_products_json(request, delivery):
         'id': dv.id,
         'name': dv.name,
         'state': dv.state,
+        'network': {'id': dv.network_id, 'name': dv.network.name},
         'freeze-date': str(d) if (d:=dv.freeze_date) is not None else None,
         'distribution-date': str(d) if (d:=dv.distribution_date) is not None else None,
         'description': dv.description,
