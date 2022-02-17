@@ -237,7 +237,7 @@ def admin(request):
         "networks": jnetworks.values(),
         "Delivery": m.Delivery,
     }
-    print(context)
+    # print(context)
     return render(request, "admin_reseaux.html", context)
 
 
