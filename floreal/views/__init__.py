@@ -721,7 +721,7 @@ def journal(request):
             
     days = []
     current_day = None
-    n = request.GET.get("n", 1024)
+    n = int(request.GET.get("n", 1024))
     tz = pytz.timezone(settings.TIME_ZONE)
     for entry in (
         m.JournalEntry.objects.all().select_related("user").order_by("-date")[:n]

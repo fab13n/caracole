@@ -25,7 +25,7 @@
   }
 
   function render_unit(unit) {
-    if("1" <= unit[0] && unit[0] <= "9") {
+    if("0" <= unit[0] && unit[0] <= "9") {
       return "×"+unit;
     } else if(["pièce", "piece", "pièces", "piece"].includes(unit.toLowerCase())) {
       return "pc";
@@ -118,7 +118,8 @@
 
   function render_flat(dd) {
 
-    $(".dv-name").text(dd.delivery.name + " " + dd.network.name);
+    $(".nw-name").text(dd.network.name);
+    $(".dv-name").text(dd.delivery.name);
     $("#total-price").text(render_price(dd.total.price));
     $("#download-xlsx").attr("href", `/dv-${dd.delivery.id}.xlsx`);
     $("#download-pdf").attr("href", `/dv-${dd.delivery.id}.pdf`);
@@ -128,7 +129,8 @@
   }
 
   function render_grouped(dd) {
-    $(".dv-name").text(dd.delivery.name);
+    $(".nw-name").text(nw.network.name);
+    $(".dv-name").text(nw.delivery.name);
     $("#total-price").text(render_price(dd.total.price));
     $("#download-xlsx").attr("href", `/dv-${dd.delivery.id}.xlsx`);
     $("#download-pdf").attr("href", `/dv-${dd.delivery.id}.pdf`);  
@@ -175,7 +177,8 @@
 
 <section class="container margetopXl margebot" id="content">
 
-<h1>Commande « <span class="dv-name">...</span> »</h1>
+<h2><span class="nw-name">…</span></h2>
+<h1><span class="dv-name">…</span></h1>
 
 <table class="with-border vertical-headers" id="purchases">
 

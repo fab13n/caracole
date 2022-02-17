@@ -100,7 +100,7 @@ def send_invoice_mail(request, network, recipients, subject, body):
         subject = subject_template.render(ctx)
         datalist.append((subject, body, settings.EMAIL_HOST_USER, [dest]))
 
-    if False:
+    if True:
         send_mass_mail(datalist, fail_silently=True)
     text = "\n\n=====\n\n".join(
         "To: %s; Subject: %s\n%s" % (to, subject, body)
