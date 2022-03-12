@@ -28,6 +28,8 @@ def create_candidacy(request, network):
     """Create either the candidacy or the buyer membership, depending on whether validation is needed."""
     user = request.user
     nw = get_network(network)
+    # TODO if there are orders and the candicacy ends up granted,
+    #      we should jump straight to ordering anchor.
     r = redirect(request.GET.get("next", "index"))
     nm = m.NetworkMembership.objects.filter(
         valid_until=None,
@@ -35,34 +37,33 @@ def create_candidacy(request, network):
         network=nw   
     ).first()
 
-    if nm is not None and nm.is_candidate:
+    if nm is None:
+        pass
+    elif nm.is_candidate:
         m.JournalEntry.log(user, "Applied for nw-%d, but was already candidate", nw.id)
         return r
-    if nm is not None and nm.is_buyer:
+    elif nm.is_buyer:
         m.JournalEntry.log(user, "Applied for nw-%d, but was already a buyer", nw.id)
         return r
-
-    if nw.auto_validate:
-        already_known = m.NetworkMembership.objects.filter(user=user, is_candidate=False).exists()
-        if already_known:
-            # This user has already been accepted somewhere at least once
-            m.JournalEntry.log(user, "Applied for nw-%d, automatically granted", nw.id)
-            _validate_candidacy_without_checking(
-                request, network=nw, user=user, response="Y", send_confirmation_mail=True
-            )
-            return r
-
-    if nm is not None and nm.is_staff:
-        # This user has already been accepted somewhere at least once
+    elif nm.is_staff:
         m.JournalEntry.log(user, "Staff for nw-%d made themself a buyer", nw.id)
         _validate_candidacy_without_checking(
             request, network=nw, user=user, response="Y", send_confirmation_mail=True
         )
         return r
 
-    m.NetworkMembership.objects.create(network=nw, user=user, is_candidate=True, is_buyer=False)
-    m.JournalEntry.log(user, "Applied for nw-%d, candidacy pending", nw.id)
-    return r
+    # No active membership for this network
+    if nw.auto_validate and m.NetworkMembership.objects.filter(user=user, is_candidate=False).exists():
+        # This user has already been accepted somewhere at least once
+        m.JournalEntry.log(user, "Applied for nw-%d, automatically granted", nw.id)
+        _validate_candidacy_without_checking(
+            request, network=nw, user=user, response="Y", send_confirmation_mail=True
+        )
+        return r
+    else:
+        m.NetworkMembership.objects.create(network=nw, user=user, is_candidate=True, is_buyer=False)
+        m.JournalEntry.log(user, "Applied for nw-%d, candidacy pending", nw.id)
+        return r
 
 
 @login_required()
@@ -146,8 +147,9 @@ def _validate_candidacy_without_checking(
         else:
             mail += "Vos responsables de réseau vous préviendront par mail quand une nouvelle commande sera ouverte."
 
-        # Create mambership record
-        m.NetworkMembership.objects.create(user=user, network=network, is_buyer=True)
+        # Create membership record if needed; there's a concurrency risk if the same candidacy is granted
+        # several times in a row or simultaneously by several people => check for existence before creating.
+        m.NetworkMembership.objects.get_or_create(user=user, network=network, is_buyer=True, valid_until=None)
 
     elif adm:  # Negative response from an admin
         mail += (

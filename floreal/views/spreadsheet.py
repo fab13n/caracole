@@ -1,8 +1,5 @@
-#!/usr/bin/python3
-# -*- coding: utf8 -*-
-
 """Excel spreadsheet views generator."""
-
+import re
 from io import BytesIO
 import xlsxwriter as xls
 
@@ -34,6 +31,8 @@ COL_OFFSET =  2
 V_CYCLE_LENGTH = 5
 H_CYCLE_LENGTH = 5
 
+BANNED_TITLE_CHARS = re.compile(r"[\[\]\*\?\\:/]+")
+
 def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls, recopy_products):
     """
     Insert one sheet of (buyer, product) -> purchase matrix in an Excel book,
@@ -48,6 +47,7 @@ def _make_sheet(book, title, fmt, buyers, products, purchases, purchase_fmls, re
     :param purchases: function (buyer_idx, product_idx) -> quantity
     :param purchase_fmls: Optional (user_index, pd_index) -> formula function
     """
+    title = BANNED_TITLE_CHARS.sub("-", title)
     if len(title) > 31:
         # Excel sheet names can't be longer than 31 chars
         title = title[:28] + "..."
@@ -239,8 +239,8 @@ FORMATS = {
 
 
 def spreadsheet(dd):
-    """Takes either a DeliveryDescription or a NetworkDeliveryDescription.
-    DD with only one network will be simplified into NDD."""
+    """Takes either a FlatDeliveryDescription or a GroupedDeliveryDescription.
+    GDD with only one network will be simplified into FDD."""
     bytes_buffer = BytesIO()  # Generate in a string rather than a file
     book = xls.Workbook(bytes_buffer, {'in_memory': True})
     fmt = {k: book.add_format(v) for k, v in FORMATS.items()}

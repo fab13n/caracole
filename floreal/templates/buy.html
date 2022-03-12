@@ -286,6 +286,7 @@
         rows += `
             <tr id="row-${pd.id}" class="row-produit" data-toggle="tooltip" 
               ${maxq == null ? '' : 'title="Reste ' + maxq + ' ' +pd.unit+'"'}>
+              <!-- TODO if theres an image and no description, put it here -->
               <td colspan="2" class="product-name">${pd.name}</td>
               <td class="quantity">
                 <input
@@ -309,7 +310,7 @@
             </tr>`;
         if (pd.description) rows += `
             <tr class="texte-produit">
-            {# If there's a description, the image occupies both rows. #}
+              {# If there's a description, the image occupies both rows. #}
               <td class="product-image">
                 ${pd.image ? '<img src="' + pd.image + '"/>' : ''}
               </td>
