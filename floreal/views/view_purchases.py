@@ -25,7 +25,8 @@ MIME_TYPE = {
     'xlsx': "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
 
 
-def non_html_response(name_stem, name_extension, content):
+@login_required
+def non_html_response(request, name_stem, name_extension, content):
     """Common helper to serve PDF and Excel content."""
     mime_type = MIME_TYPE[name_extension]
     response = HttpResponse(content_type=mime_type)
@@ -36,6 +37,7 @@ def non_html_response(name_stem, name_extension, content):
     return response
 
 
+@login_required
 def render_description(request, delivery, renderer, extension, subgroup=None, user: bool=False, download=True):
     """
     Retrieve the delivery description associated with those url params if permissions allow.
@@ -71,9 +73,10 @@ def render_description(request, delivery, renderer, extension, subgroup=None, us
     name_stem = dd.delivery.name if download else None
     #if not isinstance(dd, UserDeliveryDescription) and not (dd.rows and dd.products):
     #    return HttpResponse("Aucun achat dans cette commande", status=404)
-    return non_html_response(name_stem, extension, renderer(dd))
+    return non_html_response(request, name_stem, extension, renderer(dd))
 
 
+@login_required
 def view_purchases_html(request, delivery, subgroup=None):
     """
     View purchases for a given delivery, possibly restricted to a subgroup. (subgroup) staff only.
@@ -164,4 +167,4 @@ def all_deliveries_html(request, network, states):
 def all_deliveries_latex(request, network, states):
     ctx = all_deliveries(request, network, states)
     content = render_latex("all_deliveries.tex", ctx)
-    return non_html_response(get_network(network).name, "pdf", content)
+    return non_html_response(request, get_network(network).name, "pdf", content)
