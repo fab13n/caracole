@@ -5,6 +5,7 @@ from collections import defaultdict
 from datetime import datetime
 from django.db.models.aggregates import Count
 import pytz
+from functools import lru_cache
 
 # from django.db.models.query_utils import select_related_descend
 from django.http.response import JsonResponse
@@ -57,9 +58,9 @@ def index(request):
         accueil = "Penser à renseigner le texte d'accueil :-)"
     if request.user.is_anonymous:
         vars = {
-            "networks": m.Network.objects.exclude(visible=False)
-            .exclude(active=False)
-            .exclude(active=False),
+            "networks": (m.Network.objects
+                .exclude(visible=False)
+                .exclude(active=False)),
             "accueil": accueil,
         }
         vars.update(csrf(request))
@@ -237,7 +238,6 @@ def admin(request):
         "networks": jnetworks.values(),
         "Delivery": m.Delivery,
     }
-    # print(context)
     return render(request, "admin_reseaux.html", context)
 
 
@@ -696,22 +696,29 @@ def view_history(request):
 
 
 JOURNAL_LINKS = {
-    "cd": "/admin/floreal/candidacy/%d/",
-    "nw": "/admin/reseaux.html#nw-%d",
-    "u": "/admin/users.html?selected=%d",
-    "dv": "/admin/dv-%d/edit",
+    "nw": ("/admin/reseaux.html#nw-%d", m.Network, None, ()),
+    "u": ("/admin/users.html?selected=%d", m.User, "%(first_name)s %(last_name)s (%(email)s)", ('first_name', 'last_name', 'email')),
+    "dv": ("/admin/dv-%d/edit", m.Delivery, None, ()),
 }
-
 
 def journal(request):
     must_be_staff(request)
     journal_link_re = re.compile(r"\b([a-z][a-z]?)-([0-9]+)")
 
+    @lru_cache
     def add_link_to_actions(m):
         txt, code, n = m.group(0, 1, 2)
-        href = JOURNAL_LINKS.get(code)
-        return "<a href='%s'>%s</a>" % (href % int(n), txt) if href else txt
-
+        if code not in JOURNAL_LINKS:
+            return txt
+        href_template, cls, tooltip_template, value_names = JOURNAL_LINKS.get(code)
+        href = href_template % int(n)
+        if tooltip_template is None:
+            return f"<a href='{href}'>{html.escape(txt)}</a>"
+        else:
+            values = cls.objects.filter(pk=int(n)).values(*value_names).first()
+            title = tooltip_template % values
+            return f"<a href='{href}' data-toggle='tooltip' title='{html.escape(title)}'>{html.escape(txt)}</a>"
+            
     days = []
     current_day = None
     n = int(request.GET.get("n", 1024))
@@ -873,6 +880,7 @@ def _description_and_image(request, obj, title):
 
         if pos := request.POST.get("position"):
             try:
+                # TODO Try to extract and save commune from plus_code
                 (obj.latitude, obj.longitude) = plus_code.to_lat_lon(pos)
             except ValueError:
                 if match := POSITION_REGEXP.match(pos.replace(" ", "")):

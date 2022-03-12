@@ -3,8 +3,6 @@
 """Helpers to edit products list: generate suggestions based on current and
 past products, parse POSTed forms to update a delivery's products list."""
 
-import django
-from django import forms
 from django.shortcuts import render, redirect
 from django.template.context_processors import csrf
 from django.http import HttpResponseForbidden
