@@ -27,6 +27,12 @@ get_user = model_getter(m.User)
 
 
 def must_be_prod_or_staff(request, network=None):
+    u = request.user
+    if not u.is_authenticated:
+       raise PermissionDenied 
+    if u.is_staff:
+        return "staff"
+
     if network is None:
         pass
     elif isinstance(network, m.Network):
@@ -34,11 +40,6 @@ def must_be_prod_or_staff(request, network=None):
     else:
         network = m.Network.objects.get(id=network)
     
-    u = request.user
-
-    if u.is_staff:
-        return "staff"
-
     if network is None:
         raise PermissionDenied  # User is not global staff, per prev test.
     
