@@ -58,9 +58,9 @@ def index(request):
         accueil = "Penser à renseigner le texte d'accueil :-)"
     if request.user.is_anonymous:
         vars = {
-            "networks": m.Network.objects.exclude(visible=False)
-            .exclude(active=False)
-            .exclude(active=False),
+            "networks": (m.Network.objects
+                .exclude(visible=False)
+                .exclude(active=False)),
             "accueil": accueil,
         }
         vars.update(csrf(request))
