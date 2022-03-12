@@ -136,22 +136,42 @@
         }
     }
 
-    function on_visibility_change(nw_id, event) {
-        const url = "{% url 'set_network_visibility' network='NWID' val='VALUE' %}".replace('NWID', nw_id).replace('VALUE', event.target.checked);
-        // TODO add "⌛" after event.target
-        $.ajax(url, {success: function() {
-                // TODO remove hourglass
-                console.log("network", nw_id, "visibility is now", event.target.checked);
-        } });
+    let disable_nested_binary_change_callbacks = false;
+
+    // Common code for visibility and auto-validation toggles
+    function on_binary_change(nw_id, target, confirmation, url_pattern) {
+        if(disable_nested_binary_change_callbacks) {
+            return;
+        }
+        const new_state = target.checked;
+        if(confirm(confirmation)) {
+            const url = url_pattern.replace('NWID', nw_id).replace('VALUE', new_state);
+            // TODO add "⌛" after event.target
+            $.ajax(url, {success: function() {
+                    // TODO remove hourglass
+                    console.log(target.getAttribute("id") + " state changed to " + new_state + " on server");
+            } });
+        } else {
+            try {
+                // Cancel widget change
+                disable_nested_binary_change_callbacks = true;
+                $(target).bootstrapToggle(new_state ? "off" : "on");
+            } finally {
+                disable_nested_binary_change_callbacks = false;
+            }
+        }
     }
 
-    function on_validation_change(nw_id, event) {
-        const url = "{% url 'set_network_validation' network='NWID' val='VALUE' %}".replace('NWID', nw_id).replace('VALUE', event.target.checked);
-        // TODO add "⌛" after event.target
-        $.ajax(url, {success: function() {
-                // TODO remove hourglass
-                console.log("network", nw_id, "validation is now", event.target.checked);
-        } });
+    function on_visibility_change(nw_id, nw_name, event) {
+        return on_binary_change(nw_id, event.target,
+            "Voulez-vous rendre le réseau " + nw_name + " " + (event.target.checked ? "visible" : "invisible") + " aux non-membres ?",
+            "{% url 'set_network_visibility' network='NWID' val='VALUE' %}");
+    }
+
+    function on_validation_change(nw_id, nw_name, event) {
+        return on_binary_change(nw_id, event.target,
+            "Voulez-vous rendre la validation " + (event.target.checked ? "automatique" : "manuelle") + " pour le réseau " + nw_name + " ?",
+            "{% url 'set_network_validation' network='NWID' val='VALUE' %}");
     }
 
     function on_state_change(dv_id, state, event) {
@@ -311,9 +331,17 @@
                 Éditer la <strong>description du réseau</strong></a></li>
             <li><a href="{% url 'directory_network' network=nw.id %}"><strong>Annuaire</strong> des membres</a></li>
             <li><strong>Visible</strong> par les non-membres :
-                <input class="visibility" id="visibility-{{nw.id}}" name="visibility-{{nw.id}}" type="checkbox"
-                    data-toggle="toggle" data-on="Oui" data-off="Non" onchange="on_visibility_change({{nw.id}}, event)"
-                    {% if nw.visible %}checked="checked" {%else%}data-invisible="1" {% endif %} />
+                <input 
+                    class="visibility" 
+                    id="visibility-{{nw.id}}" 
+                    name="visibility-{{nw.id}}" 
+                    type="checkbox"
+                    data-toggle="toggle" 
+                    data-on="Oui" 
+                    data-off="Non" 
+                    onchange="on_visibility_change({{nw.id}}, '{{nw.name}}', event)"
+                    {% if nw.visible %}checked="checked" {%else%}data-invisible="1" {% endif %}
+                />
                 <span id="visibility-state-{{nw.id}}"></span>
             </li>
             {# TODO eventually, subgroup staff will be able to validate subgroup candidacies #}
@@ -326,7 +354,7 @@
                     data-toggle="toggle" 
                     data-on="automatiquement" 
                     data-off="par&nbsp;les&nbsp;admins"
-                    onchange="on_validation_change({{nw.id}}, event)"
+                    onchange="on_validation_change({{nw.id}}, '{{nw.name|escapejs}}', event)"
                     {% if nw.auto_validate %}checked="checked"{% endif %}
                 />
             </li>
