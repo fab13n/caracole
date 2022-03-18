@@ -494,7 +494,7 @@ def create_delivery(request, network, dv_model=None):
     """Create a new delivery, then redirect to its edition page."""
     nw = get_network(network)
     which = must_be_prod_or_staff(request, nw)
-    if which == "producer" and dv_model.producer_id != request.user.id:
+    if which == "producer" and dv_model is not None and dv_model.producer_id != request.user.id:
         return HttpResponseForbidden(
             "Les producteurs ne peuvent cloner que leurs propres commandes"
         )
