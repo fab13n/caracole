@@ -1,11 +1,22 @@
-CAVEAT: ce document décrit la version originale d'un outil de commandes 
-en ligne, initialement développé pour l'association Caracole. Cette
-version a profondément été revue, suite aux marchés confinés Covid
-de 2020 qui ont fait exploser le nombre d'utilisateurs, puis sur
-demande du FR CIVAM 31, pour permettre à un public plus nombreux
-et moins expérimenté de lancer ses propres circuits. L'ébauche
-de document de design ci-dessous n'est plus à jour de cette version
-modifiée en profondeur.
+# Installation/deplyement
+
+    edit .env
+	# if you choose PuBLIC_PROTO=https, edit TLS configuration files:
+	edit volumes/https.conf
+	docker-compose build
+	docker-compose up init
+	docker-composer --detach prod
+
+
+
+CAVEAT: ce document décrit la version originale d'un outil de
+commandes en ligne, initialement développé pour l'association
+Caracole. Cette version a profondément été revue, suite aux marchés
+confinés Covid de 2020 qui ont fait exploser le nombre d'utilisateurs,
+puis sur demande du FR CIVAM 31, pour permettre à un public plus
+nombreux et moins expérimenté de lancer ses propres
+circuits. L'ébauche de document de design ci-dessous n'est plus à jour
+de cette version modifiée en profondeur.
 
 Original README
 ===============

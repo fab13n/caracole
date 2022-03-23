@@ -6,15 +6,14 @@ django-registration-redux
 django-impersonate
 django-leaflet
 # GDAL needs a very specific version matching Debian's GDAL; handled separately in Dockerfile.
+gunicorn
 html2text
 ipython
 Markdown
 openlocationcode
-Pillow
 psycopg2-binary
 pytz
 six
-uwsgi
 unidecode
 wagtail
 XlsxWriter

@@ -16,7 +16,7 @@ services:
   django_prod: &django_prod
     image: solalim
     build: .
-    command: uwsgi --ini /home/solalim/uwsgi.ini
+    command: gunicorn solalim.wsgi --log-level debug --bind 0.0.0.0:8000
     restart: unless-stopped
     volumes:
       - ./manage.py:/home/solalim/manage.py
@@ -31,6 +31,7 @@ services:
       - ${VOLUMES}/database.sqlite3:/home/solalim/database.sqlite3
       - ${VOLUMES}/logs:/home/solalim/logs
       - ${VOLUMES}/media:/home/solalim/media
+      - ${VOLUMES}/static:/home/solalim/static
     environment:
       - SUPERUSER_PASSWORD
       - SUPERUSER_USERNAME
@@ -66,7 +67,7 @@ services:
       - ./villes:/home/solalim/villes
       - ./search:/home/solalim/search
       - ./customize_wagtail:/home/solalim/customize_wagtail
-      - ${VOLUMES}/database.sqlite3:/home/solalim/database.sqlite3
+      # - ${VOLUMES}/database.sqlite3:/home/solalim/database.sqlite3
       - ${VOLUMES}/media:/home/solalim/media
     environment:
       - SUPERUSER_PASSWORD
@@ -101,7 +102,7 @@ services:
       - ./search:/home/solalim/search
       - ./customize_wagtail:/home/solalim/customize_wagtail
       - ${VOLUMES}/static:/home/solalim/static
-      - ${VOLUMES}/database.sqlite3:/home/solalim/database.sqlite3
+      # - ${VOLUMES}/database.sqlite3:/home/solalim/database.sqlite3
     command: ./solalim/initialize.sh
 
   prod:
