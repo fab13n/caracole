@@ -10,6 +10,10 @@ import os
 from os import environ as E
 import django
 
+ 
+# Send error reports to this address if DEBUG == False
+ADMINS = [("John Doe", "john.doe@example.com")]
+
 
 BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
@@ -22,18 +26,18 @@ SECRET_KEY = E['DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = E.get("DEBUG", "false").lower() == 'true'
-ALLOWED_HOSTS = ['localhost', E['PUBLIC_HOST']]
+ALLOWED_HOSTS = ['localhost', E['PUBLIC_HOST'], 'django']
 
 # For debug-toolbar
 INTERNAL_IPS = ['127.0.0.1', '172.19.0.1'] 
 
 EMAIL_USE_TLS = True
-EMAIL_HOST = 'SMTP_HOST'
-EMAIL_PORT = 'SMTP_PORT'
-EMAIL_HOST_USER = 'SMTP_USER'
+EMAIL_HOST = E['SMTP_HOST']
+EMAIL_PORT = E['SMTP_PORT']
+EMAIL_HOST_USER = E['SMTP_USER']
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-EMAIL_HOST_PASSWORD = 'SMTP_PASSWORD'
-EMAIL_SUBJECT_PREFIX = '[Circuits Courts Civam] '
+EMAIL_HOST_PASSWORD = E['SMTP_PASSWORD']
+EMAIL_SUBJECT_PREFIX = '[Circuits Courts] '
 
 # longusernameandemail settings
 MAX_USERNAME_LENGTH = 128
@@ -174,8 +178,18 @@ if not os.path.isdir(MEDIA_ROOT):
 
 AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend',)
 
-WAGTAIL_SITE_NAME = "Solalim Civam Occitanie"
+SITE_NAME = WAGTAIL_SITE_NAME = "Solalim Civam Occitanie"
 TAGGIT_CASE_INSENSITIVE = True
+
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 5000
+DATA_UPLOAD_MAX_MEMORY_SIZE   = 5000000
+
+WAGTAILSEARCH_BACKENDS = {
+    'default': {
+        'BACKEND': 'wagtail.search.backends.database',
+        'SEARCH_CONFIG': 'french',
+    }
+}
 
 if False:
     # Enables real-time SQL logs

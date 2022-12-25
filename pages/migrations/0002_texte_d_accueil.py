@@ -11,7 +11,7 @@ def create_texte_d_accueil(apps, schema_editor):
     texte_page = TexteDAccueil(
         title="Texte d'accueil",
         texte_accueil=texte_accueil,
-        content_type=ContentType.objects.get(app_label="pages", model="textedaccueil"),
+        content_type=ContentType.objects.get_for_model(TexteDAccueil)
     )
     # root = Site.objects.get(is_default_site=True).root_page
     root = Page.get_first_root_node()
@@ -26,6 +26,9 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("pages", "0001_initial"),
+        ("wagtailcore", "0066_collection_management_permissions"),
+        ("wagtailsearch", "0006_customise_indexentry"),
+
     ]
 
     operations = [migrations.RunPython(create_texte_d_accueil, delete_texte_d_accueil)]
