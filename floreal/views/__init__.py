@@ -400,14 +400,14 @@ def delete_archived_delivery(request, delivery):
             "Cette commande n'est pas vide, passer par l'admin DB"
         )
     nw = dv.network
-    dv.delete()
     m.JournalEntry.log(
         request.user,
-        "Deleted archived delivery dv-%d (%s) from %s",
+        "Deleting archived delivery dv-%d (%s) from %s",
         dv.id,
         dv.name,
         nw.name,
     )
+    dv.delete()
     target = request.GET.get("next")
     return redirect(target) if target else redirect("archived_deliveries", nw.id)
 
@@ -494,7 +494,7 @@ def create_delivery(request, network, dv_model=None):
     """Create a new delivery, then redirect to its edition page."""
     nw = get_network(network)
     which = must_be_prod_or_staff(request, nw)
-    if which == "producer" and dv_model.producer_id != request.user.id:
+    if which == "producer" and dv_model and dv_model.producer_id != request.user.id:
         return HttpResponseForbidden(
             "Les producteurs ne peuvent cloner que leurs propres commandes"
         )
@@ -504,7 +504,7 @@ def create_delivery(request, network, dv_model=None):
         if (prod_id is not None and 
             dv_model.network_id != nw.id and 
             not m.NetworkMembership.objects.filter(
-                nw=nw,
+                network=nw,
                 valid_until=None,
                 is_producer=True,
             user_id=prod_id).exists()):
@@ -538,6 +538,7 @@ def create_delivery(request, network, dv_model=None):
             name=name,
             network=nw,
             state=m.Delivery.PREPARATION,
+            producer_id=request.user.id if which == 'producer' else None
         )
 
     m.JournalEntry.log(
