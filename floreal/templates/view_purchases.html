@@ -5,7 +5,7 @@
 {% block head %}
 <style type="text/css">
   html, body { overflow-x: unset; }
-  td.yes { background-color: #ccffcc; color: green; font-size: larger; }  
+  td.yes { background-color: #ccffcc; color: green; font-size: larger; }
   .highlight { background-color: #ffaaaa; }
   .sg-row, .sg-row th { color: white; background-color: #a75a50; font-weight: bold; }
   .sg-row:hover { cursor: pointer; }
@@ -85,12 +85,12 @@
       </tr>`);
 
     /* Fill with product quantities. */
-    const $sg_row = $(`#sg-row-${sg.subgroup.id}`); 
+    const $sg_row = $(`#sg-row-${sg.subgroup.id}`);
     sg.products.forEach(pd =>
       $sg_row.append(
         pd.total.quantity ?
         `<td>${pd.total.quantity}</td` :
-        `<td>-</td>`         
+        `<td>-</td>`
       )
     );
   }
@@ -110,7 +110,7 @@
         </tr>
       `);
       const $u_row = $(`#u-row-${u.id}`);
-      row.forEach(pc => 
+      row.forEach(pc =>
         $u_row.append(pc ? `<td>${pc.quantity}</td>` : `<td>-</td>`)
       );
     });
@@ -129,11 +129,11 @@
   }
 
   function render_grouped(dd) {
-    $(".nw-name").text(nw.network.name);
-    $(".dv-name").text(nw.delivery.name);
+    $(".nw-name").text(dd.network.name);
+    $(".dv-name").text(dd.delivery.name);
     $("#total-price").text(render_price(dd.total.price));
     $("#download-xlsx").attr("href", `/dv-${dd.delivery.id}.xlsx`);
-    $("#download-pdf").attr("href", `/dv-${dd.delivery.id}.pdf`);  
+    $("#download-pdf").attr("href", `/dv-${dd.delivery.id}.pdf`);
 
     render_products_header(dd.products);
     dd.subgroups.forEach(sg => {
