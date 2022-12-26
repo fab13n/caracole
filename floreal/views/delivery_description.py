@@ -599,25 +599,19 @@ class UserDeliveryDescription(object):
                         "out_of_package": _num(pc.out_of_package),
                         "price": _num(pc.price),
                         "weight": _num(pc.weight),
-                        "max_quantity": _num(pd.left - pc.quantity)
+                        # I'm allowed at least whatever I've already bought,
+                        # and which is already taken into account by pd.left.
+                        "max_quantity": _num(pd.left + pc.quantity)
                         if pd.left is not None
                         else None,
-                    }
-                    if pc is not None
-                    else {
+                    } if pc is not None else {
                         "id": None,
                         "quantity": 0,
                         "packages": 0 if pd.quantity_per_package is not None else None,
                         "out_of_package": 0,
                         "price": 0,
                         "weight": 0,
-                        "max_quantity": _num(
-                            None
-                            if pd.left is None
-                            else pd.left
-                            if pc is None
-                            else pd.left - pc.quantity
-                        ),
+                        "max_quantity": _num(pd.left),
                     },
                 }
                 for pd, pc in zip(self.products, self.purchases)
