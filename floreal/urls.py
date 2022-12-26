@@ -38,12 +38,12 @@ urlpatterns = [
     path('admin/db/', admin.site.urls),
     # Security: review
     path('admin/impersonate/', include(impersonate.urls)),
-    # Security: only global staff 
+    # Security: only global staff
     path('admin/journal', views.journal, name='view_journal'),
     # Security: only lists networks one's staff of
     path('admin/candidacies', views.manage_candidacies, name='manage_candidacies'),
 
-    # Everyone, logged and unlogged    
+    # Everyone, logged and unlogged
     path('', views.index, name='index'),
 
     # Security: based on memberhsip.is_buyer
@@ -68,7 +68,7 @@ urlpatterns = [
     path('new-dv/nw-<id:network>/list-producer', views.list_delivery_models, kwargs={'producer': True}, name='list_delivery_models_producer'),
     path('new-dv/nw-<id:network>/dv-<dv_model>', views.create_delivery, name='create_delivery_copy'),
     path('new-dv/nw-<id:network>', views.create_delivery, kwargs={'dv_model': None}, name='create_empty_delivery'),
-    
+
     path('nw-<id:network>/archives', views.archived_deliveries, name='archived_deliveries'),
     path('nw-<id:network>/edit-description', views.network_description_and_image, name='edit_network_description'),
     path('u-<id:user>/edit-description', views.user_description_and_image, name='edit_user_description'),
@@ -76,9 +76,10 @@ urlpatterns = [
     re_path(r'^nw-(?P<network>[0-9]+)/all-deliveries/(?P<states>[A-Z]+)\.pdf$', views.all_deliveries_latex, name='all_deliveries_latex'),
     path('nw-<id:network>/invoice-mail-form', views.invoice_mail_form, name='invoice_mail_form'),
 
-    path('admin/dv-<id:delivery>/purchases', views.edit_delivery_purchases, name='edit_delivery_purchases'),
+    path('admin/dv-<id:delivery>/purchases', views.edit_delivery_purchases, kwargs={'try_subgroup': True}, name='edit_delivery_purchases'),
+    path('admin/dv-<id:delivery>/all_purchases', views.edit_delivery_purchases, kwargs={'try_subgroup': False}, name='edit_delivery_all_purchases'),
     path('admin/dv-<id:delivery>/edit', views.edit_delivery_products, name='edit_delivery_products'),
-    
+
 
     # API calls
     path('dv-<id:delivery>/set-state/<state>', views.set_delivery_state, name='set_delivery_state'),
@@ -93,29 +94,30 @@ urlpatterns = [
     path('candidacy/nw-<network>/u-<user>/set-response/<response>', views.validate_candidacy, name='validate_candidacy'),
     path('nw-<id:network>/leave', views.leave_network, name='leave_network'),
     path('candidacy/nw-<id:network>', views.create_candidacy, name='create_candidacy'),
- 
+
 
     path('dv-<id:delivery>.html', views.view_purchases_html, name='view_delivery_purchases_html'),
     path('dv-<id:delivery>.pdf', views.view_purchases_latex_table, name='view_delivery_purchases_latex'),
     path('dv-<id:delivery>-cards.pdf', views.view_purchases_latex_cards, name='view_delivery_purchases_cards'),
     path('dv-<id:delivery>.xlsx', views.view_purchases_xlsx, name='view_delivery_purchases_xlsx'),
     path('dv-<id:delivery>/purchases.json', views.view_purchases_json, name='view_delivery_purchases_json'),
+    path('dv-<id:delivery>/sg-<id:subgroup>/purchases.json', views.view_purchases_json, name='view_delivery_purchases_json'),
     path('admin/dv-<id:delivery>/products.json', views.delivery_products_json, name='delivery_json'),
 
     path('dv-<id:delivery>/delete', views.delete_archived_delivery, name='delete_archived_delivery'),
     path('nw-<id:network>/delete-empty-archives', views.delete_all_archived_deliveries, name='delete_all_archived_deliveries'),
 
     path('nw-<id:network>/directory', views.view_directory, name='directory_network'),
-    
+
     path('history', views.view_history, name='view_history'),
- 
+
     path('accounts/register', views.user_register, name="user_register"),
     path('accounts/update', views.user_update, name="user_update"),
     # TODO Test usefulness of final /
     re_path('^accounts/password/reset/?$', PasswordResetView.as_view(), name="password_reset"),
     re_path('^accounts/password/reset_done/?$', PasswordResetDoneView.as_view(), name="password_reset_done"),
     path('accounts/', include('registration.backends.simple.urls')),
-    path('accounts/deactivate', views.user_deactivate, name='user_deactivate'), 
+    path('accounts/deactivate', views.user_deactivate, name='user_deactivate'),
 
     # TODO what for!?
     path('edit/<title>/<path:target>', views.editor, name='editor'),

@@ -165,7 +165,12 @@
   }
 
   async function load_delivery() {
-    const res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id %}");
+    let res = null;
+    {% if subgroup %}
+    res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id subgroup=subgroup.id %}");
+    {% else %}
+    res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id %}");
+    {% endif %}
     DATA = await res.json();
     if(DATA.subgroups) {
       render_multiple_groups(DATA);
@@ -204,7 +209,7 @@
   $(document).ready(load_delivery);
 
 </script>
-<style type="text/css">  
+<style type="text/css">
   html, body { overflow-x: unset; }
   .nw-row, .nw-row th { color: white; background-color: #a75a50; font-weight: bold; }
   tr th:first-child { white-space: nowrap; text-align: end; padding-right: 5px; }
@@ -221,7 +226,7 @@
   tr.extra, tr.extra input[type=number] {  background-color: #c08982; border: 1px solid #811305; }
   tr#product-prices td { padding-left: 5px; padding-right: 5px; }
   .if-out-of-package { font-weight: bold;}
-  input[type=number] { 
+  input[type=number] {
     border: 1px solid #c08982;
     text-align: right;
     height: 100%;
@@ -247,7 +252,13 @@
   <table class="with-border" id="purchases">
 
       <tr id="product-names">
-          <td class="blank" colspan="2"></td>
+          <td colspan="2">
+            {% if can_edit_all_subgroups %}
+              <p>Sous-groupe {{subgroup.name}} ;<br/>
+                <a href="{% url 'edit_delivery_all_purchases' delivery=delivery.id %}">Modifier tous les sous-groupes</a>
+              </p>
+            {% endif %}
+          </td>
       </tr>
 
       <tr id="quantity-per-package">

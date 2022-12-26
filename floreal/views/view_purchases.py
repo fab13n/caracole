@@ -42,7 +42,7 @@ def render_description(request, delivery, renderer, extension, subgroup=None, us
     """
     Retrieve the delivery description associated with those url params if permissions allow.
     """
-    # TODO test memberships based on distribution date, not on current memberships 
+    # TODO test memberships based on distribution date, not on current memberships
     dv = get_delivery(delivery)
     if not user:
         try:
@@ -94,7 +94,7 @@ def view_purchases_xlsx(request, delivery, subgroup=None):
     (subgroup) staff only."""
     m.JournalEntry.log(request.user, "Downloaded Excel purchases for dv-%s", delivery)
     return render_description(
-        request=request, delivery=delivery,
+        request=request, delivery=delivery, subgroup=subgroup,
         renderer=spreadsheet, extension='xlsx'
     )
 
@@ -104,7 +104,7 @@ def view_purchases_latex_table(request, delivery, subgroup=None):
     (subgroup) staff only."""
     m.JournalEntry.log(request.user, "Downloaded PDF purchases for dv-%s", delivery)
     return render_description(
-        request=request, delivery=delivery,
+        request=request, delivery=delivery, subgroup=subgroup,
         renderer=latex.table, extension='pdf'
     )
 
@@ -113,7 +113,7 @@ def view_purchases_latex_cards(request, delivery, subgroup=None):
     (subgroup) staff only."""
     m.JournalEntry.log(request.user, "Downloaded PDF purchases (cards) for dv-%s", delivery)
     return render_description(
-        request=request, delivery=delivery,
+        request=request, delivery=delivery, subgroup=subgroup,
         renderer=latex.cards, extension='pdf'
     )
 
@@ -121,7 +121,7 @@ def view_purchases_latex_cards(request, delivery, subgroup=None):
 def view_purchases_json(request, delivery, subgroup=None, user: bool = False):
     return render_description(
         download=False,
-        request=request, delivery=delivery, user=user,
+        request=request, delivery=delivery, user=user, subgroup=subgroup,
         renderer=lambda dd: json.dumps(dd.to_json()), extension='json'
     )
 
@@ -132,7 +132,7 @@ def all_deliveries(request, network, states):
     must_be_prod_or_staff(request, nw)
 
     purchases = (m.Purchase.objects.filter(
-            product__delivery__state__in=states, 
+            product__delivery__state__in=states,
             product__delivery__network=nw)
             .select_related('user', 'product__delivery')
             .distinct()
@@ -149,7 +149,7 @@ def all_deliveries(request, network, states):
             deliveries = d[pc.user] = {dv}
         else:
             deliveries.add(dv)
- 
+
     t: List[Tuple[m.User, List[Tuple[m.Delivery, bool]]]] = [
         (u, [(dv, dv in with_purchases) for dv in all_deliveries])
         for u, with_purchases in d.items()
