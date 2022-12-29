@@ -74,7 +74,7 @@ def index(request):
 
         networks_with_open_orders = {
             nw['id']
-            for nw in 
+            for nw in
             m.Network.objects
                 .filter(id__in=[mb.network_id for mb in mbships], delivery__state=m.Delivery.ORDERING_ALL)
                 .distinct()
@@ -164,18 +164,29 @@ def admin(request):
             if not is_network_staff[nw.id]:
                 is_producer[nw.id] = True
         for nw in subgroup_staff_networks:
-            # Get the subgroups, not only the information that a membership exists
-            subgroups = m.NetworkSubgroup.objects.filter(
-                network__active=True,
-                network__networkmembership__valid_until=None,
-                network__networkmembership__user=request.user,
-                network__networkmembership__is_subgroup_staff=True
-            ).values("network_id", "id", "name")
-            # TODO in theory, one could be subgroup staff of more than one subgroup,
-            # although the UI won't allow to specify it.
+            # Get the subgroups of which the current user is staff.
+            # Here's my original version, which doesn't work, I don't know why:
+            #
+            # subgroups = m.NetworkSubgroup.objects.filter(
+            #     network__active=True,
+            #     network__networkmembership__valid_until=None,
+            #     network__networkmembership__user=request.user,
+            #     network__networkmembership__is_subgroup_staff=True
+            # ).values("network_id", "id", "name")
+            #
+            # So I'll do it another way: first get the subgroup ids,
+            # then get the subgroups themselves:
+            staff_of_subgroup_ids = m.NetworkMembership.objects.filter(
+                user=request.user,
+                valid_until=None,
+                is_subgroup_staff=True
+            ).values_list("subgroup_id", flat=True)
+            subgroups = (m.NetworkSubgroup.objects
+              .filter(id__in = staff_of_subgroup_ids)
+              .values("network_id", "id", "name"))
             for sg in subgroups:
                 subgroup_staff_of[sg['network_id']] = sg
-        
+
     deliveries = (
         m.Delivery.objects.filter(
             network__in=networks, state__in="ABCD"
@@ -458,7 +469,7 @@ def list_delivery_models(request, network, all_networks=False):
         else:
             authorized_networks = m.Network.objects.filter(
                 networkmembership__is_staff=True,
-                networkmembership__user=request.user, 
+                networkmembership__user=request.user,
                 networkmembership__valid_until=None)
         deliveries = m.Delivery.objects.filter(network__in=authorized_networks).select_related("network")
         is_producer = False
@@ -501,8 +512,8 @@ def create_delivery(request, network, dv_model=None):
 
     if dv_model is not None:
         prod_id = dv_model.producer_id
-        if (prod_id is not None and 
-            dv_model.network_id != nw.id and 
+        if (prod_id is not None and
+            dv_model.network_id != nw.id and
             not m.NetworkMembership.objects.filter(
                 network=nw,
                 valid_until=None,
@@ -719,7 +730,7 @@ def journal(request):
             values = cls.objects.filter(pk=int(n)).values(*value_names).first()
             title = tooltip_template % values
             return f"<a href='{href}' data-toggle='tooltip' title='{html.escape(title)}'>{html.escape(txt)}</a>"
-            
+
     days = []
     current_day = None
     n = int(request.GET.get("n", 1024))
