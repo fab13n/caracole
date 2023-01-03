@@ -37,7 +37,7 @@
   function reflect_description(r) {
       const P = "#r" + r;
       const described = $(P+' .described input').is(':checked');
-      const row = $(P+"-description"); 
+      const row = $(P+"-description");
       const ta = $(P+"-description textarea");
       if( described) {
           const is_loaded = ta.attr("loaded");
@@ -111,7 +111,7 @@
       /* Swap input values, except file uploads and textarea */
       const INPUT_FIELDS = ['id', 'name', 'price', 'unit', 'quantity_per_package',
                           'quantity_limit', 'quantum', 'unit_weight'];
-      
+
       INPUT_FIELDS.map(field => {
           const v0 = $(P0+" ."+field+" input").val();
           const v1 = $(P1+" ."+field+" input").val();
@@ -145,7 +145,7 @@
       /* Swap images. This is tricky because file inputs can't have their content altered
       * for security reasons. Therefore they will be moved and relabelled instead.
       *
-      * 
+      *
       * Here's the HTML structure we're working on. A hidden "image-modified" field
       * remembers whether the image must be changed in DB (set to true when an upload
       * is initiated by the user).
@@ -203,10 +203,8 @@
           <td class="price"><input name="r${r}-price" step="0.01" min="0" type="number" /></td>
           <td>€/</td>
           <td class="unit"><input maxlength="64" name="r${r}-unit" type="text" /></td>
-          <!-- Package management currently disabled -- 
           <td class="quantity_per_package"><input name="r${r}-quantity_per_package" type="number" /></td>
           <td class="unit-label">&nbsp;<span class="unit-mirror"></span><span class="if-unit-mirror">/ct</span></td>
-          -->
           <td class="quantity_limit" data-toggle="tooltip" title="Quantité totale de produits disponibles. Une fois cette quantité commandée, le produit sera marqué comme épuisé.">
             <input name="r${r}-quantity_limit" min="0" type="number"/>
           </td>
@@ -215,9 +213,7 @@
             <input name="r${r}-quantum" min="0" type="number" step="0.001"/>
           </td>
           <td class="unit-label">&nbsp;<span class="unit-mirror"></span></td>
-          <!-- Weight management currently disabled --
           <td class="unit_weight"><input name="r${r}-unit_weight" min="0" step="0.001" type="number"/></td><td>kg</td>
-          -->
           <td class="image-upload"><div>
             <input name="r${r}-image-modified" class="image-modified" type="hidden" value="0"/>
             <label class="image-display">
@@ -229,21 +225,21 @@
 
           <td class="deleted">
             <label for="r${r}-deleted" class="button button-primary"></label>
-            <input 
-              name="r${r}-deleted" 
-              id="r${r}-deleted" 
-              value="r${r}-deleted" 
-              onchange="reflect_deletion(${r})" 
-              type="checkbox" 
+            <input
+              name="r${r}-deleted"
+              id="r${r}-deleted"
+              value="r${r}-deleted"
+              onchange="reflect_deletion(${r})"
+              type="checkbox"
               style="display: none">
           </td>
           <td class="described">
             <label for="r${r}-described" class="button button-primary">Décrire</label>
             <input
-              name="r${r}-described" 
-              id="r${r}-described" 
-              value="r${r}-described" 
-              onchange="reflect_description(${r})" 
+              name="r${r}-described"
+              id="r${r}-described"
+              value="r${r}-described"
+              onchange="reflect_description(${r})"
               type="checkbox"
               style="display: none">
           </td>
@@ -306,7 +302,7 @@
           alert("Avant de pouvoir sauvegarder, il faut donner un nom à la commande, en haut du formulaire !");
           return;
       }
-    
+
       /* Check that non-deleted products have a unique name and a valid price. */
       for(let i=1; $(`#r${i}`).length; i++) {
         console.log("Checking r"+i);
@@ -316,7 +312,7 @@
         const name_i = $("input[name=r"+i+"-name]").val().trim();
 
         /* nameless products are as good as deleted */
-        if(name_i === "") { 
+        if(name_i === "") {
           $(`[name=r${i}-deleted]`).prop("checked", true);
           continue;
         }
@@ -350,7 +346,7 @@
   }
 
   /* Will contain dowloaded delivery, helps debug. */
-  var DELIVERY = null; 
+  var DELIVERY = null;
 
   async function load_delivery() {
     const response = await fetch("products.json");
@@ -388,7 +384,7 @@
     $("#r1 td.place button.up").attr("disabled", "disabled");
 
     /* Set the description. In a timeout, in order to wait for tinyMCE to load. */
-    
+
     setTimeout(
       () => {
         tinyMCE.get("dv-description").setContent(dv.description || "");
@@ -669,6 +665,17 @@
     box-shadow: 1px 0.5px 0.5px black;
     cursor: pointer;
   }
+
+  #products-table td:nth-child(4),
+  #products-table td:nth-child(5),
+  #products-table td:nth-child(6),
+  #products-table td:nth-child(9),
+  #products-table td:nth-child(10),
+  #products-table td:nth-child(13),
+  #products-table td:nth-child(14)
+   {
+    background-color: #e5fabd;
+  }
 </style>
 {% endblock %}
 
@@ -738,10 +745,10 @@
           <th class="">Prix</th>
           <th class=""></th>
           <th class="">Unité</th>
-          {# <th colspan="2" class="qpp">Par carton</th> #}
+          <th colspan="2" class="qpp">Par carton</th>
           <th colspan="2" class="quota">Quota</th>
           <th colspan="2" class="">Quantum</th>
-          {#<th colspan="2" class="">Poids</th>#}
+          <th colspan="2" class="">Poids</th>
           <th class="">Image</th>
           <th>
           </th>
