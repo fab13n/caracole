@@ -31,11 +31,16 @@
 
     /* Update user row. */
     let u_price = 0;
+    let has_purchased_anything = false;
     DATA.products.forEach(pd => {
       const q = Number($(`[name=pd-${pd.id}-u-${u.id}]`).val());
       u_price += q * pd.price;
+      has_purchased_anything ||= q !== 0;
     });
     $(`#u-row-${u.id} span.price`).text(u_price.toFixed(2));
+
+    if(has_purchased_anything) { $(`#u-row-${u.id}`).removeClass("has-not-purchased"); }
+    else { $(`#u-row-${u.id}`).addClass("has-not-purchased"); }
 
     /* Update grand total. */
     let price = 0;
@@ -109,10 +114,12 @@
         </tr>
       `);
       const $u_row = $(`#u-row-${u.id}`);
+      $u_row.addClass("has-not-purchased");
       row.forEach((pc, j) => {
         let pd = nw.products[j];
         let is_extra = u.first_name == 'extra';
         let quantity = pc ? pc.quantity : 0;
+        if(quantity !== 0) { $u_row.removeClass("has-not-purchased"); }
         let quantum = pc ? pc.quantum : 1;
         let min = is_extra ? "" : `min="0"`;
 
@@ -167,7 +174,7 @@
   async function load_delivery() {
     let res = null;
     {% if subgroup %}
-    res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id subgroup=subgroup.id %}");
+    res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id subgroup=subgroup.id %}?empty_users=1");
     {% else %}
     res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id %}");
     {% endif %}
@@ -225,7 +232,8 @@
   td.quantity { border: none; width: 50px; }
   tr.extra, tr.extra input[type=number] {  background-color: #c08982; border: 1px solid #811305; }
   tr#product-prices td { padding-left: 5px; padding-right: 5px; }
-  .if-out-of-package { font-weight: bold;}
+  .if-out-of-package { font-weight: bold; }
+  .has-not-purchased { background-color: lightgray; }
   input[type=number] {
     border: 1px solid #c08982;
     text-align: right;

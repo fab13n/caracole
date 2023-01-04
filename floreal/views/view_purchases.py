@@ -59,16 +59,19 @@ def render_description(request, delivery, renderer, extension, subgroup=None, us
             if sg is None:
                 raise
 
+    empty_products = request.GET.get('empty_products', '0') == '1'
+    empty_users = request.GET.get('empty_users', '0') == '1'
+
     if user:
         dd = UserDeliveryDescription(dv, request.user, empty_products=True)
     elif subgroup is not None or sg is not None:
         if sg is None:
             sg = get_subgroup(subgroup)
-        dd = FlatDeliveryDescription(dv, subgroup=sg)
+        dd = FlatDeliveryDescription(dv, subgroup=sg, empty_products=empty_products, empty_users=empty_users)
     elif dv.network.grouped:
-        dd = GroupedDeliveryDescription(dv)
+        dd = GroupedDeliveryDescription(dv, empty_products=empty_products, empty_users=empty_users)
     else:
-        dd = FlatDeliveryDescription(dv)
+        dd = FlatDeliveryDescription(dv, empty_products=empty_products, empty_users=empty_users)
 
     name_stem = dd.delivery.name if download else None
     #if not isinstance(dd, UserDeliveryDescription) and not (dd.rows and dd.products):
