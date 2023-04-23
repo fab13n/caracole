@@ -203,7 +203,7 @@
                 if(new_name) {
                     const url = "{% url 'set_delivery_name' delivery=9999 name='NAME' %}"
                         .replace(9999, dv_id)
-                        .replace('NAME', new_name); 
+                        .replace('NAME', new_name);
                     fetch(url)
                         .then(() => {
                             notify_delivery(dv_id, "Renommée");
@@ -331,14 +331,14 @@
                 Éditer la <strong>description du réseau</strong></a></li>
             <li><a href="{% url 'directory_network' network=nw.id %}"><strong>Annuaire</strong> des membres</a></li>
             <li><strong>Visible</strong> par les non-membres :
-                <input 
-                    class="visibility" 
-                    id="visibility-{{nw.id}}" 
-                    name="visibility-{{nw.id}}" 
+                <input
+                    class="visibility"
+                    id="visibility-{{nw.id}}"
+                    name="visibility-{{nw.id}}"
                     type="checkbox"
-                    data-toggle="toggle" 
-                    data-on="Oui" 
-                    data-off="Non" 
+                    data-toggle="toggle"
+                    data-on="Oui"
+                    data-off="Non"
                     onchange="on_visibility_change({{nw.id}}, '{{nw.name}}', event)"
                     {% if nw.visible %}checked="checked" {%else%}data-invisible="1" {% endif %}
                 />
@@ -346,13 +346,13 @@
             </li>
             {# TODO eventually, subgroup staff will be able to validate subgroup candidacies #}
             <li>Candidatures <strong>validées</strong> :
-                <input 
+                <input
                     class="auto-validate"
                     id="auto-validate-{{nw.id}}"
                     name="auto-validate-{{nw.id}}"
-                    type="checkbox" 
-                    data-toggle="toggle" 
-                    data-on="automatiquement" 
+                    type="checkbox"
+                    data-toggle="toggle"
+                    data-on="automatiquement"
                     data-off="par&nbsp;les&nbsp;admins"
                     onchange="on_validation_change({{nw.id}}, '{{nw.name|escapejs}}', event)"
                     {% if nw.auto_validate %}checked="checked"{% endif %}
@@ -454,6 +454,7 @@
                 {% else %}{# subgroup staff only #}
                 <td>({{nw.subgroup_staff_of.name}})</td>
                 {% endif %}
+                {% if dv.state < dv.FROZEN %}{# Delivery is in an editable state #}
                 {% if nw.is_network_staff %}
                 <td>{# Modify everything #}
                     <select class="button admin pseudo-menu" onchange="on_modify({{dv.id}}, event.target.value)">
@@ -468,6 +469,7 @@
                 {% elif nw.subgroup_staff_of %}
                 <td><a class = "button admin pseudo-menu" href="{% url 'edit_delivery_purchases' delivery=dv.id %}">Modifier les achats</a></td>
                 {% endif %}{# staff / group staff / producer #}
+                {% endif %}{# editable delivery #}
                 <td>{# everyone can view purchases #}
                     {% if dv.has_purchases %}
                     <select class="button admin pseudo-menu" onchange="on_view({{dv.id}}, event.target.value)">
