@@ -23,7 +23,7 @@ from villes import plus_code
 from pages.models import TexteDAccueil
 
 from .. import models as m
-from .getters import get_network, get_delivery, must_be_prod_or_staff, must_be_staff
+from .getters import get_network, get_delivery, get_subgroup, must_be_prod_or_staff, must_be_staff, must_be_subgroup_staff
 from .edit_delivery_purchases import edit_delivery_purchases
 from .buy import buy
 from .user_registration import user_register, user_update, user_deactivate
@@ -636,44 +636,98 @@ def view_emails(request, network):
     return render(request, "emails.html", vars)
 
 
-def view_directory(request, network):
-    nw = get_network(network)
-    must_be_staff(request, nw)
+"""
+SELECT auth_user.last_name, MAX(floreal_purchase.modified)
+FROM floreal_purchase
+JOIN floreal_product ON floreal_purchase.product_id=floreal_product.id
+JOIN floreal_delivery ON floreal_product.delivery_id = floreal_delivery.id
+JOIN auth_user on auth_user.id = floreal_purchase.user_id
+WHERE auth_user.id IN (%s)
+AND floreal_delivery.network_id = %s
+GROUP BY auth_user.id;
+"""
+
+
+def dates_of_last_purchase(user_ids, network_id):
+    """
+    Return a dict {user_id: date} of the last purchase of each user.
+    Helper for view_directory: staff members are allowed to check
+    when a user last bought something, in order to help identifying
+    inactive members.
+    """
+    q = m.Purchase.objects \
+        .filter(
+            user_id__in=user_ids,
+            product__delivery__network_id=network_id,
+        ) \
+        .annotate(max_date=Max("modified")) \
+        .values("user_id", "max_date")
+    return {r["user_id"]: str(r["max_date"].date()) for r in q}
+
+def view_directory(request, network=None, subgroup=None):
+    sg = get_subgroup(subgroup)
+    nw = get_network(network) or sg.network
     user = request.user
+
+    mb = m.NetworkMembership.objects.filter(user=user, network=nw, valid_until=None).first()
+    if user.is_superuser:
+        subgroups = nw.networksubgroup_set.all()
+        dont_list_members = False
+    elif mb is None:
+        raise PermissionError
+    elif mb.is_staff and subgroup is None:
+        subgroups = nw.networksubgroup_set.all()
+        dont_list_members = False
+    elif mb.is_staff: # But subgroup is not None
+        subgroups = None
+        dont_list_members = False
+    elif mb.is_subgroup_staff:
+        subgroups = None
+        dont_list_members = False
+        if mb.subgroup != sg:
+            raise PermissionError
+    else:
+        subgroups = None
+        dont_list_members = True
+        if mb.subgroup != sg:
+            raise PermissionError
+
     members = {
         "Administrateurs": [],
         "Producteurs": [],
-        "Régulateurs": [],
-        "Acheteurs": [],
-        "Candidats": [],
+        "Régulateurs": []
     }
-    vars = {"user": user, "nw": nw, "members": members}
-    if (
-        not user.is_staff
-        and not m.NetworkMembership.objects.filter(
-            network_id=nw.id, user_id=user.id, valid_until=None, is_staff=True
-        ).exists()
-    ):
-        return HttpResponseForbidden("Réservé aux admins")
-    for mb in (
-        m.NetworkMembership.objects.filter(network_id=nw, valid_until=None)
-        .select_related("user")
-        .select_related("user__florealuser")
+    if not dont_list_members:
+        members["Acheteurs"] = []
+        members["Candidats"] = []
+
+    q = m.NetworkMembership.objects.filter(network_id=nw, valid_until=None) \
+        .select_related("user") \
+        .select_related("user__florealuser") \
         .order_by(Lower("user__last_name"), Lower("user__first_name"))
-    ):
-        if mb.is_staff:
+    last_purchases = dates_of_last_purchase([mb.user_id for mb in q], nw.id)
+    for mb in q:
+        if mb.user.first_name == "extra":
+            continue
+        elif mb.is_staff:
             cat = "Administrateurs"
         elif mb.is_producer:
             cat = "Producteurs"
-        elif mb.is_buyer:
+        elif sg is not None and mb.subgroup != sg:
+            continue
+        elif mb.is_subgroup_staff:
+            cat = "Régulateurs"
+        elif mb.is_buyer and not dont_list_members:
             cat = "Acheteurs"
-        elif mb.is_candidate:
+        elif mb.is_candidate and not dont_list_members:
             cat = "Candidats"
         else:
             continue
+        mb.user.last_purchase_date = last_purchases.get(mb.user_id, None)
         members[cat].append(mb.user)
-    return render(request, "directory.html", vars)
+    vars = {"user": user, "nw": nw, "members": members, "subgroups": subgroups, "subgroup": sg.name if sg else None}
 
+    return render(request, "directory.html", vars)
 
 @login_required()
 def view_history(request):

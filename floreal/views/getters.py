@@ -29,7 +29,7 @@ get_user = model_getter(m.User)
 def must_be_prod_or_staff(request, network=None):
     u = request.user
     if not u.is_authenticated:
-       raise PermissionDenied 
+       raise PermissionDenied
     if u.is_staff:
         return "staff"
 
@@ -39,10 +39,10 @@ def must_be_prod_or_staff(request, network=None):
         pass
     else:
         network = m.Network.objects.get(id=network)
-    
+
     if network is None:
         raise PermissionDenied  # User is not global staff, per prev test.
-    
+
     nm = m.NetworkMembership.objects.filter(
         Q(is_staff=True) | Q(is_producer=True),
         user=u,
@@ -59,4 +59,19 @@ def must_be_prod_or_staff(request, network=None):
 def must_be_staff(request, network: Union[m.Network, int, str, None] = None) -> None:
     which = must_be_prod_or_staff(request, network)
     if which != "staff":
+        raise PermissionDenied
+
+def must_be_subgroup_staff(request, subgroup: Union[m.NetworkSubgroup, int, str]) -> None:
+    u = request.user
+    if not u.is_authenticated:
+       raise PermissionDenied
+    if u.is_staff:
+        return "staff"
+
+    sg = get_subgroup(subgroup)
+    if not m.NetworkMembership.objects.filter(
+        Q(subgroup_id=sg.id, is_subgroup_staff=True) | Q(is_staff=True),
+        user=u,
+        valid_until=None
+        ).exists():
         raise PermissionDenied
