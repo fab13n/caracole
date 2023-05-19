@@ -108,6 +108,7 @@ urlpatterns = [
     path('nw-<id:network>/delete-empty-archives', views.delete_all_archived_deliveries, name='delete_all_archived_deliveries'),
 
     path('nw-<id:network>/directory', views.view_directory, name='directory_network'),
+    path('sg-<id:subgroup>/directory', views.view_directory, name='directory_subgroup'),
 
     path('history', views.view_history, name='view_history'),
 

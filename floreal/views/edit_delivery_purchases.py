@@ -28,6 +28,8 @@ def edit_delivery_purchases(request, delivery, try_subgroup: bool):
     """
     user = request.user
     dv = get_delivery(delivery)
+    if dv.state not in (m.Delivery.PREPARATION, m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN):
+        raise PermissionDenied("Delivery is not editable")
     try:
         must_be_prod_or_staff(request, dv.network)
         is_staff = True
