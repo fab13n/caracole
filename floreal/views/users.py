@@ -8,7 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .. import models as m
 
-BOOL_KEYS = ("buyer", "staff", "producer")
+BOOL_KEYS = ("buyer", "staff", "subgroup_staff", "producer")
 
 
 def users_html(request):
@@ -59,6 +59,7 @@ def users_get(request):
             "last_name",
             "email",
             "is_staff",
+            "is_subgroup_staff",
             # "florealuser__description",
             # "florealuser__image_description",
             # "florealuser__latitude",
@@ -90,7 +91,7 @@ def users_get(request):
             if (sg_id := nm.subgroup_id) is not None:
                 u_rec['subgroups'][nw.id] = sg_id
         nw_rec['subgroups'] = list(nw.networksubgroup_set.all().values("id", "name")) or None
-    
+
     return JsonResponse(
         {
             "is_staff": staff.is_staff,
@@ -107,7 +108,8 @@ def user_update(request):
     * user: a user id
     * is_staff: should the user be made a global staff?
     * member: a list of network ids this user should be made member of
-    * staff: a list of network ids  this user should be made staff of
+    * staff: a list of network ids this user should be made staff of
+    * subgroup_staff: a list of network ids in which this user should be their subgroup's id.
     * producer: a list of network ids  this user should be made producer of
     """
 
@@ -117,6 +119,7 @@ def user_update(request):
 
     network_ids = data["networks"]
 
+    # Check permissions
     if staff.is_staff:
         pass
     elif all(
@@ -176,8 +179,14 @@ def user_update(request):
                 some_fields_changed = True
             if new_val:
                 some_fields_true = True
+            if nw_id == 27:
+                print(f"Set {key} to {attr} = {new_val}")
             setattr(new_nm, attr, new_val)
 
+        # TODO: would be nice to check that is_subgroup_staff is only enabled for nw with subgroups
+        # TODO: check that subgroup presence in nw and nm match.
+
+        # Subgroup id isn't a boolean flag, has to be handled differently.
         new_sg_id = data["subgroups"].get(str(nw_id))
         if new_sg_id and (old_nm is None or int(new_sg_id) != old_nm.subgroup_id):
             some_fields_changed = some_fields_true = True

@@ -454,7 +454,9 @@
                 {% else %}{# subgroup staff only #}
                 <td>({{nw.subgroup_staff_of.name}})</td>
                 {% endif %}
-                {% if dv.state < dv.FROZEN %}{# Delivery is in an editable state #}
+                {% if dv.state >= Delivery.FROZEN %}{# Delivery is in not editable #}
+                <td>{# Modify everything #}-</td>
+                {% else %}
                 {% if nw.is_network_staff %}
                 <td>{# Modify everything #}
                     <select class="button admin pseudo-menu" onchange="on_modify({{dv.id}}, event.target.value)">
