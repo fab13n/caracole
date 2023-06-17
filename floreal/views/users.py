@@ -59,7 +59,6 @@ def users_get(request):
             "last_name",
             "email",
             "is_staff",
-            "is_subgroup_staff",
             # "florealuser__description",
             # "florealuser__image_description",
             # "florealuser__latitude",
