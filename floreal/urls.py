@@ -123,8 +123,6 @@ urlpatterns = [
     # TODO what for!?
     path('edit/<title>/<path:target>', views.editor, name='editor'),
 
-    path('__debug__/', include(debug_toolbar.urls)),
-
     path('map.html', views.map, name='map'),
 
     path('admin/pages/', include(wagtailadmin_urls)),
@@ -144,4 +142,6 @@ from django.conf.urls.static import static
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-    
+    urlpatterns += path('__debug__/', include(debug_toolbar.urls)),
+
+

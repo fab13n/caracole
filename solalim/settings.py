@@ -10,7 +10,7 @@ import os
 from os import environ as E
 import django
 
- 
+
 # Send error reports to this address if DEBUG == False
 ADMINS = [("John Doe", "john.doe@example.com")]
 
@@ -27,9 +27,6 @@ SECRET_KEY = E['DJANGO_SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = E.get("DEBUG", "false").lower() == 'true'
 ALLOWED_HOSTS = ['localhost', E['PUBLIC_HOST'], 'django']
-
-# For debug-toolbar
-INTERNAL_IPS = ['127.0.0.1', '172.19.0.1'] 
 
 EMAIL_USE_TLS = True
 EMAIL_HOST = E['SMTP_HOST']
