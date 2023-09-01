@@ -660,8 +660,8 @@ def dates_of_last_purchase(user_ids, network_id):
             user_id__in=user_ids,
             product__delivery__network_id=network_id,
         ) \
-        .annotate(max_date=Max("modified")) \
-        .values("user_id", "max_date")
+        .values("user_id") \
+        .annotate(max_date=Max("modified"))
     return {r["user_id"]: str(r["max_date"].date()) for r in q}
 
 def view_directory(request, network=None, subgroup=None):
