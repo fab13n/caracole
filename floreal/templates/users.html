@@ -193,7 +193,7 @@
     const edit_description_url = "{% url 'edit_user_description' user=9999 %}".replace(9999, u.id) + "?next={% url 'users_html' %}";
     $("#edit-description").attr("href", edit_description_url);
     Object.values(NETWORKS).forEach(nw => {
-      ["buyer", "staff", "producer"].forEach(field =>
+      ["buyer", "staff", "subgroup_staff", "producer"].forEach(field =>
         $(`[name=${field}-${nw.id}]`).bootstrapToggle(u[field].includes(nw.id) ? "on" : "off")
       );
       $(`[name=subgroup-${nw.id}]`).val(u.subgroups[nw.id]);
@@ -281,6 +281,11 @@
       const e = $(_e);
       const nw_id = e.attr('name').split("-")[1];
       const sg_id = e.val();
+      if(!sg_id && ($(`input[name=buyer-${nw_id}]:checked`).length ||
+                    $(`input[name=subgroup_staff-${nw_id}]:checked`).length)) {
+        alert(`Besoin d'un sous-groupe pour le réseau ${NETWORKS[nw_id].name}`);
+        throw("invalid setup");
+      }
       console.log(`in network ${nw_id}, subgroup ${sg_id}`);
       result.subgroups[nw_id] = Number(sg_id);
     });
