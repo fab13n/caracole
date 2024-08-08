@@ -31,11 +31,16 @@
 
     /* Update user row. */
     let u_price = 0;
+    let has_purchased_anything = false;
     DATA.products.forEach(pd => {
       const q = Number($(`[name=pd-${pd.id}-u-${u.id}]`).val());
       u_price += q * pd.price;
+      has_purchased_anything ||= q !== 0;
     });
     $(`#u-row-${u.id} span.price`).text(u_price.toFixed(2));
+
+    if(has_purchased_anything) { $(`#u-row-${u.id}`).removeClass("has-not-purchased"); }
+    else { $(`#u-row-${u.id}`).addClass("has-not-purchased"); }
 
     /* Update grand total. */
     let price = 0;
@@ -109,10 +114,12 @@
         </tr>
       `);
       const $u_row = $(`#u-row-${u.id}`);
+      $u_row.addClass("has-not-purchased");
       row.forEach((pc, j) => {
         let pd = nw.products[j];
         let is_extra = u.first_name == 'extra';
         let quantity = pc ? pc.quantity : 0;
+        if(quantity !== 0) { $u_row.removeClass("has-not-purchased"); }
         let quantum = pc ? pc.quantum : 1;
         let min = is_extra ? "" : `min="0"`;
 
@@ -165,7 +172,12 @@
   }
 
   async function load_delivery() {
-    const res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id %}");
+    let res = null;
+    {% if subgroup %}
+    res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id subgroup=subgroup.id %}?empty_users=1");
+    {% else %}
+    res = await fetch("{% url 'view_delivery_purchases_json' delivery=delivery.id %}");
+    {% endif %}
     DATA = await res.json();
     if(DATA.subgroups) {
       render_multiple_groups(DATA);
@@ -204,7 +216,7 @@
   $(document).ready(load_delivery);
 
 </script>
-<style type="text/css">  
+<style type="text/css">
   html, body { overflow-x: unset; }
   .nw-row, .nw-row th { color: white; background-color: #a75a50; font-weight: bold; }
   tr th:first-child { white-space: nowrap; text-align: end; padding-right: 5px; }
@@ -220,8 +232,9 @@
   td.quantity { border: none; width: 50px; }
   tr.extra, tr.extra input[type=number] {  background-color: #c08982; border: 1px solid #811305; }
   tr#product-prices td { padding-left: 5px; padding-right: 5px; }
-  .if-out-of-package { font-weight: bold;}
-  input[type=number] { 
+  .if-out-of-package { font-weight: bold; }
+  .has-not-purchased { background-color: lightgray; }
+  input[type=number] {
     border: 1px solid #c08982;
     text-align: right;
     height: 100%;
@@ -247,7 +260,13 @@
   <table class="with-border" id="purchases">
 
       <tr id="product-names">
-          <td class="blank" colspan="2"></td>
+          <td colspan="2">
+            {% if can_edit_all_subgroups %}
+              <p>Sous-groupe {{subgroup.name}} ;<br/>
+                <a href="{% url 'edit_delivery_all_purchases' delivery=delivery.id %}">Modifier tous les sous-groupes</a>
+              </p>
+            {% endif %}
+          </td>
       </tr>
 
       <tr id="quantity-per-package">

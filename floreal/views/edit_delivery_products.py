@@ -5,12 +5,13 @@ past products, parse POSTed forms to update a delivery's products list."""
 
 from django.shortcuts import render, redirect
 from django.template.context_processors import csrf
-from django.http import HttpResponseForbidden
+from django.core.exceptions import PermissionDenied
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from io import BytesIO
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from PIL import Image
+
 
 from .getters import get_delivery, must_be_staff, must_be_prod_or_staff
 from .. import models as m
@@ -22,7 +23,7 @@ IMAGE_SIZE = 250
 
 
 def _serialize_product(pd):
-    return { 
+    return {
         'id': pd.id,
         'name': pd.name,
         'price': float(pd.price),
@@ -40,7 +41,7 @@ def delivery_products_json(request, delivery):
     # TODO: this ought to be a delivery_description
     dv = get_delivery(delivery)
     which = must_be_prod_or_staff(request, dv.network)
-    
+
     if which == "staff":
         # If I'm staff, I can choose any producer I want
         dv_producers = m.User.objects.filter(
@@ -82,10 +83,13 @@ def delivery_products_json(request, delivery):
 def edit_delivery_products(request, delivery):
     """Edit a delivery (name, state, producer, products). Network staff only."""
 
-    # Check authorizations: reserved to this network's staff and producers    
+    # Check authorizations: reserved to this network's staff and producers
 
     dv = get_delivery(delivery)
     which = must_be_prod_or_staff(request, dv.network)
+
+    if dv.state not in (m.Delivery.PREPARATION, m.Delivery.ORDERING_ALL, m.Delivery.ORDERING_ADMIN):
+        raise PermissionDenied("Delivery is not editable")
 
     if request.method == 'POST':  # Handle submitted data
         _parse_form(request, which == "staff")
@@ -152,7 +156,7 @@ def _pd_update(pd, fields):
     pd.quantum = fields['quantum']
     pd.description = fields['description']
     if 'image' in fields:
-        pd.image = fields['image'] 
+        pd.image = fields['image']
         _convert_image(pd)
 
 

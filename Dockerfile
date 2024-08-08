@@ -22,7 +22,13 @@ RUN pip install -U pip
 COPY requirements-python.txt /root/
 RUN pip install -r /root/requirements-python.txt
 
+# Because there's s bug in setuptools/gdal compat
+# (https://stackoverflow.com/questions/69123406/error-building-pygdal-unknown-distribution-option-use-2to3-fixers-and-use-2)
+RUN pip install setuptools==57.5.0
+
 # Needs to be the same version as returned by libgdal-dev
 RUN pip install GDAL==$(gdal-config --version)
+
+RUN pip install gunicorn
 
 WORKDIR /home/solalim/

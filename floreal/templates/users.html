@@ -52,9 +52,9 @@
     const select = $("#users");
     data.users.forEach(u => {
       select.append(`
-      <option 
+      <option
         data-tokens="${u.email}"
-        data-subtext="${u.email}" 
+        data-subtext="${u.email}"
         value="${u.id}"">
         ${u.first_name} ${u.last_name}
       </option>`)
@@ -84,14 +84,14 @@
 
     const oui_non = (name) => `<input
       class="user-modifier"
-      name="${name}" 
-      type="checkbox" 
-      data-toggle="toggle" 
-      data-on="Oui" 
+      name="${name}"
+      type="checkbox"
+      data-toggle="toggle"
+      data-on="Oui"
       data-off="Non"
     />`;
 
-    const subgroup_select = (nw) => {
+    const maybe_subgroup_select = (nw) => {
       if(! nw.subgroups) return ``;
       const options = nw.subgroups
         .map((sg) => `<option value="${sg.id}">${sg.name}</option>`)
@@ -106,13 +106,21 @@
           </td>
         </tr>`;
     }
-      
+
+    const maybe_subgroup_staff = (nw) => {
+      return !nw.subgroups ? `` :`
+        <tr>
+          <td>Admin sous-groupe:</td>
+          <td>${oui_non("subgroup_staff-" + nw.id)}</td>
+        </tr>`;
+    }
+
     let template = data.networks.map(nw => `
       <table>
       <tr>
         <th colspan="2">Réseau ${nw.name}</th>
       </tr>
-      ${subgroup_select(nw)}
+      ${maybe_subgroup_select(nw)}
       <tr>
         <td>Acheteur:</td>
         <td>${oui_non("buyer-" + nw.id)}</td>
@@ -121,6 +129,7 @@
         <td>Admin réseau:</td>
         <td>${oui_non("staff-" + nw.id)}</td>
       </tr>
+      ${maybe_subgroup_staff(nw)}
       <tr>
         <td>Producteur:</td>
         <td>${oui_non("producer-" + nw.id)}</td>
@@ -137,7 +146,7 @@
         <td>${oui_non("is_staff")}</td>
       </tr>
       <!--<tr><td colspan="2">
-        <button 
+        <button
           id="deactivate"
           class="btn btn-block btn-danger">
           Désactiver le compte
@@ -184,13 +193,13 @@
     const edit_description_url = "{% url 'edit_user_description' user=9999 %}".replace(9999, u.id) + "?next={% url 'users_html' %}";
     $("#edit-description").attr("href", edit_description_url);
     Object.values(NETWORKS).forEach(nw => {
-      ["buyer", "staff", "producer"].forEach(field =>
+      ["buyer", "staff", "subgroup_staff", "producer"].forEach(field =>
         $(`[name=${field}-${nw.id}]`).bootstrapToggle(u[field].includes(nw.id) ? "on" : "off")
       );
       $(`[name=subgroup-${nw.id}]`).val(u.subgroups[nw.id]);
     });
     $(`[name=is_staff]`).bootstrapToggle(u.is_staff ? "on" : "off");
-    ["first_name", "last_name", "florealuser__phone", "email"].forEach((name) => 
+    ["first_name", "last_name", "florealuser__phone", "email"].forEach((name) =>
       $(`[name=${name}]`).val(u[name])
     );
     $("#save").prop("disabled", true); // will be re-enabled upon modification
@@ -255,7 +264,7 @@
       subgroups: {} // nw_id -> sg_id
     };
 
-    ['buyer', 'staff', 'producer'].forEach(field => {
+    ['buyer', 'staff', 'subgroup_staff', 'producer'].forEach(field => {
       result[field] = [];
       $(`input[name^=${field}-]`).each((_, x) => {
         if (x.checked) {
@@ -272,6 +281,11 @@
       const e = $(_e);
       const nw_id = e.attr('name').split("-")[1];
       const sg_id = e.val();
+      if(!sg_id && ($(`input[name=buyer-${nw_id}]:checked`).length ||
+                    $(`input[name=subgroup_staff-${nw_id}]:checked`).length)) {
+        alert(`Besoin d'un sous-groupe pour le réseau ${NETWORKS[nw_id].name}`);
+        throw("invalid setup");
+      }
       console.log(`in network ${nw_id}, subgroup ${sg_id}`);
       result.subgroups[nw_id] = Number(sg_id);
     });
@@ -337,7 +351,7 @@
     <tr><th>Prénom</th><td><input type="text" name="last_name" class="user-modifier identity"/></td></tr>
     <tr><th>Téléphone</th><td><input type="text" name="florealuser__phone" class="user-modifier identity"/></td></tr>
     <tr><th>Mail</th><td><input type="text" name="email" class="user-modifier identity"/></td></tr>
-  {% endif %} 
+  {% endif %}
 </table>
 
   <table id="user-form"></table>
