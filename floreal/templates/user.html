@@ -27,7 +27,8 @@
         <li> <a href="{% url 'index' %}#réseaux">Gérer mes inscriptions aux réseaux</a> </li>
         <li> <a href="{% url 'user_update' %}">Modifier mes données personnelles</a> </li>
         <li> <a href="{% url 'auth_password_change' %}">Changer de mot de passe</a> </li>
-        <li> <a href="#" onclick="deactivate_prompt()">Désinscription</a></li>
+	<!-- People seem to click on it while trying to unlog. Let's figure out a UX that sucks less :-( -->
+        <!--<li> <a href="#" onclick="deactivate_prompt()">Désinscription</a></li>-->
       </ul>
     </div>
 
