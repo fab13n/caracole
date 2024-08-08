@@ -28,13 +28,16 @@ SECRET_KEY = E['DJANGO_SECRET_KEY']
 DEBUG = E.get("DEBUG", "false").lower() == 'true'
 ALLOWED_HOSTS = ['localhost', E['PUBLIC_HOST'], 'django']
 
+# For debug-toolbar
+INTERNAL_IPS = ['127.0.0.1', '172.19.0.1']
+
 EMAIL_USE_TLS = True
 EMAIL_HOST = E['SMTP_HOST']
-EMAIL_PORT = E['SMTP_PORT']
+EMAIL_PORT = int(E['SMTP_PORT'])
 EMAIL_HOST_USER = E['SMTP_USER']
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 EMAIL_HOST_PASSWORD = E['SMTP_PASSWORD']
-EMAIL_SUBJECT_PREFIX = '[Circuits Courts] '
+EMAIL_SUBJECT_PREFIX = '[Circuits Courts Civam] '
 
 # longusernameandemail settings
 MAX_USERNAME_LENGTH = 128
@@ -44,6 +47,8 @@ REQUIRE_UNIQUE_EMAIL = False
 # Application definitions
 DELIVERY_ARCHIVE_DIR = os.path.join(BASE_DIR, "delivery_archive")
 
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 5000
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5000000
 # Superusers can impersonate other superusers
 IMPERSONATE = {
     'ALLOW_SUPERUSER': True,
@@ -175,11 +180,10 @@ if not os.path.isdir(MEDIA_ROOT):
 
 AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend',)
 
-SITE_NAME = WAGTAIL_SITE_NAME = "Solalim Civam Occitanie"
+SITE_NAME = "Solalim Civam Occitanie"
+WAGTAIL_SITE_NAME = "Solalim Civam Occitanie"
 TAGGIT_CASE_INSENSITIVE = True
-
-DATA_UPLOAD_MAX_NUMBER_FIELDS = 5000
-DATA_UPLOAD_MAX_MEMORY_SIZE   = 5000000
+WAGTAILADMIN_BASE_URL = "http://example.com/admin/"
 
 WAGTAILSEARCH_BACKENDS = {
     'default': {

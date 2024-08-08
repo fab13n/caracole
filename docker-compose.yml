@@ -12,6 +12,9 @@ services:
       - PGDATA=/pgdata
     volumes:
       - ${VOLUMES}/postgresql:/pgdata
+      - ${VOLUMES}/shared:/shared
+    ports:
+      - 1235:5432
 
   django_prod: &django_prod
     image: solalim
@@ -69,6 +72,7 @@ services:
       - ./customize_wagtail:/home/solalim/customize_wagtail
       # - ${VOLUMES}/database.sqlite3:/home/solalim/database.sqlite3
       - ${VOLUMES}/media:/home/solalim/media
+      - ${VOLUMES}/shared:/shared
     environment:
       - SUPERUSER_PASSWORD
       - SUPERUSER_USERNAME
@@ -121,7 +125,7 @@ services:
       - ${VOLUMES}/maintenance:/var/www/maintenance
     depends_on:
       - django_prod
-    
+
   # https://medium.com/@pentacent/nginx-and-lets-encrypt-with-docker-in-less-than-5-minutes-b4b8a60d3a71
   certbot:
     image: certbot/certbot

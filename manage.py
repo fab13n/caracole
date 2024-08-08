@@ -17,7 +17,7 @@ def wait_for_postgres():
             break
         except (socket.error, OSError):
             if first_loop:
-                print("Wait for DB", end="")
+                print(f"Wait for DB at {dest}", end="")
                 first_loop = False
             print(".", end="", flush=True)
             time.sleep(1)
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     e.setdefault("DJANGO_SETTINGS_MODULE", "solalim.settings")
     if e.get('POSTGRES_DBNAME'):
         wait_for_postgres()
-    
+
 
     from django.core.management import execute_from_command_line
 
