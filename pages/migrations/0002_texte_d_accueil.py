@@ -2,7 +2,7 @@
 
 from django.db import migrations
 from ..models import TexteDAccueil
-from wagtail.core.models import Site, Page
+from wagtail.models import Site, Page
 from django.contrib.contenttypes.models import ContentType
 
 
