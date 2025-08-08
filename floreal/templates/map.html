@@ -6,6 +6,7 @@
 {% block head %}
   {% leaflet_js %}
   {% leaflet_css %}
+  <script src="https://unpkg.com/overlapping-marker-spiderfier-leaflet@0.2.7/dist/oms.js"></script>
 
   <style type="text/css">
      .leaflet-container {  /* all maps */
@@ -15,27 +16,117 @@
   </style>
 
   <script type='text/javascript'>
+  const producers = {
+    {% for fu in producers %}
+      {{fu.id}}: {
+        latitude: {{fu.latitude}},
+        longitude: {{fu.longitude}},
+        description: "{{fu.description|escapejs|safe}}",
+        name: "{{fu.user.first_name}} {{fu.user.last_name}}",
+        networks: []
+      },
+    {% endfor %}
+  };
+
+  const networks = {
+    {% for nw in networks %}
+      {{nw.id}}: {
+        latitude: {{nw.latitude}},
+        longitude: {{nw.longitude}},
+        name: "{{nw.name}}",
+        short_description: "{{nw.short_description|escapejs|safe}}",
+        producers: []
+      },
+    {% endfor %}
+  };
+
+  // Fill producer -> networks and network -> producers relationships
+  const prod_to_network = [{% for fu_id, nw_id in prod_to_network %}[{{fu_id}}, {{nw_id}}],{% endfor %}];
+  prod_to_network.forEach((pair) => {
+    const fu_id = pair[0];
+    const nw_id = pair[1];
+    if(!producers[fu_id] || !networks[nw_id]) {
+      if(!producers[fu_id]) {
+        console.warn(`Invalid relationship: producer ${fu_id} does not exist.`);
+      }
+      if(!networks[nw_id]) {
+        console.warn(`Invalid relationship: network ${nw_id} does not exist.`);
+      }
+    } else {
+      networks[nw_id].producers.push(fu_id);
+      producers[fu_id].networks.push(nw_id);
+    }
+  });
+  
+  function networks_for_prod(fu_id) {
+      const prod_networks = producers[fu_id].networks;
+      if (!prod_networks || prod_networks.length === 0) {
+          return `<h4>Aucun réseau associé à ${fu.name}</h4>`;
+      }
+      const text = prod_networks.map((nw_id) => {
+        const url = "{% url 'reseau' network='XXX' %}".replace("XXX", nw_id);
+        return `<a href='${url}'>${networks[nw_id].name}</a>`
+      });
+      return "<h4>Réseaux :</h4> " + text.join(", ");
+  }
+
+  function prods_for_network(nw_id) {
+      const nw_producers = networks[nw_id].producers;
+      if (!nw_producers || nw_producers.length === 0) {
+          return `<h4>Aucun producteur enregistré dans ${networks[nw_id].name}</h4>`;
+      }
+      const text = nw_producers.map((fu_id) => {
+        const fu = producers[fu_id];
+        return fu.name;
+      });
+      return "<h4>Producteurs :</h4> " + text.join(", ");
+  }
+
   function init_map(map, options) {
       const nw_icon = L.icon({
-          iconUrl: "{% static 'images/marker-blue.svg' %}",
-          iconSize: [36, 56],
-          iconAnchor: [18, 56],
+          iconUrl: "{% static 'images/network.svg' %}",
+          iconSize: [24, 24],
+          iconAnchor: [12, 24],
 
       });
       const prod_icon = L.icon({
           //...nw_icon.options,
-          iconUrl: "{% static 'images/marker-red.svg' %}",
-          iconSize: [18, 28],
-          iconAnchor: [9, 28],
+          iconUrl: "{% static 'images/producer.svg' %}",
+          iconSize: [24, 36],
+          iconAnchor: [12, 36],
       });
-      const markers = [
-        {% for nw in networks %}L.marker([{{nw.latitude}}, {{nw.longitude}}], {icon: nw_icon, title: "Réseau {{nw.name}}"}).bindPopup("<a href='{% url 'reseau' network=nw.id %}'>{{nw.name}}</a>"), 
-        {% endfor %}
-        {% for fu in producers %}L.marker([{{fu.latitude}}, {{fu.longitude}}], {icon: prod_icon, title: "Producteur {{fu.user.first_name}} {{fu.user.last_name}}"}), 
-        {% endfor %}
+      const nw_markers = 
+        Object.entries(networks).map((entry) => {
+          const nw_id = Number(entry[0]);
+          const nw = entry[1];
+          const url = "{% url 'reseau' network='XXX' %}".replace("XXX", nw.id);
+          return L
+            .marker([nw.latitude, nw.longitude], {icon: nw_icon, title: `Réseau ${nw.name}`})
+            .bindPopup(`<h4>Réseau <a href='${url}'>${nw.name}</a></h4>${nw.short_description} ${prods_for_network(nw_id)}`, {maxHeight: 400});
+        });
+      const prod_markers =
+        Object.entries(producers).map((entry) => {
+          const fu_id = Number(entry[0]);
+          const fu = entry[1];
+          return L
+            .marker([fu.latitude, fu.longitude], {icon: prod_icon, title: `Producteur ${fu.name}`})
+            .bindPopup(`<h4>${fu.name}</h4> ${fu.description} ${networks_for_prod(fu_id)}`, {maxHeight: 400});
+        });
+
+      const oms = new OverlappingMarkerSpiderfier(map);
+      [...nw_markers, ...prod_markers].forEach(marker => {
+        oms.addMarker(marker);
+        marker.addTo(map);
+      });
+
+      //const nw_group = L.featureGroup(nw_markers).addTo(map);
+      //const prod_group = L.featureGroup(prod_markers).addTo(map);
+      // Fit on France:
+      const franceBounds = [
+        [41.303, -5.142], // Southwest corner (Corsica excluded)
+        [51.092, 9.561]   // Northeast corner
       ];
-      const group = L.featureGroup(markers).addTo(map);
-      map.fitBounds(group.getBounds());
+      map.fitBounds(franceBounds);
   }
 
   $(document).ready(() => {

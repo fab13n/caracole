@@ -149,19 +149,26 @@ def map(request):
                     latitude__isnull=False,
             )
         ).distinct()
+    network_ids = [nw.id for nw in networks]
     producers = (
         m.FlorealUser.objects.filter(
             Q(user__networkmembership__valid_until__gte=Now()) | Q(user__networkmembership__valid_until=None),
-            user__networkmembership__network__in=networks,
+            user__networkmembership__network__in=network_ids,
             user__networkmembership__is_producer=True,
             latitude__isnull=False,
         )
         .distinct()
         .select_related("user")
     )
+    user_ids = [fu.user_id for fu in producers]
     prod_to_network = m.NetworkMembership.objects \
-        .filter(Q(valid_until__gte=Now()) | Q(valid_until=None), is_producer=True) \
-        .select_related("network", "user__florealuser") \
+        .filter(
+            Q(valid_until__gte=Now()) | Q(valid_until=None), 
+            is_producer=True, 
+            network__in=network_ids,
+            user__id__in=user_ids
+        ) \
+        .select_related("user__florealuser") \
         .values_list("user__florealuser__id", "network__id")
     return render(
         request,
