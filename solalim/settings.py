@@ -9,6 +9,7 @@ Django settings for floreal project.
 import os
 from os import environ as E
 import django
+import socket
 
 
 # Send error reports to this address if DEBUG == False
@@ -29,7 +30,8 @@ DEBUG = E.get("DEBUG", "false").lower() == 'true'
 ALLOWED_HOSTS = ['localhost', E['PUBLIC_HOST'], 'django']
 
 # For debug-toolbar
-INTERNAL_IPS = ['127.0.0.1', '172.19.0.1']
+hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
+INTERNAL_IPS = [ip[:-1] + "1" for ip in ips] + ["127.0.0.1"]
 
 EMAIL_USE_TLS = True
 EMAIL_HOST = E['SMTP_HOST']
