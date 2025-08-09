@@ -236,10 +236,10 @@
     $(".network-name").text(DATA.network.name);
     $(".user-name").text(DATA.user.first_name + " " + DATA.user.last_name);
     const maybe_prod = DATA.producer || {};
-    if(maybe_prod.description){
-      $(".delivery-description").html(DATA.producer.description);
-    } else if (DATA.delivery.description) {
+    if (DATA.delivery.description) {
       $(".delivery-description").html(DATA.delivery.description);
+    } else if(maybe_prod.description){
+      $(".delivery-description").html(DATA.producer.description);
     }
     if(maybe_prod.image_description) {
       $(".delivery-image-description").attr("src", DATA.producer.image_description);

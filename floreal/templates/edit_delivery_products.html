@@ -8,6 +8,15 @@
 <script src="{% static 'tinymce/jquery.tinymce.min.js' %}"></script>
 
 <script type='text/javascript'>
+  function has_producer() {
+    const prod_id = $("#producer").val();
+    return prod_id === "0" ? false : prod_id;
+  }
+
+  function is_custom_description_forced() {
+    return $("[name='force-custom-description']").is(":checked");
+  }
+
   /* If the "deleted" checkbox is checked, strike the line and disable product edition. */
   function reflect_deletion(r) {
     /* TODO: also reflect place renumbering? */
@@ -34,7 +43,7 @@
   * To remember wehether it is loaded, a "loaded" attribute is added
   * to the bound <textarea> upon loading.
   */
-  function reflect_description(r) {
+  function reflect_product_description(r) {
       const P = "#r" + r;
       const described = $(P+' .described input').is(':checked');
       const row = $(P+"-description");
@@ -77,19 +86,25 @@
 
   /* Only support command description when no producer is selected. */
   function reflect_producer_selection() {
-    const prod_id = $("#producer").val();
-    if(prod_id === "0") {
+    if(!has_producer()) {
       $(".when-some-producer").hide();
-      $(".when-no-producer").show();
+      $(".when-delivery-description").show();
     } else {
-      $(".when-no-producer").hide();
+      if(!is_custom_description_forced()) { $(".when-delivery-description").show(); }
       $(".when-some-producer").show();
       const q = $("#edit-producer");
-      const url = q.attr("href").replace("9999", prod_id);
+      const url = q.attr("href").replace("9999", has_producer());
       q.attr("href", url);
     }
   }
 
+  function reflect_force_custom_description_change() {
+    if(is_custom_description_forced() || !has_producer()) {
+      $(".when-delivery-description").show();
+    } else {
+      $(".when-delivery-description").hide();
+    }
+  }
 
   /* change the basic textarea into a timyMCE editor. */
   function load_editor(r) {
@@ -174,10 +189,10 @@
           .attr("onchange", "reflect_image_change("+r0+", event)");
 
       reflect_deletion(r0);
-      reflect_description(r0);
+      reflect_product_description(r0);
       reflect_unit_change(r0);
       reflect_deletion(r1);
-      reflect_description(r1);
+      reflect_product_description(r1);
       reflect_unit_change(r1);
       /* No reflect_image_change: it only happens when a file is uploaded.
       * Here the image is in the input's label, they're all swapped together. */
@@ -239,7 +254,7 @@
               name="r${r}-described"
               id="r${r}-described"
               value="r${r}-described"
-              onchange="reflect_description(${r})"
+              onchange="reflect_product_description(${r})"
               type="checkbox"
               style="display: none">
           </td>
@@ -277,7 +292,7 @@
           $(P+" .described input")[0].checked=true;
           $(P+"-description textarea").val(record.description);
       }
-      reflect_description(r); // hide or enable editor
+      reflect_product_description(r); // hide or enable editor
       if(record.image) {
           $(P+" .product-image").attr("src", record.image);
       }
@@ -289,7 +304,7 @@
     const N_ADDED_ROWS = 3;
     for(let i=0; i<N_ADDED_ROWS; i++) {
       var r = add_row();
-      reflect_description(r); // hide description textarea
+      reflect_product_description(r); // hide description textarea
       // No need to reflect deletion, they aren't deleted by default.
       // No need to reflect image, there isn't any.
     }
@@ -302,7 +317,7 @@
           alert("Avant de pouvoir sauvegarder, il faut donner un nom à la commande, en haut du formulaire !");
           return;
       }
-
+  
       /* Check that non-deleted products have a unique name and a valid price. */
       for(let i=1; $(`#r${i}`).length; i++) {
         console.log("Checking r"+i);
@@ -337,6 +352,12 @@
         if(quota !== null && quota !== "" && !(Number(quota) >= 0)) {
           alert(`Le quota de ${name_i} (produit n°${i}) doit être un nombre valide ou laissé vide.`);
         }
+      }
+
+      // If there is a producer and no forced delivery description, don't submit it
+      // (in case it's been customized first, then the force-custom-description checkbox has been unchecked).
+      if(has_producer() && !is_custom_description_forced()) {
+        tinyMCE.get("dv-description").setContent("");
       }
 
       $('[name=then_what]').val(then_what);
@@ -389,6 +410,7 @@
       () => {
         tinyMCE.get("dv-description").setContent(dv.description || "");
         reflect_producer_selection();
+        reflect_force_custom_description_change();
       },
       0
     );
@@ -725,10 +747,17 @@
         <h3>Description de la commande</h3>
         <div class="when-some-producer">
           <p>Vous avez renseigné un producteur pour cette commande, <br/>
-            c'est la description standard de ce producteur qui sera affichée.<br/>
-          <a id="edit-producer" href="{% url 'edit_user_description' user=9999 %}?">Éditer la présentation du producteur</a>.
-        </p></div>
-        <div class="when-no-producer">
+            par défaut c'est la description standard de ce producteur qui sera affichée.
+          </p>
+          <div>
+            <a id="edit-producer" href="{% url 'edit_user_description' user='9999' %}?">Éditer la présentation du producteur</a>.
+          </div>
+          <div>
+            <input name="force-custom-description" type="checkbox" onchange="reflect_force_custom_description_change()"/>
+            <label for="force-custom-description">Fournir une description personnalisée pour cette livraison.</label>
+          </div>
+        </div>
+        <div class="when-delivery-description">
           <textarea name="dv-description" id="dv-description" rows="10"></textarea>
         </div>
       </div>
