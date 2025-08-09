@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
         ("pages", "0001_initial"),
         ("wagtailcore", "0066_collection_management_permissions"),
         ("wagtailsearch", "0006_customise_indexentry"),
-
+        ("wagtailcore", "0075_populate_latest_revision_and_revision_object_str"),
     ]
 
     operations = [migrations.RunPython(create_texte_d_accueil, delete_texte_d_accueil)]

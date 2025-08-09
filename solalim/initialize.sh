@@ -10,6 +10,7 @@ fi
 ./manage.py shell <<EOF
 from django.contrib.auth.models import User
 from django.conf import settings
+from floreal.models import FlorealUser
 
 print(settings.DATABASES)
 
@@ -30,4 +31,10 @@ except User.DoesNotExist:
     # Create + retrieve Superuser
     user = User.objects.create_superuser(**kwargs)
     print(f"Superuser {username} created.")
+try:
+    fu = FlorealUser.objects.get(user=user)
+    print(f"FlorealUser {fu.id} already exists.")
+except FlorealUser.DoesNotExist:
+    # Create + retrieve FlorealUser
+    fu = FlorealUser.objects.create(user=user)
 EOF
