@@ -6,7 +6,7 @@
 <script type='text/javascript'>
 async function unarchive(dv_id) {
    const set_state = "{% url 'set_delivery_state' delivery=9999 state=Delivery.FROZEN %}".replace('9999', dv_id);
-   const edit = "{% url 'edit_delivery_products' delivery=9999 %}".replace(9999, dv_id);
+   const edit = "{% url 'view_delivery_purchases_html' delivery=9999 %}".replace(9999, dv_id);
    await fetch(set_state);
    window.location.href = edit;
    return false;
