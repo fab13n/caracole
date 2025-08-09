@@ -13,6 +13,12 @@
         width:  70vw;
         height: 90vh;
     }
+  .leaflet-container { width: 70vw; height: 90vh; }
+
+  /* Effets de survol / relations */
+  .leaflet-marker-icon.active  { filter: drop-shadow(0 0 8px #f59e0b) saturate(1.2); transform: scale(1.08); z-index: 10000; }
+  .leaflet-marker-icon.related { filter: drop-shadow(0 0 6px #2dd4bf); }
+  .leaflet-marker-icon.dim     { opacity: .35; }
   </style>
 
   <script type='text/javascript'>
@@ -46,12 +52,7 @@
     const fu_id = pair[0];
     const nw_id = pair[1];
     if(!producers[fu_id] || !networks[nw_id]) {
-      if(!producers[fu_id]) {
-        console.warn(`Invalid relationship: producer ${fu_id} does not exist.`);
-      }
-      if(!networks[nw_id]) {
-        console.warn(`Invalid relationship: network ${nw_id} does not exist.`);
-      }
+        console.warn(`Invalid relationship: producer ${fu_id} / network ${nw_id} does not exist`);
     } else {
       networks[nw_id].producers.push(fu_id);
       producers[fu_id].networks.push(nw_id);
@@ -61,7 +62,7 @@
   function networks_for_prod(fu_id) {
       const prod_networks = producers[fu_id].networks;
       if (!prod_networks || prod_networks.length === 0) {
-          return `<h4>Aucun réseau associé à ${fu.name}</h4>`;
+          return `<h4>Aucun réseau associé à ce producteur actuellement</h4>`;
       }
       const text = prod_networks.map((nw_id) => {
         const url = "{% url 'reseau' network='XXX' %}".replace("XXX", nw_id);
@@ -90,48 +91,91 @@
 
       });
       const prod_icon = L.icon({
-          //...nw_icon.options,
           iconUrl: "{% static 'images/producer.svg' %}",
           iconSize: [24, 36],
           iconAnchor: [12, 36],
       });
+      // Create markers and store them in the tables
       const nw_markers = 
         Object.entries(networks).map((entry) => {
           const nw_id = Number(entry[0]);
           const nw = entry[1];
-          const url = "{% url 'reseau' network='XXX' %}".replace("XXX", nw.id);
-          return L
+          const url = "{% url 'reseau' network='XXX' %}".replace("XXX", nw_id);
+          nw.marker = L
             .marker([nw.latitude, nw.longitude], {icon: nw_icon, title: `Réseau ${nw.name}`})
             .bindPopup(`<h4>Réseau <a href='${url}'>${nw.name}</a></h4>${nw.short_description} ${prods_for_network(nw_id)}`, {maxHeight: 400});
+          return nw.marker;
         });
       const prod_markers =
         Object.entries(producers).map((entry) => {
           const fu_id = Number(entry[0]);
           const fu = entry[1];
-          return L
+          fu.marker = L
             .marker([fu.latitude, fu.longitude], {icon: prod_icon, title: `Producteur ${fu.name}`})
             .bindPopup(`<h4>${fu.name}</h4> ${fu.description} ${networks_for_prod(fu_id)}`, {maxHeight: 400});
+          return fu.marker;
         });
+      const markers = [...nw_markers, ...prod_markers];
 
+      // Insert them in the map, using Spiderfier to handle overlapping markers.
       const oms = new OverlappingMarkerSpiderfier(map);
-      [...nw_markers, ...prod_markers].forEach(marker => {
+      markers.forEach(marker => {
         oms.addMarker(marker);
         marker.addTo(map);
       });
 
-      //const nw_group = L.featureGroup(nw_markers).addTo(map);
-      //const prod_group = L.featureGroup(prod_markers).addTo(map);
-      // Fit on France:
+      // Highlight producers <=> networks relationships on hover:
+      
+      // 1. Helpers to manage display classes
+      function addClass(marker, cls){ marker.getElement().classList.add(cls); }
+      function clearClass(marker, cls){ marker.getElement().classList.remove(cls); }
+      function clearAllClasses() {
+        for (const marker of Object.values(markers)) {
+          ['active','related','dim'].forEach(cls => clearClass(marker, cls));
+        }
+      }
+
+      // 2. Network callback
+      function highlightFromNetwork(nw_id) {
+        clearAllClasses();
+        for (const [id, nw] of Object.entries(networks)) {
+          addClass(nw.marker, (Number(id) === nw_id) ? "active" : "dim");
+        }
+        const rel = new Set(networks[nw_id].producers || []);
+        for (const [fu_id, fu] of Object.entries(producers)) {
+          addClass(fu.marker, rel.has(Number(fu_id)) ? "related" : "dim");
+        }
+      }
+
+      // 2bis. Producer callback
+      function highlightFromProducer(fu_id) {
+        clearAllClasses();
+        for (const [id, fu] of Object.entries(producers)) {
+          addClass(fu.marker, (Number(id) === fu_id) ? "active" : "dim");
+        }
+        const rel = new Set(producers[fu_id].networks || []);
+        for (const [id, nw] of Object.entries(networks)) {
+          addClass(nw.marker, rel.has(Number(id)) ? "related" : "dim");
+        }
+      }   
+
+      // 3. Hook them up
+      Object.entries(producers).forEach(([fu_id, fu]) => {
+        fu.marker.on('mouseover', () => highlightFromProducer(fu_id));
+        fu.marker.on('mouseout',  () => clearAllClasses());
+      });
+      Object.entries(networks).forEach(([nw_id, nw]) => {
+        nw.marker.on('mouseover', () => highlightFromNetwork(nw_id));
+        nw.marker.on('mouseout',  () => clearAllClasses());
+      });
+
+      // Fit initial view on France:
       const franceBounds = [
         [41.303, -5.142], // Southwest corner (Corsica excluded)
         [51.092, 9.561]   // Northeast corner
       ];
       map.fitBounds(franceBounds);
   }
-
-  $(document).ready(() => {
-    init_map
-  });
   </script>
 {% endblock %}
 
