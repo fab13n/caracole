@@ -114,22 +114,18 @@ urlpatterns = [
 
     path('accounts/register', views.user_register, name="user_register"),
     path('accounts/update', views.user_update, name="user_update"),
-    # TODO Test usefulness of final /
     re_path('^accounts/password/reset/?$', PasswordResetView.as_view(), name="password_reset"),
     re_path('^accounts/password/reset_done/?$', PasswordResetDoneView.as_view(), name="password_reset_done"),
     path('accounts/', include('registration.backends.simple.urls')),
     path('accounts/deactivate', views.user_deactivate, name='user_deactivate'),
 
-    # TODO what for!?
+    # Edit staff messages
     path('edit/<title>/<path:target>', views.editor, name='editor'),
 
     path('map.html', views.map, name='map'),
 
     path('admin/pages/', include(wagtailadmin_urls)),
     path('documents/', include(wagtaildocs_urls)),
-
-    # For anything not caught by a more specific rule above, hand over to
-    # Wagtail's serving mechanism
     path('pages/', include(wagtail_urls)),
 
     path("bestof", views.bestof),

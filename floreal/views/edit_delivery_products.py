@@ -183,13 +183,14 @@ def _convert_image(pd):
 def _parse_form(request, is_staff):
     """Parse a delivery edition form and update DB accordingly."""
     d = request.POST
+    print(d)
     dv = m.Delivery.objects.get(id=int(d['dv-id']))
 
     # Edit delivery name and state
     dv.name = d['dv-name']
     dv.state = d['dv-state']
     descr = d['dv-description'].strip()
-    dv.description = descr or None
+    dv.description = descr or None # Delete blank descriptions, so that producer description will be tried
 
     if is_staff:
         # Producer can only be changed by staff members

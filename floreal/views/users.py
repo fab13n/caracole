@@ -5,6 +5,8 @@ from django.conf import settings
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, Max, Count
 
 from .. import models as m
 
@@ -25,15 +27,15 @@ def users_json(request):
     ):
         return HttpResponseForbidden("Admins only")
     elif request.method == "POST":
-        return user_update(request)
+        return _user_update(request)
     elif request.method == "GET":
         # TODO add optional per-network restriction in URL
-        return users_get(request)
+        return _users_get(request)
     else:
         return HttpResponseForbidden("Only GET and POST")
 
 
-def users_get(request):
+def _users_get(request):
     staff = request.user
 
     if staff.is_staff:
@@ -100,7 +102,7 @@ def users_get(request):
     )
 
 
-def user_update(request):
+def _user_update(request):
     """
     The incoming JSON answer to be parsed is an object with fields:
 
@@ -202,3 +204,12 @@ def user_update(request):
     m.JournalEntry.log(staff, "Edited user u-%d", user.id)
 
     return HttpResponse(b"OK")
+
+
+@login_required()
+def user(request):
+    vars = {
+        "bestof": m.Bestof.objects.filter(user=request.user).first(),
+        "agg": m.Bestof.objects.aggregate(Sum("total"), Max("total"), Count("total")),
+    }
+    return render(request, "user.html", vars)

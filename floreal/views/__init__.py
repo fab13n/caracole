@@ -1,4 +1,6 @@
-from .core_views import index, orders, order, user, map
+from .index_views import index
+from .order_views import orders, order
+from .map_views import map
 from .network_views import (
     admin,
     reseau,
@@ -55,6 +57,6 @@ from .candidacies import (
     manage_candidacies,
 )
 from .invoice_mail import invoice_mail_form
-from .users import users_json, users_html
+from .users import users_json, users_html, user
 from . import delivery_description as dd
 from . import latex
