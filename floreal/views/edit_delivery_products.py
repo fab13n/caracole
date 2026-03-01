@@ -127,11 +127,19 @@ def _get_pd_fields(d, files, r_prefix):
     # TODO This is the place to apply some unit names normalisation.
     if not weight:  # 0 or None
         weight = 1 if raw['unit'] == 'kg' else 0
+    # Normalize quantity_per_package: allow null, but reject zero or non-integral values.
+    try:
+        qpp_val = int(qpp) if qpp is not None and qpp != '' else None
+        if qpp_val is not None and qpp_val <= 0: # qpp == 0 would cause divisions by zero
+            qpp_val = None
+    except (ValueError, TypeError):
+        qpp_val = None
+
     r = {'id': id,
          'name': raw['name'],
          'place': int(raw['place']),
          'price': float_i18n(raw['price']),
-         'quantity_per_package': int(qpp) if qpp else None,
+         'quantity_per_package': qpp_val,
          'unit': raw['unit'] or 'pièce',
          'quantity_limit': int(quota) if quota else None,
          'quantum': float_i18n(quantum) if quantum else None,
