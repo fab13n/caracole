@@ -9,6 +9,7 @@ from time import time
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
+from django.core.validators import MinValueValidator
 from django.db.models import Q, Sum, F
 from django.db.models.functions import Now, TruncDate
 from django.utils import timezone
@@ -38,7 +39,7 @@ class IdentifiedBySlug(models.Model):
             # Find every object whose slug starts with the computed prefix, and add a number suffix if needed.
             # Make sure to perform only one DB request.
             #
-            # Notice that this is only used on the first save of reasonably rarely created objects 
+            # Notice that this is only used on the first save of reasonably rarely created objects
             # (e.g. products and purchases aren't identified by slugs), so it's probably not worth
             # optimizing with text_pattern_ops DB indexes or the likes.
             slug_prefix = slug = self.slug_prefix()
@@ -91,7 +92,8 @@ class Mapped(models.Model):
 
 class FlorealUser(IdentifiedBySlug, Mapped):
     """
-    Associate a phone number to each user.
+    Application-specific data to associate with an Auth.User.
+    It's usually a bad idea to directly extend the User model, hence this 1-1 relationship.
     """
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -116,25 +118,30 @@ class FlorealUser(IdentifiedBySlug, Mapped):
 
     @cached_property
     def display_number(self):
-        if self.phone is None:
-            return None
-        n = "".join(k for k in self.phone if k.isdigit())
-        if len(n) == 10:
-            return " ".join(
-                n[i : i + 2] for i in range(0, len(n), 2)
-            )
-        else:
+        uri = self.uri
+        if uri is None:
             return self.phone
-    
+        elif uri.startswith("tel:+33"):
+            numbers = "0" + uri[8:]
+            pairs = (numbers[i : i + 2] for i in range(0, len(numbers), 2))
+            return " ".join(pairs)
+        else:
+            return uri[4:7] + " " + uri[7:] # Non-French number
+
     @cached_property
     def uri(self):
         if self.phone is None:
             return None
-        n = "".join(k for k in self.phone if k.isdigit())
-        if len(n) == 10:
-            return "tel:+33" + n[1:]
+        cleaned = "".join(k for k in self.phone if k.isdigit())
+        if self.phone.startswith("+"):
+            return "tel:+" + cleaned # International number
+        elif len(cleaned) == 10 and cleaned[0] == "0":
+            return "tel:+33" + cleaned[1:] # French number, with a leading 0
+        elif cleaned[0:2] == "00":
+            return "tel:+" + cleaned[2:] # International number with French dialing leading 00
         else:
-            return None
+            return None # We don't know
+
 
     @cached_property
     def has_some_admin_rights(self):
@@ -262,7 +269,7 @@ class Network(IdentifiedBySlug, Mapped):
     def save(self, **kwargs):
         s = [
             self.name,
-            self.short_description or "",   
+            self.short_description or "",
         ]
         if self.ville:
             s += [
@@ -349,7 +356,8 @@ class Product(models.Model):
     name = models.CharField(max_length=256)
     delivery = models.ForeignKey(Delivery, on_delete=models.CASCADE)
     price = models.DecimalField(decimal_places=2, max_digits=6)
-    quantity_per_package = models.IntegerField(null=True, blank=True)
+    # Can be null (unknown / not applicable) but must be a positive integer when set.
+    quantity_per_package = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1)])
     unit = models.CharField(max_length=256, null=True, blank=True)
     quantity_limit = models.IntegerField(null=True, blank=True)
     unit_weight = models.DecimalField(
@@ -391,7 +399,7 @@ class Product(models.Model):
 
     UNIT_TRANSLATE_REGEXP = re.compile(r"""
         ^
-        ([0-9]+) 
+        ([0-9]+)
         (?:  [,.]  ([0-9]+)  )?
         \s*
         ([A-Za-z]+)
@@ -406,7 +414,7 @@ class Product(models.Model):
             integral, frac, unit_name = rm.groups()
             # the separator may be a french "," rather than ".";
             # and we don't want to introduce extra ".0" suffix in integral values
-            value = float(integral + "." + frac) if frac else int(integral) 
+            value = float(integral + "." + frac) if frac else int(integral)
             unit_name = cls.UNIT_AUTO_TRANSLATE.get(unit_name.lower(), unit_name)
             if value == 1:
                 u = unit_name
@@ -503,7 +511,7 @@ class Purchase(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['user', 'product'], name='unique_purchase'),
         ]
-        
+
 class Bestof(models.Model):
     """
     Attempt to gamify the system: score users according to their absolute and relative cumulated purchases.
@@ -531,7 +539,7 @@ class Bestof(models.Model):
         ):
             r[pc.user_id] += pc.pp
         batch = [
-            cls(user_id=uid, total=total, rank=rank_from_0+1) 
+            cls(user_id=uid, total=total, rank=rank_from_0+1)
             for rank_from_0, (uid, total) in enumerate(
                 sorted(r.items(), key=lambda item: item[1], reverse=True)
         )]
