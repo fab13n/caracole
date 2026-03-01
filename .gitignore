@@ -10,5 +10,7 @@ venv*/
 /volumes/
 /static/
 postgresql
+.env
 .env.bash
+/civam-config/
 /media/

@@ -1,0 +1,71 @@
+# Configuration nginx HTTPS (production).
+#
+# Pour utiliser ce fichier :
+# 1. Copier vers deploy/https.conf (ou un autre emplacement selon votre docker-compose)
+# 2. Remplacer VOTRE_DOMAINE par votre nom de domaine réel
+# 3. Obtenir les certificats Let's Encrypt (voir ci-dessous)
+# 4. Passer PUBLIC_PROTO=https dans le .env
+#
+# Obtention initiale des certificats avec certbot :
+#   docker-compose run --rm certbot certonly --webroot \
+#     -w /var/www/certbot -d VOTRE_DOMAINE
+#
+# Le renouvellement est automatique via le service certbot du docker-compose.
+
+upstream django { server django_prod:8000; }
+
+# Redirection HTTP -> HTTPS
+server {
+    listen 80;
+    server_name VOTRE_DOMAINE;
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+
+    # Point de vérification pour le renouvellement des certificats Let's Encrypt
+    location ^~ /.well-known/acme-challenge/ {
+        default_type "text/plain";
+        root /var/www/certbot/;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name VOTRE_DOMAINE;
+
+    gzip on;
+    gzip_comp_level 6;
+
+    ssl_certificate     /etc/letsencrypt/live/VOTRE_DOMAINE/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/VOTRE_DOMAINE/privkey.pem;
+
+    location / {
+        # Décommenter la ligne suivante pour mettre le site en maintenance :
+        # return 503;
+
+        proxy_pass http://django;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_redirect off;
+    }
+
+    location /static/ {
+        alias /var/www/solalim/static/;
+    }
+
+    location /media/ {
+        alias /var/www/solalim/media/;
+    }
+}
+
+# Bloquer les requêtes avec un mauvais nom de serveur
+server {
+    listen 443 ssl default_server;
+    listen 80 default_server;
+    ssl_certificate     /etc/letsencrypt/live/VOTRE_DOMAINE/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/VOTRE_DOMAINE/privkey.pem;
+    location / {
+        return 403;
+    }
+}
