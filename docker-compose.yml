@@ -89,13 +89,14 @@ services:
       - SMTP_USER
       - SMTP_PASSWORD
       - DEBUG=True
+      - OPENAI_API_KEY
     ports:
       - 1234:8000
 
   # `docker-compose up init` will run this service to initialize the database and create a superuser.
   init:
     <<: *django_prod
-    restart: no
+    restart: "no"
     profiles: ["init"] # Don't run by default
     volumes:
       - ./manage.py:/home/solalim/manage.py
@@ -144,7 +145,7 @@ services:
       - ${VOLUMES}/certbot/www:/var/www/certbot
     environment:
       - PUBLIC_HOST
-      - CERTBOT_EMAIL
+      - CERTBOT_EMAIL=${CERTBOT_EMAIL:-}
     entrypoint: >
       /bin/sh -c '
         set -eu;

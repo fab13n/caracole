@@ -136,6 +136,48 @@ Les variables les plus importantes au-delà de celles du `.env` :
 - `ENV` : optionnel, utilisé par le docker-compose de production pour distinguer
   `prod` et `staging`.
 
+## Gestion des dépendances Python
+
+Deux fichiers complémentaires :
+
+| Fichier | Rôle |
+|---|---|
+| `requirements-python.txt` | Dépendances **directes** avec bornes de compatibilité (`~=`) |
+| `requirements-lock.txt` | `pip freeze` complet — versions **exactes** pour builds reproductibles |
+
+Le Dockerfile installe depuis `requirements-lock.txt` pour garantir que chaque
+build produit la même image, même si de nouvelles versions sont publiées sur PyPI.
+
+`requirements-python.txt` sert de référence lisible pour savoir quels packages
+sont des dépendances directes et quelles bornes de version sont acceptées.
+
+### Mettre à jour un package
+
+```bash
+# 1. Ajuster la borne dans requirements-python.txt, par exemple :
+#    Django~=5.2.2  →  Django~=5.3.0
+
+# 2. Rebuilder sans cache pour forcer pip à résoudre les nouvelles versions
+docker compose build --no-cache
+
+# 3. Tester l'application
+
+# 4. Regénérer le lock depuis l'image fraîchement construite
+docker run --rm solalim pip freeze > requirements-lock.txt
+
+# 5. Commiter les deux fichiers
+git add requirements-python.txt requirements-lock.txt
+git commit -m "Bump Django to 5.3.x"
+```
+
+### Rappel sur l'opérateur `~=`
+
+`Django~=5.2.2` signifie `>=5.2.2, <5.3.0` (correctifs OK, montée mineure bloquée).
+`wagtail~=7.0` signifie `>=7.0, <8.0` (mineures OK, montée majeure bloquée).
+
+GDAL est un cas à part : sa version doit correspondre exactement à celle de
+`libgdal-dev` dans l'image Debian. Elle est gérée séparément dans le Dockerfile.
+
 ## Dépannage
 
 - **La base de données n'est pas prête** : le service `init` attend 15 secondes

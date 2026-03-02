@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.13
 
 # Set environment varibles
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -19,8 +19,8 @@ RUN apt-get update &&\
 
 # TODO check whether libgrib-api-dev is required
 RUN pip install -U pip
-COPY requirements-python.txt /root/
-RUN pip install -r /root/requirements-python.txt
+COPY requirements-python.txt requirements-lock.txt /root/
+RUN pip install -r /root/requirements-lock.txt
 
 # Because there's s bug in setuptools/gdal compat
 # (https://stackoverflow.com/questions/69123406/error-building-pygdal-unknown-distribution-option-use-2to3-fixers-and-use-2)
